@@ -434,7 +434,7 @@ async function boot() {
     try { const r = await fetch('/api/auth/me'); me = await r.json(); }
     catch { if (i < 2) await new Promise(r => setTimeout(r, 1500)); }
   }
-  if (me && me.ok) { $('#who').textContent = (me.nickname || me.phone || '') + '（' + (me.role === 'admin' ? '管理员' : '普通用户') + '）'; if (me.role === 'admin') isAdmin = true; }
+  if (me && me.ok) { const who = $('#who'); if (who) who.textContent = (me.nickname || me.phone || '') + '（' + (me.role === 'admin' ? '管理员' : '普通用户') + '）'; if (me.role === 'admin') isAdmin = true; }
   else if (me && !me.ok) { const gm = $('#gateMsg'); if (gm) gm.textContent = '当前未登录。请先用管理员手机号在电脑端登录。'; }
   else { const gm = $('#gateMsg'); if (gm) gm.textContent = '服务正在唤醒（免费服务器冷启动），请等几秒后刷新本页重试。'; }
   if (!isAdmin && adminToken()) { try { const t = await aget('/api/admin/summary'); if (t.ok && t.j.ok) isAdmin = true; } catch {} }
