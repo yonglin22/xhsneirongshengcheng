@@ -22,3 +22,5 @@ node_modules/
 nohup.out
 *.log
 .pm2/
+
+.claude/

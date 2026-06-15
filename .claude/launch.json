@@ -1,6 +1,0 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    { "name": "zhusha", "runtimeExecutable": "node", "runtimeArgs": ["--disable-warning=ExperimentalWarning", "server.js"], "port": 8787 }
-  ]
-}
