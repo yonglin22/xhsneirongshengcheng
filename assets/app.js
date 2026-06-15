@@ -153,12 +153,30 @@ window.syncAgentConfigsDown = async () => {
 /* 各动作积分单价（与服务端 price_rules 一致，用于「执行前」预检提示；服务端 402 仍是最终闸） */
 window.ACTION_COST = { text: 3, topic: 5, skeleton: 5, frame: 5, copy: 10, cover: 0, rule_query: 5, imgplan: 0, compliance: 0 };
 window.__balance = null; // 当前余额（accountNav 拉 me 时写入，每次扣费后刷新）
+/* 积分不足全局弹框：直接引导去充值（任何页面通用，内联样式不依赖额外 CSS）*/
+window.creditModal = function (need, bal) {
+  if (document.getElementById('agCreditMask')) return;
+  const m = document.createElement('div'); m.id = 'agCreditMask';
+  m.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(17,19,24,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML = '<div style="background:var(--paper,#fff);border-radius:18px;width:min(360px,92vw);padding:24px 22px;box-shadow:0 30px 70px -20px rgba(0,0,0,.5);text-align:center">'
+    + '<div style="font-size:34px">💎</div>'
+    + '<div style="font-size:17px;font-weight:800;margin-top:6px;color:var(--ink,#222)">积分不足</div>'
+    + '<div style="font-size:13px;color:var(--ink-soft,#9499a0);line-height:1.7;margin-top:8px">本次约需 <b style="color:var(--cinnabar,#ff2442)">' + (need ?? '') + '</b> 积分，当前余额 <b>' + (bal ?? 0) + '</b>。<br>充值后即可继续生成。</div>'
+    + '<div style="display:flex;gap:10px;margin-top:18px">'
+    + '<button id="agCreditCancel" style="flex:1;height:42px;border-radius:999px;border:1px solid var(--line,#eee);background:var(--paper,#fff);color:#555;font-size:14px;cursor:pointer">再想想</button>'
+    + '<a href="/充值.html" style="flex:1;height:42px;border-radius:999px;background:var(--cinnabar,#ff2442);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;text-decoration:none">去充值 →</a>'
+    + '</div></div>';
+  document.body.appendChild(m);
+  const close = () => m.remove();
+  m.addEventListener('click', e => { if (e.target === m || e.target.id === 'agCreditCancel') close(); });
+};
 /* ---- 调用 Claude（经本地代理 /api/claude，key 在服务端）---- */
 window.callClaude = async function ({ system, prompt, model, max_tokens = 2000, json = false, action }) {
   // A1/B1：执行「前」预检余额，不足直接提示充值、不发起请求（避免执行中才弹）
   const cost = (action && window.ACTION_COST[action] != null) ? window.ACTION_COST[action] : window.ACTION_COST.text;
   if (cost > 0 && window.__balance != null && window.__balance < cost) {
-    throw new Error('积分不足：本次约需 ' + cost + ' 积分，当前余额 ' + window.__balance + '。请先到「账户」充值后再生成。');
+    try { window.creditModal(cost, window.__balance); } catch {}
+    throw new Error('积分不足：本次约需 ' + cost + ' 积分，当前余额 ' + window.__balance + '。请先充值后再生成。');
   }
   const res = await fetch('/api/claude', {
     method: 'POST',
@@ -178,7 +196,7 @@ window.callClaude = async function ({ system, prompt, model, max_tokens = 2000, 
     let msg = parsed?.error?.message || parsed?.error || text;
     const code = parsed?.code;
     if (res.status === 401 && code === 'NEED_LOGIN') msg = '请先到「账户」页登录再生成';
-    else if (res.status === 402) msg = `积分不足，请去「账户」充值（本次需 ${parsed?.need ?? ''}，余额 ${parsed?.balance ?? ''}）`;
+    else if (res.status === 402) { try { window.creditModal(parsed?.need, parsed?.balance); } catch {} msg = `积分不足，请去充值（本次需 ${parsed?.need ?? ''}，余额 ${parsed?.balance ?? ''}）`; }
     else if (res.status === 401 || res.status === 403) msg = '上游模型拒绝请求（API key 失效 / 欠费 / 被风控）。请在 .env 换一把有效的 ANTHROPIC_API_KEY 或更换模型后重启服务。原始：' + String(msg).slice(0, 80);
     else if (res.status === 0 || /Failed to fetch/.test(msg)) msg = '连不上本地服务，请先运行 node server.js';
     throw new Error('HTTP ' + res.status + ' · ' + String(msg).slice(0, 200));
