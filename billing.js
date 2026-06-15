@@ -1,14 +1,45 @@
 // 积分计费核心：账号 + 钱包 + 流水 + 订单 + 定价。用 Node 内置 node:sqlite（需 Node ≥ 22）。
 // 单进程同步执行，天然无并发竞争；事务用 BEGIN/COMMIT 保证原子与回滚。
-const { DatabaseSync } = require('node:sqlite');
+// 用 Turso 官方 libsql 驱动：同步 API、与 better-sqlite3 兼容，原 75 处 db.prepare/exec 调用一行不用改。
+const Database = require('libsql');
 const crypto = require('crypto');
 const path = require('path');
 
-// DB 路径可配置：Render 等容器磁盘是临时的，重部署会清空数据 → 挂持久化磁盘后用 DB_PATH 指过去（如 /var/data/billing.db）即可保住用户/作品/积分。
+// 配了 TURSO_DATABASE_URL/TOKEN → 走 Turso 云端「嵌入式副本」：本地 DB_PATH 做缓存、与云端双向同步，
+// 容器重部署清空本地也能从云端拉回，数据永不丢；没配 TURSO 时退回纯本地文件（开发/自托管）。
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'billing.db');
-const db = new DatabaseSync(DB_PATH);
-db.exec('PRAGMA journal_mode = WAL;');
-console.log('  [billing] 数据库:', DB_PATH);
+const TURSO_URL = (process.env.TURSO_DATABASE_URL || '').trim();
+const TURSO_TOKEN = (process.env.TURSO_AUTH_TOKEN || '').trim();
+const USE_TURSO = /^libsql:|^https?:/.test(TURSO_URL);
+
+let db;
+if (USE_TURSO) {
+  db = new Database(DB_PATH, { syncUrl: TURSO_URL, authToken: TURSO_TOKEN });
+  try { db.sync(); console.log('  [billing] Turso 已同步 ←', TURSO_URL.replace(/\?.*$/, '')); }
+  catch (e) { console.error('  [billing] Turso 首次同步失败（暂用本地副本）:', e.message); }
+} else {
+  db = new Database(DB_PATH);
+  db.exec('PRAGMA journal_mode = WAL;');
+}
+console.log('  [billing] 数据库:', DB_PATH, USE_TURSO ? '(Turso 嵌入式副本)' : '(本地文件)');
+
+// Turso 写后同步：拦截写操作打脏标记 → 定时 flush + 退出时 flush，把本地写入推送到云端（无需改 75 个调用点）
+if (USE_TURSO) {
+  let _dirty = false;
+  const flush = () => { if (!_dirty) return; try { db.sync(); _dirty = false; } catch (e) { console.error('  [billing] Turso sync:', e.message); } };
+  const _prepare = db.prepare.bind(db);
+  db.prepare = (sql) => {
+    const st = _prepare(sql);
+    if (/^\s*(INSERT|UPDATE|DELETE|REPLACE)/i.test(sql)) { const _run = st.run.bind(st); st.run = (...a) => { const r = _run(...a); _dirty = true; return r; }; }
+    return st;
+  };
+  const _exec = db.exec.bind(db);
+  db.exec = (sql) => { const r = _exec(sql); if (/INSERT|UPDATE|DELETE|REPLACE|COMMIT|CREATE|ALTER|DROP/i.test(sql)) _dirty = true; return r; };
+  const t = setInterval(flush, 1500); if (t.unref) t.unref();
+  process.on('SIGTERM', () => { flush(); process.exit(0); });
+  process.on('SIGINT', () => { flush(); process.exit(0); });
+  process.on('beforeExit', flush);
+}
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users(

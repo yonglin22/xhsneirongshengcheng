@@ -12,6 +12,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "libsql": "^0.5.29",
     "officeparser": "^4.1.1"
   }
 }

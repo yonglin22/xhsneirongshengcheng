@@ -70,3 +70,8 @@ services:
         sync: false
       - key: PUBLIC_BASE_URL     # 先填 Render 给的 https://xxx.onrender.com
         sync: false
+      # —— Turso 云端数据库（持久化：填了就不再因重部署清空用户/作品/积分）——
+      - key: TURSO_DATABASE_URL  # 形如 libsql://xxx.turso.io
+        sync: false
+      - key: TURSO_AUTH_TOKEN    # turso db tokens create 生成
+        sync: false
