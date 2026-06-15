@@ -109,12 +109,36 @@ function smsRateLimit(phone, ip) {
 async function sendSms(phone, code) {
   const p = (process.env.SMS_PROVIDER || '').toLowerCase();
   if (p === 'tencent') return sendSmsTencent(phone, code);
+  if (p === 'aliyun') return sendSmsAliyun(phone, code);
   if (process.env.SMS_WEBHOOK_URL) {
     const r = await fetch(process.env.SMS_WEBHOOK_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, code, sign: process.env.SMS_SIGN || '', template: process.env.SMS_TEMPLATE || '' }) });
     if (!r.ok) throw new Error('SMS webhook ' + r.status);
     return;
   }
   throw new Error('SMS_PROVIDER=' + p + ' 未接入：设 SMS_PROVIDER=tencent（配腾讯云参数）或 SMS_WEBHOOK_URL');
+}
+// 阿里云短信 SendSms（RPC 风格 HMAC-SHA1 签名，零依赖）
+async function sendSmsAliyun(phone, code) {
+  const KID = process.env.ALIYUN_ACCESS_KEY_ID, KSEC = process.env.ALIYUN_ACCESS_KEY_SECRET;
+  const SIGN = process.env.ALIYUN_SMS_SIGN, TPL = process.env.ALIYUN_SMS_TEMPLATE;
+  const paramKey = process.env.ALIYUN_SMS_PARAM_KEY || 'code'; // 模板变量名，默认 ${code}
+  if (!KID || !KSEC || !SIGN || !TPL) throw new Error('阿里云短信参数不全（需 ALIYUN_ACCESS_KEY_ID/SECRET、ALIYUN_SMS_SIGN/TEMPLATE）');
+  const enc = s => encodeURIComponent(s).replace(/\+/g, '%20').replace(/\*/g, '%2A').replace(/%7E/g, '~');
+  const params = {
+    AccessKeyId: KID, Action: 'SendSms', Format: 'JSON', PhoneNumbers: String(phone),
+    RegionId: 'cn-hangzhou', SignName: SIGN, SignatureMethod: 'HMAC-SHA1',
+    SignatureNonce: crypto.randomUUID(), SignatureVersion: '1.0', TemplateCode: TPL,
+    TemplateParam: JSON.stringify({ [paramKey]: String(code) }),
+    Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'), Version: '2017-05-25'
+  };
+  const canon = Object.keys(params).sort().map(k => enc(k) + '=' + enc(params[k])).join('&');
+  const stringToSign = 'GET&' + enc('/') + '&' + enc(canon);
+  const sig = crypto.createHmac('sha1', KSEC + '&').update(stringToSign).digest('base64');
+  const url = 'https://dysmsapi.aliyuncs.com/?Signature=' + enc(sig) + '&' + canon;
+  const r = await fetch(url);
+  const j = await r.json().catch(() => ({}));
+  if (j.Code !== 'OK') throw new Error('阿里云 ' + (j.Code || '') + '：' + (j.Message || '发送失败'));
+  return true;
 }
 // 腾讯云短信 SendSms（API v3，TC3-HMAC-SHA256 签名，零依赖）
 async function sendSmsTencent(phone, code) {
