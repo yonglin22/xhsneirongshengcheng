@@ -128,7 +128,7 @@ function card(t, i) {
   return `<div class="card p-5 relative ${rec ? 'sm:col-span-2' : ''}" style="${rec ? 'border-color:rgba(210,59,39,.4)' : ''}">
     ${rec ? '<span class="stamp absolute -top-2.5 left-5 text-[11px] px-2 py-1 leading-none">最推荐先做</span>' : ''}
     <div class="flex items-start justify-between gap-2.5 ${rec ? 'mt-1.5' : ''}">
-      <div class="font-song font-bold text-[16px] leading-snug">${mark(t.topic || '')}</div>
+      <div class="flex-1 min-w-0 font-song font-bold text-[16px] leading-snug" style="word-break:break-word">${mark(t.topic || '')}</div>
       ${t.layer ? `<span class="shrink-0 text-[10.5px] px-2 py-1 leading-none rounded-full whitespace-nowrap" style="${layerStyle(t.layer)}">${mark(t.layer)}</span>` : ''}
     </div>
     <div class="space-y-1.5 text-[13px] text-[var(--ink-soft)] leading-relaxed mt-2.5">
