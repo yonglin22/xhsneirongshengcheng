@@ -1,0 +1,20 @@
+[Unit]
+Description=XHS Collector (小红书采集服务)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=collector
+WorkingDirectory=/opt/xhs-collector
+# 改成你设的强随机密钥（要和 Render 的 COLLECTOR_TOKEN 一致）
+Environment=COLLECTOR_TOKEN=换成你的强随机密钥
+Environment=COLLECTOR_PORT=8799
+# pipx 装的 xhs 在 ~/.local/bin；用 collector 用户的家目录
+Environment=PATH=/home/collector/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/bin/node /opt/xhs-collector/collector.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

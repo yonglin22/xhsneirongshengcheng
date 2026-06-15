@@ -1,0 +1,11 @@
+# Caddy 自动 HTTPS 反代采集服务。把 collector.yonglin.chat 的 DNS A 记录指向本 VPS 公网 IP 即可。
+# 安装 Caddy：https://caddyserver.com/docs/install  （Ubuntu: apt install caddy）
+# 用法：把本文件内容写进 /etc/caddy/Caddyfile，然后 systemctl reload caddy
+# Caddy 会自动申请 Let's Encrypt 证书（需 80/443 端口可达；香港 VPS 无需备案）。
+
+collector.yonglin.chat {
+    reverse_proxy 127.0.0.1:8799
+    encode gzip
+    # 可选：限制只允许 Render 出口访问可加 IP 白名单，但 Render 出口 IP 不固定，
+    # 安全主要靠 COLLECTOR_TOKEN（采集服务侧已校验 x-collector-token）。
+}
