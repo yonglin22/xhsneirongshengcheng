@@ -772,14 +772,14 @@ const server = http.createServer(async (req, res) => {
       if (!url || !/^https?:\/\//i.test(url)) {
         return send(res, 400, JSON.stringify({ ok: false, error: '请提供有效链接（http/https）' }), { 'content-type': 'application/json' });
       }
-      const r = await fetch(url, {
-        redirect: 'follow',
-        headers: {
-          'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-          'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'accept-language': 'zh-CN,zh;q=0.9',
-        },
-      });
+      const fnCookie = (process.env.XHS_COOKIE || '').trim(); // 线上带登录 Cookie，部分笔记详情页需要登录态才出正文/多图
+      const fnHdr = {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'accept-language': 'zh-CN,zh;q=0.9',
+      };
+      if (fnCookie) fnHdr.cookie = fnCookie;
+      const r = await fetch(url, { redirect: 'follow', headers: fnHdr });
       const html = await r.text();
       const finalUrl = r.url || url;
       const pick = re => { const m = html.match(re); return m ? m[1] : ''; };
@@ -985,9 +985,10 @@ const server = http.createServer(async (req, res) => {
       const wxReady = !!(process.env.WXPAY_MCHID && process.env.WXPAY_APIV3_KEY);
       return sendJSON(res, 200, {
         ok: true, mode: wxReady ? 'wxnative' : 'manual',
-        wechatQr: process.env.PAY_WECHAT_QR || '', wechatId: process.env.PAY_WECHAT_ID || '',
-        supportQr: process.env.SUPPORT_WECHAT_QR || process.env.PAY_WECHAT_QR || '',
-        supportId: process.env.SUPPORT_WECHAT_ID || process.env.PAY_WECHAT_ID || '',
+        // 默认指向仓库内已提交的二维码图，无需配 env 也能显示；配了 env 则覆盖
+        wechatQr: process.env.PAY_WECHAT_QR || '/assets/pay-qr.png', wechatId: process.env.PAY_WECHAT_ID || '',
+        supportQr: process.env.SUPPORT_WECHAT_QR || process.env.PAY_WECHAT_QR || '/assets/support-qr.png',
+        supportId: process.env.SUPPORT_WECHAT_ID || process.env.PAY_WECHAT_ID || 'Syl18268346784',
         note: process.env.PAY_NOTE || '付款后把「订单号 + 手机号」发客服，管理员后台为你开通积分（通常几分钟内到账）。',
         devPay: process.env.NODE_ENV !== 'production',
       });
