@@ -2,6 +2,17 @@
 window.$  = (s, r = document) => r.querySelector(s);
 window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
 
+/* ===== 移动端守卫：核心创作页（大屏工具）在手机/微信内置浏览器上 → 引导去电脑端 =====
+   轻页（账户/充值/邀请有礼/帮助/登录/落地）仍可手机使用。*/
+(function () {
+  try {
+    if (!/Android|iPhone|iPod|iPad|Mobile|MicroMessenger/i.test(navigator.userAgent)) return;
+    const heavy = ['home', 'pipeline', 'preview', 'compliance', 'agent', 'admin'];
+    const page = (document.body && document.body.getAttribute('data-page')) || '';
+    if (heavy.includes(page)) { location.replace('/请用电脑.html'); }
+  } catch (e) {}
+})();
+
 /* ===== 全站登录守卫：未登录 → 跳登录页（带 next 回跳）=====
    公开放行：登录页本身、管理后台（独立令牌）、嵌入态（?embed=1，如流水线里的选题 iframe）。
    登录前先隐藏页面，避免受保护内容闪现；登录确认或放行后再显示。*/

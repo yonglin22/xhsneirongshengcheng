@@ -32,7 +32,7 @@
   <div id="gate" class="card p-6 hidden">
     <div class="font-song font-bold text-[15px] mb-2">需要管理员身份</div>
     <p class="text-[13px] text-[var(--ink-soft)] mb-4">本页仅限<strong>管理员账号</strong>访问。请用管理员手机号登录后再进入。</p>
-    <a href="/账户.html" class="btn-go rounded-lg px-5 py-2.5 text-[13px] inline-block">去登录 →</a>
+    <a href="/登录.html?next=/管理.html" class="btn-go rounded-lg px-5 py-2.5 text-[13px] inline-block">去登录 →</a>
     <div id="gateMsg" class="text-[12px] text-[var(--ink-soft)] mt-3"></div>
   </div>
 
@@ -57,7 +57,7 @@
   </div>
 </main>
 
-<script src="/assets/app.js?v=31"></script>
+<script src="/assets/app.js?v=32"></script>
 <script src="/assets/help-kb.js?v=4"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -428,8 +428,13 @@ $('#navSeg').querySelectorAll('button').forEach(b => b.addEventListener('click',
 
 async function boot() {
   // 先看是否管理员（手机号登录）；否则看 token 能否拉通
-  let isAdmin = false;
-  try { const me = await (await fetch('/api/auth/me')).json(); if (me.ok) { $('#who').textContent = (me.nickname || me.phone || '') + '（' + (me.role === 'admin' ? '管理员' : '普通用户') + '）'; if (me.role === 'admin') isAdmin = true; } } catch {}
+  let isAdmin = false, me = null;
+  // 容错：Render 免费档冷启动首个请求可能慢/失败，重试一次再判定
+  for (let i = 0; i < 2 && !me; i++) {
+    try { me = await (await fetch('/api/auth/me')).json(); } catch { if (i === 0) await new Promise(r => setTimeout(r, 1500)); }
+  }
+  if (me && me.ok) { $('#who').textContent = (me.nickname || me.phone || '') + '（' + (me.role === 'admin' ? '管理员' : '普通用户') + '）'; if (me.role === 'admin') isAdmin = true; }
+  else if (me && !me.ok) { const gm = $('#gateMsg'); if (gm) gm.textContent = '当前未登录。请先用管理员手机号在电脑端登录。'; }
   if (!isAdmin && adminToken()) { const t = await aget('/api/admin/summary'); if (t.ok && t.j.ok) isAdmin = true; }
   if (isAdmin) {
     $('#gate').classList.add('hidden'); $('#adminBody').classList.remove('hidden');

@@ -136,7 +136,10 @@ const NEXT = (() => {
   if (n && /^\/[^/]/.test(n) && !n.startsWith('//')) return n;
   return '/';
 })();
-(async () => { const { j } = await api('/api/auth/me'); if (j && j.ok) location.replace(NEXT); })();
+// 移动端（含微信内置浏览器）：登录后不进 PC 工作台，引导去电脑端
+const IS_MOBILE = /Android|iPhone|iPod|iPad|Mobile|MicroMessenger/i.test(navigator.userAgent);
+const goAfterLogin = () => location.replace(IS_MOBILE ? '/请用电脑.html' : NEXT);
+(async () => { const { j } = await api('/api/auth/me'); if (j && j.ok) goAfterLogin(); })();
 
 // ICP/公安 备案号页脚（备案通过、服务端配了 ICP_BEIAN 才显示）
 (async () => {
@@ -177,7 +180,7 @@ async function doLogin() {
   if (j.ok) {
     if (j.isNew) { $('#codeHint').innerHTML = `🎉 注册成功，赠送 <b>${j.grant}</b> 积分，正在进入…`; $('#codeHint').style.color = '#00a052'; }
     else { $('#codeHint').textContent = '登录成功，正在进入…'; $('#codeHint').style.color = '#00a052'; }
-    setTimeout(() => location.replace(NEXT), j.isNew ? 700 : 250);
+    setTimeout(goAfterLogin, j.isNew ? 700 : 250);
   } else {
     $('#loginBtn').disabled = false; $('#loginBtn').textContent = old;
     $('#codeHint').textContent = j.error || '登录失败'; $('#codeHint').style.color = 'var(--cinnabar-deep)';
