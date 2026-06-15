@@ -20,7 +20,7 @@ services:
       - key: BILLING_ENABLED
         value: "true"
       - key: SIGNUP_GRANT_CREDITS
-        value: "20"
+        value: "200"
       # —— 客服/收款（指向仓库内已提交的二维码图，非密钥，可直接固化）——
       - key: PAY_WECHAT_QR
         value: /assets/pay-qr.png
