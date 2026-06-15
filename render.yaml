@@ -1,0 +1,65 @@
+# Render 部署蓝图：连上 GitHub 仓库后，Render 会按此自动建服务。
+# 密钥类（sync:false）不写在仓库里，需在 Render 面板手动填。
+services:
+  - type: web
+    name: zhusha
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node --disable-warning=ExperimentalWarning server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # —— 非密钥：可直接固化 ——
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: BILLING_ENABLED
+        value: "true"
+      - key: SIGNUP_GRANT_CREDITS
+        value: "20"
+      - key: API_FORMAT
+        value: openai
+      - key: ANTHROPIC_BASE_URL
+        value: https://api.deepseek.com
+      - key: ANTHROPIC_AUTH_STYLE
+        value: bearer
+      - key: MODEL
+        value: deepseek-chat
+      - key: ZHIPU_IMAGE_MODEL
+        value: cogview-4
+      - key: SEEDREAM_MODEL
+        value: doubao-seedream-5-0-260128
+      - key: SEEDREAM_SIZE
+        value: 1728x2304
+      - key: SEEDREAM_BASE_URL
+        value: https://ark.cn-beijing.volces.com/api/v3
+      - key: KLING_BASE_URL
+        value: https://api.klingai.com
+      - key: KLING_MODEL
+        value: kling-v1
+      # —— 会话密钥：Render 自动生成强随机 ——
+      - key: SESSION_SECRET
+        generateValue: true
+      # —— 以下密钥/敏感项：在 Render 面板手动填（sync:false）——
+      - key: ANTHROPIC_API_KEY   # DeepSeek key（轮换后的新值）
+        sync: false
+      - key: ZHIPU_API_KEY
+        sync: false
+      - key: SEEDREAM_API_KEY
+        sync: false
+      - key: KLING_ACCESS_KEY
+        sync: false
+      - key: KLING_SECRET_KEY
+        sync: false
+      - key: EXA_API_KEY
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: ADMIN_PHONES
+        sync: false
+      - key: PUBLIC_BASE_URL     # 先填 Render 给的 https://xxx.onrender.com
+        sync: false
