@@ -1,0 +1,17 @@
+{
+  "name": "art-grad-xhs-studio",
+  "version": "0.2.0",
+  "private": true,
+  "description": "美术考研小红书笔记智能体 · 操盘台前端 + 本地代理",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning server.js",
+    "prod": "NODE_ENV=production node --disable-warning=ExperimentalWarning server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "officeparser": "^4.1.1"
+  }
+}

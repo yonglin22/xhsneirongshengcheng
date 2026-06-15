@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+</head>
+<body class="stage grain min-h-screen" data-page="pipeline">
+
+<!-- 旧 header 已移除：导航由全局外壳（左边栏+顶栏）统一承载 -->
+<main class="ag-page">
+
+  <a href="/" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 返回工作台</a>
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">第一步 → 第七步 · 一条流水线</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02;letter-spacing:-.02em">创作<span class="italic" style="color:var(--cinnabar)">流水线</span></h1>
+  </div>
+
+  <!-- 当前选题（没选题可手写，或一键生成选题方向）-->
+  <div class="card p-4 mb-6">
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="stamp text-[11px] px-2 py-1 leading-none shrink-0">选题</span>
+      <input id="topic" class="field flex-1 min-w-[240px] rounded-lg px-3.5 py-2 text-[14px]" placeholder="没有选题？直接在此手写本篇选题，或点右侧「✶ 生成选题」" />
+      <select id="model" class="field rounded-lg px-3 py-2 text-[12px] hidden">
+        <option value="claude-opus-4-8">Opus 4.8</option>
+        <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+        <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+      </select>
+      <button id="genTopicBtn" class="btn-go rounded-lg px-3.5 py-2 text-[12px]">✶ 生成选题方向</button>
+      <button id="histBtn" class="btn-ghost rounded-lg px-3 py-2 text-[12px]">📋 历史记录</button>
+      <button id="resetBtn" class="btn-ghost rounded-lg px-3 py-2 text-[12px]">清空本篇</button>
+    </div>
+    <div class="text-[11px] text-[var(--ink-soft)] mt-2">没有选题？直接手写，或点「✶ 生成选题方向」用选题智能体（三层漏斗 / 热点）生成，选完自动带回这里。</div>
+  </div>
+  <div id="autoStatus" class="text-[12px] text-[var(--ink-soft)] -mt-4 mb-5 min-h-[16px]"></div>
+
+  <div class="grid lg:grid-cols-[230px_1fr] gap-7 items-start">
+
+    <!-- 步骤轨（吸顶跟随滚动）-->
+    <aside class="card p-2.5" style="position:sticky;top:74px">
+      <div id="rail" class="space-y-1"></div>
+      <div class="border-t hairline mt-2.5 pt-2.5 px-1.5 pb-1 space-y-1.5">
+        <a id="toPreview" href="/成稿预览.html" class="btn-go rounded-lg w-full block text-center py-2.5 text-[13px] font-medium">去成稿预览 →</a>
+        <a id="toCompliance" href="/合规自检.html" class="btn-ghost rounded-lg w-full block text-center py-2.5 text-[13px]">去合规自检 →</a>
+      </div>
+    </aside>
+
+    <!-- 当前步骤 -->
+    <section id="panel" class="space-y-4"></section>
+  </div>
+
+  <footer class="mt-12 pt-6 border-t hairline flex flex-wrap items-center justify-between gap-3 text-[11px] text-[var(--ink-soft)]">
+    <span>S2 对标拆解只看你提供的参考 · 正文原创化、不洗稿 · 不确定标 <span class="needverify">需核实</span></span>
+    <span class="font-song">⛔ 成稿后仍需 S8 合规自检 + 运营终审</span>
+  </footer>
+</main>
+
+<!-- 悬浮：一键按对标生成全套 -->
+<button id="autoBtn" class="btn-go font-medium" style="position:fixed;right:26px;bottom:90px;z-index:40;border-radius:999px;padding:14px 24px;font-size:14px;box-shadow:0 10px 30px -6px rgba(255,36,66,.55);white-space:nowrap">▶ 一键按对标生成全套</button>
+
+<!-- 生成选题方向弹窗（嵌入原版选题智能体，三层漏斗/热点）-->
+<div id="topicModal" style="display:none;position:fixed;inset:0;z-index:140;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px">
+  <div style="width:min(1080px,96vw);height:88vh;background:var(--paper);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px -16px rgba(0,0,0,.4)">
+    <div class="flex items-center justify-between px-4 py-2.5" style="border-bottom:1px solid var(--line)">
+      <div class="font-song font-bold text-[14px]">✶ 生成选题方向 · 选题智能体（三层漏斗 / 热点）</div>
+      <button id="topicModalClose" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">关闭</button>
+    </div>
+    <iframe id="topicFrame" title="选题" style="flex:1;border:none;width:100%"></iframe>
+  </div>
+</div>
+
+<!-- 历史记录弹窗 -->
+<div id="histModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.38);align-items:center;justify-content:center;padding:20px">
+  <div class="card" style="width:min(680px,94vw);max-height:84vh;display:flex;flex-direction:column;overflow:hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b hairline">
+      <div class="font-song font-bold text-[16px]">📋 创作流水线 · 历史记录</div>
+      <button id="histClose" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">关闭</button>
+    </div>
+    <div id="histList" class="p-4 space-y-2.5 overflow-y-auto"></div>
+  </div>
+</div>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=30"></script>
+<script>
+// 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
+const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
+const dispNo = no => STEP_DISP[no] || no;
+const STEPS = [
+  { no:'S2', key:'skeleton', name:'对标拆解', type:'text', input:'ref',
+    uses: s => '本篇选题 + 你粘贴的对标笔记',
+    prompt: s => `仅基于用户提供的这篇对标笔记拆解（不臆测平台数据，不照抄原文）：
+【本篇选题】${s.topic}
+【对标笔记】${s.ref}
+请逐项给：①选题角度切的痛点 ②标题钩子 ③开头前3行怎么抓人 ④正文结构分块与节奏 ⑤【逐张图片拆解】不只看封面——对标的每一张图都拆：这张图上的实际文字内容（标题/要点/数字照实列）、版式形式（封面大字/编号清单/前后对比/数据）、可复用的呈现方式 ⑥一句话总结「可能为什么有效」+ 哪些是可借鉴的方法。最后产出一份可复用的「结构骨架」（分点列出，并标明每张图该放什么内容），供本篇借鉴。直接输出中文文本，不要代码块。` },
+  { no:'S3', key:'frame', name:'框架', type:'text',
+    uses: s => '选题 + S2 结构骨架',
+    prompt: s => `为下面这个${getTrack().domain}选题设计本篇结构骨架：
+【选题】${s.topic}
+【可借鉴的结构骨架(S2)】${s.skeleton || '（无，按常见好结构搭）'}
+给：开头钩子(2个方向)、主体分几段每段讲什么(结合${getTrack().domain}真实信息点，不确定标「需核实」)、结尾合规互动引导(不导流站外)。只输出骨架文本，不写完整正文，不要代码块。` },
+  { no:'S4', key:'copy', name:'正文·标题·标签', type:'json',
+    uses: s => '选题 + S3 框架',
+    prompt: s => `按下面框架，一次性产出本篇的【正文 + 标题候选 + 标签】（用过来人第一人称，真人感，避免明显 AI 腔）：
+【选题】${s.topic}
+【框架(S3)】${s.frame || '（无，自行合理组织）'}
+要求：
+· 正文：开头前3行必须是钩子不铺垫；分点/分段、口语、emoji 适度；信息真实，涉及${getTrack().hardInfo}等硬信息一律写「需核实」；原创不与对标实质相似；结尾一句合规互动引导，不留任何联系方式。
+· 标题：给 3–5 个，≤20字、带钩子(痛点/数字/身份/悬念)，不标题党/不绝对化/不做上岸保证，并选出最推荐的一个。
+· 标签：5–8 个，3 个大流量(如 ${getTrack().bigTags.join(' ')}) + 若干精准(细分/地域/痛点)，剔除凑数。
+只输出 JSON：{"body":["段落1","段落2","..."],"titles":["标题1","..."],"best":"最推荐标题","tags":["#标签1","..."]}` },
+  { no:'S5', key:'cover', name:'封面·配图', type:'json',
+    uses: s => 'S3 框架·封面规划',
+    prompt: s => { const fc = (typeof frameSliceForImage === 'function' && frameSliceForImage(1)) || ''; return `给这篇做封面方案，==必须与下面 S3 框架里"第1张(封面)"的规划保持一致==：文案用它「文字/主标题」的意思，视觉建议照搬它「版式/画面/配色」的描述（背景色、高亮色、关键词、构图都要对上），不要另起炉灶、不要编造。
+${fc ? '【S3 框架·封面(第1张)规划】\n' + fc : '【提示】S3 框架里没找到第1张(封面)规划，请先去跑 S3 并写清"配图规划：第1张(封面)…"'}
+【选题】${s.topic}
+输出：cover_lines = 封面文案2行(每行≤12字，取自上面规划的主标题/副标题)；visual = 视觉与构图建议(背景色/高亮关键词/构图，与上面规划一致)。
+只输出 JSON：{"cover_lines":["第一行","第二行"],"visual":"视觉与构图建议"}`; } },
+];
+
+const newRunId = () => 'r' + Date.now() + Math.random().toString(36).slice(2, 7);
+// 入口意图：?new=1（侧栏「开始创作笔记」/ Hero「开始创作」/「创作流水线」卡 / 新手引导）→ 开新篇、清掉上一篇草稿；
+// 其它入口（我的作品续写、流水线内跳转、模板带选题）沿用当前草稿。
+(function () { try { if (new URLSearchParams(location.search).get('new') === '1') { Draft.clear(); ['ag_topic', 'ag_persona', 'ag_direction'].forEach(k => { try { localStorage.removeItem(k); } catch {} }); history.replaceState(null, '', location.pathname); } } catch {} })();
+let state = Object.assign({ topic:'', ref:'' }, Draft.load());
+// 打开已有进度时，定位到「第一个未完成步骤」作为创作落点（从首页作品点进来直接到当前步）
+function landingStep() {
+  try {
+    // 已完成（有封面/配图）→ 直接定位到第五步「封面·配图」（最后一步），方便复看/重出图
+    const hasImgs = (state.coverImages && state.coverImages.length) || state.coverImage;
+    const coverIdx = STEPS.findIndex(st => st.no === 'S5');
+    if (hasImgs && coverIdx >= 0) return coverIdx;
+    const fi = STEPS.findIndex(st => !doneOf(state, st));
+    return fi < 0 ? Math.max(0, STEPS.length - 1) : fi;
+  } catch { return 0; }
+}
+if (!state._runId) state._runId = newRunId();
+let cur = landingStep();
+$('#topic').value = state.topic || '';
+$('#model').value = localStorage.getItem('ag_model') || 'claude-opus-4-8';
+$('#topic').addEventListener('input', e => { state.topic = e.target.value; persist(); });
+
+// 选题已并入流水线：「✶ 生成选题方向」弹框内用原版选题智能体（三层漏斗/热点·逻辑不变，iframe 嵌入），
+// 选中后回传到本页填入选题、关弹框，不跳页。
+const tModal = $('#topicModal'), tFrame = $('#topicFrame');
+$('#genTopicBtn')?.addEventListener('click', () => {
+  if (tFrame && !tFrame.getAttribute('src')) tFrame.setAttribute('src', '/选题.html?embed=1');
+  if (tModal) tModal.style.display = 'flex';
+});
+$('#topicModalClose')?.addEventListener('click', () => { if (tModal) tModal.style.display = 'none'; });
+tModal?.addEventListener('click', e => { if (e.target === tModal) tModal.style.display = 'none'; });
+window.addEventListener('message', e => {
+  if (e.data && e.data.type === 'pickTopic' && e.data.topic) {
+    $('#topic').value = e.data.topic; state.topic = e.data.topic; persist();
+    if (tModal) tModal.style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const st = $('#autoStatus'); if (st) { st.textContent = '✓ 已选定选题，下面从第二步「对标拆解」开始'; st.style.color = '#00a052'; }
+  }
+});
+$('#model').addEventListener('change', e => localStorage.setItem('ag_model', e.target.value));
+$('#resetBtn').addEventListener('click', () => { if (confirm('清空本篇？当前进度已自动存入「历史记录」，可随时找回。')) { state = { topic:'', ref:'', _runId: newRunId() }; Draft.clear(); Draft.save(state); $('#topic').value=''; cur=0; renderRail(); renderPanel(); } });
+// 跳成稿预览 / 合规自检前，把当前篇存进草稿 → 目标页自动导入这篇（无需手动筛选）
+$('#toPreview')?.addEventListener('click', () => Draft.save(state));
+$('#toCompliance')?.addEventListener('click', () => Draft.save(state));
+
+// ===== 创作流水线 · 历史记录（每篇自动存档，可重开/删除）=====
+function doneOf(st, step) {
+  if (step.key === 'copy') return !!(st.body && st.body.length); // 合并步：有正文即算完成
+  const v = st[step.key]; return step.type === 'json' ? !!(v && (v.length || Object.keys(v).length)) : !!(v && String(v).trim());
+}
+let _cloudTimer = null, _cloudPending = null;
+function cloudSaveDebounced(rec) {
+  _cloudPending = rec; clearTimeout(_cloudTimer);
+  _cloudTimer = setTimeout(async () => { if (await Cloud.loggedIn()) { Cloud.save(_cloudPending); _cloudPending = null; } }, 1500);
+}
+// 离开/切后台时立即落库，避免「编辑没完成就返回」丢失（beacon 跨导航也能发出）
+function flushCloud() {
+  if (!_cloudPending || Cloud._logged === false) return;
+  clearTimeout(_cloudTimer);
+  try {
+    const body = JSON.stringify(_cloudPending);
+    if (navigator.sendBeacon) navigator.sendBeacon('/api/history', new Blob([body], { type: 'application/json' }));
+    else fetch('/api/history', { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true });
+  } catch {}
+  _cloudPending = null;
+}
+window.addEventListener('pagehide', flushCloud);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushCloud(); });
+const PLHistory = {
+  KEY: 'ag_pl_history',
+  list() { try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch { return []; } },
+  _save(arr) { try { localStorage.setItem(this.KEY, JSON.stringify(arr.slice(0, 50))); } catch {} },
+  buildRec(st) {
+    const doneKeys = STEPS.filter(s => doneOf(st, s)).map(s => s.no);
+    const imgs = (st.coverImages || []).length;
+    const hasTopic = !!(st.topic && st.topic.trim());
+    if (!doneKeys.length && !imgs && !hasTopic) return null; // 完全空白（连选题都没填）才不存；有选题即存为「已选题」草稿
+    return { id: st._runId, ts: Date.now(), topic: (st.topic || '').trim() || (st.best || '') || '（未命名）', track: (typeof getTrack === 'function' && getTrack()) ? getTrack().name : '', doneKeys, imgs, data: JSON.parse(JSON.stringify(st)) };
+  },
+  upsert(st) {
+    if (!st || !st._runId) return;
+    const rec = this.buildRec(st); if (!rec) return;
+    const arr = this.list(); const i = arr.findIndex(x => x.id === st._runId);
+    if (i >= 0) arr[i] = rec; else arr.unshift(rec);
+    arr.sort((a, b) => b.ts - a.ts); this._save(arr);
+    cloudSaveDebounced(rec); // 同步云端（登录才真正发）
+  },
+  remove(id) { this._save(this.list().filter(x => x.id !== id)); Cloud.loggedIn().then(ok => { if (ok) Cloud.del(id); }); },
+};
+// 历史列表：登录→云端（跨设备）；未登录→本地
+async function listHistory() { return (await Cloud.loggedIn()) ? await Cloud.list() : PLHistory.list(); }
+async function getHistoryData(id) { if (await Cloud.loggedIn()) { const d = await Cloud.get(id); if (d) return d; } const r = PLHistory.list().find(x => x.id === id); return r ? r.data : null; }
+function fmtTime(ts) { const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+async function renderHistory() {
+  const box = $('#histList'); box.innerHTML = '<div class="text-center text-[13px] text-[var(--ink-soft)] py-8">加载中…</div>';
+  const arr = await listHistory();
+  if (!arr.length) { box.innerHTML = '<div class="text-center text-[13px] text-[var(--ink-soft)] py-10">还没有历史记录。生成任意步骤后会自动存档到这里。</div>'; return; }
+  box.innerHTML = arr.map(r => `
+    <div class="out p-3.5 flex items-center gap-3" data-id="${r.id}">
+      <div class="flex-1 min-w-0">
+        <div class="text-[13.5px] font-medium truncate">${mark(r.topic)}</div>
+        <div class="text-[11px] text-[var(--ink-soft)] mt-1 flex flex-wrap items-center gap-1.5">
+          <span>${fmtTime(r.ts)}</span>${r.track ? `<span>· ${r.track}</span>` : ''}
+          ${r.doneKeys.length ? `<span>· ${r.doneKeys.join(' ')}</span>` : ''}${r.imgs ? `<span>· 🖼️${r.imgs}图</span>` : ''}
+          ${r.id === state._runId ? '<span style="color:var(--cinnabar-deep)">· 当前篇</span>' : ''}
+        </div>
+      </div>
+      <button class="hist-open btn-go rounded-lg px-3.5 py-1.5 text-[12px]" data-id="${r.id}">打开</button>
+      <button class="hist-del btn-ghost rounded-lg px-2.5 py-1.5 text-[12px]" data-id="${r.id}">删除</button>
+    </div>`).join('');
+  box.querySelectorAll('.hist-open').forEach(b => b.addEventListener('click', () => openHistory(b.dataset.id)));
+  box.querySelectorAll('.hist-del').forEach(b => b.addEventListener('click', () => { if (confirm('删除这条历史记录？')) { PLHistory.remove(b.dataset.id); renderHistory(); } }));
+}
+async function openHistory(id) {
+  PLHistory.upsert(state); // 先存好当前篇再切走
+  const data = await getHistoryData(id); if (!data) return;
+  state = Object.assign({ topic:'', ref:'' }, data); if (!state._runId) state._runId = id;
+  Draft.clear(); Draft.save(state); $('#topic').value = state.topic || ''; cur = landingStep();
+  renderRail(); renderPanel(); closeHist();
+}
+function openHist() { PLHistory.upsert(state); renderHistory(); $('#histModal').style.display = 'flex'; }
+function closeHist() { $('#histModal').style.display = 'none'; }
+$('#histBtn').addEventListener('click', openHist);
+$('#histClose').addEventListener('click', closeHist);
+$('#histModal').addEventListener('click', e => { if (e.target === $('#histModal')) closeHist(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHist(); });
+
+function persist() { Draft.save(state); PLHistory.upsert(state); renderRail(); }
+function done(step) { return doneOf(state, step); }
+
+function renderRail() {
+  const topicDone = !!(state.topic && state.topic.trim());
+  const s1 = `<div class="step ${topicDone ? 'done' : ''}" id="railTopic" title="回到顶部选题区：手写或一键生成选题">
+       <span class="step-no">${topicDone ? '✓' : '1'}</span>
+       <span class="step-name">第一步 选题</span>
+     </div>`;
+  $('#rail').innerHTML = s1 + STEPS.map((st, i) =>
+    `<div class="step ${i===cur?'active':''} ${done(st)?'done':''}" data-i="${i}">
+       <span class="step-no">${done(st)?'✓':st.no.replace('S','')}</span>
+       <span class="step-name">${dispNo(st.no)} ${st.name}</span>
+     </div>`).join('');
+  $('#railTopic')?.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => { const t = $('#topic'); if (t) t.focus(); }, 320); });
+  $$('#rail .step[data-i]').forEach(el => el.addEventListener('click', () => { cur = +el.dataset.i; renderRail(); renderPanel(); }));
+}
+
+function esc(s){ return (s||'').replace(/"/g,'&quot;'); }
+// 点「用这篇拆解」时展开②区（对标正文/抓取结果），否则用户看不到
+function openRefPick(){
+  const b2 = document.getElementById('s2body2');
+  if (b2) { b2.style.display = ''; b2.style.marginTop = '12px'; }
+  const chev = document.querySelector('.s2-head[data-target="s2body2"] .s2-chev'); if (chev) chev.textContent = '收起 ▲';
+}
+function outputHTML(st) {
+  const v = state[st.key];
+  if (st.key === 'skeleton' || st.key === 'frame')
+    return `<textarea class="field w-full rounded-xl p-4 text-[13.5px] leading-relaxed" rows="11" id="editOut" placeholder="点上方「生成${dispNo(st.no)}」，或直接在此手写/编辑。">${v||''}</textarea>
+            <p class="text-[11px] text-[var(--ink-soft)] mt-1.5">可直接编辑，自动保存。</p>`;
+  if (st.key === 'copy') {
+    const body = state.body || [], titles = state.titles || [], tags = state.tags || [];
+    return `<div class="space-y-4">
+      <div>
+        <div class="text-[12px] text-[var(--ink-soft)] mb-1">📝 正文（每段空一行）</div>
+        <textarea class="field w-full rounded-xl p-4 text-[14px] leading-[1.9]" rows="11" id="editBody" placeholder="点上方「生成${dispNo(st.no)}」一次出正文+标题+标签，或在此手写。">${body.join('\n\n')}</textarea>
+      </div>
+      <div>
+        <div class="text-[12px] text-[var(--ink-soft)] mb-1">🏷 标题候选（一行一个，第一行为默认成稿标题）</div>
+        <textarea class="field w-full rounded-xl p-4 text-[14px] leading-[1.8]" rows="4" id="editTitles" placeholder="一行一个标题。">${titles.join('\n')}</textarea>
+      </div>
+      <div>
+        <div class="text-[12px] text-[var(--ink-soft)] mb-1"># 标签（空格分隔）</div>
+        <input id="editTags" class="field w-full rounded-xl px-4 py-3 text-[14px]" value="${esc(tags.map(t=>t.startsWith('#')?t:'#'+t).join(' '))}" placeholder="#标签 用空格分隔" />
+      </div>
+      <p class="text-[11px] text-[var(--ink-soft)]">正文/标题/标签合并为一步，一次生成、均可编辑，自动保存。</p>
+    </div>`;
+  }
+  if (st.key === 'cover') {
+    const cl = (v && v.cover_lines) || [];
+    return `<div class="out p-4 space-y-2">
+        <div class="text-[11px] text-[var(--ink-soft)]">封面文案（叠在图上，两行）</div>
+        <input id="cl0" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[0])}" placeholder="第一行" />
+        <input id="cl1" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[1])}" placeholder="第二行" />
+        <div class="text-[11px] text-[var(--ink-soft)] pt-1">视觉建议</div>
+        <textarea id="cvVisual" class="field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" rows="2">${(v&&v.visual)||''}</textarea>
+      </div>
+      <div class="mt-3 flex items-center gap-2.5 flex-wrap">
+        <button id="genNote" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">📝 生成长文笔记图</button>
+        <button id="genImg" class="btn-ghost rounded-xl px-5 py-2.5 text-[13px] font-medium">🎨 生成 ${coverCount()} 张配图${isTrialUser() ? '（体验上限4张）' : ''}</button>
+        <button id="upImg" class="btn-ghost rounded-xl px-4 py-2.5 text-[13px]">📎 上传图片</button>
+        <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
+        <span class="text-[11px] text-[var(--ink-soft)]">${(state.refImages||[]).length?('对标 '+state.refImages.length+' 张 → 生成 '+Math.min(Math.max(state.refImages.length,1),9)+' 张，按对标结构'):('默认 3 张；贴对标后按其张数')}${(typeof agentImgStyle==='function'&&agentImgStyle())?(' · 画风：'+agentImgStyle()):' · 未设画风（智能体页可设）'}</span>
+        <span id="imgStatus" class="text-[12px]"></span>
+      </div>
+      <div class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
+        📝 <b>长文笔记图</b>：内容来自 <b style="color:var(--cinnabar-deep)">S3 框架的「配图规划」</b>（第N张 → 出几页，正文仅在没框架规划时兜底）；对标图作版式参照，封面配色看 S6 视觉建议。
+        　·　🎨 <b>生成配图</b>：AI 实拍/海报照片（按正文要点+对标画面）。
+      </div>
+      <div id="imgWrap" class="mt-3"></div>`;
+  }
+  if (st.key === 'tags')
+    return `<input id="editTags" class="field w-full rounded-xl px-4 py-3 text-[14px]" value="${esc((v||[]).map(t=>t.startsWith('#')?t:'#'+t).join(' '))}" placeholder="#标签 用空格分隔" />
+            <p class="text-[11px] text-[var(--ink-soft)] mt-1.5">空格分隔；可编辑。</p>`;
+  return '';
+}
+
+function imgSrc(u) { return (u || '').startsWith('data:') ? u : '/api/img-proxy?u=' + encodeURIComponent(u); }
+
+// 把一张图的叠字（标题+内容）渲染成干净的信息卡覆盖层，版式跟随 layout
+function asStr(x) { return typeof x === 'string' ? x : (x == null ? '' : (x.text || x.title || x.content || (Array.isArray(x) ? x.join(' ') : String(x)))); }
+function normalizeCap(cap, coverFallback) {
+  if (!cap) return { title: coverFallback || '', lines: [], layout: '封面', theme: 'photo' };
+  if (typeof cap === 'string') return { title: cap, lines: [], layout: '要点', theme: 'photo' };
+  return { title: asStr(cap.title), lines: (Array.isArray(cap.lines) ? cap.lines : []).map(asStr).filter(Boolean), layout: cap.layout || '要点', theme: cap.theme === 'poster' ? 'poster' : 'photo' };
+}
+function capCardHTML(cap, isCover, coverFallback) {
+  const c = normalizeCap(cap, coverFallback);
+  if (!c.title && !c.lines.length) return '';
+  const lay = c.layout || (isCover ? '封面' : '要点');
+  const lines = c.lines.filter(Boolean);
+  let body = '';
+  if (lines.length) {
+    body = '<div class="cv-card-b">' + lines.map((s, k) => {
+      let s2 = s, cls = '';
+      if (lay === '对比') { if (/^[✅✓对]/.test(s) || /正解|正确/.test(s)) cls = 'ok'; else if (/^[❌✗错]/.test(s) || /误区|错误|别/.test(s)) cls = 'no'; }
+      if (lay === '编号') { s2 = s.replace(/^[①-⑩\d\.\、\s]+/, ''); return `<div class="cv-li num"><b>${k + 1}</b><span>${mark(s2)}</span></div>`; }
+      return `<div class="cv-li ${cls}">${mark(s2)}</div>`;
+    }).join('') + '</div>';
+  }
+  return `<div class="cv-card theme-${c.theme} ${isCover ? 'is-cover' : ''} lay-${lay}">${c.title ? `<div class="cv-card-t">${mark(c.title)}</div>` : ''}${body}</div>`;
+}
+function capTheme(cap) { return (cap && cap.theme === 'poster') ? 'poster' : 'photo'; }
+// 渲染封面+配图多图（每张都用干净叠字卡，文字不进图里 → 不再乱码）
+function renderCoverImages() {
+  const box = $('#imgWrap'); if (!box) return;
+  const imgs = state.coverImages || (state.coverImage ? [state.coverImage] : []);
+  if (!imgs.length) { box.innerHTML = ''; return; }
+  const coverFallback = ((state.cover && state.cover.cover_lines) || []).filter(Boolean).join(' ');
+  const caps = state.coverCaptions || [];
+  box.innerHTML = '<div class="flex flex-wrap gap-3 items-start">' + imgs.map((u, i) => `
+    <div style="position:relative">
+      <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
+      <span class="ci-regen" data-i="${i}" title="重新生成这张" style="position:absolute;top:-7px;left:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">🔄</span>
+      <span class="ci-ref" data-i="${i}" title="上传参考图，按它的构图/风格重出这张（图生图·SeedEdit）" style="position:absolute;top:18px;left:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">📎</span>
+      <span class="ci-del" data-i="${i}" style="position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">✕</span>
+      <div class="text-[10px] text-center text-[var(--ink-soft)] mt-1">${i === 0 ? '封面' : '配图 ' + i}</div>
+    </div>`).join('') + '</div>';
+  box.querySelectorAll('.ci-del').forEach(x => x.addEventListener('click', () => {
+    const i = +x.dataset.i; state.coverImages = state.coverImages || imgs.slice(); state.coverImages.splice(i, 1);
+    state.coverImage = state.coverImages[0] || ''; persist(); renderCoverImages();
+  }));
+  box.querySelectorAll('.ci-regen').forEach(x => x.addEventListener('click', async () => {
+    const i = +x.dataset.i; const o = x.textContent; x.textContent = '⏳';
+    try { await regenOneCover(i); renderCoverImages(); }
+    catch (e) { x.textContent = o; const st = $('#imgStatus'); if (st) { st.textContent = '重生成失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
+  }));
+  // 📎 参考图垫图重生（图生图 · SeedEdit）：上传一张参考图，按其构图/风格重出该图
+  box.querySelectorAll('.ci-ref').forEach(x => x.addEventListener('click', () => {
+    const i = +x.dataset.i;
+    let inp = document.getElementById('__ciRefFile');
+    if (!inp) { inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.id = '__ciRefFile'; inp.style.display = 'none'; document.body.appendChild(inp); }
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+      const span = box.querySelector('.ci-ref[data-i="' + i + '"]'); const o = span ? span.textContent : '📎'; if (span) span.textContent = '⏳';
+      const st = $('#imgStatus'); if (st) { st.textContent = '按参考图垫图重出第 ' + (i === 0 ? '封面' : i) + ' 张…'; st.style.color = 'var(--ink-soft)'; }
+      try { const dataUrl = await downscaleImage(f, 1024); await regenWithRef(i, dataUrl); renderCoverImages(); if (st) { st.textContent = '✓ 已按参考图重出'; st.style.color = '#00a052'; } }
+      catch (e) { if (span) span.textContent = o; if (st) { st.textContent = '图生图失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
+    };
+    inp.click();
+  }));
+  // 长图笔记页：内容超框就等比缩小（双 rAF + 字体加载完后再各测一次，保证导出也准）
+  requestAnimationFrame(() => requestAnimationFrame(() => fitAllNotes(box)));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitAllNotes(box));
+  bindNoteZoom(box); // 长图笔记卡点击放大
+}
+
+// 单张重新生成（封面=呼应标题；配图=对应一个内容点）
+async function regenOneCover(i) {
+  const t = getTrack(), bodyTxt = (state.body || []).join('\n').slice(0, 1200);
+  // 如果这张是长文笔记页 → 重排该页
+  const curU = (state.coverImages || [])[i] || '';
+  if (curU.startsWith('note://')) {
+    const idx = +curU.slice(7); const refVis = (state.refVisions || [])[i] || '';
+    const page = await planNotePage(i, refVis, i === 0, ((state.cover && state.cover.cover_lines) || []).join(' '), t);
+    state.notePages = state.notePages || []; state.notePages[idx] = page; persist(); return;
+  }
+  const refOne = (state.refVisions && state.refVisions[i]) ? `\n★ 叠字要照搬对标第${i + 1}张的版式/条目数/形式：「${state.refVisions[i]}」，内容换成我的。` : '';
+  const role = i === 0 ? `封面：title 用主标题「${((state.cover && state.cover.cover_lines) || []).join(' ')}」，layout=封面` : `正文配图：title+lines 对应一个干货板块`;
+  let scene = '', title = '', lines = [], layout = '要点', theme = 'photo';
+  try {
+    const j = extractJSON(await callClaude({
+      system: '你是视觉指导，只输出 JSON。', json: true, max_tokens: 340, action: 'imgplan',
+      prompt: `为这篇${t ? t.domain : ''}小红书笔记生成 1 张【${role}】。文字事后叠图，不画进图。\ntheme=photo(实拍/实物/场景)或poster(白底文字排版/干货海报)；scene=纯背景(${IMG_NEG})，poster 则为极简浅色留白背景；title=大字标题≤12字；lines=2~5条干货短句(每条≤16字)；layout∈[封面|清单|对比|编号|要点]。\n选题：${state.topic}。${refOne}\n正文要点：${bodyTxt || '（无）'}${refBlock()}\n只输出 JSON：{"theme":"","scene":"","title":"","lines":[],"layout":""}`
+    }));
+    scene = (j.scene || '').trim(); title = (j.title || '').trim(); lines = Array.isArray(j.lines) ? j.lines.filter(Boolean).slice(0, 5) : []; layout = j.layout || '要点'; theme = j.theme === 'poster' ? 'poster' : 'photo';
+  } catch {}
+  if (!scene) scene = theme === 'poster' ? '柔和米白纸张质感，大面积留白' : `${state.topic} 相关的干净实物背景`;
+  let u;
+  if (theme === 'poster') { u = 'tpl://poster'; } // 模板卡，不调 AI
+  else {
+    const r = await fetch('/api/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: buildImgPrompt('', scene, theme), provider: i === 0 ? 'ark' : 'kling' }) });
+    const tx = await r.text(); if (!r.ok) throw new Error('出图失败');
+    u = JSON.parse(tx).data && JSON.parse(tx).data[0] && JSON.parse(tx).data[0].url; if (!u) throw new Error('无图');
+  }
+  state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
+  state.coverImages[i] = u; state.coverImage = state.coverImages[0];
+  state.coverCaptions = state.coverCaptions || []; state.coverCaptions[i] = { title, lines, layout, theme };
+  persist();
+}
+// 真·图生图：按用户上传的参考图（init_image）走 SeedEdit 重出第 i 张（provider 强制 ark）
+async function regenWithRef(i, refDataUrl) {
+  const t = getTrack();
+  const cap = (state.coverCaptions || [])[i] || {};
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const desc = (cap.title || state.topic || '') + (aStyle ? ('，画风：' + aStyle) : '');
+  const prompt = `参考所给图片的构图、配色与风格，为「${t ? t.domain : ''}」小红书笔记重出一张同风格竖版配图：${desc}。干净背景、不要出现任何文字、3:4 竖版、真实质感。`;
+  const r = await fetch('/api/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt, provider: 'ark', init_image: refDataUrl, action: 'cover' }) });
+  const tx = await r.text();
+  if (!r.ok) { let m = '出图失败'; try { m = JSON.parse(tx).error || m; } catch {} throw new Error(typeof m === 'string' ? m.slice(0, 80) : '出图失败'); }
+  let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
+  if (!u) throw new Error('上游无图');
+  state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
+  state.coverImages[i] = u; state.coverImage = state.coverImages[0]; persist();
+}
+
+// 生成 n 张配图：每张对应正文一个要点、整组统一风格、构图贴对标。供手动与自动复用。
+// 逐张视觉解析对标图组（得每张的作用/构图），供 S6 对位生成。结果存 state.refVisions。
+const REF_VISION_PROMPT = '提取这张小红书图上的关键文字（大标题 + 主要要点/数字/编号，原样照抄但不要概括），不要写"这张图展示了…"之类总结。如果是思维导图/长图/信息特别多，只取最核心的标题和最多 8 条要点，不要把整张图所有文字都搬下来。严格按三行输出：\n【文字】逐条列出（用 / 或换行分隔，最多 8 条；没有就写"无文字"）\n【版式】选填：封面大字 / 编号清单 / 前后对比 / 数据清单 / 要点列表 / 思维导图\n【画面】≤15字描述画面';
+async function visionOne(imgUrl) {
+  const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: imgUrl, prompt: REF_VISION_PROMPT }) })).json();
+  return (j.ok && j.desc) ? j.desc.trim().slice(0, 360) : '';
+}
+async function analyzeRefImageSet(setStatusFn) {
+  const imgs = (state.refImages || []).slice(0, 8);
+  if (!imgs.length) return [];
+  if (state.refVisions && state.refVisions.length >= imgs.length) return state.refVisions;
+  const out = [];
+  for (let i = 0; i < imgs.length; i++) {
+    if (setStatusFn) setStatusFn('视觉解析对标第 ' + (i + 1) + '/' + imgs.length + ' 张…');
+    try { out.push(await visionOne(imgs[i])); } catch { out.push(''); }
+  }
+  state.refVisions = out; if (!state.refVision && out[0]) state.refVision = out[0]; persist();
+  return out;
+}
+// 只重新解析某一张（GLM-4V 非确定性，重析常能纠正读偏）
+async function reanalyzeOne(i) {
+  const imgs = state.refImages || []; if (!imgs[i]) return;
+  state.refVisions = state.refVisions || [];
+  state.refVisions[i] = await visionOne(imgs[i]);
+  persist(); renderRefImages();
+}
+
+// 生图负向：禁止"带文字的载体" + 乱入物体（苹果/手机/人脸/食物等与主题无关元素）
+const IMG_NEG = '严禁出现：手机、电脑、屏幕、App 界面、截图、聊天框、清单/表格/文档、书页文字、便利贴、招牌、黑板，以及任何文字/汉字/字母/数字/logo/水印；也不要出现与主题无关的物体（如苹果/水果/食物/随机人脸/卡通玩偶）。';
+function buildImgPrompt(style, scene, theme) {
+  // 人设里设的「配图视觉风格」：统一全篇画风（最高优先，放最前）
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const sp = aStyle ? `整体画风：${aStyle}。` : '';
+  if (theme === 'poster') {
+    // 白底排版图 → 生成一张"精致小红书干货海报底图"：柔和有设计感、不空，但中部留白给叠字
+    return `${sp}一张精致的小红书干货海报「底图」（纯做背景，文字稍后叠加）：${scene || '与主题相关的极简插画风底图'}。要求：柔和马卡龙/莫兰迪配色的渐变或纸张质感打底，四周用与主题相关的极简手绘小元素、色块、虚线框、丝带胶带等做轻装饰，营造杂志/手账排版的设计感；中部与上部留出干净空白区给文字。整体高级、温柔、有呼吸感，不要太满。竖版 3:4。${IMG_NEG}`;
+  }
+  return `${sp}${style ? style + '。' : ''}${scene || ''}。小红书竖版配图，${aStyle ? '按上面画风' : '专业摄影或精致插画'}，超高清细节，构图干净留白、主体居中偏上（给顶部叠字留空间），柔和电影级调色；${IMG_NEG}`;
+}
+// 严格对位单张：照搬对标第 i 张的版式/条目数，内容换成我这篇的（解析→改写）
+async function planOneImage(i, refVis, isCover, coverTitle, bodyTxt, t) {
+  const role = isCover ? `这是第 1 张＝封面：title 用我的主标题「${coverTitle || state.topic}」` : `这是第 ${i + 1} 张配图`;
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  let p = { theme: 'photo', scene: '', title: '', lines: [], layout: isCover ? '封面' : '要点' };
+  try {
+    const j = extractJSON(await callClaude({
+      system: '你是小红书视觉指导，只输出 JSON。', json: true, max_tokens: 360, action: 'imgplan',
+      prompt: `严格对位：用「对标第 ${i + 1} 张」的样式，做我这篇的第 ${i + 1} 张图。
+【对标第 ${i + 1} 张的解析（文字内容 + 版式形式 + 画面）】${refVis}
+${role}。${aStyle ? `\n【本篇统一画风（最高优先）】${aStyle} —— scene 必须符合这个画风：比如"手绘插画风"就描述插画/手绘的画面，别写"专业摄影"；"ins 极简"就描述极简留白；配色/质感都往这个画风靠。` : ''}
+要求：
+① theme：对标这张是实拍/实物/场景照 → photo；是白底或纯色的文字排版图/干货海报/清单图 → poster。
+② layout 与「条目数、形式」100% 照搬对标这张：它是清单就给清单、是对比就给 ❌错/✅对、是编号就给 ①②③、是大字封面就给大字（条目数量也要一样）。
+③ title + lines 的「内容」换成我这篇的（取自下面选题/正文，要真实、能背、贴合这一屏主题）。
+④ scene（绝不在图里画任何文字）：${aStyle ? `先服从上面的统一画风，再` : ''}theme=photo 时还原对标这张的画面构图/主体/配色，让生成图和对标视觉相似；theme=poster 时为极简浅色留白背景。
+【选题】${state.topic}
+【我的正文】${bodyTxt || '（无，按选题）'}
+只输出 JSON：{"theme":"photo|poster","layout":"","title":"","lines":[],"scene":""}`
+    }));
+    p.theme = j.theme === 'poster' ? 'poster' : 'photo';
+    p.scene = (j.scene || '').trim();
+    p.title = (j.title || '').trim();
+    p.lines = (Array.isArray(j.lines) ? j.lines : []).map(asStr).filter(Boolean).slice(0, 5);
+    p.title = asStr(p.title);
+    p.layout = j.layout || (isCover ? '封面' : '要点');
+  } catch {}
+  // 结构对齐关键：对标若是「白底/纯色文字排版图」（清单/编号/对比/备忘录/海报/纯色底等），强制 poster，
+  // 让结构由叠字卡照搬对标（AI 生图无法精确复刻版式，结构必须靠我们的卡来保证）
+  if (/清单|编号|对比|排版|海报|备忘录|白底|纯色|黑底|文字图|列表|表格|数据/.test(refVis || '') || /[①②③④⑤]/.test(refVis || '')) p.theme = 'poster';
+  if (isCover && !p.title && coverTitle) p.title = coverTitle;
+  if (!p.scene) p.scene = p.theme === 'poster' ? '柔和米白纸张质感，大面积留白' : `${state.topic} 相关的干净背景`;
+  return p;
+}
+// 判定对标这张是否「文字密集类」（→ 出长文笔记页）还是「实拍场景类」（→ AI 照片）
+// 注意：解析出 [文字]/[版式] 两段再判，不能直接搜"文字"二字（每条描述都带【文字】标签会误判）
+function isTextHeavyRef(refVis) {
+  const v = refVis || '';
+  const textPart = (v.match(/【文字】([\s\S]*?)(?:【|$)/) || [])[1] || '';
+  const layoutPart = (v.match(/【版式】([\s\S]*?)(?:【|$)/) || [])[1] || '';
+  const cleanLen = textPart.replace(/[\s\/无文字。，、]/g, '').length;
+  if (/无文字/.test(textPart) || cleanLen < 6) return false;                 // 几乎没字 → 实拍照片
+  if (/清单|编号|对比|列表|数据|导图|思维导图|要点|表格|步骤/.test(layoutPart)) return true; // 版式即文字排版
+  if (/[①②③④⑤]/.test(textPart)) return true;
+  return cleanLen >= 12;                                                       // 字多 → 文字密集
+}
+// 照「对标第 i 张」的版式，排成我这篇的一页长图笔记（结构照搬、内容换成我的）
+// 从 S3 框架文本里切出"第 N 张"那一段：先定位所有"第X张"标记（忽略 **/#/* 等前缀），
+// 取第 n 个标记到下一个标记之间的全部内容（含 文字/版式/内容要点/作用）。
+function frameSliceForImage(n) {
+  const f = state.frame || '';
+  if (!f) return '';
+  const hdr = /第\s*(\d{1,2})\s*张/g;
+  const marks = []; let m;
+  while (m = hdr.exec(f)) marks.push({ num: +m[1], idx: m.index });
+  if (!marks.length) return '';
+  const cur = marks.find(x => x.num === n);
+  if (!cur) return '';
+  const next = marks.filter(x => x.idx > cur.idx).sort((a, b) => a.idx - b.idx)[0];
+  return f.slice(cur.idx, next ? next.idx : cur.idx + 900).trim().slice(0, 900);
+}
+// 框架里规划了几张图（取"第N张"里最大的 N）→ 长文笔记就出几页
+function frameImageCount() {
+  const f = state.frame || ''; const hdr = /第\s*(\d{1,2})\s*张/g; const set = new Set(); let m;
+  while (m = hdr.exec(f)) set.add(+m[1]);
+  return set.size ? Math.max(...set) : 0;
+}
+// 从框架这段里抓"高亮xxx"指定的关键词（引号内），用于强制给标题套高亮
+function hlKeywordsFromSeg(seg) {
+  const kws = []; const re = /高亮[^。\n]{0,40}/g; let m;
+  while (m = re.exec(seg || '')) {
+    const q = /[“"「『'']([^”"「』''，。、\s]{1,10})[”"」』'']/g; let qm;
+    while (qm = q.exec(m[0])) kws.push(qm[1]);
+  }
+  return [...new Set(kws)].filter(Boolean);
+}
+// 判断第1张是不是"纯大字封面"（只配标题）——只有明确写"封面/总纲"且没有正文/示例/要点时才算；
+// 像"开篇定调"里带 内容核心/示例/要点 的，是内容页，要照常扩充而不是只留标题。
+function isPureCoverSeg(seg) {
+  const s = seg || '';
+  const hasBody = /示例|内容核心|内容要点|要点[:：]|步骤|对比|清单|【给你的话】/.test(s) || s.replace(/\s/g, '').length > 170;
+  const labeledCover = /封面|总纲|大字标题|首图|主标题/.test(s);
+  return labeledCover && !hasBody;
+}
+// 给一段文字里出现的关键词强制套 ==高亮==（已被 == 包住的不重复套）
+function forceHighlight(text, kws) {
+  let s = String(text || '');
+  for (const k of kws) {
+    if (!k || s.indexOf(k) < 0) continue;
+    if (s.indexOf('==' + k + '==') >= 0) continue;
+    s = s.replace(k, '==' + k + '==');
+  }
+  return s;
+}
+async function planNotePage(i, refVis, isCover, title, t) {
+  // 内容唯一来源 = S3 框架里第 (i+1) 张的规划；切不出就退回整段框架，绝不用 S4 正文
+  const seg = frameSliceForImage(i + 1);
+  const frameSrc = seg || (state.frame || '').slice(0, 700);
+  const persona = (typeof PERSONA !== 'undefined' && PERSONA) ? PERSONA : '';
+  // 第1张只有在"纯大字封面"时才走封面规则；带正文/示例/要点的开篇页 → 当内容页照常扩充
+  const coverMode = isCover && isPureCoverSeg(frameSrc);
+  const coverVisual = coverMode ? ((state.cover && state.cover.visual) || '') : '';
+  try {
+    const j = extractJSON(await callClaude({
+      // 带上智能体人设/KB，让文字符合本账号设定；再叠加排版任务
+      system: (persona ? persona + '\n\n' : '') + '【当前任务】你在做小红书长图笔记排版，只输出 JSON，文字口吻/事实都遵守上面的人设与知识库。',
+      json: true, max_tokens: 1400, action: 'imgplan',
+      prompt: `把【S3 框架·第 ${i + 1} 张的规划】排成我这篇的第 ${i + 1} 页长图笔记（竖版 3:4）。
+【内容骨架 = S3 框架里第 ${i + 1} 张的规划】
+${frameSrc || '（框架里没找到这张，先去跑 S3 并写清"配图规划：第1张…第2张…"）'}
+【对标第 ${i + 1} 张的内容（参照它把每条写具体、写充实：补上具体做法/例子/数字/步骤，用我的人设口吻改写，不照抄原文、不编造）】${refVis}
+${coverMode ? `这是【封面页】，铁律：
+${coverVisual ? '【S6 视觉建议（配色以这里为准：背景色/高亮色/主色都照它）】\n' + coverVisual + '\n' : ''}① title = 一句**短而冲**的主标题钩子，==≤14字==（从 S3 规划的「文字」里提炼，太长就压成一句，别照搬整段长句）；副标题/字数等放 t=meta（可空）。
+② ==看 S3 规划：只有一句大标题 → 就只放 t=title(+t=meta)，绝不补正文/编造==；若规划里**明确列了核心要点/关键词**（如"造型基础/线条控制/色彩搭配"三个坑）→ 标题下用 **一个 t=ol**（≤3条、每条≤8字）原样列出，不要展开成长句。
+③ 主标题与要点里的关键词用 ==高亮== 包起来（每处都标，呼应规划/视觉建议里点名要高亮的词）。
+④ ==配色优先用上面 S6 视觉建议里写的颜色==，其次看 S3「版式」；转十六进制填 style：例"浅灰背景、暗红高亮"→ bg:"#ededed",hl:"#c0392b",accent:"#c0392b"；"浅蓝/米白背景、黄高亮"→ bg:"#eef3fb",hl:"#ffd54a"；"莫兰迪绿"→ bg:"#cdd6c4"；都没写→ bg:"#ffffff"。深色背景把 dark 设 true。
+⑤ 注意：左右对比的"真实手绘图"这类**画面**文字卡画不了，封面页**只承载文字部分**（标题+要点），画面留给「🎨 生成配图」。`
+        : `铁律：
+① 内容以上面 S3 规划为骨架，==参照规划里的"内容核心/示例/要点"把每一条展开写具体写充实==：把规划的示例/类比/做法都写进来，给出**具体做法/例子/数字/步骤/类比**（别只写一句话，要有信息量）；用我的人设口吻改写，**不照抄、不编造、不套通用模板**；不确定的标「需核实」；
+② 第一块顶部小标题：${isCover ? '这是开篇页 → 用 t=title 开篇大标题（≤16字，点题/钩子），可再跟一句 t=meta' : '用 t=sec 带序号小标题（如 "一、xxx"）'}；版式照搬对标第 ${i + 1} 张（它几个小标题/几条列表/有无对比，就对应几个）；
+③ 重点用 ==高亮==(每页2~3处，标在关键名词/数字/结论上)、小标题 **加粗**；步骤用 t=ol+items，对比把 ❌/✅ 写进各条；
+④ ==字数装得下一页 3:4、不溢出==：全页正文+列表合计 ≤ 220 字；标题 ≤ 16 字；列表 ≤ 5 条、每条 ≤ 28 字；段落 ≤ 4 段、每段 ≤ 55 字。在这个上限内尽量写具体、写满信息量，但不要超。
+⑤ ==配色照搬 S3 这张「版式」写的颜色==：转十六进制填 style。例"莫兰迪绿背景、黄色高亮"→ bg:"#cdd6c4", hl:"#ffd54a"；"白底"或没写→ bg:"#ffffff"。深色背景把 dark 设 true。accent 用作小标题色块/编号底色。`}
+只输出 JSON：{"style":{"bg":"#ffffff","accent":"#ff6a3d","hl":"#ff8a3d","dark":false},"blocks":[{"t":"title|meta|sec|sub|p|ol|tags","text":"","items":[]}]}`
+    }));
+    if (j.blocks && j.blocks.length) {
+      // 兜底：首块若不是标题，补一个顶部标题，保证各页标题对齐
+      const head = j.blocks[0] && j.blocks[0].t;
+      if (isCover && head !== 'title') j.blocks.unshift({ t: 'title', text: (title || state.topic || '').slice(0, 16) });
+      else if (!isCover && head !== 'sec' && head !== 'title') j.blocks.unshift({ t: 'sec', text: (title || state.topic || '').slice(0, 16) });
+      // 框架「版式」里点名要高亮的关键词 → 强制套到标题上（AI 漏了也补）
+      const kws = hlKeywordsFromSeg(frameSrc);
+      if (kws.length) { const hb = j.blocks.find(b => b.t === 'title' || b.t === 'sec'); if (hb) hb.text = forceHighlight(hb.text, kws); }
+      const s = j.style || {};
+      return { blocks: j.blocks, bg: s.bg, accent: s.accent, hl: s.hl, dark: !!s.dark };
+    }
+  } catch {}
+  return { blocks: [{ t: isCover ? 'title' : 'sec', text: (title || state.topic || '').slice(0, 16) }, { t: 'p', text: frameSrc.slice(0, 150) }] };
+}
+// S6 出图供应商：封面 → Seedream(ark)，内页配图 → 可灵(kling)。想退回 cogview 把对应值改成 '' 即可。
+const COVER_PROVIDER = 'ark';
+const INNER_PROVIDER = 'kling';
+async function genImageFromPlan(plan, style, provider) {
+  try {
+    const body = { prompt: buildImgPrompt(plan.theme === 'poster' ? '' : style, plan.scene, plan.theme) };
+    if (provider) body.provider = provider;
+    const r = await fetch('/api/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const tx = await r.text(); if (!r.ok) return '';
+    const j = JSON.parse(tx); return (j.data && j.data[0] && j.data[0].url) || '';
+  } catch { return ''; }
+}
+async function generateCoverImagesCore(n) {
+  const t = getTrack();
+  const bodyTxt = (state.body || []).join('\n').slice(0, 1500);
+  const refSet = (await analyzeRefImageSet(typeof setAuto === 'function' ? setAuto : null)).filter(Boolean);
+  const coverTitle = ((state.cover && state.cover.cover_lines) || []).join(' ');
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const styleTag = aStyle ? '（画风：' + aStyle + '）' : '（未设画风，跟对标走；可在「智能体」页设「配图视觉风格」）';
+  const urls = [], captions = [], notePages = [];
+
+  const imgCap = maxImagesForUser(); let realCount = 0; // 体验期真实配图≤4
+  if (refSet.length) {
+    // 有对标图组 → 逐张严格对位：文字密集类 → 长文笔记页；实拍场景类 → Seedream/可灵 照片
+    for (let i = 0; i < refSet.length; i++) {
+      if (isTextHeavyRef(refSet[i])) {
+        if (typeof setAuto === 'function') setAuto('按对标第 ' + (i + 1) + '/' + refSet.length + ' 张排长图笔记…');
+        const page = await planNotePage(i, refSet[i], i === 0, coverTitle, t);
+        urls.push('note://' + notePages.length); notePages.push(page); captions.push(null);
+      } else {
+        if (realCount >= imgCap) continue; // 体验期真实配图达上限，跳过余下实拍（长文笔记不受限）
+        if (typeof setAuto === 'function') setAuto('按对标第 ' + (i + 1) + '/' + refSet.length + ' 张出实拍配图…' + styleTag);
+        const plan = await planOneImage(i, refSet[i], i === 0, coverTitle, bodyTxt, t);
+        const u = await genImageFromPlan(plan, '', i === 0 ? COVER_PROVIDER : INNER_PROVIDER);
+        if (u) { urls.push(u); captions.push({ title: plan.title, lines: plan.lines, layout: plan.layout, theme: plan.theme }); realCount++; }
+      }
+    }
+  } else {
+    // 无对标图 → 单次批量生成 n 张
+    let style = '', items = [];
+    try {
+      const sp = await callClaude({
+        system: '你是资深小红书视觉指导，只输出 JSON。', json: true, max_tokens: 2000, action: 'imgplan',
+        prompt: `为这篇${t ? t.domain : ''}小红书笔记设计一组 ${n} 张配图。文字事后叠在图上。每张给：theme(photo实拍/poster白底排版)、scene(背景，绝不含文字)、title(≤12字)、lines(2~5条≤16字干货)、layout([封面|清单|对比|编号|要点])。第1张=封面(title 用「${coverTitle || state.topic}」，layout=封面)。整组做成"标题+干货清单"的信息卡，让人想截图收藏。
+【选题】${state.topic}
+【本篇正文】${bodyTxt || '（无，按选题）'}
+${refBlock()}
+只输出 JSON：{"style":"统一背景风格一句话","items":[{"theme":"","scene":"","title":"","lines":[],"layout":""}]}  items 正好 ${n} 个。`
+      });
+      const j = extractJSON(sp); style = j.style || ''; items = (j.items || []).slice(0, n);
+    } catch {}
+    while (items.length < n) items.push({ theme: 'poster', scene: '柔和米白纸张质感，大面积留白', title: '', lines: [], layout: '要点' });
+    if (items[0] && !items[0].title && coverTitle) { items[0].title = coverTitle; items[0].layout = '封面'; }
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i], theme = it.theme === 'poster' ? 'poster' : 'photo';
+      const u = theme === 'poster' ? 'tpl://poster' : await genImageFromPlan({ theme, scene: it.scene }, style, i === 0 ? COVER_PROVIDER : INNER_PROVIDER);
+      if (u) { urls.push(u); captions.push({ title: it.title || '', lines: Array.isArray(it.lines) ? it.lines.filter(Boolean).slice(0, 5) : [], layout: it.layout || '要点', theme }); }
+    }
+  }
+  if (!urls.length) throw new Error('未生成任何图片');
+  state.coverImages = urls; state.coverImage = urls[0]; state.coverCaptions = captions; state.notePages = notePages; persist();
+  return urls;
+}
+
+// 体验期（未实质充值，累计充值 < ¥6）配图上限 4 张；充值后解锁至 9 张（PRD §8）
+function maxImagesForUser() { const me = window.__me; return (me && me.totalRecharge >= 600) ? 9 : 4; }
+function isTrialUser() { const me = window.__me; return !me || me.totalRecharge < 600; }
+function coverCount() { return Math.min(Math.max((state.refImages || []).length || 3, 1), maxImagesForUser()); }
+
+// ===== 长文笔记款：用 S4 正文排成密集长图笔记（纯 CSS 渲染，中文零乱码）=====
+function noteBlock(b) {
+  if (!b) return '';
+  const t = b.t || 'p';
+  if (t === 'title') return `<div class="nt-h1">${mark(b.text || '')}</div>`;
+  if (t === 'meta') return `<div class="nt-meta">${mark(b.text || '')}</div>`;
+  if (t === 'sec') return `<div class="nt-sec"><span class="nt-dot"></span>${mark(b.text || '')}</div>`;
+  if (t === 'sub') return `<div class="nt-sub">${mark(b.text || '')}</div>`;
+  if (t === 'ol') return `<ul class="nt-ol">${(b.items || []).map((x, k) => `<li><svg class="nt-num" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#ff6a3d"/><text x="11" y="11.5" fill="#ffffff" font-size="12.5" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,PingFang SC,sans-serif">${k + 1}</text></svg><span class="nt-tx">${mark(String(x).replace(/^\s*(?:[①-⑳⓪⓵-⓾]\s*|[(（]\d{1,2}[)）]\s*|\d{1,2}[)）、]\s*|\d{1,2}\.\s+)/, ''))}</span></li>`).join('')}</ul>`;
+  if (t === 'tags') return ''; // 长图笔记图里不放话题标签
+  return `<p class="nt-p">${mark(b.text || '')}</p>`;
+}
+function hexA(h, a) { const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '').trim()); if (!m) return 'rgba(255,150,60,' + a + ')'; const n = parseInt(m[1], 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+function noteStyleVars(page) {
+  const p = page || {};
+  const bg = /^#?[0-9a-f]{6}$/i.test(p.bg || '') ? (p.bg[0] === '#' ? p.bg : '#' + p.bg) : '#ffffff';
+  const acc = /^#?[0-9a-f]{6}$/i.test(p.accent || '') ? (p.accent[0] === '#' ? p.accent : '#' + p.accent) : '#ff6a3d';
+  const hl = /^#?[0-9a-f]{6}$/i.test(p.hl || '') ? (p.hl[0] === '#' ? p.hl : '#' + p.hl) : '#ff8a3d';
+  const dark = !!p.dark; // 深色背景 → 浅色文字
+  const ink = dark ? '#ffffff' : '#16181d', ink2 = dark ? 'rgba(255,255,255,.88)' : '#33373d';
+  const meta = dark ? 'rgba(255,255,255,.62)' : '#b6bbc2', tag = dark ? 'rgba(255,255,255,.78)' : '#3a5a8c';
+  return `--nt-bg:${bg};--nt-ink:${ink};--nt-ink2:${ink2};--nt-meta:${meta};--nt-tag:${tag};--nt-accent:${acc};--nt-hl:${hexA(hl, .42)};--nt-hl-line:${hl}`;
+}
+function isCoverPage(page) { const b = (page && page.blocks) || []; return b.length && b[0].t === 'title' && b.every(x => ['title', 'meta', 'tags'].includes(x.t)); }
+// 估算一页内容"重量"（≈占多少视觉空间）；超过单页容量就拆页
+function noteWeight(blocks) {
+  let w = 0;
+  for (const b of (blocks || [])) {
+    const txt = String(b.text || '').replace(/[=*]/g, '');
+    if (b.t === 'title') w += txt.length + 16;
+    else if (b.t === 'sec') w += txt.length + 12;
+    else if (b.t === 'sub') w += txt.length + 8;
+    else if (b.t === 'ol') w += (b.items || []).reduce((a, x) => a + String(x).replace(/[=*]/g, '').length + 8, 0);
+    else if (b.t === 'tags') w += 8;
+    else w += txt.length + 6; // p / meta
+  }
+  return w;
+}
+const NOTE_PAGE_CAP = 300; // 单页容量上限，超了就拆成两页
+// 太重的页 → 在块边界拆成多页（第二页起加"（续）"小标题）。封面不拆。
+function splitHeavyPage(page) {
+  const blocks = (page && page.blocks) || [];
+  if (isCoverPage(page) || blocks.length < 4 || noteWeight(blocks) <= NOTE_PAGE_CAP) return [page];
+  const head = blocks[0], rest = blocks.slice(1);
+  const half = noteWeight(blocks) / 2; let acc = noteWeight([head]), cut = 1;
+  for (let i = 0; i < rest.length; i++) { acc += noteWeight([rest[i]]); cut = i + 1; if (acc >= half) break; }
+  cut = Math.max(1, Math.min(cut, rest.length - 1)); // 保证两页都非空
+  const headText = String(head.text || '').replace(/==(.+?)==/g, '$1');
+  const contHead = { t: head.t === 'title' ? 'sec' : (head.t || 'sec'), text: headText + '（续）' };
+  const p1 = Object.assign({}, page, { blocks: [head].concat(rest.slice(0, cut)) });
+  const p2 = Object.assign({}, page, { blocks: [contHead].concat(rest.slice(cut)) });
+  return splitHeavyPage(p1).concat(splitHeavyPage(p2)); // 递归：还重就继续拆
+}
+function noteCardHTML(page) {
+  const cover = isCoverPage(page);
+  const inner = ((page && page.blocks) || []).map(noteBlock).join('');
+  return `<div class="cv-note${cover ? ' is-cover' : ''}" style="${noteStyleVars(page)}">${cover ? inner : `<div class="cv-note-fit">${inner}</div>`}</div>`;
+}
+// 内容超出 3:4 画框时等比缩小，绝不裁切（cqw 自相似，预览算的比例在导出同样成立）。返回实际缩放比例。
+function fitNote(noteEl) {
+  const fit = noteEl.querySelector('.cv-note-fit'); if (!fit) { return 1; }
+  fit.style.transform = ''; fit.style.width = '100%';
+  const cs = getComputedStyle(noteEl); const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  const avail = noteEl.clientHeight - padV; const need = fit.scrollHeight; let s = 1;
+  if (need > avail + 1 && avail > 0) { s = Math.max(0.45, avail / need); fit.style.transform = 'scale(' + s + ')'; fit.style.width = (100 / s) + '%'; }
+  noteEl.dataset.fitScale = String(s); return s;
+}
+function fitAllNotes(root) { (root || document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); }
+// 长图笔记卡点击放大（CSS 卡不是图，用大号 cv-frame 弹层显示）
+function showNoteLightbox(page) {
+  if (!page) return;
+  let lb = document.getElementById('__noteLb');
+  if (!lb) { lb = document.createElement('div'); lb.id = '__noteLb'; lb.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out'; document.body.appendChild(lb); lb.addEventListener('click', () => lb.style.display = 'none'); document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.style.display = 'none'; }); }
+  lb.innerHTML = '<div class="cv-frame" style="width:min(86vw,360px);box-shadow:0 12px 48px rgba(0,0,0,.55)">' + noteCardHTML(page) + '</div>';
+  lb.style.display = 'flex'; requestAnimationFrame(() => requestAnimationFrame(() => fitAllNotes(lb)));
+}
+function bindNoteZoom(root) { (root || document).querySelectorAll('.cv-frame[data-note]').forEach(fr => fr.addEventListener('click', () => showNoteLightbox((state.notePages || [])[+fr.dataset.note]))); }
+// 渲染后测量：哪页被缩到 < 0.8 → 强制拆成两页，再渲染。最多两轮，收敛即止。仅长文笔记（全是 note://）场景生效。
+async function resplitTooSmallNotes(st) {
+  for (let pass = 0; pass < 2; pass++) {
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch {} }
+    const box = $('#imgWrap'); if (!box) return;
+    if (!(state.coverImages || []).length || !(state.coverImages || []).every(u => (u || '').startsWith('note://'))) return;
+    fitAllNotes(box);
+    const toSplit = new Set();
+    box.querySelectorAll('.cv-frame[data-note]').forEach(fr => {
+      const idx = +fr.getAttribute('data-note'); const note = fr.querySelector('.cv-note'); if (!note || isNaN(idx)) return;
+      const s = parseFloat(note.dataset.fitScale || '1'); const page = (state.notePages || [])[idx];
+      if (s < 0.8 && page && !isCoverPage(page) && (page.blocks || []).length >= 3) toSplit.add(idx);
+    });
+    if (!toSplit.size) return;
+    const np = []; (state.notePages || []).forEach((p, i) => { if (toSplit.has(i)) splitPageInTwo(p).forEach(x => np.push(x)); else np.push(p); });
+    state.notePages = np; state.coverImages = np.map((_, i) => 'note://' + i); state.coverImage = state.coverImages[0];
+    persist(); renderCoverImages();
+    if (st) { st.textContent = '✓ 已排成 ' + np.length + ' 页长图笔记（部分因内容多自动拆分）'; st.style.color = '#00a152'; }
+  }
+}
+// 强制把一页从中间拆成两页（不看 weight 阈值；封面不拆）。用于"被缩太小"的页。
+function splitPageInTwo(page) {
+  const blocks = (page && page.blocks) || [];
+  if (isCoverPage(page) || blocks.length < 3) return [page];
+  const head = blocks[0], rest = blocks.slice(1);
+  const half = noteWeight(blocks) / 2; let acc = noteWeight([head]), cut = 1;
+  for (let i = 0; i < rest.length; i++) { acc += noteWeight([rest[i]]); cut = i + 1; if (acc >= half) break; }
+  cut = Math.max(1, Math.min(cut, rest.length - 1));
+  const ht = String(head.text || '').replace(/==(.+?)==/g, '$1');
+  const contHead = { t: head.t === 'title' ? 'sec' : (head.t || 'sec'), text: ht + '（续）' };
+  return [Object.assign({}, page, { blocks: [head].concat(rest.slice(0, cut)) }),
+          Object.assign({}, page, { blocks: [contHead].concat(rest.slice(cut)) })];
+}
+
+async function genNoteImages() {
+  const st = $('#imgStatus'); const btn = $('#genNote'), old = btn ? btn.textContent : '';
+  const t = getTrack();
+  const title = ((state.cover && state.cover.cover_lines) || []).join(' ') || (state.titles && state.titles.best) || state.topic;
+  const bodyTxt = (state.body || []).join('\n').slice(0, 1800);
+  const hasRef = (state.refImages || []).length;
+  // 对标逐张路径的内容只来自 S3 框架：贴了对标却没框架 → 拦下，提示先跑 S3
+  if (hasRef && !state.frame) { if (st) { st.textContent = '长文内容来自 S3 框架——请先跑 S3，并在框架里写清「配图规划：第1张…第2张…」'; st.style.color = 'var(--cinnabar-deep)'; } return; }
+  if (!state.frame && !bodyTxt && !hasRef) { if (st) { st.textContent = '先跑 S3 框架（长文内容从框架来）+ 贴对标图片'; st.style.color = 'var(--cinnabar-deep)'; } return; }
+  if (btn) { btn.disabled = true; btn.textContent = '排版中…'; }
+  try {
+    const pages = [];
+    const refSet = (await analyzeRefImageSet(m => { if (st) { st.textContent = m; st.style.color = 'var(--ink-soft)'; } })).filter(Boolean);
+    const frameN = frameImageCount();
+    if (frameN > 0) {
+      // 页数 = S3 框架规划的图数（内容源）；对标只提供"第 i 张"的版式参考（不够就用最后一张/留空）
+      if (st) { st.textContent = '📐 S3 框架共 ' + frameN + ' 张配图规划 → 生成 ' + frameN + ' 页长图笔记…'; st.style.color = 'var(--ink-soft)'; }
+      for (let i = 0; i < frameN; i++) {
+        if (st) { st.textContent = '按 S3 框架第 ' + (i + 1) + '/' + frameN + ' 张排长图笔记…'; }
+        const refVis = refSet[i] || refSet[refSet.length - 1] || '';
+        pages.push(await planNotePage(i, refVis, i === 0, title, t));
+      }
+    } else if (state.frame) {
+      // 有框架却数不出"第N张" → 明确报错（别默默退回按对标张数）
+      if (st) { st.textContent = '⚠ S3 框架里没识别到「第1张/第2张…」的配图规划，请在 S3 框架中按"第N张"逐张写清，再生成'; st.style.color = 'var(--cinnabar-deep)'; }
+      if (btn) { btn.disabled = false; btn.textContent = old; }
+      return;
+    } else if (refSet.length) {
+      // 框架没写"第N张"，退而按对标逐张排
+      for (let i = 0; i < refSet.length; i++) {
+        if (st) { st.textContent = '按对标第 ' + (i + 1) + '/' + refSet.length + ' 张排长图笔记…'; }
+        pages.push(await planNotePage(i, refSet[i], i === 0, title, t));
+      }
+    } else {
+      // 无对标 → 把正文分页
+      if (st) { st.textContent = '正在把正文排成长图笔记…'; }
+      const tags = (state.tags || []).map(x => x.startsWith('#') ? x : '#' + x).join(' ');
+      const j = extractJSON(await callClaude({
+        system: '你是小红书长图笔记排版师，只输出 JSON。', json: true, max_tokens: 2600, action: 'imgplan',
+        prompt: `把下面这篇笔记排成小红书「长图干货笔记」，分 2~4 页（竖版 3:4，文字密集但舒服）。第1页放 title 大标题 + meta；用 sec 编号小标题、sub 加粗子标题、p 正文、ol 列表，最后一页放 tags。重点句用 ==关键词== 橙色高亮、小标题 **加粗**。**内容 100% 来自下面正文，不编造、不套通用模板**。
+【标题】${title}
+【正文】${bodyTxt}
+【标签】${tags}
+只输出 JSON：{"pages":[{"blocks":[{"t":"title|meta|sec|sub|p|ol|tags","text":"","items":[]}]}]}`
+      }));
+      (j.pages || []).forEach(p => { if (p && p.blocks && p.blocks.length) pages.push(p); });
+    }
+    if (!pages.length) throw new Error('没排出内容，重试一次');
+    // 内容过重的页 → 自动拆成两页（避免被缩得太小）；其余 auto-fit 兜底
+    const finalPages = pages.reduce((acc, p) => acc.concat(splitHeavyPage(p)), []);
+    const splitN = finalPages.length - pages.length;
+    state.notePages = finalPages;
+    state.coverImages = finalPages.map((_, i) => 'note://' + i);
+    state.coverImage = state.coverImages[0];
+    state.coverCaptions = [];
+    persist(); renderCoverImages();
+    if (st) { st.textContent = '✓ 已排成 ' + finalPages.length + ' 页长图笔记' + (splitN > 0 ? '（含 ' + splitN + ' 页因内容多自动拆分）' : '') + '（去成稿预览导 1080P）'; st.style.color = '#00a152'; }
+    await resplitTooSmallNotes(st); // 再按实际缩放比例兜底拆分被缩太小的页
+  } catch (e) { if (st) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
+}
+
+async function genCoverImage() {
+  if (!state.topic) { const st = $('#imgStatus'); if (st) { st.textContent = '请先在上方填写选题'; st.style.color = 'var(--cinnabar-deep)'; } return; }
+  const n = coverCount(), btn = $('#genImg'), st = $('#imgStatus'), old = btn.textContent;
+  btn.disabled = true; btn.textContent = '生成中…'; st.textContent = '正在构思 ' + n + ' 张画面并出图…'; st.style.color = 'var(--ink-soft)';
+  try {
+    const urls = await generateCoverImagesCore(n);
+    renderCoverImages();
+    st.textContent = '✓ 已生成 ' + urls.length + ' 张（第1张为封面）';
+  } catch (e) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+
+// 上传图片（压缩后存，避免 localStorage 撑爆）
+function downscaleImage(file, max = 1100) {
+  return new Promise(res => {
+    const rd = new FileReader();
+    rd.onload = () => { const img = new Image(); img.onload = () => { let w = img.width, h = img.height; const s = Math.min(1, max / Math.max(w, h)); const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', 0.85)); }; img.onerror = () => res(rd.result); img.src = rd.result; };
+    rd.onerror = () => res(''); rd.readAsDataURL(file);
+  });
+}
+// S2 上传对标图：下采样 → 存进 refImages → 立即逐张自动解析（不依赖小红书抓取）
+async function onRefUpload(e) {
+  const files = [...e.target.files]; if (!files.length) { e.target.value = ''; return; }
+  const fs = $('#fetchStatus');
+  if (fs) { fs.style.color = 'var(--ink-soft)'; fs.textContent = '处理 ' + files.length + ' 张对标图…'; }
+  state.refImages = state.refImages || [];
+  const before = state.refImages.length;
+  for (const f of files) { const d = await downscaleImage(f, 1280); if (d) state.refImages.push(d); }
+  state.refVision = ''; state.refVisions = null; // 新对标图，重新解析全部
+  Draft.save(state); renderRefImages();
+  const added = state.refImages.length - before;
+  await runRefAnalysis((m) => { if (fs) fs.textContent = m; }, false);
+  if (fs) fs.textContent = '✓ 已上传 ' + added + ' 张 · 已解析 ' + (state.refVisions || []).filter(Boolean).length + ' 张对标图';
+  e.target.value = '';
+}
+async function onCoverUpload(e) {
+  const files = [...e.target.files]; if (!files.length) { e.target.value = ''; return; }
+  state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
+  const st = $('#imgStatus'); if (st) { st.textContent = '处理图片中…'; st.style.color = 'var(--ink-soft)'; }
+  for (const f of files) { const d = await downscaleImage(f); if (d) state.coverImages.push(d); }
+  state.coverImage = state.coverImages[0]; persist(); renderCoverImages();
+  if (st) st.textContent = '✓ 已添加 ' + files.length + ' 张上传图片';
+  e.target.value = '';
+}
+
+function renderPanel() {
+  const st = STEPS[cur];
+  $('#panel').innerHTML = `
+    <div class="flex items-center justify-between">
+      <h2 class="font-song font-bold text-[17px]">${dispNo(st.no)} · ${st.name}</h2>
+      <span class="text-[11px] text-[var(--ink-soft)]">用到：${st.uses(state)}</span>
+    </div>
+    ${st.input === 'ref' ? (() => {
+      const picked = !!(state.ref && state.ref.trim()) || (state.refImages || []).length; // 已选了对标 → 默认展开②；否则展开①
+      const head = (target, title, desc, open) => `<div class="flex items-center gap-2 flex-wrap cursor-pointer select-none s2-head" data-target="${target}">
+          <span class="chip">${title}</span>
+          <span class="text-[12px] text-[var(--ink-soft)]">${desc}</span>
+          <span class="s2-chev ml-auto text-[12px] text-[var(--ink-soft)]">${open ? '收起 ▲' : '展开 ▼'}</span>
+        </div>`;
+      return `
+    <div class="space-y-3">
+      <!-- ① 找对标 -->
+      <div class="out p-4">
+        ${head('s2body1', '① 找对标', '按选题+目标给打法，自动抓约 20 篇真实对标', !picked)}
+        <div id="s2body1" class="space-y-3" style="${picked ? 'display:none' : 'margin-top:12px'}">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-[12px] text-[var(--ink-soft)] shrink-0">目标</span>
+            <select id="refGoal" class="field rounded-lg px-3 py-1.5 text-[13px]">
+              <option>涨粉（自媒体，找头部高互动）</option>
+              <option>起号 / 快速出单（电商，找低粉爆款）</option>
+              <option>变现 / 转化</option>
+              <option>成长期 · 优化提升</option>
+            </select>
+            <button id="genFinder" class="btn-go rounded-lg px-4 py-1.5 text-[12px] whitespace-nowrap">🔎 找对标建议</button>
+            <span id="finderStatus" class="text-[11px] text-[var(--ink-soft)] basis-full"></span>
+          </div>
+          <div id="finderOut"></div>
+        </div>
+      </div>
+      <!-- ② 选 1 篇拆解 -->
+      <div class="out p-4">
+        ${head('s2body2', '② 选 1 篇拆解', '挑 1 篇点「用这篇拆解」带入；或自己贴链接 / 正文', !!picked)}
+        <div id="s2body2" class="space-y-3" style="${picked ? 'margin-top:12px' : 'display:none'}">
+          <div>
+            <div class="text-[11px] text-[var(--ink-soft)] mb-1">笔记来源</div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="noteUrl" class="field flex-1 min-w-[200px] rounded-lg px-3 py-2 text-[13px]" placeholder="粘贴小红书链接（xiaohongshu.com / xhslink.com），可选" value="${state.refUrl||''}" />
+              <button id="fetchNote" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
+              <button id="upRefImg" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap" title="抓不到时，直接传对标图截图，自动解析">📎 上传对标图</button>
+              <input id="refImgFile" type="file" class="hidden" multiple accept="image/*" />
+            </div>
+            <div id="fetchStatus" class="text-[11px] text-[var(--ink-soft)] mt-1.5"></div>
+          </div>
+          <div>
+            <div class="text-[11px] text-[var(--ink-soft)] mb-1">对标正文（抓取结果落这里，可手动编辑）</div>
+            <textarea id="refIn" class="field w-full rounded-xl px-4 py-3 text-[13.5px] leading-relaxed" rows="5" placeholder="标题 + 正文（合规来源）…">${state.ref||''}</textarea>
+          </div>
+          <div>
+            <div class="text-[11px] text-[var(--ink-soft)] mb-1">对标图 & 逐张解析</div>
+            <div id="refImages" class="flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>`; })() : ''}
+    <div class="flex items-center gap-2.5">
+      <button id="genStep" class="btn-go rounded-xl px-5 py-2.5 text-[14px] font-medium flex items-center gap-2"><span id="gi">✶</span><span id="gt">生成${dispNo(st.no)}</span></button>
+      ${cur>0?'<button id="prevStep" class="btn-ghost rounded-xl px-4 py-2.5 text-[13px]">← 上一步</button>':''}
+      ${cur<STEPS.length-1?'<button id="nextStep" class="btn-ghost rounded-xl px-4 py-2.5 text-[13px]">下一步 →</button>':''}
+      <button id="notePref" class="btn-ghost rounded-xl px-4 py-2.5 text-[13px]" title="记下偏好，之后生成自动遵循、少返工">📌 记偏好</button>
+      <span id="stStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
+    </div>
+    <div id="stOut">${outputHTML(st)}</div>`;
+
+  const refIn = $('#refIn'); if (refIn) refIn.addEventListener('input', e => { state.ref = e.target.value; persist(); });
+  const noteUrl = $('#noteUrl'); if (noteUrl) noteUrl.addEventListener('input', e => { state.refUrl = e.target.value; Draft.save(state); });
+  const fetchNote = $('#fetchNote'); if (fetchNote) fetchNote.addEventListener('click', async () => {
+    const fs = $('#fetchStatus'); const url = ($('#noteUrl').value || '').trim();
+    if (!url) { fs.textContent = '请先粘贴链接'; fs.style.color = 'var(--cinnabar-deep)'; return; }
+    state.refUrl = url; Draft.save(state);
+    fetchNote.disabled = true; const o = fetchNote.textContent; fetchNote.textContent = '抓取中…';
+    fs.style.color = 'var(--ink-soft)'; fs.textContent = '正在抓取（小红书有反爬，失败请手动粘贴）…';
+    try {
+      const j = await (await fetch('/api/fetch-note', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ url }) })).json();
+      if (j.ok) {
+        const tagStr = (j.tags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
+        const txt = [j.title, j.content, tagStr].filter(Boolean).join('\n\n');
+        $('#refIn').value = txt; state.ref = txt;
+        state.refImages = j.images || []; state.refTags = j.tags || [];
+        state.refVision = ''; state.refVisions = null; // 新对标，清掉旧视觉缓存，重新解析
+        Draft.save(state); renderRefImages();
+        fs.style.color = 'var(--ink-soft)';
+        const baseMsg = '✓ 已抓取：' + (j.title || '').slice(0, 22) + ' · ' + (j.images || []).length + ' 图 · ' + (j.tags || []).length + ' 标签';
+        fs.textContent = baseMsg;
+        // 抓到图就自动逐张视觉解析（按钮显示加载中，解析完释放）
+        if ((j.images || []).length) {
+          await runRefAnalysis((m) => { fs.textContent = baseMsg + ' · ' + m; }, false);
+          fs.textContent = baseMsg + ' · ✓ 已解析 ' + (state.refVisions || []).filter(Boolean).length + ' 张对标图';
+        }
+      } else { fs.style.color = 'var(--cinnabar-deep)'; fs.textContent = '⚠ ' + (j.error || '抓取失败，请手动粘贴正文'); }
+    } catch (e) { fs.style.color = 'var(--cinnabar-deep)'; fs.textContent = '抓取失败：' + (e.message || e); }
+    finally { fetchNote.disabled = false; fetchNote.textContent = o; }
+  });
+  $('#upRefImg')?.addEventListener('click', () => $('#refImgFile')?.click());
+  $('#refImgFile')?.addEventListener('change', onRefUpload);
+  // ①/② 折叠表头：点表头展开/收起对应内容（不重渲染，保留已抓的对标列表/解析）
+  document.querySelectorAll('.s2-head').forEach(h => h.addEventListener('click', () => {
+    const body = document.getElementById(h.dataset.target); if (!body) return;
+    const open = body.style.display === 'none';
+    body.style.display = open ? '' : 'none'; if (open) body.style.marginTop = '12px';
+    const chev = h.querySelector('.s2-chev'); if (chev) chev.textContent = open ? '收起 ▲' : '展开 ▼';
+  }));
+  const editOut = $('#editOut'); if (editOut) editOut.addEventListener('input', e => { state[st.key] = e.target.value; Draft.save(state); });
+  const editBody = $('#editBody'); if (editBody) editBody.addEventListener('input', e => { state.body = e.target.value.split(/\n{2,}/).map(s => s.trim()).filter(Boolean); Draft.save(state); });
+  const editTitles = $('#editTitles'); if (editTitles) editTitles.addEventListener('input', e => { state.titles = e.target.value.split('\n').map(s => s.trim()).filter(Boolean); state.best = state.titles[0] || ''; Draft.save(state); });
+  const editTags = $('#editTags'); if (editTags) editTags.addEventListener('input', e => { state.tags = e.target.value.split(/[\s,，]+/).filter(Boolean); Draft.save(state); });
+  ['cl0', 'cl1'].forEach((id, idx) => { const el = $('#' + id); if (el) el.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.cover_lines = state.cover.cover_lines || []; state.cover.cover_lines[idx] = e.target.value; Draft.save(state); const tt = document.querySelector('.cv-title'); if (tt) tt.innerHTML = (state.cover.cover_lines || []).filter(Boolean).map(mark).join('<br>'); }); });
+  const cvVisual = $('#cvVisual'); if (cvVisual) cvVisual.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.visual = e.target.value; Draft.save(state); });
+  $('#prevStep')?.addEventListener('click', () => { cur--; renderRail(); renderPanel(); });
+  $('#nextStep')?.addEventListener('click', () => { cur++; renderRail(); renderPanel(); });
+  $('#genStep').addEventListener('click', () => genStep(st));
+  $('#notePref')?.addEventListener('click', openPrefEditor);
+  function openPrefEditor() {
+    const t = getTrack(); if (!t) { alert('请先选择 / 创建一个智能体'); return; }
+    const c = getAgentConfig(t.id);
+    const prefs = (c.prefs || '').split('\n').map(s => s.trim()).filter(Boolean);
+    let m = document.getElementById('prefModal'); if (m) m.remove();
+    m = document.createElement('div'); m.id = 'prefModal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:160;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML = `<div class="card" style="max-width:520px;width:100%;max-height:84vh;overflow-y:auto;padding:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-weight:700;font-size:15px">📌 「${t.name}」创作偏好</div>
+        <button id="prefClose" class="btn-ghost rounded-lg px-3 py-1 text-[12px]">关闭</button>
+      </div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">这些偏好会<b>自动注入该智能体后续所有生成</b>（选题/正文/配图），减少返工。当前为<b>手动维护</b>，可随时增删改。</div>
+      <div id="prefList" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+      <textarea id="prefNew" rows="2" placeholder="新增偏好（一行一条）。例：开头别用反问句 / 标题带「跨考」/ 多用真实数字" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;background:var(--paper-2);color:inherit"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <button id="prefSave" class="btn-go rounded-lg px-5 py-2 text-[13px]">保存</button>
+        <span id="prefMsg" style="font-size:12px;color:var(--ink-soft)"></span>
+      </div></div>`;
+    document.body.appendChild(m);
+    const listEl = m.querySelector('#prefList');
+    const renderList = () => {
+      listEl.innerHTML = prefs.length ? prefs.map((p, i) => `<div style="display:flex;gap:6px;align-items:center"><input class="pref-it" data-i="${i}" value="${p.replace(/"/g, '&quot;')}" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12.5px;background:var(--paper-2);color:inherit"><button class="pref-del btn-ghost rounded px-2 py-1 text-[11px]" data-i="${i}">删</button></div>`).join('') : '<div style="font-size:12px;color:var(--ink-soft)">暂无偏好，在下面添加第一条。</div>';
+      listEl.querySelectorAll('.pref-del').forEach(b => b.onclick = () => { prefs.splice(+b.dataset.i, 1); renderList(); });
+    };
+    renderList();
+    m.querySelector('#prefClose').onclick = () => m.remove();
+    m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+    m.querySelector('#prefSave').onclick = async () => {
+      const edited = [...listEl.querySelectorAll('.pref-it')].map(x => x.value.trim()).filter(Boolean);
+      const added = (m.querySelector('#prefNew').value || '').split('\n').map(s => s.trim()).filter(Boolean);
+      const all = [...edited, ...added].slice(-30);
+      c.prefs = all.join('\n'); setAgentConfig(t.id, c);
+      if (window.CloudAgent && window.Cloud && await Cloud.loggedIn()) { try { await CloudAgent.save(t.id, c); } catch {} }
+      const msg = m.querySelector('#prefMsg'); msg.textContent = '✓ 已保存，后续生成自动遵循'; msg.style.color = '#00a152';
+      setTimeout(() => m.remove(), 700);
+    };
+  }
+  $('#genNote')?.addEventListener('click', genNoteImages);
+  $('#genImg')?.addEventListener('click', genCoverImage);
+  $('#upImg')?.addEventListener('click', () => $('#coverFile')?.click());
+  $('#coverFile')?.addEventListener('change', onCoverUpload);
+  if (st.key === 'cover') renderCoverImages();
+  if (st.input === 'ref') {
+    renderRefImages();
+    const rg = $('#refGoal'); if (rg && state.refGoal) rg.value = state.refGoal;
+    rg?.addEventListener('change', e => { state.refGoal = e.target.value; Draft.save(state); });
+    $('#genFinder')?.addEventListener('click', genFinder);
+    if (state.refFinder) renderFinder(state.refFinder);
+  }
+}
+
+// 渲染「找对标」结果：左=关键词(可折叠) + 右=对标笔记20篇(可排序)，左右随折叠互相切换宽度
+let benchNotes = [], benchSort = 'likes', benchKwCollapsed = false, benchWindow = 3; // benchWindow: 月数，0=全部
+function renderFinder(d) {
+  const box = $('#finderOut'); if (!box || !d) return;
+  if (typeof d === 'string') { box.innerHTML = '<div class="out p-3 mt-1" style="white-space:pre-wrap;line-height:1.7">' + mark(d) + '</div>'; return; }
+  const searches = d.searches || [];
+  const kwRows = searches.map(s => `<div class="fd-row">
+        <div class="fd-main">
+          <div class="fd-kw">${s.keyword || ''}</div>
+          ${s.why ? `<div class="fd-why">${s.why} · 按${s.sort || '最多点赞'}</div>` : ''}
+        </div>
+        <a href="https://www.xiaohongshu.com/search_result?keyword=${encodeURIComponent(s.keyword || '')}" target="_blank" rel="noopener" class="fd-go">去搜 ↗</a>
+      </div>`).join('');
+  box.innerHTML = `<div class="out p-3.5 mt-1 space-y-2">
+    ${d.dimension ? `<div class="text-[12.5px]"><span class="chip mr-1.5">筛选维度</span>${mark(d.dimension)}</div>` : ''}
+    ${d.pick ? `<div class="fd-pick"><span class="chip mr-1.5" style="background:var(--cinnabar);color:#fff;border:none">怎么挑</span>${mark(d.pick)}</div>` : ''}
+    <div class="flex gap-3 items-start" style="flex-wrap:nowrap">
+      <div id="fdKwPane" style="${benchKwCollapsed ? 'flex:0 0 auto' : 'flex:0 0 232px'};min-width:0">
+        <div class="flex items-center justify-between mb-1 gap-2">
+          <span class="text-[11.5px] font-medium whitespace-nowrap">🔑 搜索词${benchKwCollapsed ? '（已折叠）' : ''}</span>
+          <button id="fdKwToggle" class="text-[11px] whitespace-nowrap" style="color:var(--cinnabar);border:none;background:none;cursor:pointer">${benchKwCollapsed ? '展开 ▶' : '折叠 ◀'}</button>
+        </div>
+        <div id="fdKwList" class="fd-list" style="${benchKwCollapsed ? 'display:none' : ''}">${kwRows}</div>
+      </div>
+      <div id="fdNotePane" style="flex:1;min-width:0">
+        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+          <button id="grabBench" class="btn-go rounded-lg px-3 py-1 text-[12px] whitespace-nowrap">📥 抓约20篇对标</button>
+          <div style="display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden">
+            <button class="bench-sort ${benchSort === 'likes' ? 'on' : ''}" data-sort="likes" style="border:none;background:${benchSort === 'likes' ? 'var(--cinnabar)' : 'transparent'};color:${benchSort === 'likes' ? '#fff' : 'var(--ink-soft)'};font-size:11px;padding:3px 10px;cursor:pointer">🔥 点赞</button>
+            <button class="bench-sort ${benchSort === 'comments' ? 'on' : ''}" data-sort="comments" style="border:none;border-left:1px solid var(--line);background:${benchSort === 'comments' ? 'var(--cinnabar)' : 'transparent'};color:${benchSort === 'comments' ? '#fff' : 'var(--ink-soft)'};font-size:11px;padding:3px 10px;cursor:pointer">💬 评论</button>
+            <button class="bench-sort ${benchSort === 'date' ? 'on' : ''}" data-sort="date" style="border:none;border-left:1px solid var(--line);background:${benchSort === 'date' ? 'var(--cinnabar)' : 'transparent'};color:${benchSort === 'date' ? '#fff' : 'var(--ink-soft)'};font-size:11px;padding:3px 10px;cursor:pointer">🆕 最新</button>
+          </div>
+          <select id="benchWin" title="按发布日期筛选（无日期的保留）" class="field rounded-lg text-[11px]" style="padding:3px 6px">
+            <option value="3" ${benchWindow === 3 ? 'selected' : ''}>📅 近3月</option>
+            <option value="6" ${benchWindow === 6 ? 'selected' : ''}>📅 近半年</option>
+            <option value="12" ${benchWindow === 12 ? 'selected' : ''}>📅 近1年</option>
+            <option value="0" ${benchWindow === 0 ? 'selected' : ''}>📅 全部</option>
+          </select>
+          <span id="benchStatus" class="text-[11px] text-[var(--ink-soft)] basis-full"></span>
+        </div>
+        <div id="benchList"></div>
+      </div>
+    </div>
+  </div>`;
+  const gb = $('#grabBench'); if (gb) gb.addEventListener('click', () => grabBenchmarkNotes(searches));
+  const tg = $('#fdKwToggle'); if (tg) tg.addEventListener('click', () => { benchKwCollapsed = !benchKwCollapsed; renderFinder(d); if (benchNotes.length) renderBenchNotes(); });
+  box.querySelectorAll('.bench-sort').forEach(b => b.addEventListener('click', () => { benchSort = b.dataset.sort; renderFinder(d); renderBenchNotes(); }));
+  const bw = $('#benchWin'); if (bw) bw.addEventListener('change', () => { benchWindow = +bw.value; renderBenchNotes(); });
+  if (benchNotes.length) renderBenchNotes();
+}
+// 按当前排序渲染对标笔记列表（点赞/最新切换，仅重排已抓到的，不再请求）
+function renderBenchNotes() {
+  const box = $('#benchList'), st = $('#benchStatus'); if (!box) return;
+  const dateNum = s => { const m = String(s || '').match(/(\d{4})-(\d{1,2})-(\d{1,2})/); return m ? (+m[1] * 10000 + +m[2] * 100 + +m[3]) : 0; };
+  // 时间窗 benchWindow（月，0=全部）；保留无日期的（无法确认，不臆断），只剔除明确早于该窗口的
+  const winLabel = benchWindow === 0 ? '全部' : (benchWindow === 12 ? '近1年' : benchWindow === 6 ? '近半年' : '近' + benchWindow + '月');
+  const cut = new Date(Date.now() - benchWindow * 30.4 * 86400000); const cutNum = cut.getFullYear() * 10000 + (cut.getMonth() + 1) * 100 + cut.getDate();
+  let list = benchNotes.slice();
+  const total = list.length, hidden = benchWindow ? list.filter(n => { const dn = dateNum(n.date); return dn && dn < cutNum; }).length : 0;
+  if (benchWindow) list = list.filter(n => { const dn = dateNum(n.date); return !dn || dn >= cutNum; });
+  list.sort((a, b) => benchSort === 'date' ? (dateNum(b.date) - dateNum(a.date)) : benchSort === 'comments' ? (parseCount(b.comments) - parseCount(a.comments)) : (parseCount(b.likes) - parseCount(a.likes)));
+  const sortLabel = benchSort === 'date' ? '最新' : benchSort === 'comments' ? '评论' : '点赞';
+  if (st) st.textContent = `✓ ${list.length} 篇 · ${winLabel} · 按${sortLabel}` + (hidden ? `（隐藏 ${hidden} 篇更早的）` : '') + '，挑 1 篇点「用这篇拆解」';
+  if (!list.length) { box.innerHTML = `<div class="text-[11px] text-[var(--ink-soft)] mt-1">${winLabel}内没有结果（共 ${total} 篇）。把时间筛选改成「全部」可看全部。</div>`; return; }
+  box.innerHTML = '<div class="grid gap-2 mt-1" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">' + list.map(n => {
+    const stats = [n.likes ? '❤' + n.likes : '', n.collects ? '⭐' + n.collects : '', n.comments ? '💬' + n.comments : ''].filter(Boolean).join(' ');
+    return `<div class="out p-1.5" style="display:flex;flex-direction:column">
+      ${n.cover ? `<img src="/api/img-proxy?u=${encodeURIComponent(n.cover)}" class="zoomable" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;cursor:zoom-in"/>` : ''}
+      ${n.title ? `<div class="text-[11px] mt-1 leading-tight" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${n.title}</div>` : ''}
+      <div class="text-[10px] text-[var(--ink-soft)] mt-1" style="display:flex;align-items:center;gap:3px">${n.authorLink ? `<a href="${n.authorLink}" target="_blank" rel="noopener" style="color:var(--cinnabar-deep)">@${n.author || '博主'}</a>` : ('@' + (n.author || '博主'))}</div>
+      ${stats ? `<div class="text-[10px] text-[var(--ink-soft)] mt-0.5">${stats}</div>` : ''}
+      ${n.date ? `<div class="text-[10px] text-[var(--ink-soft)]">🗓 ${n.date}</div>` : ''}
+      <button class="use-note btn-go rounded-md w-full py-1 text-[11px] mt-1" data-link="${(n.link || '').replace(/"/g, '&quot;')}">用这篇拆解</button>
+    </div>`;
+  }).join('') + '</div>';
+  box.querySelectorAll('.use-note').forEach(b => b.addEventListener('click', () => {
+    const link = b.dataset.link; const inp = $('#noteUrl'); if (inp) { inp.value = link; state.refUrl = link; Draft.save(state); }
+    openRefPick();
+    const fb = $('#fetchNote'); if (fb) fb.click();
+    const b2 = $('#s2body2'); if (b2) b2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+}
+// 解析"1.2万/3000+"等为数字，用于排序
+function parseCount(v) {
+  if (typeof v === 'number') return v;
+  const s = String(v || '').replace(/\+/g, '').trim(); if (!s) return 0;
+  const m = s.match(/([\d.]+)\s*(万|w|k|千)?/i); if (!m) return 0;
+  let n = parseFloat(m[1]) || 0; const u = (m[2] || '').toLowerCase();
+  if (u === '万' || u === 'w') n *= 10000; else if (u === 'k' || u === '千') n *= 1000;
+  return n;
+}
+// 按对标建议的关键词，走 xhs(agent-reach) 聚合抓取约 20 篇真实笔记（去重）。存入 benchNotes，由 renderBenchNotes 按当前排序渲染。
+async function grabBenchmarkNotes(searches) {
+  const st = $('#benchStatus'); const kws = (searches || []).map(s => s.keyword).filter(Boolean).slice(0, 3);
+  if (!kws.length) { if (st) st.textContent = '没有可用关键词'; return; }
+  const btn = $('#grabBench'); const o = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = '抓取中…'; }
+  const seen = new Set(), all = [];
+  for (let i = 0; i < kws.length && all.length < 20; i++) {
+    if (st) st.textContent = `正在抓「${kws[i]}」…（已得 ${all.length} 篇）`;
+    try {
+      const j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: 'popular' }) })).json();
+      if (j.ok && j.notes) for (const n of j.notes) { if (n.id && !seen.has(n.id)) { seen.add(n.id); all.push(n); if (all.length >= 20) break; } }
+      else if (j.error && /未登录|xhs login/.test(j.error)) { if (st) st.textContent = '⚠ ' + j.error; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
+    } catch {}
+    if (i < kws.length - 1 && all.length < 20) await new Promise(r => setTimeout(r, 2500)); // 间隔，避免触发验证码
+  }
+  if (btn) { btn.disabled = false; btn.textContent = o; }
+  benchNotes = all;
+  if (!all.length) { if (st) st.textContent = '没抓到（可能触发了验证码/未登录）。可点左侧「去搜」手动找，或用下方「📎 上传对标图」。'; const box = $('#benchList'); if (box) box.innerHTML = ''; return; }
+  renderBenchNotes();
+}
+
+// 拉某个关键词下的若干真实笔记（尽力而为）
+async function loadSearchNotes(keyword, box, btn) {
+  if (!box) return;
+  btn.disabled = true; const o = btn.textContent; btn.textContent = '加载中…';
+  box.innerHTML = '<div class="text-[11px] text-[var(--ink-soft)]">正在抓搜索结果（反爬可能失败）…</div>';
+  try {
+    const j = await (await fetch('/api/search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword }) })).json();
+    if (j.ok && j.notes && j.notes.length) {
+      box.innerHTML = '<div class="flex flex-wrap gap-2">' + j.notes.map(n => `
+        <div class="out p-1.5" style="width:130px">
+          ${n.cover ? `<img src="/api/img-proxy?u=${encodeURIComponent(n.cover)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block"/>` : ''}
+          <div class="text-[11px] mt-1 leading-tight" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${(n.title || '(无标题)')}</div>
+          <div class="text-[10px] text-[var(--ink-soft)] mt-0.5">${n.author || ''}${n.likes ? (' · ❤' + n.likes) : ''}</div>
+          <button class="use-note btn-go rounded-md w-full py-1 text-[11px] mt-1" data-link="${(n.link || '').replace(/"/g, '&quot;')}">用这篇拆解</button>
+        </div>`).join('') + '</div>';
+      box.querySelectorAll('.use-note').forEach(b => b.addEventListener('click', () => {
+        const link = b.dataset.link; const inp = $('#noteUrl'); if (inp) { inp.value = link; state.refUrl = link; Draft.save(state); }
+        openRefPick();
+        const fb = $('#fetchNote'); if (fb) fb.click();
+        const b2 = $('#s2body2'); if (b2) b2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }));
+    } else {
+      box.innerHTML = `<div class="text-[11px] text-[var(--ink-soft)]">没抓到笔记（小红书搜索页反爬/需登录）。<a href="https://www.xiaohongshu.com/search_result?keyword=${encodeURIComponent(keyword)}" target="_blank" rel="noopener" class="text-[var(--cinnabar-deep)]">去小红书手动搜 →</a> 挑 1 篇贴到下方 ②。</div>`;
+    }
+  } catch (e) { box.innerHTML = '<div class="text-[11px]" style="color:var(--cinnabar-deep)">失败：' + (e.message || e) + '</div>'; }
+  finally { btn.disabled = false; btn.textContent = o; }
+}
+
+// ① 找对标：按选题+目标，给筛选维度 + 一份可点的真实搜索清单
+async function genFinder() {
+  if (!state.topic) { const fst = $('#finderStatus'); if (fst) { fst.textContent = '请先在上方填写选题'; fst.style.color = 'var(--cinnabar-deep)'; } return; }
+  const goal = ($('#refGoal') && $('#refGoal').value) || '涨粉';
+  const t = getTrack(), btn = $('#genFinder'), fst = $('#finderStatus');
+  btn.disabled = true; btn.textContent = '生成中'; fst.textContent = ''; fst.style.color = 'var(--ink-soft)';
+  try {
+    const prompt = `我要做这个${t ? t.domain : ''}小红书选题：「${state.topic}」。当前目标：${goal}。
+请规划"去小红书找爆款对标"的方案。绝不编造具体笔记链接、博主名或数据；只给搜索词与方法。
+只输出 JSON：
+{"dimension":"按我的目标该找什么样的对标及原因（电商起号/快速出单→低粉爆款；自媒体涨粉→头部高互动），一句话",
+"searches":[{"keyword":"具体搜索词/话题","sort":"建议排序：最多点赞 或 最新 或 综合","why":"为什么搜这个，一句话"}],
+"filter":{"months":"对标该看多近的：时效强/追热点→2，常规→3，长青干货→6（只填数字 2/3/6）","sort":"对标笔记列表默认按什么排：likes(互动高/找爆款) 或 date(追最新/蹭时效)"},
+"pick":"从搜索结果里怎么挑出最适合的那 1 篇来拆解（与上面 filter 一致：近 N 月、互动量高、可复刻、与选题强相关）"}
+searches 给 6–8 个，覆盖核心词、长尾词、痛点词、人群词。filter 要和 dimension/pick 的逻辑自洽。`;
+    const d = extractJSON(await callClaude({ prompt, model: $('#model').value, max_tokens: 1400, json: true }));
+    state.refFinder = d; state.refGoal = goal; Draft.save(state); renderRail();
+    // 列表筛选/排序默认跟随「对标建议」的 filter（与建议逻辑保持一致）；映射到下拉档位 3/6/12
+    const fm = d.filter || {}; const mo = +fm.months; benchWindow = mo >= 12 ? 12 : mo === 6 ? 6 : 3; benchSort = (fm.sort === 'date') ? 'date' : 'likes';
+    renderFinder(d);
+    fst.textContent = '✓ 正在按建议抓约20篇对标…（也可点搜索词手动去搜）';
+    grabBenchmarkNotes(d.searches || []); // 自动抓取约20篇真实对标笔记（尽力而为）
+
+  } catch (e) { fst.textContent = '失败：' + (e.message || e); fst.style.color = 'var(--cinnabar-deep)'; }
+  finally { btn.disabled = false; btn.textContent = '找对标建议'; }
+}
+
+// 解析中标志（抓取/上传后自动解析、点重析时都置 true → 按钮显示加载中、禁点；完成后释放）
+let refAnalyzing = false;
+// 统一的逐张解析入口：置加载态 → 解析 → 释放。full=true 重析全部。供 抓取/上传/按钮 共用。
+async function runRefAnalysis(statusFn, full) {
+  if (refAnalyzing) return;
+  if (full) state.refVisions = null;
+  refAnalyzing = true; renderRefImages();
+  try { await analyzeRefImageSet(statusFn); } catch {}
+  refAnalyzing = false; renderRefImages();
+}
+// S2 抓取到的笔记图片 + 逐张视觉解析 + 话题标签预览
+function renderRefImages() {
+  const box = $('#refImages'); if (!box) return;
+  const imgs = state.refImages || [], tg = state.refTags || [], vis = state.refVisions || [];
+  box.innerHTML =
+    imgs.map((u, i) => `<div class="shrink-0" style="width:${vis[i] ? '168px' : '66px'}">
+        <a href="${u}" target="_blank" rel="noopener" title="点击看原图"><img src="/api/img-proxy?u=${encodeURIComponent(u)}" loading="lazy" style="width:66px;height:66px;object-fit:cover;border-radius:8px;display:block;border:1px solid var(--line)" /></a>
+        ${vis[i] ? `<div class="text-[10.5px] text-[var(--ink-soft)] leading-snug mt-1"><b style="color:var(--cinnabar-deep)">第${i + 1}张</b> <button class="reanalyze-one" data-i="${i}" ${refAnalyzing ? 'disabled' : ''} title="只重新解析这张" style="cursor:pointer;border:none;background:none;color:var(--cinnabar);font-size:10.5px;padding:0;opacity:${refAnalyzing ? '.5' : '1'}">🔄重析</button><br>${mark(vis[i])}</div>` : ''}
+      </div>`).join('')
+    + (imgs.length ? `<button id="analyzeRefBtn" ${refAnalyzing ? 'disabled' : ''} class="btn-go rounded-lg px-4 py-2 text-[12px] font-medium self-start whitespace-nowrap" style="opacity:${refAnalyzing ? '.6' : '1'}">${refAnalyzing ? '⏳ 解析中…' : ('🔍 ' + (vis.length ? '重新逐张解析' : '逐张解析每张对标图'))}</button>` : '')
+    + (tg.length ? `<div class="basis-full flex flex-wrap gap-1.5 mt-1">${tg.map(t => `<span class="chip">#${t}</span>`).join('')}</div>` : '');
+  const ab = $('#analyzeRefBtn');
+  if (ab && !refAnalyzing) ab.addEventListener('click', () => runRefAnalysis(null, true));
+  box.querySelectorAll('.reanalyze-one').forEach(b => b.addEventListener('click', async () => {
+    if (refAnalyzing) return;
+    const i = +b.dataset.i; b.textContent = '解析中…'; b.disabled = true; refAnalyzing = true;
+    try { await reanalyzeOne(i); } catch {} finally { refAnalyzing = false; renderRefImages(); }
+  }));
+}
+
+// 核心：执行一步（仅调用 + 存储，手动/自动共用）
+// 对标参考块：标题+正文+标签（来自 state.ref）+ 图片视觉描述（GLM-4V）。带进 S3–S7 一起解析。
+function refBlock() {
+  let b = '';
+  if (state.ref && state.ref.trim()) b += '【对标笔记（标题+正文+话题标签）】\n' + state.ref.trim().slice(0, 2500) + '\n';
+  const vis = (state.refVisions || []).filter(Boolean);
+  if (vis.length) b += '【对标图组 · 逐张视觉描述（第 i 张的文字/版式/画面）】\n' + vis.map((d, i) => `第${i + 1}张：${d}`).join('\n') + '\n';
+  else if (state.refVision && state.refVision.trim()) b += '【对标图片/封面 视觉描述】\n' + state.refVision.trim() + '\n';
+  return b ? ('\n\n参考下面这篇对标（仅借鉴其方法/结构/视觉策略，绝不照抄、不洗稿）：\n' + b) : '';
+}
+
+// 视觉解析对标封面（GLM-4V），结果存 state.refVision
+async function analyzeRefImages() {
+  const imgs = state.refImages || [];
+  if (!imgs.length) return;
+  try {
+    const r = await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: imgs[0] }) });
+    const j = await r.json();
+    if (j.ok && j.desc) { state.refVision = j.desc; Draft.save(state); }
+  } catch {}
+}
+
+async function runStep(st) {
+  // S2/S3 生成前：逐张视觉解析对标图组（不只封面，每张都解析）
+  if ((st.key === 'skeleton' || st.key === 'frame') && (state.refImages || []).length && !(state.refVisions && state.refVisions.length)) {
+    setAuto && setAuto('正在逐张视觉解析对标图组…');
+    await analyzeRefImageSet(typeof setAuto === 'function' ? setAuto : null);
+    renderRefImages(); // 解析完把逐张描述显示在图片下方
+  }
+  let prompt = st.prompt(state);
+  // S2 拆解纳入「逐张」视觉描述（每张的文字/版式/画面/作用）
+  if (st.key === 'skeleton') {
+    const vis = (state.refVisions || []).filter(Boolean);
+    if (vis.length) prompt += '\n\n【对标图组 · 逐张视觉解析（请逐张拆解：每张的文字内容、版式形式、画面与作用——封面的钩子策略、每页干货的呈现方式）】\n' + vis.map((d, i) => `第${i + 1}张：${d}`).join('\n');
+    else if (state.refVision) prompt += '\n\n【对标封面 视觉描述】\n' + state.refVision;
+  }
+  // S3 框架：也对每张笔记图片做拆解，并据此规划"每张图该放什么内容"
+  if (st.key === 'frame') {
+    const vis = (state.refVisions || []).filter(Boolean);
+    if (vis.length) prompt += '\n\n【对标图组 · 逐张拆解（请据此规划本篇每张图的内容与版式：第 i 张放什么干货、用什么版式，跟对标第 i 张对位）】\n' + vis.map((d, i) => `第${i + 1}张：${d}`).join('\n')
+      + `\n→ ==配图规划必须正好 ${vis.length} 张：第1张…一直到第${vis.length}张，与对标图组一一对应，不多不少==。每张写清「第N张：文字内容/干货 + 版式」，缺一张或多一张都不行；不要把多张并成一段，也不要凭空加图。`;
+  }
+  // S3/正文合并步 带上对标参考（含图片视觉描述）；封面步不带——它只对齐 S3 框架封面规划，避免被对标正文带偏
+  if (['frame', 'copy'].includes(st.key)) prompt += refBlock();
+  const txt = await callClaude({ prompt, model: $('#model').value, max_tokens: st.key === 'copy' ? 2600 : 1400, json: st.type === 'json', action: st.key });
+  if (st.type === 'json') {
+    const j = extractJSON(txt);
+    if (st.key === 'copy') { state.body = j.body || []; state.titles = j.titles || []; state.best = j.best || (j.titles || [])[0] || ''; state.tags = j.tags || []; }
+    else if (st.key === 'cover') state.cover = { cover_lines: j.cover_lines || [], visual: j.visual || '' };
+  } else { state[st.key] = txt; }
+  persist();
+}
+
+// 手动：生成当前步骤
+async function genStep(st) {
+  if (!state.topic) { $('#stStatus').textContent = '请先在上方填写选题'; $('#stStatus').style.color = 'var(--cinnabar-deep)'; return; }
+  if (st.input === 'ref' && !state.ref) { $('#stStatus').textContent = '请先粘贴对标笔记'; $('#stStatus').style.color = 'var(--cinnabar-deep)'; return; }
+  const b = $('#genStep'); b.disabled = true; $('#gi').className = 'spin'; $('#gi').textContent = '◠'; $('#gt').textContent = '生成中'; $('#stStatus').textContent = ''; $('#stStatus').style.color = 'var(--ink-soft)';
+  try { await runStep(st); renderPanel(); $('#stStatus').textContent = '✓ 已生成并保存'; }
+  catch (e) { $('#stStatus').textContent = '失败：' + (e.message || e); $('#stStatus').style.color = 'var(--cinnabar-deep)'; }
+  finally { const bb = $('#genStep'); if (bb) bb.disabled = false; }
+}
+
+// 自动：依次跑完 S2–S7（未贴对标则自动跳过 S2）
+let autoRunning = false;
+function setAuto(msg, err) { const el = $('#autoStatus'); if (el) { el.textContent = msg || ''; el.style.color = err ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; } }
+async function autoRun() {
+  if (autoRunning) return;
+  if (!state.topic) { setAuto('请先在上方填写选题', true); return; }
+  autoRunning = true; const ab = $('#autoBtn'); if (ab) { ab.disabled = true; ab.textContent = '⏳ 自动生成中…'; }
+  try {
+    for (let i = 0; i < STEPS.length; i++) {
+      const st = STEPS[i];
+      if (st.input === 'ref' && !state.ref) continue; // 没贴对标就跳过 S2
+      cur = i; renderRail(); renderPanel();
+      setAuto('正在生成 ' + dispNo(st.no) + ' · ' + st.name + ' …');
+      await runStep(st);
+      // S6 完成后自动生成多张配图（张数对齐对标，图失败不中断整体）
+      if (st.key === 'cover') {
+        const cn = coverCount();
+        setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
+        try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
+      }
+      renderRail(); renderPanel();
+    }
+    setAuto('✓ 已自动跑完（' + (state.ref ? 'S2–S7' : 'S3–S7，未贴对标已跳过 S2') + '，含封面图）。可去成稿预览 →');
+  } catch (e) { setAuto('中断于 ' + (STEPS[cur] ? STEPS[cur].no : '') + '：' + (e.message || e), true); }
+  finally { autoRunning = false; const ab2 = $('#autoBtn'); if (ab2) { ab2.disabled = false; ab2.textContent = '▶ 一键按对标生成全套（图文+封面图）'; } }
+}
+$('#autoBtn')?.addEventListener('click', autoRun);
+
+renderRail(); renderPanel();
+</script>
+</body>
+</html>

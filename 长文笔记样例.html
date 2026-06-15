@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>长文笔记样例</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  body{background:#e9ebee;padding:30px;font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;display:flex;gap:26px;flex-wrap:wrap;justify-content:center}
+  .note{width:540px;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px -10px rgba(0,0,0,.18)}
+  .pad{padding:42px 40px 46px}
+  .h1{font-size:40px;font-weight:900;color:#16181d;line-height:1.32;letter-spacing:.3px}
+  .meta{font-size:18px;color:#b6bbc2;margin:16px 0 30px}
+  .sec{font-size:30px;font-weight:900;color:#16181d;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+  .sec .dot{width:8px;height:26px;border-radius:3px;background:#ff6a3d}
+  .sub{font-size:23px;font-weight:800;color:#1f232a;margin:18px 0 6px}
+  p{font-size:22px;line-height:1.78;color:#33373d;margin:8px 0}
+  .hl{background:linear-gradient(180deg,transparent 58%,rgba(255,150,60,.42) 58%);border-bottom:2px solid #ff8a3d;padding:0 2px;color:#1f232a;font-weight:600}
+  .ol{counter-reset:n;margin:6px 0}
+  .ol li{list-style:none;display:flex;gap:14px;margin:14px 0;font-size:22px;line-height:1.7;color:#33373d}
+  .ol li::before{counter-increment:n;content:counter(n);flex:none;width:34px;height:34px;border-radius:50%;background:#16181d;color:#fff;font-size:18px;font-weight:800;display:grid;place-items:center;margin-top:2px}
+  .ol b{color:#16181d}
+  .tags{font-size:19px;color:#3a5a8c;margin-top:30px;line-height:1.8}
+  .cap{font-size:13px;color:#9499a0;text-align:center;margin-top:8px}
+</style></head>
+<body>
+
+<!-- 第1张：封面/开篇（大标题 + 个人情况） -->
+<div>
+<div class="note"><div class="pad">
+  <div class="h1">零基础工科5个月<br>跨考浙大设计学第二名经验贴</div>
+  <div class="meta">2110字 ｜ 干货经验</div>
+  <div class="sec"><span class="dot"></span>一、个人情况</div>
+  <p>本科西农风景园林专业，纯工科生，<span class="hl">美术零基础</span>，去年7月辞职脱产考研。</p>
+  <p>最终设计学手绘第一、复试逆袭上岸。和大家分享我<span class="hl">公共课踩过的坑</span>、手绘零基础怎么学，不足之处见谅！</p>
+  <div class="sec"><span class="dot"></span>二、关于择校</div>
+  <p class="sub">浙大艺术与考古学院 · 设计学学硕视传方向</p>
+  <p>出于地理位置考虑想留杭州，而且<span class="hl">浙大设计方向对跨考友好</span>——专业课考察的内容比起视觉表现，更注重学生的逻辑思维，综合下来比较适合我的工科背景。</p>
+</div></div>
+<div class="cap">第1张 · 封面/开篇</div>
+</div>
+
+<!-- 第2张：手绘三步法（编号 + 加粗 + 高亮） -->
+<div>
+<div class="note"><div class="pad">
+  <div class="sec"><span class="dot"></span>三、手绘零基础三步逆袭</div>
+  <p>美术零基础别慌，我从8月才开始，按这个节奏练，最后手绘考了第一。</p>
+  <ul class="ol">
+    <li><span><b>8月·入门期：</b>临马克笔技法和视觉表现的画，先抄后创，建立<span class="hl">基本的逻辑链</span>。</span></li>
+    <li><span><b>10月·方案期：</b>对每道题做思维发散和导图整理，画的时候心里有一条清晰的逻辑链。</span></li>
+    <li><span><b>考前3周·冲刺：</b>每个周末3小时限时模考，保持手感，<span class="hl">3小时内画完</span>。</span></li>
+  </ul>
+  <p class="sub">两个主体方向，一个画人、一个画物，任何主题都能套进去，保证速度。</p>
+  <div class="tags">#设计考研 #视觉传达 #考研手绘 #跨考 #浙大设计 #经验贴</div>
+</div></div>
+<div class="cap">第2张 · 干货内页</div>
+</div>
+
+</body></html>

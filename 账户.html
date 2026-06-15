@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>账户 · 我的积分 · 赛道智能体操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+</head>
+<body class="stage grain min-h-screen" data-page="account">
+
+<!-- 旧 header 已移除：导航由全局外壳（左边栏+顶栏）统一承载 -->
+<main class="ag-page narrow">
+
+  <div class="mb-8">
+    <div class="text-[var(--cinnabar)] text-[12px] tracking-[.3em] font-medium mb-2">ACCOUNT · 账户与积分</div>
+    <h1 class="font-display font-light leading-[.9] text-[clamp(32px,5.5vw,58px)] tracking-tight">我的<span class="italic" style="color:var(--cinnabar)">账户</span></h1>
+    <p class="mt-3 text-[14px] text-[var(--ink-soft)]">手机号登录 · 钱包余额 · 等级权益 · 邀请有礼 · 流水明细。充值请点右上角「＋ 充值」。</p>
+  </div>
+
+  <!-- 计费未开启提示 -->
+  <div id="offBanner" class="card p-4 mb-6 hidden" style="border-color:rgba(255,36,66,.4);background:rgba(255,36,66,.05)">
+    <div class="text-[13px] text-[var(--cinnabar-deep)] font-medium">⚠ 计费未开启</div>
+    <div class="text-[12.5px] text-[var(--ink-soft)] mt-1">服务端 <code>BILLING_ENABLED=false</code>。请用
+      <code class="px-1.5 py-0.5 rounded" style="background:var(--paper-2)">BILLING_ENABLED=true ADMIN_TOKEN=你的令牌 npm start</code>
+      重启后再来测试登录与扣费。</div>
+  </div>
+
+  <div class="max-w-[1040px] mx-auto">
+
+    <!-- 未登录：居中窄卡 -->
+    <div id="loginCard" class="card p-6 hidden max-w-[440px] mx-auto">
+      <div class="flex justify-center mb-5"><img src="/assets/logo.svg" alt="朱砂 · 赛道操盘台" style="width:230px;max-width:80%" /></div>
+      <h2 class="font-song font-bold text-[16px] mb-4">📱 手机号登录</h2>
+      <label class="text-[12px] text-[var(--ink-soft)]">手机号</label>
+      <input id="phone" class="field w-full rounded-xl px-4 py-2.5 text-[14px] mt-1 mb-3" placeholder="11 位手机号，如 13800000000" maxlength="11" inputmode="numeric" />
+      <label class="text-[12px] text-[var(--ink-soft)]">验证码</label>
+      <div class="flex gap-2 mt-1 mb-1">
+        <input id="code" class="field flex-1 rounded-xl px-4 py-2.5 text-[14px]" placeholder="6 位验证码" maxlength="6" inputmode="numeric" />
+        <button id="sendCode" class="btn-ghost rounded-xl px-4 text-[13px] whitespace-nowrap">发送验证码</button>
+      </div>
+      <div id="codeHint" class="text-[11.5px] text-[var(--ink-soft)] min-h-[16px] mb-3"></div>
+      <button id="loginBtn" class="btn-go rounded-xl w-full py-3 text-[14px] font-medium">登录 / 注册</button>
+      <div class="text-[11.5px] text-[var(--ink-soft)] mt-3">首次登录自动注册并赠送积分；开发模式验证码会直接显示。</div>
+    </div>
+
+    <!-- 已登录：仪表盘 -->
+    <div id="acctCard" class="hidden">
+      <!-- 资料行 -->
+      <div class="card p-4 flex items-center justify-between gap-3 mb-5">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="shrink-0 grid place-items-center rounded-full font-song font-bold text-white" style="width:46px;height:46px;background:linear-gradient(135deg,#ff6a7e,#ff2442);font-size:18px" id="avatar">朱</div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span id="acctNick" class="font-song font-bold text-[16px] truncate">—</span>
+              <button id="editNick" title="改昵称" class="text-[12px] shrink-0" style="opacity:.6;cursor:pointer">✏️</button>
+            </div>
+            <div id="acctPhone" class="text-[11.5px] text-[var(--ink-soft)]">—</div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px] shrink-0">退出登录</button>
+      </div>
+      <!-- 改昵称内联输入 -->
+      <div id="nickEdit" class="hidden mb-5 flex gap-2 max-w-[440px]">
+        <input id="nickInput" class="field flex-1 rounded-lg px-3 py-2 text-[13px]" maxlength="24" placeholder="给自己起个昵称（≤24 字）" />
+        <button id="nickSave" class="btn-go rounded-lg px-4 text-[12px]">保存</button>
+        <button id="nickCancel" class="btn-ghost rounded-lg px-3 text-[12px]">取消</button>
+      </div>
+
+      <!-- 大余额 Hero 卡 -->
+      <div class="card p-7 mb-5 flex flex-wrap items-center justify-between gap-5" style="background:linear-gradient(120deg,var(--paper),var(--tint))">
+        <div>
+          <div class="text-[12px] text-[var(--ink-soft)] mb-1 flex items-center gap-2">可用积分
+            <span id="levelBadge" class="text-[11px] font-medium px-2.5 py-0.5 rounded-full" style="background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold-line)">体验用户</span>
+          </div>
+          <div class="font-display font-light leading-none my-1" style="font-size:54px;color:var(--cinnabar)">💎 <span id="balance">0</span></div>
+          <div class="text-[12px] text-[var(--ink-soft)]">≈ ¥<span id="balanceCny">0.00</span>（1 积分 = ¥0.01）· 约可发 <b id="estNotes">0</b> 篇图文</div>
+        </div>
+        <a href="/充值.html" class="btn-go rounded-xl px-7 py-3.5 text-[15px] font-semibold">＋ 去充值积分</a>
+      </div>
+
+      <!-- 卡片网格 -->
+      <div class="grid md:grid-cols-2 gap-5 items-start">
+        <!-- 我的权益 -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[13.5px] font-bold">🎖 我的权益</span>
+            <span class="text-[11.5px] text-[var(--ink-soft)]">累计充值 ¥<span id="totalRecharge">0.00</span></span>
+          </div>
+          <div id="perks" class="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">—</div>
+          <div id="nextLevel" class="text-[12px] mt-2 hidden" style="color:var(--cinnabar-deep)"></div>
+        </div>
+        <!-- 邀请有礼 -->
+        <div class="card p-5" id="invite" style="scroll-margin-top:80px">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[13.5px] font-bold">🎁 邀请有礼</span>
+            <span class="text-[11.5px] text-[var(--ink-soft)]">已邀 <b id="invCount">0</b> 人 · 累计返 <b id="invEarned">0</b> 积分</span>
+          </div>
+          <div class="flex items-center gap-2 mb-2">
+            <input id="invLink" class="field flex-1 rounded-lg px-3 py-2 text-[12px]" readonly />
+            <button id="invCopy" class="btn-go rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">复制链接</button>
+          </div>
+          <a id="posterBtn" href="/分享海报.html" target="_blank" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] inline-flex items-center gap-1.5 mb-2">🖼 生成专属分享海报（朋友圈）</a>
+          <div class="text-[11px] text-[var(--ink-soft)] leading-relaxed">好友通过你的链接注册：好友得 <b>200</b> 积分、你得 <b>100</b> 积分；好友首充你再返 <b>10%</b> 积分（单级 · 仅积分 · 不可提现 · 每日封顶防刷）。</div>
+        </div>
+        <!-- 升级合伙人预览（未达合伙人可见） -->
+        <div id="partnerPreview" class="card p-5 hidden md:col-span-2" style="background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 13%,transparent),color-mix(in srgb,var(--gold) 4%,transparent))">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[13.5px] font-bold" style="color:var(--gold)">🚀 升级合伙人，解锁更多</span>
+            <span class="text-[11px]" style="color:var(--gold);opacity:.85">充值达标自动升级</span>
+          </div>
+          <ul class="text-[11.5px] text-[var(--ink-soft)] leading-relaxed space-y-0.5 mb-2">
+            <li>· <b>充值赠分 30%</b>（普通会员 10%）—— 充得越多多到账越多</li>
+            <li>· <b>可建 3 个智能体</b>（普通用户仅 1 个）</li>
+            <li>· <b>团队只读查询</b> · <b>客服优先支持</b></li>
+          </ul>
+          <div id="partnerGapTip" class="text-[12px] font-medium mb-2.5" style="color:var(--gold)"></div>
+          <a href="/充值.html" class="btn-go rounded-lg px-4 py-2 text-[12px] inline-block">＋ 去充值升级</a>
+          <div class="text-[10.5px] mt-2" style="color:var(--ink-soft);opacity:.85">现金分账 / 提现 / 多级返利待 D1 合规评估，本期不结算。</div>
+        </div>
+        <!-- 合伙人团队（合伙人/管理员可见） -->
+        <div id="partnerCard" class="card p-5 hidden md:col-span-2" style="border:1px solid color-mix(in srgb,var(--partner) 28%,transparent)">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[13.5px] font-bold">🤝 合伙人 · 团队管理（只读）</span>
+            <span class="text-[11.5px] text-[var(--ink-soft)]">名下 <b id="invCount2">0</b> 人 · 累计返 <b id="invEarned2">0</b> 积分</span>
+          </div>
+          <div class="grid md:grid-cols-2 gap-4 items-start">
+            <div class="rounded-lg p-3" style="background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 13%,transparent),color-mix(in srgb,var(--gold) 5%,transparent));border:1px solid color-mix(in srgb,var(--partner) 24%,transparent)">
+              <div class="text-[12px] font-medium mb-1.5" style="color:var(--gold)">✨ 合伙人权益</div>
+              <ul class="text-[11.5px] text-[var(--ink-soft)] leading-relaxed space-y-0.5">
+                <li>· <b>充值赠分 30%</b> · <b>新增智能体 3 个</b></li>
+                <li>· <b>团队只读查询</b> · <b>客服优先支持</b></li>
+                <li>· <b>邀请返积分</b>（单级 · 仅积分 · 不可提现）</li>
+              </ul>
+              <div class="text-[10.5px] mt-1.5" style="color:var(--ink-soft);opacity:.85">现金分账 / 提现待 D1，本期不结算。</div>
+            </div>
+            <div>
+              <div class="text-[11.5px] font-medium mb-1.5">👥 我的团队（点成员看充值记录·只读）</div>
+              <div id="invTeam" class="space-y-1 max-h-[220px] overflow-y-auto pr-1 text-[12px]"></div>
+            </div>
+          </div>
+        </div>
+        <!-- 近期流水（整行）-->
+        <div class="card p-5 md:col-span-2">
+          <div class="text-[13.5px] font-bold mb-3">🧾 近期流水</div>
+          <div id="ledger" class="ag-timeline space-y-0 max-h-[320px] overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mt-12 pt-6 border-t hairline text-[11px] text-[var(--ink-soft)]">
+    积分只从「验签通过的支付回调」入账，前端永不直接加分 · 管理员调整需服务端令牌 · 后扣：失败不收费、<code>request_id</code> 幂等防双扣
+  </footer>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=30"></script>
+<script>
+const $ = s => document.querySelector(s);
+// 主题切换 / 旧 tab 高亮：已由全局外壳（app.js）统一处理，此处移除
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  let j = {}; try { j = await r.json(); } catch {}
+  return { status: r.status, ok: r.ok, j };
+}
+const yuan = c => (c / 100).toFixed(2);
+const LEDGER_LABEL = { grant: '🎁 赠送', recharge: '💰 充值', consume: '✂️ 消耗', admin_grant: '🛠 管理员充值', admin_deduct: '🛠 管理员扣减', refund: '↩️ 退回', hold: '🔒 预扣', settle: '✅ 结算', transfer_out: '🤝 转赠成员', transfer_in: '🎁 合伙人转赠' };
+function ledgerRow(e) {
+  const pos = e.amount >= 0;
+  let note = ''; try { const m = JSON.parse(e.meta || '{}'); note = m.reason || m.action || (m.pack ? '套餐 ' + m.pack : '') || ''; } catch {}
+  const d = new Date(e.created_at); const ts = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const lbl = LEDGER_LABEL[e.type] || e.type; const ic = (lbl.match(/^\p{Emoji}/u) || [lbl[0]])[0]; const txt = lbl.replace(/^\S+\s*/, '');
+  // 时间线：左侧图标圆点 + 连接线，右侧金额
+  return `<div class="tl-row">
+    <span class="tl-dot">${ic}</span>
+    <div class="tl-body">
+      <div class="tl-top"><span class="tl-label">${txt || lbl}</span><span class="tl-amt" style="color:${pos ? '#1f9d55' : 'var(--cinnabar-deep)'}">${pos ? '+' : ''}${e.amount}</span></div>
+      <div class="tl-sub">${note ? note + ' · ' : ''}${ts} · 余额 ${e.balance_after}</div>
+    </div>
+  </div>`;
+}
+
+let IS_ADMIN = false;
+async function refreshHealth() {
+  const { j } = await api('/api/health');
+  const hd = $('#healthDot'); if (hd) hd.className = 'dot ' + (j.ok ? 'ok' : 'err');
+  const ht = $('#healthTxt'); if (ht) ht.textContent = j.ok ? (j.billing ? '计费已开启' : '服务就绪（计费关）') : '服务异常';
+  $('#offBanner')?.classList.toggle('hidden', !!j.billing);
+  return j.billing;
+}
+
+const maskPhone = p => (p || '').replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+async function refreshMe() {
+  const { j } = await api('/api/auth/me');
+  if (j.ok) {
+    $('#loginCard').classList.add('hidden');
+    $('#acctCard').classList.remove('hidden');
+    const nick = j.nickname || ('用户' + (j.phone || '').slice(-4));
+    $('#acctNick').textContent = nick;
+    $('#avatar').textContent = (nick[0] || '朱').toUpperCase();
+    $('#acctPhone').textContent = maskPhone(j.phone);
+    $('#nickInput').value = j.nickname || '';
+    $('#balance').textContent = j.balance;
+    $('#balanceCny').textContent = yuan(j.balance);
+    $('#estNotes').textContent = j.estNotes != null ? j.estNotes : 0;
+    // 角色：管理者 → 显示管理面板（用会话鉴权，免填令牌）；普通用户 → 只看自己积分与记录
+    IS_ADMIN = j.role === 'admin';
+    // 合伙人端：仅合伙人 / 管理员显示「团队管理(只读)」
+    const isPartnerLike = j.isPartner || j.isAdmin;
+    if ($('#partnerCard')) $('#partnerCard').classList.toggle('hidden', !isPartnerLike);
+    // 升级合伙人预览：仅「尚未达到合伙人」的用户可见
+    if ($('#partnerPreview')) {
+      $('#partnerPreview').classList.toggle('hidden', isPartnerLike);
+      if (!isPartnerLike && j.partnerMin != null) {
+        const gap = j.partnerGap != null ? j.partnerGap : Math.max(0, j.partnerMin - (j.totalRecharge || 0));
+        $('#partnerGapTip').innerHTML = gap > 0
+          ? `累计充值满 <b>¥${yuan(j.partnerMin)}</b> 自动升级 · 你已充 ¥${yuan(j.totalRecharge || 0)}，还差 <b>¥${yuan(gap)}</b>`
+          : `你已满足条件，刷新即可成为<b>${j.partnerName || '合伙人'}</b> 🎉`;
+      }
+    }
+    // 等级与权益
+    $('#levelBadge').textContent = j.level || '体验用户';
+    $('#totalRecharge').textContent = yuan(j.totalRecharge || 0);
+    $('#perks').textContent = j.perks || '';
+    if (j.nextLevel) { $('#nextLevel').classList.remove('hidden'); $('#nextLevel').innerHTML = `再充 ¥${yuan(j.nextNeed)} 升级为「<b>${j.nextLevel}</b>」`; }
+    else { $('#nextLevel').classList.add('hidden'); }
+    const w = await api('/api/wallet');
+    $('#ledger').innerHTML = (w.j.ledger || []).map(ledgerRow).join('') || '<div class="text-[12px] text-[var(--ink-soft)]">暂无流水</div>';
+    loadInvite();
+  } else {
+    $('#loginCard').classList.remove('hidden');
+    $('#acctCard').classList.add('hidden');
+  }
+  try { if (window.refreshTopNav) await window.refreshTopNav(); } catch {} // 登录/退出后即时更新顶栏，无需刷新整页
+}
+
+// ---- 邀请有礼 / 我的团队 ----
+async function loadInvite() {
+  try {
+    const { j } = await api('/api/invite');
+    if (!j || !j.ok) return;
+    const link = location.origin + '/账户.html?ref=' + j.code;
+    $('#invLink').value = link;
+    const pb = $('#posterBtn'); if (pb && j.code) pb.href = '/分享海报.html?ref=' + encodeURIComponent(j.code);
+    $('#invCount').textContent = j.count || 0;
+    $('#invEarned').textContent = j.earnedCredits || 0;
+    if ($('#invCount2')) $('#invCount2').textContent = j.count || 0;
+    if ($('#invEarned2')) $('#invEarned2').textContent = j.earnedCredits || 0;
+    const team = j.invitees || [];
+    if (team.length) {
+      $('#invTeam').innerHTML = team.map(t => `<div data-id="${t.id}" data-phone="${t.phone}" class="tm-row" style="border-bottom:1px solid var(--line);padding:5px 0">
+        <div class="flex items-center justify-between gap-2">
+          <span class="tm-toggle" style="cursor:pointer">${t.phone} <span class="text-[var(--ink-soft)] text-[10px]">▸明细</span></span>
+          <span class="flex items-center gap-2 shrink-0"><span class="text-[var(--ink-soft)]">充值 ¥${(t.recharge_cny/100).toFixed(2)}</span><button class="tm-give btn-ghost rounded px-2 py-0.5 text-[11px]">转赠积分</button></span>
+        </div>
+        <div class="tm-detail text-[11px] text-[var(--ink-soft)] mt-1" style="display:none"></div></div>`).join('');
+      $('#invTeam').querySelectorAll('.tm-toggle').forEach(tg => tg.addEventListener('click', async () => {
+        const row = tg.closest('.tm-row'), d = row.querySelector('.tm-detail');
+        if (d.style.display === 'block') { d.style.display = 'none'; return; }
+        d.style.display = 'block'; d.textContent = '加载中…';
+        const r = await api('/api/partner/member?invitee_id=' + row.dataset.id);
+        if (r.j && r.j.ok) { const os = r.j.orders || []; d.innerHTML = os.length ? os.map(o => `· ${new Date(o.paid_at||o.created_at).toLocaleDateString('zh-CN')} ${o.pack_id||''} ¥${(o.amount_cny/100).toFixed(2)} <span style="color:${o.status==='paid'?'#00a052':'inherit'}">${o.status}</span>`).join('<br>') : '该成员暂无充值记录'; }
+        else d.textContent = '无权查看或无记录';
+      }));
+      $('#invTeam').querySelectorAll('.tm-give').forEach(b => b.addEventListener('click', () => giveCredits(b.closest('.tm-row').dataset.id, b.closest('.tm-row').dataset.phone)));
+    } else { $('#invTeam').innerHTML = '<div class="text-[var(--ink-soft)]">还没有名下成员，分享你的邀请链接拉新吧。</div>'; }
+  } catch {}
+}
+$('#invCopy')?.addEventListener('click', async () => {
+  const v = $('#invLink').value; if (!v) return;
+  try { await navigator.clipboard.writeText(v); $('#invCopy').textContent = '已复制✓'; setTimeout(() => $('#invCopy').textContent = '复制链接', 1500); }
+  catch { $('#invLink').select(); document.execCommand('copy'); }
+});
+// 合伙人：积分转赠给名下成员（从自己余额划拨，单级·仅积分·不可提现）
+async function giveCredits(inviteeId, phone) {
+  const v = prompt(`给成员 ${phone} 转赠多少积分？（从你的余额划拨，不可提现）\n你当前余额：${($('#balance').textContent || '0')}`, '');
+  if (v === null) return; const n = Math.abs(parseInt(v, 10)); if (!n) { alert('请输入大于 0 的整数'); return; }
+  const note = prompt('备注（可选，写入双方流水）：', '团队扶持') || '';
+  const { j } = await api('/api/partner/transfer', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ invitee_id: inviteeId, amount: n, note }) });
+  if (j.ok) { alert(`✓ 已转赠 ${j.amount} 积分给 ${j.phone}\n你的余额：${j.fromBalance}`); await refreshMe(); }
+  else alert('转赠失败：' + (j.error || ''));
+}
+// 捕获邀请码（来自 ?ref=），登录注册时带上
+(function () { const r = new URLSearchParams(location.search).get('ref'); if (r) { try { localStorage.setItem('ag_ref', r.trim()); } catch {} const h = $('#codeHint'); if (h) { h.textContent = '🎁 检测到邀请码 ' + r.trim() + '，注册成功后你和好友都得积分'; h.style.color = 'var(--cinnabar-deep)'; } } })();
+
+// ---- 登录 ----
+$('#sendCode').addEventListener('click', async () => {
+  const phone = $('#phone').value.trim();
+  if (!/^1\d{10}$/.test(phone)) { $('#codeHint').textContent = '请输入正确的 11 位手机号'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; return; }
+  $('#sendCode').disabled = true; const old = $('#sendCode').textContent; $('#sendCode').textContent = '发送中…';
+  const { j } = await api('/api/auth/send-code', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone }) });
+  $('#sendCode').disabled = false; $('#sendCode').textContent = old;
+  if (j.ok) {
+    if (j.dev && j.code) { $('#codeHint').innerHTML = `开发模式验证码：<b style="color:var(--cinnabar-deep)">${j.code}</b>（已自动填入）`; $('#code').value = j.code; }
+    else { $('#codeHint').textContent = '验证码已发送，请查收短信'; }
+    $('#codeHint').style.color = 'var(--ink-soft)';
+  } else { $('#codeHint').textContent = j.error || '发送失败'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; }
+});
+$('#loginBtn').addEventListener('click', async () => {
+  const phone = $('#phone').value.trim(), code = $('#code').value.trim();
+  if (!phone || !code) { $('#codeHint').textContent = '请填手机号和验证码'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; return; }
+  const ref = (new URLSearchParams(location.search).get('ref') || localStorage.getItem('ag_ref') || '').trim();
+  const { j } = await api('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, code, invite_code: ref }) });
+  if (j.ok) { if (j.isNew) { $('#codeHint').innerHTML = `🎉 注册成功，赠送 <b>${j.grant}</b> 积分！`; $('#codeHint').style.color = '#00a052'; } await refreshMe(); }
+  else { $('#codeHint').textContent = j.error || '登录失败'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; }
+});
+$('#logoutBtn').addEventListener('click', () => { if (window.doLogout) return window.doLogout(); api('/api/auth/logout', { method: 'POST' }).then(() => location.href = '/登录.html'); });
+// 改昵称
+$('#editNick').addEventListener('click', () => { $('#nickEdit').classList.toggle('hidden'); $('#nickInput').focus(); });
+$('#nickCancel').addEventListener('click', () => $('#nickEdit').classList.add('hidden'));
+$('#nickSave').addEventListener('click', async () => {
+  const nickname = $('#nickInput').value.trim();
+  await api('/api/auth/profile', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nickname }) });
+  $('#nickEdit').classList.add('hidden'); await refreshMe();
+});
+
+// 初始化
+(async function () { await refreshHealth(); await refreshMe();
+  // 顶栏「邀请有礼」带 #invite 进入 → 滚动定位到邀请卡
+  if (location.hash === '#invite') setTimeout(() => document.getElementById('invite')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 500);
+})();
+</script>
+</body>
+</html>

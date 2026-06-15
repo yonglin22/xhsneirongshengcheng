@@ -1,0 +1,24 @@
+# 密钥与本机配置 —— 绝不提交
+.env
+.env.local
+
+# 数据库（含用户/钱包/订单/作品，绝不提交）
+billing.db
+billing.db-shm
+billing.db-wal
+*.db
+*.db-shm
+*.db-wal
+
+# 支付证书
+*.pem
+
+# 交付物 / 打包产物
+_deliverables/
+
+# 依赖与系统文件
+node_modules/
+.DS_Store
+nohup.out
+*.log
+.pm2/

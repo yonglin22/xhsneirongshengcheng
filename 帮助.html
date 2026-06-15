@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>联系客服 · 赛道智能体操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+</head>
+<body class="stage grain min-h-screen" data-page="help">
+
+<!-- 旧 header 已移除：导航由全局外壳（左边栏+顶栏）统一承载 -->
+<main class="ag-page" style="max-width:860px">
+  <div class="mb-7">
+    <div class="text-[var(--cinnabar)] text-[12px] tracking-[.3em] font-medium mb-2">SUPPORT · 联系客服</div>
+    <h1 class="font-display font-light leading-[.9] text-[clamp(32px,5.5vw,58px)] tracking-tight">联系<span class="italic" style="color:var(--cinnabar)">客服</span></h1>
+    <p class="mt-3 text-[14px] text-[var(--ink-soft)] max-w-xl">充值开通、问题反馈、合作咨询，请加客服微信。<span class="text-[var(--cinnabar-deep)]">使用与规则问题，点右下角「📕 小红书助手」可直接问（操作文档 / 常见问题 / 平台规则都在里面）。</span></p>
+  </div>
+
+  <section class="card p-7">
+    <div id="csContact"></div>
+    <div class="mt-5 pt-4 border-t hairline text-[12.5px] text-[var(--ink-soft)] leading-relaxed">
+      · 充值后把<strong>订单号 + 手机号</strong>发客服，几分钟内后台开通到账。<br>
+      · 工作时间内尽快回复；合规与账号问题以小红书官方公告为准，不对账号处置作保证。
+    </div>
+  </section>
+
+  <div class="mt-6 text-center">
+    <button id="openAssistant" class="btn-ghost rounded-xl px-5 py-3 text-[13px]">💬 先问问「小红书助手」（操作文档 / 常见问题 / 规则）</button>
+  </div>
+
+  <footer class="mt-14 pt-6 border-t hairline flex flex-wrap items-center justify-between gap-3 text-[11px] text-[var(--ink-soft)]">
+    <span>联系客服 · 充值开通 / 问题反馈</span>
+    <span class="font-song">帮助内容都在右下角「小红书助手」浮窗</span>
+  </footer>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=30"></script>
+<script src="/assets/help-kb.js?v=4"></script>
+<script>
+function csHTML(info) {
+  const qr = info.supportQr ? `<img src="${info.supportQr}" style="width:200px;height:200px;object-fit:contain;border-radius:12px;border:1px solid var(--line);background:#fff"/>` : '<div style="width:200px;height:200px;border:1px dashed var(--line);border-radius:12px;display:grid;place-items:center;color:var(--ink-soft);font-size:13px;text-align:center;padding:10px">客服二维码<br>（管理员在 .env 填 SUPPORT_WECHAT_QR）</div>';
+  const id = info.supportId ? `<div class="mt-3 text-[14px]">客服微信号：<b style="user-select:all">${info.supportId}</b> <button id="csCopy" data-wx="${info.supportId}" class="btn-go rounded-lg px-3 py-1.5 text-[12px] ml-1">复制微信号</button></div>` : '';
+  return `<div style="display:flex;gap:22px;align-items:center;flex-wrap:wrap">
+    <div><div class="text-[12px] text-[var(--ink-soft)] mb-2">① 微信扫码加客服</div>${qr}</div>
+    <div><div class="text-[12px] text-[var(--ink-soft)] mb-2">② 搜索微信号添加好友</div>${id || '<div class="text-[13px] text-[var(--ink-soft)]">（管理员未配置客服微信号）</div>'}</div>
+  </div>`;
+}
+(async () => {
+  let info = {}; try { info = (await (await fetch('/api/pay/info')).json()); } catch {}
+  document.getElementById('csContact').innerHTML = csHTML(info);
+  const c = document.getElementById('csCopy');
+  if (c) c.addEventListener('click', () => { navigator.clipboard?.writeText(c.dataset.wx); c.textContent = '已复制✓'; setTimeout(() => c.textContent = '复制微信号', 1500); });
+})();
+// 打开右下角悬浮助手
+document.getElementById('openAssistant').addEventListener('click', () => { const f = document.getElementById('xhsFab'); if (f) f.click(); });
+</script>
+</body>
+</html>

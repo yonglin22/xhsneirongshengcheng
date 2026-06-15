@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>智能体设置 · 赛道智能体操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+</head>
+<body class="stage grain min-h-screen" data-page="agent">
+
+<!-- 旧 header 已移除：导航由全局外壳（左边栏+顶栏）统一承载 -->
+<main class="ag-page">
+
+  <div class="mb-7">
+    <div class="text-[var(--cinnabar)] text-[12px] tracking-[.3em] font-medium mb-2">AGENT · 智能体设置</div>
+    <h1 class="font-display font-light leading-[.9] text-[clamp(34px,6vw,66px)] tracking-tight">智能体<span class="italic" style="color:var(--cinnabar)">设置</span></h1>
+    <p class="mt-3 text-[14px] text-[var(--ink-soft)] max-w-2xl">一个智能体 = <b>基础人设</b>（prompt）+ <b>9 个 skills</b>（流水线）+ <b>专属知识库</b>。知识库随智能体走，会注入到该赛道的所有生成中。</p>
+  </div>
+
+  <!-- 选择要配置的智能体 -->
+  <div class="mb-6">
+    <div class="text-[12px] text-[var(--ink-soft)] mb-2.5">选择要配置的智能体</div>
+    <div id="chips" class="flex flex-wrap gap-2.5"></div>
+  </div>
+
+  <div class="grid lg:grid-cols-[1fr_360px] gap-7 items-start">
+
+    <!-- 左：人设 + 知识库 -->
+    <section class="space-y-5">
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-[13px] font-medium flex items-center gap-2"><span class="stamp text-[11px] px-1.5 py-1 leading-none">设</span> 基础人设（系统 prompt）</label>
+          <button id="genPersona" class="btn-ghost rounded-lg px-3 py-1.5 text-[11.5px]" title="据你上传/粘贴的笔记，AI 提炼语气克隆 + 选题方法论 + 配图风格，一键生成人设">✨ 据我的笔记一键生成</button>
+        </div>
+        <div id="genPersonaTip" class="text-[11px] text-[var(--ink-soft)] mb-2" style="display:none"></div>
+        <textarea id="persona" rows="8" class="field w-full rounded-xl px-4 py-3 text-[13.5px] leading-relaxed"></textarea>
+        <div class="mt-3">
+          <label class="text-[13px] font-medium flex items-center gap-2 mb-1.5"><span class="stamp text-[11px] px-1.5 py-1 leading-none">图</span> 配图视觉风格 <span class="text-[11px] text-[var(--ink-soft)] font-normal">（S6 配图统一按这个画风出，留空＝跟对标图走）</span></label>
+          <input id="imgStyle" class="field w-full rounded-xl px-4 py-2.5 text-[13.5px]" placeholder="例：手绘插画风 / ins 极简 / 莫兰迪柔和配色 / 治愈系胶片 / 杂志排版感" />
+        </div>
+        <!-- A1④ 配图风格库：参考图沉淀，配图默认调用 -->
+        <div class="mt-3">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[13px] font-medium flex items-center gap-2"><span class="stamp text-[11px] px-1.5 py-1 leading-none">样</span> 配图风格库 <span class="text-[11px] text-[var(--ink-soft)] font-normal">（上传参考图沉淀，S6 配图默认参照保持统一调性）</span></label>
+            <div class="flex gap-2">
+              <button id="styleRefUp" class="btn-ghost rounded-md px-2 py-0.5 text-[11px]">📎 加参考图</button>
+              <button id="styleRefDistill" class="btn-ghost rounded-md px-2 py-0.5 text-[11px]" title="据参考图自动提炼一句画风填到上面">✨ 提炼画风</button>
+            </div>
+          </div>
+          <input id="styleRefFile" type="file" class="hidden" multiple accept="image/*" />
+          <div id="styleRefs" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <!-- A1③ 防幻觉边界约束：禁区 / 必守事实 / 统一口径，强制注入所有生成 -->
+      <div class="card p-5 space-y-3">
+        <div class="text-[13px] font-medium flex items-center gap-2"><span class="stamp text-[11px] px-1.5 py-1 leading-none">界</span> 边界约束（最高优先，强制生效于所有生成）</div>
+        <div>
+          <div class="text-[12px] text-[var(--ink-soft)] mb-1">⛔ 禁区 · 绝不出现</div>
+          <textarea id="bForbidden" rows="2" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px]" placeholder="例：不提任何机构/品牌名、不出现价格、不做上岸/录取保证、不导流站外…"></textarea>
+        </div>
+        <div>
+          <div class="text-[12px] text-[var(--ink-soft)] mb-1">✅ 必守事实 · 只能这样说</div>
+          <textarea id="bFacts" rows="2" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px]" placeholder="例：报名时间以官网为准；我是XX背景；只讲方法不承诺结果…不确定一律标「需核实」"></textarea>
+        </div>
+        <div>
+          <div class="text-[12px] text-[var(--ink-soft)] mb-1">🎯 统一口径 · 术语/说法一致</div>
+          <textarea id="bTone" rows="2" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px]" placeholder="例：统称「跨考生」不叫「外行」；自称「学姐」；快题叫「快题」不叫「手绘考试」…"></textarea>
+        </div>
+        <div>
+          <div class="text-[12px] text-[var(--ink-soft)] mb-1">📌 创作偏好（反思沉淀，按此产出减少返工；流水线里可一键「记偏好」追加）</div>
+          <textarea id="bPrefs" rows="2" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px]" placeholder="例：开头别用反问句；多用真实数字和时间线；标题带「跨考」二字；结尾固定引导评论区…"></textarea>
+        </div>
+      </div>
+
+      <div class="card p-5 space-y-4">
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-[13px] font-medium flex items-center gap-2"><span class="stamp text-[11px] px-1.5 py-1 leading-none">库</span> 专属知识库（注入生成，越全越像本人）</div>
+          <span id="kbStat" class="text-[11px] text-[var(--ink-soft)] shrink-0"></span>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1"><label class="text-[12px] text-[var(--ink-soft)]">KB1 · 账号人设资料（身份/口吻/擅长/不碰的话题）</label><button class="kb-up btn-ghost rounded-md px-2 py-0.5 text-[11px]" data-up="kb1">📎 上传文件</button></div>
+          <div id="kb1Files" class="flex flex-wrap gap-1.5 mb-1.5"></div>
+          <textarea id="kb1" rows="3" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px] leading-relaxed" placeholder="例：985 设计在读，带过 3 届考研；说话干脆、爱举具体例子；不点评具体机构好坏…"></textarea>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1"><label class="text-[12px] text-[var(--ink-soft)]">KB3 · 行业知识 / 事实信息（时间节点、各科要点、院校梯队…）</label><button class="kb-up btn-ghost rounded-md px-2 py-0.5 text-[11px]" data-up="kb3">📎 上传文件</button></div>
+          <div id="kb3Files" class="flex flex-wrap gap-1.5 mb-1.5"></div>
+          <textarea id="kb3" rows="3" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px] leading-relaxed" placeholder="放可引用的真实信息点；不确定的让模型标「需核实」"></textarea>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1"><label class="text-[12px] text-[var(--ink-soft)]">KB2 · 本人爆文风格样本（学语气，绝不照抄）</label><button class="kb-up btn-ghost rounded-md px-2 py-0.5 text-[11px]" data-up="kb2">📎 上传文件</button></div>
+          <div id="kb2Files" class="flex flex-wrap gap-1.5 mb-1.5"></div>
+          <textarea id="kb2" rows="3" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px] leading-relaxed" placeholder="贴几段本人写过的爆文原文，模型只学语气/钩子/结构"></textarea>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1"><label class="text-[12px] text-[var(--ink-soft)]">KB4 · 额外违禁 / 红线（在内置合规之外补充）</label><button class="kb-up btn-ghost rounded-md px-2 py-0.5 text-[11px]" data-up="kb4">📎 上传文件</button></div>
+          <div id="kb4Files" class="flex flex-wrap gap-1.5 mb-1.5"></div>
+          <textarea id="kb4" rows="2" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px] leading-relaxed" placeholder="例：本账号不提任何机构名、不出现价格…"></textarea>
+        </div>
+      </div>
+
+      <div class="card p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="text-[13px] font-medium flex items-center gap-2"><span class="stamp text-[11px] px-1.5 py-1 leading-none">能</span> 自定义 Skills（该智能体专属，可直接运行）</div>
+          <div class="flex gap-2">
+            <button id="distillSkill" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]" title="把你的方法论/SOP/文档蒸馏成一个可复用技能">✨ 蒸馏技能</button>
+            <button id="addSkill" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">＋ 添加 skill</button>
+          </div>
+        </div>
+        <div id="customSkills" class="space-y-3"></div>
+      </div>
+
+      <input type="file" id="kbFile" class="hidden" multiple accept="text/*,image/*,text/markdown,text/plain,.md,.markdown,.txt,.csv,.tsv,.json,.log,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.pdf,.odt,.odp,.ods,.jpg,.jpeg,.png,.webp,.gif,.bmp" />
+
+      <div class="flex items-center gap-2.5">
+        <button id="saveBtn" class="btn-go rounded-xl px-6 py-3 text-[14px] font-medium">保存到该智能体</button>
+        <button id="resetBtn" class="btn-ghost rounded-xl px-4 py-3 text-[13px]">恢复默认</button>
+        <span id="status" class="text-[12px] text-[var(--ink-soft)]"></span>
+      </div>
+    </section>
+
+    <!-- 右：组成 + skills -->
+    <aside class="space-y-5">
+      <div class="card p-5">
+        <div class="text-[13px] font-medium mb-1">正在配置</div>
+        <div id="agentName" class="font-song font-bold text-[20px] mb-1">—</div>
+        <div id="agentDomain" class="text-[12px] text-[var(--ink-soft)]"></div>
+      </div>
+      <div class="card p-5">
+        <div class="text-[13px] font-medium mb-3">内置 Skills（9 个流水线步骤）</div>
+        <div id="skills" class="space-y-2"></div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="mt-14 pt-6 border-t hairline flex flex-wrap items-center justify-between gap-3 text-[11px] text-[var(--ink-soft)]">
+    <span>智能体 = 人设 + skills + 知识库 · 配置按赛道独立保存于本机</span>
+    <span class="font-song">知识库越全，产出越像目标博主</span>
+  </footer>
+</main>
+
+<!-- 文件内容预览 -->
+<div class="modal-overlay" id="filePreview">
+  <div class="modal card p-0" style="max-width:680px;max-height:84vh;display:flex;flex-direction:column">
+    <div class="flex items-center justify-between px-5 py-3.5 border-b hairline shrink-0">
+      <div class="font-medium text-[14px]" id="fpTitle">文件预览</div>
+      <button id="fpClose" class="text-[var(--ink-soft)] text-[20px] leading-none">✕</button>
+    </div>
+    <div id="fpBody" class="px-5 py-4 overflow-auto text-[13px] leading-relaxed" style="flex:1;white-space:pre-wrap;word-break:break-word"></div>
+  </div>
+</div>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=30"></script>
+<script>
+const SKILLS = [
+  ['S1','选题','产出 3–5 个当下最该发的选题，标最推荐'],
+  ['S2','对标拆解','只看你提供的对标，抽可复用结构骨架'],
+  ['S3','框架','开头钩子 + 主体分段 + 结尾互动引导'],
+  ['S4','正文','按框架写完整正文，真人语气、原创不洗稿'],
+  ['S5','标题','3–5 个带钩子标题，选最推荐'],
+  ['S6','封面','封面文案 2 版 + 视觉建议 + 一键生图'],
+  ['S7','标签','3 个大流量 + 若干精准'],
+  ['S8','合规自检','违禁 / 绝对化 / 导流 / 未核实逐项查'],
+  ['S9','承接话术','评论私信合规回复'],
+];
+
+let curId = localStorage.getItem('ag_track') || TRACK_ORDER[0];
+let customSkills = [];
+
+function renderChips() {
+  $('#chips').innerHTML = TRACK_ORDER.map(id => { const t = TRACKS[id];
+    return `<button class="tk-chip ${id===curId?'on':''}" data-id="${id}">${t.emoji} ${t.name}</button>`; }).join('');
+  $$('#chips .tk-chip').forEach(b => b.addEventListener('click', () => { curId = b.dataset.id; load(); }));
+}
+function renderSkills() {
+  $('#skills').innerHTML = SKILLS.map(s =>
+    `<div class="flex items-start gap-2.5">
+       <span class="step-no shrink-0">${s[0].replace('S','')}</span>
+       <div><div class="text-[13px] font-medium leading-tight">${s[0]} ${s[1]}</div>
+       <div class="text-[11px] text-[var(--ink-soft)] mt-0.5 leading-snug">${s[2]}</div></div>
+     </div>`).join('');
+}
+function load() {
+  const t = TRACKS[curId], c = getAgentConfig(curId);
+  $('#persona').value = c.persona || t.persona;
+  $('#imgStyle').value = c.imgStyle || '';
+  $('#kb1').value = c.kb1 || ''; $('#kb3').value = c.kb3 || ''; $('#kb2').value = c.kb2 || ''; $('#kb4').value = c.kb4 || '';
+  $('#agentName').textContent = t.emoji + ' ' + t.name;
+  $('#agentDomain').textContent = '领域：' + t.domain + ' · 受众：' + t.audience;
+  $('#status').textContent = '';
+  kbFiles = { kb1: c.kb1_files || [], kb2: c.kb2_files || [], kb3: c.kb3_files || [], kb4: c.kb4_files || [] };
+  customSkills = Array.isArray(c.skills) ? c.skills.map(s => ({ name: s.name || '', prompt: s.prompt || '', github: s.github || '' })) : [];
+  const b = c.boundary || {}; $('#bForbidden').value = b.forbidden || ''; $('#bFacts').value = b.facts || ''; $('#bTone').value = b.tone || ''; $('#bPrefs').value = c.prefs || '';
+  styleRefs = Array.isArray(c.styleRefs) ? c.styleRefs : [];
+  renderChips(); renderSkills(); renderCustomSkills(); renderAllKbFiles(); updateKbStat(c); renderStyleRefs();
+}
+let styleRefs = [];
+function renderStyleRefs() {
+  const box = document.getElementById('styleRefs'); if (!box) return;
+  box.innerHTML = styleRefs.map((u, i) => `<div style="position:relative"><img src="${u}" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"/><span class="sr-del" data-i="${i}" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:10px">✕</span></div>`).join('') || '<span class="text-[11px] text-[var(--ink-soft)]">还没参考图。上传几张，配图会参照保持统一风格。</span>';
+  box.querySelectorAll('.sr-del').forEach(b => b.addEventListener('click', () => { styleRefs.splice(+b.dataset.i, 1); renderStyleRefs(); }));
+}
+
+// A1② 样例笔记 → 一键建人设（语气克隆 + 方法论提取 + 配图风格）
+$('#genPersona').addEventListener('click', async () => {
+  const t = TRACKS[curId];
+  // 汇总素材：KB2 爆文样本 / KB1 人设资料 / 各栏上传的文件文本
+  const filesText = ['kb2', 'kb1', 'kb3'].flatMap(k => (kbFiles[k] || []).map(f => f.text || '')).join('\n');
+  const sample = [$('#kb2').value, $('#kb1').value, filesText].filter(s => (s || '').trim()).join('\n\n').slice(0, 6000);
+  const btn = $('#genPersona'), tip = $('#genPersonaTip');
+  if (!sample.trim()) { tip.style.display = 'block'; tip.style.color = 'var(--cinnabar-deep)'; tip.textContent = '先在 KB2（爆文样本）/ KB1（人设资料）粘贴或上传你自己的几篇笔记，再点一键生成。'; return; }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '提炼中…';
+  tip.style.display = 'block'; tip.style.color = 'var(--ink-soft)'; tip.textContent = 'AI 正在做语气克隆 + 方法论提取…';
+  try {
+    const j = extractJSON(await callClaude({
+      system: '你是资深小红书主理人教练，只输出 JSON。基于作者「本人的笔记样本」提炼，绝不照抄原文、绝不编造事实。',
+      json: true, max_tokens: 1200,
+      prompt: `这是「${t.name}」赛道一位创作者本人的笔记样本，请提炼成可直接用的智能体人设。
+【本人笔记样本】
+${sample}
+要求输出 JSON：
+{"persona":"一段可作系统prompt的人设：身份/定位、语气画像(口头禅·句式·节奏，做到语气克隆)、选题方法论、内容结构习惯、必守与不碰的边界——用第一人称'我'，可执行、具体，不写空话",
+"imgStyle":"从样本/描述推断的配图视觉风格一句话(如 手绘插画风/ins极简/莫兰迪柔和)，没法判断就留空",
+"gist":"一句话总结这位作者的风格，给用户确认用"}`
+    }));
+    if (j.persona) $('#persona').value = j.persona;
+    if (j.imgStyle && !$('#imgStyle').value.trim()) $('#imgStyle').value = j.imgStyle;
+    tip.style.color = '#00a052'; tip.textContent = '✓ 已生成（' + (j.gist || '可编辑后保存') + '）。确认无误后点「保存到该智能体」。';
+  } catch (e) { tip.style.color = 'var(--cinnabar-deep)'; tip.textContent = '生成失败：' + (e.message || e); }
+  finally { btn.disabled = false; btn.textContent = old; }
+});
+
+$('#saveBtn').addEventListener('click', () => {
+  const t = TRACKS[curId];
+  const persona = $('#persona').value.trim();
+  const cfg = {
+    persona: (persona && persona !== t.persona) ? persona : '',
+    imgStyle: $('#imgStyle').value.trim(),
+    kb1: $('#kb1').value.trim(), kb3: $('#kb3').value.trim(), kb2: $('#kb2').value.trim(), kb4: $('#kb4').value.trim(),
+    kb1_files: kbFiles.kb1, kb2_files: kbFiles.kb2, kb3_files: kbFiles.kb3, kb4_files: kbFiles.kb4,
+    skills: customSkills.filter(s => (s.name || '').trim() || (s.prompt || '').trim() || (s.github || '').trim()),
+    boundary: { forbidden: $('#bForbidden').value.trim(), facts: $('#bFacts').value.trim(), tone: $('#bTone').value.trim() }, // A1③ 边界约束
+    prefs: $('#bPrefs').value.trim(), // 反思机制·创作偏好
+    styleRefs: styleRefs, // A1④ 配图风格库（参考图）
+  };
+  setAgentConfig(curId, cfg);
+  updateKbStat(cfg);
+  const s = kbStats(cfg);
+  $('#status').textContent = '✓ 已保存并生效！「' + t.name + '」之后的所有生成会自动带上知识库（' + s.files + ' 文件 · 约 ' + s.chars + ' 字）';
+  $('#status').style.color = '#00a152';
+  // 同步到云端（登录后跨设备）
+  (async () => { if (window.Cloud && await Cloud.loggedIn()) { await CloudAgent.save(curId, cfg); $('#status').textContent += ' · 已云端同步 ☁️'; } })();
+});
+$('#resetBtn').addEventListener('click', () => {
+  if (!confirm('恢复「' + TRACKS[curId].name + '」为赛道默认？将清空你填的人设与知识库。')) return;
+  setAgentConfig(curId, {}); load(); $('#status').textContent = '已恢复默认';
+});
+
+// ===== 知识库文件上传（多文件 → 附件块；原文保留，不塞进输入框）=====
+let kbFiles = { kb1: [], kb2: [], kb3: [], kb4: [] };
+let uploadTarget = null;
+function renderKbFiles(key, tip) {
+  const box = $('#' + key + 'Files'); if (!box) return;
+  box.innerHTML = (kbFiles[key] || []).map((f, i) =>
+    `<span class="chip" data-k="${key}" data-i="${i}" title="点击查看内容" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px">${f.img ? `<img src="${f.img}" alt="" style="width:26px;height:26px;object-fit:cover;border-radius:4px;flex:none"/>` : '📎'} ${f.name} · ${f.chars}字${f.imageCount ? ' · 含' + f.imageCount + '图🖼️' : ''} <span class="x" style="cursor:pointer;opacity:.55">✕</span></span>`).join('')
+    + (tip ? `<span class="up-tip text-[11px]" style="align-self:center;color:${tip.err ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'}">${tip.msg}</span>` : '');
+  box.querySelectorAll('.chip[data-k]').forEach(c => c.addEventListener('click', ev => {
+    if (ev.target.closest('.x')) return;
+    showFilePreview(c.dataset.k, +c.dataset.i);
+  }));
+  box.querySelectorAll('.x').forEach(x => x.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const c = ev.target.closest('[data-k]'); kbFiles[c.dataset.k].splice(+c.dataset.i, 1); renderKbFiles(c.dataset.k);
+  }));
+}
+function showFilePreview(key, i) {
+  const f = (kbFiles[key] || [])[i]; if (!f) return;
+  $('#fpTitle').textContent = (f.img ? '🖼️ ' : '📄 ') + f.name + ' · ' + f.chars + ' 字';
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  if (f.img) {
+    $('#fpBody').innerHTML = `<img src="${f.img}" alt="${esc(f.name)}" style="max-width:100%;border-radius:10px;display:block;margin:0 auto 14px" />`
+      + `<div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px">—— AI 识别出的文字（已并入知识库）——</div>`
+      + `<div style="white-space:pre-wrap;word-break:break-word">${esc(f.text) || '（未识别出文字）'}</div>`;
+  } else {
+    $('#fpBody').textContent = f.text || '（无可显示内容）';
+  }
+  $('#filePreview').classList.add('open');
+}
+function kbStats(cfg) {
+  let chars = 0, files = 0;
+  ['kb1', 'kb2', 'kb3', 'kb4'].forEach(k => {
+    if (cfg[k]) chars += cfg[k].length;
+    (cfg[k + '_files'] || []).forEach(f => { chars += (f.chars || (f.text || '').length); files++; });
+  });
+  return { chars, files };
+}
+const KB_WARN = 8000; // 知识库总字数预警阈值
+function updateKbStat(cfg) {
+  const el = $('#kbStat'); if (!el) return;
+  const s = kbStats(cfg || {});
+  if (!(s.chars || s.files)) { el.textContent = '未保存知识库'; el.style.color = 'var(--ink-soft)'; return; }
+  if (s.chars > KB_WARN) {
+    el.textContent = '⚠ 已生效但偏大：' + s.files + ' 文件 · 约 ' + s.chars + ' 字 —— 建议只留精华';
+    el.style.color = '#d48806';
+  } else {
+    el.textContent = '✓ 已生效：' + s.files + ' 文件 · 约 ' + s.chars + ' 字';
+    el.style.color = '#00a152';
+  }
+}
+function renderAllKbFiles() { ['kb1', 'kb2', 'kb3', 'kb4'].forEach(k => renderKbFiles(k)); }
+document.addEventListener('click', e => { const b = e.target.closest('.kb-up'); if (b) { uploadTarget = b.dataset.up; $('#kbFile').click(); } });
+// 图片转缩略 dataURL（存进 KB 供预览；下采样省体积）
+function fileToThumb(file, max = 900) {
+  return new Promise(res => {
+    if (!/^image\//.test(file.type)) return res('');
+    const rd = new FileReader();
+    rd.onload = () => { const img = new Image(); img.onload = () => { let w = img.width, h = img.height; const s = Math.min(1, max / Math.max(w, h)); const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', 0.72)); }; img.onerror = () => res(''); img.src = rd.result; };
+    rd.onerror = () => res(''); rd.readAsDataURL(file);
+  });
+}
+$('#kbFile').addEventListener('change', async e => {
+  const files = [...e.target.files], key = uploadTarget;
+  e.target.value = ''; uploadTarget = null;
+  if (!files.length || !key) return;
+  const st = $('#status'); let ok = 0; const errs = [];
+  for (const f of files) {
+    renderKbFiles(key, { msg: '⏳ 正在解析「' + f.name + '」…' });
+    st.textContent = '正在解析「' + f.name + '」…'; st.style.color = 'var(--ink-soft)';
+    try {
+      const thumb = await fileToThumb(f);
+      const r = await fetch('/api/extract', { method: 'POST', headers: { 'x-filename': encodeURIComponent(f.name) }, body: f });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || '解析失败');
+      kbFiles[key].push({ name: f.name, chars: j.chars, text: j.text, imageCount: j.imageCount || 0, img: thumb || '' }); ok++;
+    } catch (err) {
+      let m = err.message || String(err);
+      if (/Failed to fetch|NetworkError|load failed/i.test(m)) m = '上传中断（文件可能过大或服务在重启，请重试或换小一点的文件）';
+      errs.push('「' + f.name + '」' + m);
+    }
+  }
+  const tip = errs.length ? { msg: '⚠ ' + errs.join('；'), err: true } : { msg: '✓ 已添加 ' + ok + ' 个文件，记得点保存' };
+  renderKbFiles(key, tip);
+  st.textContent = errs.length ? ('部分失败：' + errs.join('；')) : ('✓ 已添加 ' + ok + ' 个文件到知识库（记得保存）');
+  st.style.color = errs.length ? 'var(--cinnabar-deep)' : 'var(--ink-soft)';
+});
+
+// A1④ 配图风格库：上传参考图（下采样存）+ 据参考图提炼画风
+$('#styleRefUp')?.addEventListener('click', () => $('#styleRefFile').click());
+$('#styleRefFile')?.addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  for (const f of files) { const d = await fileToThumb(f, 760); if (d) styleRefs.push(d); }
+  renderStyleRefs(); $('#status').textContent = '✓ 已加参考图到风格库（记得保存）'; $('#status').style.color = 'var(--ink-soft)';
+});
+$('#styleRefDistill')?.addEventListener('click', async () => {
+  if (!styleRefs.length) { $('#status').textContent = '先上传几张参考图再提炼画风'; $('#status').style.color = 'var(--cinnabar-deep)'; return; }
+  const btn = $('#styleRefDistill'), o = btn.textContent; btn.disabled = true; btn.textContent = '提炼中…';
+  try {
+    // 用视觉模型看第一张参考图，提炼成一句可复用画风
+    const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: styleRefs[0], prompt: '用一句中文概括这张图的「视觉风格」：画面类型(实拍/插画/3D…)、配色、质感、排版氛围、光影。只输出风格短句，不描述具体内容，≤30字。' }) })).json();
+    if (j.ok && j.desc) { $('#imgStyle').value = j.desc.trim().replace(/\s+/g, ' ').slice(0, 40); $('#status').textContent = '✓ 已据参考图提炼画风，填入「配图视觉风格」，记得保存'; $('#status').style.color = '#00a052'; }
+    else { $('#status').textContent = '提炼失败：' + (j.error || '换张更清晰的参考图'); $('#status').style.color = 'var(--cinnabar-deep)'; }
+  } catch (e) { $('#status').textContent = '提炼失败：' + (e.message || e); $('#status').style.color = 'var(--cinnabar-deep)'; }
+  finally { btn.disabled = false; btn.textContent = o; }
+});
+
+// ===== 自定义 Skills =====
+function renderCustomSkills() {
+  const box = $('#customSkills');
+  if (!customSkills.length) { box.innerHTML = '<div class="text-[12px] text-[var(--ink-soft)]">还没有自定义 skill。点右上「＋ 添加 skill」，写个提示词（可用 {{输入}}）即可运行。</div>'; return; }
+  box.innerHTML = customSkills.map((s, i) => `
+    <div class="out p-4 space-y-2" data-i="${i}">
+      <div class="flex items-center gap-2">
+        <input class="cs-name field rounded-lg px-3 py-1.5 text-[13px] flex-1" placeholder="skill 名称，如「标题党改写」" value="${(s.name || '').replace(/"/g, '&quot;')}" />
+        <button class="cs-del btn-ghost rounded-lg px-2.5 py-1.5 text-[12px]">删除</button>
+      </div>
+      <textarea class="cs-prompt field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" rows="3" placeholder="提示词，可用 {{输入}} 代表运行输入、{{github}} 引用下方链接内容。例：参考 {{github}}，把这句改写：{{输入}}">${s.prompt || ''}</textarea>
+      <input class="cs-github field w-full rounded-lg px-3 py-1.5 text-[12px]" placeholder="🔗 GitHub 链接（可选）：prompt 文件 / 仓库 README，运行时自动拉取" value="${(s.github || '').replace(/"/g, '&quot;')}" />
+      <div class="flex items-center gap-2">
+        <input class="cs-input field rounded-lg px-3 py-1.5 text-[13px] flex-1" placeholder="运行输入（可选）" />
+        <button class="cs-run btn-go rounded-lg px-4 py-1.5 text-[12px]">运行</button>
+      </div>
+      <div class="cs-out"></div>
+    </div>`).join('');
+  $$('#customSkills [data-i]').forEach(card => {
+    const i = +card.dataset.i;
+    card.querySelector('.cs-name').addEventListener('input', ev => customSkills[i].name = ev.target.value);
+    card.querySelector('.cs-prompt').addEventListener('input', ev => customSkills[i].prompt = ev.target.value);
+    card.querySelector('.cs-github').addEventListener('input', ev => customSkills[i].github = ev.target.value);
+    card.querySelector('.cs-del').addEventListener('click', () => { customSkills.splice(i, 1); renderCustomSkills(); });
+    card.querySelector('.cs-run').addEventListener('click', () => runCustomSkill(i, card));
+  });
+}
+$('#addSkill').addEventListener('click', () => { customSkills.push({ name: '', prompt: '' }); renderCustomSkills(); });
+// A1① 技能/SOP 蒸馏：把方法论/SOP/文档蒸馏成一个独立可运行技能（prompt 模板）
+$('#distillSkill').addEventListener('click', async () => {
+  // 素材来源：优先用已上传的 KB 文件文本，否则让用户粘贴
+  const fileText = ['kb1', 'kb3', 'kb2'].flatMap(k => (kbFiles[k] || []).map(f => f.text || '')).join('\n').trim();
+  let material = fileText;
+  if (!material) { material = (prompt('粘贴你的方法论 / SOP / 流程文档（AI 会蒸馏成一个可复用技能）：', '') || '').trim(); if (!material) return; }
+  const btn = $('#distillSkill'), o = btn.textContent; btn.disabled = true; btn.textContent = '蒸馏中…';
+  $('#status').textContent = 'AI 正在把你的方法论蒸馏成技能…'; $('#status').style.color = 'var(--ink-soft)';
+  try {
+    const j = extractJSON(await callClaude({
+      system: '你是把专家方法论固化成「可复用技能」的工程师，只输出 JSON。不编造，只提炼用户给的内容。', json: true, max_tokens: 900, action: 'imgplan',
+      prompt: `把下面这位「${TRACKS[curId].name}」创作者的方法论/SOP，蒸馏成一个可直接运行的技能：\n【素材】${material.slice(0, 5000)}\n输出 JSON：{"name":"技能名(≤10字)","prompt":"技能提示词模板：清晰步骤化地复现这套打法，可用 {{输入}} 占位用户每次的输入；要让别人套用也能产出同款质量"}`
+    }));
+    if (j.name && j.prompt) { customSkills.push({ name: j.name, prompt: j.prompt, github: '' }); renderCustomSkills(); $('#status').textContent = '✓ 已蒸馏出技能「' + j.name + '」，可微调后保存'; $('#status').style.color = '#00a052'; }
+    else throw new Error('未能蒸馏，换更完整的素材');
+  } catch (e) { $('#status').textContent = '蒸馏失败：' + (e.message || e); $('#status').style.color = 'var(--cinnabar-deep)'; }
+  finally { btn.disabled = false; btn.textContent = o; }
+});
+
+async function runCustomSkill(i, card) {
+  const s = customSkills[i];
+  if (!(s.prompt && s.prompt.trim()) && !(s.github && s.github.trim())) return;
+  const input = card.querySelector('.cs-input').value.trim();
+  const out = card.querySelector('.cs-out'), btn = card.querySelector('.cs-run');
+  btn.disabled = true; btn.textContent = '运行中'; out.innerHTML = '';
+  try {
+    // 拉取 GitHub 链接内容
+    let ref = '';
+    if (s.github && s.github.trim()) {
+      out.innerHTML = '<div class="text-[12px] mt-1" style="color:var(--ink-soft)">正在拉取 GitHub 内容…</div>';
+      const r = await fetch('/api/fetch-url', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: s.github.trim() }) });
+      const j = await r.json();
+      if (!j.ok || !j.text) throw new Error(j.error || 'GitHub 链接拉取失败');
+      ref = j.text;
+    }
+    let prompt = (s.prompt || '').replace(/\{\{\s*(输入|input)\s*\}\}/gi, input).replace(/\{\{\s*(github|链接)\s*\}\}/gi, ref);
+    // 有 github 内容但提示词没用占位 → 作为参考附在前面
+    if (ref && !/\{\{\s*(github|链接)\s*\}\}/i.test(s.prompt || '')) {
+      prompt = '【参考资料（来自 GitHub 链接）】\n' + ref + '\n\n' + (prompt || '请基于以上参考资料完成任务。') + (input ? '\n\n输入：' + input : '');
+    }
+    if (!prompt.trim()) prompt = input || '请基于以上内容完成任务。';
+    const txt = await callClaude({ system: ($('#persona').value.trim() || undefined), prompt, max_tokens: 1600 });
+    out.innerHTML = '<div class="out p-3 mt-1 text-[13px] leading-relaxed">' + mark(txt) + '</div>';
+  } catch (e) { out.innerHTML = '<div class="text-[12px] mt-1" style="color:var(--cinnabar-deep)">失败：' + (e.message || e) + '</div>'; }
+  finally { btn.disabled = false; btn.textContent = '运行'; }
+}
+
+// 文件预览弹窗关闭
+$('#fpClose').addEventListener('click', () => $('#filePreview').classList.remove('open'));
+$('#filePreview').addEventListener('click', e => { if (e.target === $('#filePreview')) $('#filePreview').classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#filePreview').classList.remove('open'); });
+
+// 先把云端配置同步进本地（登录则跨设备），再渲染
+(async () => { try { if (window.syncAgentConfigsDown) await syncAgentConfigsDown(); } catch {} load(); })();
+</script>
+</body>
+</html>

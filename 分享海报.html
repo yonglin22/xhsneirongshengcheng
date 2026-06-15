@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>分享海报 · 朱砂操盘台</title>
+<script src="/assets/qrcode.min.js?v=1"></script>
+<script src="/assets/html2canvas.min.js?v=1"></script>
+<style>
+  :root{ --red:#ff2442; --red2:#ff5b73; --ink:#16181d; --soft:#8b9096; }
+  *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; margin:0; }
+  body{ background:#eceef1; font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; color:var(--ink);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:18px; padding:30px 16px 60px; }
+  /* 海报本体 3:4（朋友圈竖图）*/
+  .poster{ width:540px; max-width:94vw; aspect-ratio:3/4; position:relative; overflow:hidden; border-radius:26px;
+    background:linear-gradient(170deg,#fff5f6 0%,#ffffff 42%,#fff 100%); box-shadow:0 26px 60px -28px rgba(0,0,0,.4);
+    padding:40px 38px; display:flex; flex-direction:column; }
+  .poster::after{ content:""; position:absolute; inset:0; pointer-events:none; background:
+    radial-gradient(420px 320px at 92% -4%,rgba(255,36,66,.16),transparent 60%),
+    radial-gradient(360px 360px at -6% 104%,rgba(255,36,66,.10),transparent 60%); }
+  .poster > *{ position:relative; z-index:1; }
+  .pp-logo{ display:flex; align-items:center; gap:12px; }
+  .pp-logo img{ width:44px; height:44px; border-radius:12px; box-shadow:0 8px 18px -8px rgba(225,15,41,.5); }
+  .pp-logo .nm{ font-weight:800; font-size:18px; }
+  .pp-logo .en{ font-size:10px; letter-spacing:.3em; color:var(--soft); }
+  .pp-kick{ margin-top:30px; font-size:13px; letter-spacing:.22em; color:var(--red); font-weight:700; }
+  .pp-h1{ margin-top:12px; font-size:42px; line-height:1.16; font-weight:300; letter-spacing:-.01em; }
+  .pp-h1 b{ font-weight:900; color:var(--red); }
+  .pp-sub{ margin-top:14px; font-size:15px; line-height:1.7; color:#4a4f56; max-width:400px; }
+  .pp-chips{ margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .pp-chip{ display:flex; align-items:center; gap:9px; background:#fff; border:1px solid #ffe0e5; border-radius:13px; padding:10px 12px; font-weight:700; font-size:14px; }
+  .pp-chip .ic{ font-size:18px; }
+  /* 福利 + 二维码区 */
+  .pp-bottom{ margin-top:auto; display:flex; gap:12px; align-items:stretch; }
+  .pp-perk{ flex:1; background:linear-gradient(135deg,var(--red),var(--red2)); color:#fff; border-radius:16px; padding:11px 15px;
+    display:flex; flex-direction:column; justify-content:center; gap:4px; box-shadow:0 14px 28px -12px rgba(255,36,66,.6); }
+  .pp-perk .pt{ font-size:11.5px; font-weight:600; display:flex; align-items:center; gap:7px; line-height:1.3; }
+  .pp-perk .pt b{ font-weight:900; }
+  .pp-qr{ flex:0 0 auto; width:104px; background:#fff; border-radius:16px; padding:8px; text-align:center; box-shadow:0 10px 24px -14px rgba(0,0,0,.3); border:1px solid #f0f1f3; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .pp-qr #qr img,.pp-qr #qr canvas{ width:64px!important; height:64px!important; }
+  .pp-qr .qh{ font-size:10px; color:var(--soft); line-height:1.4; }
+  .pp-qr .qh b{ color:var(--red); }
+  .pp-foot{ margin-top:16px; font-size:11.5px; color:var(--soft); display:flex; justify-content:space-between; }
+  /* 控制条（不进截图）*/
+  .ctrl{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
+  .ctrl button{ height:40px; padding:0 20px; border-radius:999px; border:none; cursor:pointer; font-size:14px; font-weight:700; background:var(--red); color:#fff; box-shadow:0 8px 18px -6px rgba(255,36,66,.5); }
+  .ctrl .ghost{ background:#fff; color:#555; border:1px solid #dfe2e6; box-shadow:none; }
+  .ctrl .hint{ font-size:12px; color:var(--soft); }
+  .ctrl input{ height:40px; border:1px solid #dfe2e6; border-radius:999px; padding:0 16px; font-size:13px; width:200px; }
+</style>
+</head>
+<body>
+
+  <!-- ====== 海报（截图/保存区）====== -->
+  <div class="poster" id="poster">
+    <div class="pp-logo">
+      <img src="/assets/logo-mark.svg" alt="朱砂" />
+      <div><div class="nm">赛道智能体 · 操盘台</div><div class="en">VERTICAL AGENT STUDIO</div></div>
+    </div>
+
+    <div class="pp-kick">小红书 · AI 内容操盘台</div>
+    <h1 class="pp-h1"><b>3 分钟</b>出一篇<b>不限流</b><br><b>高质量</b>的小红书笔记</h1>
+    <p class="pp-sub">给个方向，AI 一条流水线跑完：选题 → 对标拆解 → 框架 → 正文 → 封面配图 → 合规自检。0 基础也能上手。</p>
+
+    <div class="pp-chips">
+      <div class="pp-chip"><span class="ic">🎯</span>智能选题</div>
+      <div class="pp-chip"><span class="ic">🧩</span>爆款结构</div>
+      <div class="pp-chip"><span class="ic">🎨</span>封面配图</div>
+      <div class="pp-chip"><span class="ic">🛡️</span>合规自检</div>
+    </div>
+
+    <div class="pp-bottom">
+      <div class="pp-perk">
+        <div class="pt">🎁 扫码注册，<b>立即送 200 积分</b></div>
+        <div class="pt">👯 邀请好友，<b>好友得 200 · 你得 100</b></div>
+        <div class="pt">💰 好友首充，<b>再返 10% 积分</b></div>
+      </div>
+      <div class="pp-qr">
+        <div id="qr"></div>
+        <div class="qh">扫码识别 · 口令 <b id="codeTxt">朱砂</b></div>
+      </div>
+    </div>
+
+    <div class="pp-foot"><span id="hostTxt">扫码即可进入操盘台</span><span>单级 · 仅积分 · 不可提现</span></div>
+  </div>
+
+  <!-- ====== 控制条（不进海报截图）====== -->
+  <div class="ctrl">
+    <input id="refInput" placeholder="填你的邀请码（可留空）" />
+    <button id="genBtn" class="ghost">应用邀请码</button>
+    <button id="saveBtn">⬇ 保存海报 PNG</button>
+    <span class="hint">海报已生成 · 点保存或直接截图发朋友圈</span>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+function refFromUrl(){ return (new URLSearchParams(location.search).get('ref') || '').trim(); }
+// 正式域名：优先服务端配置的 PUBLIC_BASE_URL，其次当前访问域名，最后占位
+let SITE_BASE = (location.origin && location.origin.startsWith('http')) ? location.origin : 'https://你的域名';
+function buildQR(){
+  const ref = ($('#refInput').value || refFromUrl()).trim();
+  const base = SITE_BASE;
+  const url = base + '/落地.html' + (ref ? ('?ref=' + encodeURIComponent(ref)) : '');
+  const box = $('#qr'); box.innerHTML = '';
+  // 二维码由 JS 自动生成：内容 = 你的落地页链接（带邀请码）。优先本地 qrcodejs（清晰、可导出）；
+  // CDN 被墙/加载失败时，自动回退到在线二维码图片，保证一定能出码。
+  try {
+    if (!window.QRCode) throw new Error('lib-missing');
+    new QRCode(box, { text: url, width: 96, height: 96, colorDark: '#16181d', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  } catch (e) {
+    const img = document.createElement('img'); img.crossOrigin = 'anonymous'; img.alt = '二维码';
+    img.style.cssText = 'width:96px;height:96px';
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=192x192&margin=0&data=' + encodeURIComponent(url);
+    box.appendChild(img);
+  }
+  $('#codeTxt').textContent = ref || '朱砂';
+  $('#hostTxt').textContent = '扫码进入：' + base.replace(/^https?:\/\//, '');
+}
+$('#genBtn').addEventListener('click', buildQR);
+$('#refInput').value = refFromUrl();
+// 拉取服务端配置的正式域名（PUBLIC_BASE_URL），有就用它出码
+(async () => { try { const j = await (await fetch('/api/health')).json(); if (j && j.baseUrl) { SITE_BASE = j.baseUrl.replace(/\/$/, ''); buildQR(); } } catch {} })();
+buildQR();
+
+// 保存 PNG（高清 2x）
+$('#saveBtn').addEventListener('click', async () => {
+  const btn = $('#saveBtn'); const old = btn.textContent; btn.textContent = '生成中…'; btn.disabled = true;
+  try {
+    const canvas = await html2canvas($('#poster'), { scale: 2, backgroundColor: null, useCORS: true });
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png'); a.download = '朱砂操盘台_分享海报.png'; a.click();
+  } catch (e) { alert('生成失败：' + (e.message || e)); }
+  btn.textContent = old; btn.disabled = false;
+});
+</script>
+</body>
+</html>

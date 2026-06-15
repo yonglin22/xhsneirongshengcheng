@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>登录 · 赛道智能体操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+<style>
+  html,body{ height:100%; }
+  .lg-wrap{ min-height:100vh; display:grid; grid-template-columns:1.05fr .95fr; }
+  /* 左：品牌讲解背景 —— 与首页左侧边栏一致的浅粉→白渐变 + 玻璃感 */
+  .lg-brand{ position:relative; overflow:hidden; padding:60px 64px; display:flex; flex-direction:column;
+    align-items:flex-start; justify-content:center; text-align:left; color:var(--ink);
+    background:linear-gradient(160deg, rgba(255,226,231,.96) 0%, rgba(255,243,245,.85) 48%, rgba(255,255,255,.8) 100%);
+    backdrop-filter:blur(16px) saturate(1.5); -webkit-backdrop-filter:blur(16px) saturate(1.5);
+    border-right:1px solid rgba(255,36,66,.12); }
+  .lg-brand::after{ content:""; position:absolute; inset:0; pointer-events:none; background:
+    radial-gradient(640px 460px at 84% 10%,rgba(255,36,66,.10),transparent 62%),
+    radial-gradient(560px 560px at 8% 94%,rgba(255,36,66,.07),transparent 60%); }
+  .lg-brand > *{ position:relative; z-index:1; }
+  .lg-inner{ width:100%; max-width:540px; }   /* 自定义行宽：控制标题断行 */
+  .lg-logo{ display:flex; align-items:center; gap:14px; }
+  .lg-logo img{ width:46px; height:46px; border-radius:12px; box-shadow:0 8px 20px -8px rgba(225,15,41,.45); }
+  .lg-logo .nm{ font-weight:800; font-size:20px; letter-spacing:.02em; }
+  .lg-logo .en{ font-size:11px; letter-spacing:.32em; color:var(--ink-soft); }
+  .lg-kicker{ font-size:12px; letter-spacing:.3em; color:var(--cinnabar); font-weight:600; margin-top:26px; }
+  .lg-pain{ margin-top:14px; font-size:14px; font-weight:600; color:#b23a48; background:rgba(255,36,66,.07);
+    border:1px solid rgba(255,36,66,.16); border-radius:10px; padding:8px 13px; display:inline-block; max-width:460px; line-height:1.55; }
+  html[data-theme="dark"] .lg-pain{ color:#ff9aa8; }
+  .lg-h1{ font-size:clamp(36px,3.8vw,52px); font-weight:300; line-height:1.12; letter-spacing:-.018em; margin-top:12px; }
+  .lg-h1 span{ display:block; white-space:nowrap; }   /* 每行整体不断字 */
+  .lg-h1 b{ font-weight:800; color:var(--cinnabar); }
+  .lg-sub{ font-size:16px; line-height:1.6; color:var(--ink-soft); margin:14px 0 0; max-width:420px; }
+  .lg-chips{ margin-top:22px; display:grid; grid-template-columns:repeat(2,1fr); gap:10px; max-width:420px; }
+  .lg-chip{ display:flex; align-items:center; gap:11px; text-align:left; background:rgba(255,255,255,.58);
+    border:1px solid rgba(255,36,66,.14); border-radius:14px; padding:11px 14px; }
+  .lg-chip .ic{ flex:0 0 auto; font-size:21px; }
+  .lg-chip .tx{ font-size:15px; font-weight:700; }
+  .lg-flow{ margin-top:32px; font-size:12px; color:var(--ink-soft); letter-spacing:.01em; line-height:2.2; max-width:480px; }
+  .lg-flow b{ background:rgba(255,36,66,.10); color:var(--cinnabar-deep); padding:3px 10px; border-radius:8px; font-weight:600; white-space:nowrap; }
+  .lg-perk{ margin-top:18px; display:inline-flex; align-items:center; gap:8px; max-width:440px; font-size:12.5px; font-weight:600;
+    color:#fff; background:linear-gradient(100deg,var(--cinnabar),#ff5b73); padding:9px 15px; border-radius:12px;
+    box-shadow:0 8px 20px -8px rgba(255,36,66,.55); line-height:1.5; }
+  .lg-foot{ margin-top:16px; font-size:12px; color:var(--ink-soft); }
+  /* 右：登录表单 */
+  .lg-form{ display:flex; align-items:center; justify-content:center; padding:40px 36px; background:var(--paper); }
+  .lg-card{ width:100%; max-width:420px; }
+  .lg-card h2{ font-size:25px; font-weight:700; }
+  .lg-card .tip{ font-size:14px; color:var(--ink-soft); margin-top:8px; margin-bottom:28px; line-height:1.6; }
+  .lg-label{ font-size:13px; color:var(--ink-soft); }
+  .lg-mobile-brand{ display:none; }
+  @media(max-width:880px){
+    .lg-wrap{ grid-template-columns:1fr; }
+    .lg-brand{ display:none; }
+    .lg-mobile-brand{ display:flex; align-items:center; gap:10px; justify-content:center; padding:22px 0 4px; }
+    .lg-mobile-brand img{ width:34px; height:34px; border-radius:9px; }
+    .lg-mobile-brand .nm{ font-weight:800; font-size:16px; }
+  }
+</style>
+</head>
+<body class="stage min-h-screen" data-page="login">
+
+<div class="lg-wrap">
+
+  <!-- 左：系统讲解 -->
+  <section class="lg-brand">
+    <div class="lg-inner">
+      <div class="lg-logo">
+        <img src="/assets/logo-mark.svg" alt="朱砂" />
+        <div class="leading-tight text-left">
+          <div class="nm">赛道智能体 · 操盘台</div>
+          <div class="en">VERTICAL AGENT STUDIO</div>
+        </div>
+      </div>
+
+      <div class="lg-kicker">小红书 · AI 内容操盘台</div>
+      <div class="lg-pain">😩 憋选题 · 写不出爆款 · 不会做封面 · 怕限流？</div>
+      <h1 class="lg-h1"><span><b>3 分钟</b>出一篇<b>不限流</b></span><span><b>高质量</b>的小红书笔记</span></h1>
+      <p class="lg-sub">选题 → 成稿，AI 一条流水线全包，<b style="color:var(--ink)">0 基础</b>也能上手。</p>
+
+      <div class="lg-chips">
+        <div class="lg-chip"><span class="ic">🎯</span><span class="tx">智能选题</span></div>
+        <div class="lg-chip"><span class="ic">🧩</span><span class="tx">爆款结构</span></div>
+        <div class="lg-chip"><span class="ic">🎨</span><span class="tx">封面配图</span></div>
+        <div class="lg-chip"><span class="ic">🛡️</span><span class="tx">合规自检</span></div>
+      </div>
+
+      <div class="lg-perk">🎁 注册即送 200 积分 · 邀请好友你再得 100</div>
+    </div>
+  </section>
+
+  <!-- 右：登录表单 -->
+  <section class="lg-form">
+    <div class="lg-card">
+      <div class="lg-mobile-brand"><img src="/assets/logo-mark.svg" alt="朱砂" /><span class="nm">赛道智能体 · 操盘台</span></div>
+      <h2>📱 手机号登录</h2>
+      <p class="tip">登录后查看你的操盘台、作品与积分。首次登录自动注册并赠送积分。</p>
+
+      <label class="lg-label">手机号</label>
+      <input id="phone" class="field w-full rounded-xl px-4 py-3 text-[14px] mt-1 mb-4" placeholder="11 位手机号，如 13800000000" maxlength="11" inputmode="numeric" />
+
+      <label class="lg-label">验证码</label>
+      <div class="flex gap-2 mt-1 mb-1">
+        <input id="code" class="field flex-1 rounded-xl px-4 py-3 text-[14px]" placeholder="6 位验证码" maxlength="6" inputmode="numeric" />
+        <button id="sendCode" class="btn-ghost rounded-xl px-4 text-[13px] whitespace-nowrap">发送验证码</button>
+      </div>
+      <div id="codeHint" class="text-[11.5px] text-[var(--ink-soft)] min-h-[18px] mb-4"></div>
+
+      <button id="loginBtn" class="btn-go rounded-xl w-full py-3.5 text-[15px] font-medium">登录 / 注册</button>
+
+      <div class="text-[11.5px] text-[var(--ink-soft)] mt-4 leading-relaxed">
+        开发模式验证码会直接显示。登录即代表同意服务条款。遇到问题可 <a href="/帮助.html" class="text-[var(--cinnabar-deep)]">联系客服</a>。
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+// 主题：跟随上次选择
+(function () { if (localStorage.getItem('ag_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); })();
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  let j = {}; try { j = await r.json(); } catch {}
+  return { status: r.status, ok: r.ok, j };
+}
+
+// 已登录则直接进入目标页（避免重复登录）
+const NEXT = (() => {
+  const n = new URLSearchParams(location.search).get('next');
+  // 仅允许站内相对路径回跳，防开放重定向
+  if (n && /^\/[^/]/.test(n) && !n.startsWith('//')) return n;
+  return '/';
+})();
+(async () => { const { j } = await api('/api/auth/me'); if (j && j.ok) location.replace(NEXT); })();
+
+// ICP/公安 备案号页脚（备案通过、服务端配了 ICP_BEIAN 才显示）
+(async () => {
+  try { const { j } = await api('/api/health'); if (!j || !j.icp) return;
+    const f = document.createElement('div');
+    f.style.cssText = 'position:fixed;bottom:10px;left:0;right:0;text-align:center;font-size:11px;color:var(--ink-soft);z-index:5';
+    let h = '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' + j.icp + '</a>';
+    if (j.police) h += ' · <a href="https://beian.mps.gov.cn/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">🛡 ' + j.police + '</a>';
+    f.innerHTML = h; document.body.appendChild(f);
+  } catch {}
+})();
+
+// 捕获邀请码（?ref=）
+(function () {
+  const r = new URLSearchParams(location.search).get('ref');
+  if (r) { try { localStorage.setItem('ag_ref', r.trim()); } catch {} const h = $('#codeHint'); if (h) { h.textContent = '🎁 检测到邀请码 ' + r.trim() + '，注册成功后你和好友都得积分'; h.style.color = 'var(--cinnabar-deep)'; } }
+})();
+
+$('#sendCode').addEventListener('click', async () => {
+  const phone = $('#phone').value.trim();
+  if (!/^1\d{10}$/.test(phone)) { $('#codeHint').textContent = '请输入正确的 11 位手机号'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; return; }
+  $('#sendCode').disabled = true; const old = $('#sendCode').textContent; $('#sendCode').textContent = '发送中…';
+  const { j } = await api('/api/auth/send-code', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone }) });
+  $('#sendCode').disabled = false; $('#sendCode').textContent = old;
+  if (j.ok) {
+    if (j.dev && j.code) { $('#codeHint').innerHTML = `开发模式验证码：<b style="color:var(--cinnabar-deep)">${j.code}</b>（已自动填入）`; $('#code').value = j.code; }
+    else { $('#codeHint').textContent = '验证码已发送，请查收短信'; }
+    $('#codeHint').style.color = 'var(--ink-soft)';
+  } else { $('#codeHint').textContent = j.error || '发送失败'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; }
+});
+
+async function doLogin() {
+  const phone = $('#phone').value.trim(), code = $('#code').value.trim();
+  if (!phone || !code) { $('#codeHint').textContent = '请填手机号和验证码'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; return; }
+  const ref = (new URLSearchParams(location.search).get('ref') || localStorage.getItem('ag_ref') || '').trim();
+  $('#loginBtn').disabled = true; const old = $('#loginBtn').textContent; $('#loginBtn').textContent = '登录中…';
+  const { j } = await api('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, code, invite_code: ref }) });
+  if (j.ok) {
+    if (j.isNew) { $('#codeHint').innerHTML = `🎉 注册成功，赠送 <b>${j.grant}</b> 积分，正在进入…`; $('#codeHint').style.color = '#00a052'; }
+    else { $('#codeHint').textContent = '登录成功，正在进入…'; $('#codeHint').style.color = '#00a052'; }
+    setTimeout(() => location.replace(NEXT), j.isNew ? 700 : 250);
+  } else {
+    $('#loginBtn').disabled = false; $('#loginBtn').textContent = old;
+    $('#codeHint').textContent = j.error || '登录失败'; $('#codeHint').style.color = 'var(--cinnabar-deep)';
+  }
+}
+$('#loginBtn').addEventListener('click', doLogin);
+$('#code').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>

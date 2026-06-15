@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>管理后台 · 赛道智能体操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+<style>
+  .seg{ display:inline-flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; flex-wrap:wrap }
+  .seg button{ border:none; background:transparent; padding:7px 14px; font-size:12.5px; cursor:pointer; color:var(--ink-soft) }
+  .seg button.on{ background:var(--cinnabar); color:#fff }
+  table{ width:100%; border-collapse:collapse; font-size:12.5px }
+  th,td{ text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap }
+  th{ color:var(--ink-soft); font-weight:600 }
+  td.r,th.r{ text-align:right }
+  .kpi{ background:var(--paper-2); border-radius:12px; padding:14px 16px }
+  .kpi .n{ font-size:26px; font-weight:800; color:var(--cinnabar); line-height:1 }
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="admin">
+
+<!-- 旧 header 已移除：导航由全局外壳（左边栏+顶栏）统一承载 -->
+<main class="ag-page">
+  <div class="mb-6">
+    <div class="text-[var(--cinnabar)] text-[12px] tracking-[.3em] font-medium mb-2">ADMIN · 管理后台</div>
+    <h1 class="font-display font-light leading-[.9] text-[clamp(30px,5vw,54px)] tracking-tight">管理<span class="italic" style="color:var(--cinnabar)">后台</span></h1>
+  </div>
+
+  <!-- 无权限提示 -->
+  <div id="gate" class="card p-6 hidden">
+    <div class="font-song font-bold text-[15px] mb-2">需要管理员身份</div>
+    <p class="text-[13px] text-[var(--ink-soft)] mb-4">本页仅限<strong>管理员账号</strong>访问。请用管理员手机号登录后再进入。</p>
+    <a href="/账户.html" class="btn-go rounded-lg px-5 py-2.5 text-[13px] inline-block">去登录 →</a>
+    <div id="gateMsg" class="text-[12px] text-[var(--ink-soft)] mt-3"></div>
+  </div>
+
+  <!-- 后台主体 -->
+  <div id="adminBody" class="hidden">
+    <div class="seg mb-5" id="navSeg">
+      <button data-v="overview" class="on">概览</button>
+      <button data-v="funnel">增长漏斗</button>
+      <button data-v="tasks">任务列表</button>
+      <button data-v="users">用户管理</button>
+      <button data-v="orders">充值单据</button>
+      <button data-v="levels">会员体系</button>
+      <button data-v="prices">计费配置</button>
+      <button data-v="rules">规则知识库</button>
+      <button data-v="qaLog">问答日志</button>
+      <button data-v="agentApps">智能体申请</button>
+      <button data-v="roles">角色管理</button>
+      <button data-v="perms">权限管理</button>
+      <button data-v="menus">菜单管理</button>
+    </div>
+    <div id="view"></div>
+  </div>
+</main>
+
+<script src="/assets/app.js?v=30"></script>
+<script src="/assets/help-kb.js?v=4"></script>
+<script>
+const $ = s => document.querySelector(s);
+function adminToken() { try { return localStorage.getItem('ag_admin_token') || ''; } catch { return ''; } }
+async function aget(path) {
+  const h = {}; const t = adminToken(); if (t) h['x-admin-token'] = t;
+  const r = await fetch(path, { headers: h }); let j = {}; try { j = await r.json(); } catch {}
+  return { ok: r.ok, status: r.status, j };
+}
+function yuan(c) { return ((c || 0) / 100).toFixed(2); }
+function ts(t) { if (!t) return '—'; const d = new Date(t); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+let curView = 'overview';
+const views = {
+  async overview() {
+    const { j } = await aget('/api/admin/summary');
+    if (!j.ok) return '<div class="text-[13px]" style="color:var(--cinnabar-deep)">加载失败：' + (j.error || '') + '</div>';
+    return `<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">注册用户</div><div class="n">${j.users}</div></div>
+      <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">今日新增</div><div class="n">${j.newToday}</div></div>
+      <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">成功充值单</div><div class="n">${j.paidOrders}</div></div>
+      <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">累计充值额</div><div class="n">¥${yuan(j.revenueCny)}</div></div>
+    </div>
+    <p class="text-[12px] text-[var(--ink-soft)] mt-4">提示：现金返佣/提现/多级裂变等待 D1 合规评估，本后台不含相关结算模块。</p>`;
+  },
+  async funnel() {
+    const { j } = await aget('/api/admin/funnel');
+    if (!j.ok) return '<div class="text-[13px]" style="color:var(--cinnabar-deep)">加载失败：' + (j.error || '') + '</div>';
+    const bar = (label, val, sub, pctOfReg) => {
+      const w = Math.max(4, Math.min(100, pctOfReg));
+      return `<div style="margin-bottom:12px">
+        <div class="flex items-center justify-between text-[12.5px] mb-1"><span class="font-medium">${label}</span><span class="text-[var(--ink-soft)]">${val}${sub ? ' · ' + sub : ''}</span></div>
+        <div style="height:22px;border-radius:8px;background:var(--paper-2);overflow:hidden"><div style="height:100%;width:${w}%;background:linear-gradient(90deg,var(--cinnabar),#ff7a8c);border-radius:8px"></div></div>
+      </div>`;
+    };
+    return `<div class="space-y-5">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">① 注册用户</div><div class="n">${j.registers}</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">近 7 天 +${j.reg7}</div></div>
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">② 激活（产出作品）</div><div class="n">${j.activated}</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">激活率 ${j.rate.activate}%</div></div>
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">③ 邀请来的用户</div><div class="n">${j.invited}</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">占注册 ${j.rate.invite}%</div></div>
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">④ 付费用户</div><div class="n">${j.paidUsers}</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">付费率 ${j.rate.pay}%</div></div>
+      </div>
+      <div class="card p-5">
+        <div class="text-[13px] font-medium mb-4">📉 增长漏斗（以注册数为基准）</div>
+        ${bar('注册', j.registers, '基准', 100)}
+        ${bar('激活：产出过作品', j.activated, j.rate.activate + '%', j.rate.activate)}
+        ${bar('完成：出过图', j.finished, j.rate.finish + '%', j.rate.finish)}
+        ${bar('付费用户', j.paidUsers, j.rate.pay + '%', j.rate.pay)}
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">累计充值额</div><div class="n">¥${yuan(j.revenueCny)}</div></div>
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">模板购买次数</div><div class="n">${j.templateBuys}</div></div>
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">近 7 天激活</div><div class="n">${j.act7}</div></div>
+      </div>
+      <p class="text-[12px] text-[var(--ink-soft)]">口径：激活=产出过作品；完成=出过图；邀请=带邀请人注册；付费=有成功充值。均由现有数据派生，无需额外埋点。页面级埋点（PV/分享点击）如需可后续加。</p>
+    </div>`;
+  },
+  async tasks() {
+    const { j } = await aget('/api/admin/tasks');
+    if (!j.ok) return '加载失败：' + (j.error || '');
+    const rows = (j.tasks || []).map(t => `<tr><td>${t.phone || t.user_id || '—'}</td><td style="max-width:280px;white-space:normal">${(t.topic || '（未命名）').replace(/</g, '&lt;')}</td><td>${(t.track || '—').replace(/</g, '&lt;')}</td><td class="r">${t.steps}/8</td><td class="r">${t.imgs}</td><td>${ts(t.updated_at)}</td></tr>`).join('');
+    return `<div class="space-y-5">
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">生成任务总数</div><div class="n">${j.stats.total}</div></div>
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">创作用户数</div><div class="n">${j.stats.users}</div></div>
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">累计出图</div><div class="n">${j.stats.imgs}</div></div>
+      </div>
+      <div class="card p-4 overflow-x-auto">
+        <div class="text-[13px] font-medium mb-2">🗂️ 生成任务列表（全平台 · 最近 150 条 · 只读）</div>
+        <table><thead><tr><th>用户</th><th>选题</th><th>赛道</th><th class="r">完成步骤</th><th class="r">配图</th><th>更新时间</th></tr></thead><tbody>${rows || '<tr><td colspan=6 class="text-center" style="color:var(--ink-soft)">暂无生成任务</td></tr>'}</tbody></table>
+      </div>
+      <p class="text-[12px] text-[var(--ink-soft)]">来源：用户在流水线产出并保存的笔记任务（含已完成步骤数与配图数）。仅总览，不含他人成稿正文（数据隔离）。</p></div>`;
+  },
+  async users() {
+    const { j } = await aget('/api/admin/users');
+    if (!j.ok) return '加载失败：' + (j.error || '');
+    const rows = (j.users || []).map(u => `<tr><td>${u.id}</td><td>${u.phone || ''}</td><td>${u.nickname || '—'}</td><td><span class="lv-tag">${u.level || '—'}</span></td><td class="r">${u.balance || 0}</td><td class="r">¥${yuan(u.recharge_cny)}</td><td>${u.invited_by ? '邀(' + u.invited_by + ')' : '—'}</td><td>${ts(u.created_at)}</td>
+      <td class="r" style="white-space:nowrap"><button class="led-view btn-ghost rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">查看流水</button></td>
+      <td class="r" style="white-space:nowrap"><button class="adj-add btn-go rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">＋充值</button> <button class="adj-sub btn-ghost rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">－扣减</button></td></tr>`).join('');
+    return `<div class="card p-4 overflow-x-auto"><table><thead><tr><th>ID</th><th>手机号</th><th>昵称</th><th>会员等级</th><th class="r">余额</th><th class="r">累计充值</th><th>邀请人</th><th>注册时间</th><th class="r">流水</th><th class="r">手动调账</th></tr></thead><tbody>${rows || '<tr><td colspan=10 class="text-center" style="color:var(--ink-soft)">暂无用户</td></tr>'}</tbody></table>
+      <div class="text-[11.5px] text-[var(--ink-soft)] mt-3">会员等级按累计充值自动判定。手动调账会写入对方流水（留痕）：「＋充值」正数入账、「－扣减」负数出账，不走支付通道，仅用于客服补偿 / 误扣修正等。</div></div>
+      <div id="ledModal" style="display:none;position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px">
+        <div class="card p-5" style="max-width:520px;width:100%;max-height:80vh;overflow-y:auto">
+          <div class="flex items-center justify-between mb-3"><div class="font-song font-bold text-[15px]" id="ledTitle">流水明细</div><button id="ledClose" class="btn-ghost rounded-lg px-3 py-1 text-[12px]">关闭</button></div>
+          <div id="ledBody" class="space-y-1.5 text-[12.5px]"></div>
+        </div>
+      </div>`;
+  },
+  async orders() {
+    const { j } = await aget('/api/admin/orders');
+    if (!j.ok) return '加载失败：' + (j.error || '');
+    const rows = (j.orders || []).map(o => `<tr><td>${o.otn}</td><td>${o.phone || o.user_id}</td><td>${o.pack_id || ''}</td><td class="r">¥${yuan(o.amount_cny)}</td><td class="r">${o.credits}</td><td><span style="color:${o.status==='paid'?'#00a052':'var(--cinnabar-deep)'}">${o.status}</span></td><td>${ts(o.paid_at || o.created_at)}</td><td class="r">${o.status==='pending'?`<button class="oc-ok btn-go rounded px-2 py-1 text-[11px]" data-otn="${o.otn}">确认到账</button>`:'—'}</td></tr>`).join('');
+    return `<div class="card p-4 overflow-x-auto"><table><thead><tr><th>单号</th><th>用户</th><th>套餐</th><th class="r">金额</th><th class="r">积分</th><th>状态</th><th>时间</th><th class="r">操作</th></tr></thead><tbody>${rows || '<tr><td colspan=8 class="text-center" style="color:var(--ink-soft)">暂无单据</td></tr>'}</tbody></table>
+      <p class="text-[12px] text-[var(--ink-soft)] mt-2">一期人工开户：用户付款后把订单号发客服 → 这里点「确认到账」即给其入账（含充值赠分）。</p></div>`;
+  },
+  async levels() {
+    const { j } = await aget('/api/admin/levels'); if (!j.ok) return '加载失败：' + (j.error || '');
+    const rows = (j.levels || []).map((l, i) => `<tr data-i="${i}">
+      <td><input class="lv-name field rounded px-2 py-1 text-[12px]" style="width:90px" value="${(l.name||'').replace(/"/g,'&quot;')}"></td>
+      <td><input class="lv-min field rounded px-2 py-1 text-[12px] r" style="width:90px" type="number" value="${yuan(l.min)}"> 元</td>
+      <td><input class="lv-bonus field rounded px-2 py-1 text-[12px] r" style="width:60px" type="number" value="${Math.round((l.bonus||0)*100)}"> %</td>
+      <td><input class="lv-perks field rounded px-2 py-1 text-[12px]" style="width:100%;min-width:220px" value="${(l.perks||'').replace(/"/g,'&quot;')}"></td>
+      <td class="r"><button class="lv-del btn-ghost rounded px-2 py-1 text-[11px]">删</button></td></tr>`).join('');
+    return `<div class="card p-4 overflow-x-auto"><table><thead><tr><th>等级名称</th><th>累计充值≥</th><th class="r">充值赠分</th><th>权益说明</th><th class="r">操作</th></tr></thead><tbody id="lvBody">${rows}</tbody></table>
+      <div class="flex items-center gap-2 mt-3"><button id="lvAdd" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">＋ 新增等级</button><button id="lvSave" class="btn-go rounded-lg px-4 py-1.5 text-[12px]">保存会员体系</button><span id="lvMsg" class="text-[12px] text-[var(--ink-soft)]"></span></div>
+      <p class="text-[12px] text-[var(--ink-soft)] mt-2">充值赠分满 ¥100 生效；晋升仅按累计充值额。现金返佣/按邀请数晋升/提现待 D1，不在此结算。</p></div>`;
+  },
+  async prices() {
+    const { j } = await aget('/api/admin/prices'); if (!j.ok) return '加载失败：' + (j.error || '');
+    const label = { text: '文字(选题/拆解/框架/正文…)', image_std: '配图·标清', image_hd: '配图·高清(可灵)', image_premium: '配图·高级(Seedream)', compliance: '合规质检', vision: '对标图视觉解析' };
+    const rows = (j.prices || []).map(p => `<tr data-k="${p.action_key}"><td>${label[p.action_key] || p.action_key}</td><td class="text-[var(--ink-soft)]">${p.action_key}</td><td class="r"><input class="pr-c field rounded px-2 py-1 text-[12px] r" style="width:80px" type="number" value="${p.credits}"> 积分</td></tr>`).join('');
+    return `<div class="card p-4 overflow-x-auto"><table><thead><tr><th>计费点</th><th>key</th><th class="r">单价</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="flex items-center gap-2 mt-3"><button id="prSave" class="btn-go rounded-lg px-4 py-1.5 text-[12px]">保存计费</button><span id="prMsg" class="text-[12px] text-[var(--ink-soft)]"></span></div>
+      <p class="text-[12px] text-[var(--ink-soft)] mt-2">1 积分≈¥0.01。PRD §8 建议：选题5/拆解框架10/正文10/配图60/质检免费/规则5（文字类目前统一按 text 计价；如需分步差异化需在流水线按 action 传不同 key，可后续接）。</p></div>`;
+  },
+  async rules() {
+    const { j } = await aget('/api/admin/kb');
+    const rules = (j.ok && j.rules) || (window.XHS_RULES || []);
+    const docs = (j.ok && j.docs) || (window.HELP_DOCS || []);
+    const faq = (j.ok && j.faq) || (window.HELP_FAQ || []);
+    const qaRows = (arr, cls) => arr.map(x => `<tr><td><input class="${cls}-q field rounded px-2 py-1 text-[12px]" style="width:160px" value="${(x.q||'').replace(/"/g,'&quot;')}"></td><td><textarea class="${cls}-a field rounded px-2 py-1 text-[12px]" rows="2" style="width:100%;min-width:300px">${x.a||''}</textarea></td><td class="r"><button class="row-del btn-ghost rounded px-2 py-1 text-[11px]">删</button></td></tr>`).join('');
+    const META = window.XHS_RULES_META || { src: '', date: '' };
+    const ruleRows = rules.map(x => `<tr><td><input class="kb-t field rounded px-2 py-1 text-[12px]" style="width:100px" value="${(x.t||'').replace(/"/g,'&quot;')}"></td><td><textarea class="kb-d field rounded px-2 py-1 text-[12px]" rows="2" style="width:100%;min-width:240px">${x.d||''}</textarea></td><td><input class="kb-date field rounded px-2 py-1 text-[12px]" style="width:78px" placeholder="2026-06" value="${(x.date||META.date||'').replace(/"/g,'&quot;')}"></td><td><input class="kb-src field rounded px-2 py-1 text-[12px]" style="width:150px" placeholder="官方出处" value="${(x.src||META.src||'').replace(/"/g,'&quot;')}"></td><td class="r"><button class="row-del btn-ghost rounded px-2 py-1 text-[11px]">删</button></td></tr>`).join('');
+    return `<div class="card p-4 overflow-x-auto space-y-5">
+      <div>
+        <div class="text-[13px] font-medium mb-2">📕 小红书规则要点（规则查询 Agent 引用）· 每条标注更新日期与官方出处</div>
+        <table><thead><tr><th>要点</th><th>说明（以官方为准）</th><th>更新日期</th><th>官方出处</th><th class="r">操作</th></tr></thead><tbody id="kbBody">${ruleRows}</tbody></table>
+        <button id="kbAdd" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px] mt-2">＋ 新增规则</button>
+      </div>
+      <div>
+        <div class="text-[13px] font-medium mb-2">📘 操作文档（帮助中心·操作文档）</div>
+        <table><thead><tr><th>标题</th><th>内容（支持 **加粗** / \\n 换行）</th><th class="r">操作</th></tr></thead><tbody id="docBody">${qaRows(docs, 'doc')}</tbody></table>
+        <button id="docAdd" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px] mt-2">＋ 新增文档</button>
+      </div>
+      <div>
+        <div class="text-[13px] font-medium mb-2">❓ 常见问题 FAQ</div>
+        <table><thead><tr><th>问题</th><th>解答</th><th class="r">操作</th></tr></thead><tbody id="faqBody">${qaRows(faq, 'faq')}</tbody></table>
+        <button id="faqAdd" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px] mt-2">＋ 新增FAQ</button>
+      </div>
+      <div class="flex items-center gap-2 border-t pt-3" style="border-color:var(--line)"><button id="kbSave" class="btn-go rounded-lg px-5 py-2 text-[13px]">保存全部（规则/文档/FAQ）</button><span id="kbMsg" class="text-[12px] text-[var(--ink-soft)]"></span></div>
+      <p class="text-[12px] text-[var(--ink-soft)]">保存后「帮助」页与右下角悬浮助手立即用最新内容。不编造官方条款，统一标注"以官方为准"。</p></div>`;
+  },
+  async qaLog() {
+    const { j } = await aget('/api/admin/qa-log');
+    if (!j.ok) return '加载失败：' + (j.error || '');
+    const top = (j.top || []).map((x, i) => `<tr><td class="r">${i + 1}</td><td>${(x.question || '').replace(/</g, '&lt;')}</td><td class="r">${x.cnt}</td><td>${ts(x.last_at)}</td></tr>`).join('');
+    const log = (j.log || []).map(x => `<tr><td>${x.phone || x.user_id || '—'}</td><td>${(x.question || '').replace(/</g, '&lt;')}</td><td style="max-width:380px;white-space:normal;color:var(--ink-soft)">${(x.answer || '').replace(/</g, '&lt;').slice(0, 160)}${(x.answer || '').length > 160 ? '…' : ''}</td><td>${ts(x.created_at)}</td></tr>`).join('');
+    return `<div class="space-y-5">
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">累计提问</div><div class="n">${j.stats.total}</div></div>
+        <div class="kpi"><div class="text-[12px] text-[var(--ink-soft)] mb-1">提问用户数</div><div class="n">${j.stats.users}</div></div>
+      </div>
+      <div class="card p-4 overflow-x-auto">
+        <div class="text-[13px] font-medium mb-2">🔥 高频问题 Top 20（据此完善知识库）</div>
+        <table><thead><tr><th class="r">#</th><th>问题</th><th class="r">次数</th><th>最近</th></tr></thead><tbody>${top || '<tr><td colspan=4 class="text-center" style="color:var(--ink-soft)">暂无数据</td></tr>'}</tbody></table>
+      </div>
+      <div class="card p-4 overflow-x-auto">
+        <div class="text-[13px] font-medium mb-2">📝 最近问答日志（最新 100 条）</div>
+        <table><thead><tr><th>用户</th><th>问题</th><th>回答摘要</th><th>时间</th></tr></thead><tbody>${log || '<tr><td colspan=4 class="text-center" style="color:var(--ink-soft)">暂无日志</td></tr>'}</tbody></table>
+      </div>
+      <p class="text-[12px] text-[var(--ink-soft)]">来源：用户在「小红书助手 / 规则查询 Agent」的提问（action=rule_query）。用于发现高频需求、完善规则知识库。</p></div>`;
+  },
+  async agentApps() {
+    const { j } = await aget('/api/admin/agent-apps'); if (!j.ok) return '加载失败：' + (j.error || '');
+    const rows = (j.apps || []).map(a => `<tr><td>${a.phone || a.user_id}</td><td>${a.name || ''}</td><td>${a.reason || ''}</td><td>${ts(a.created_at)}</td><td>${a.status === 'pending' ? '<span style="color:var(--cinnabar-deep)">待审</span>' : (a.status === 'approved' ? '<span style="color:#00a052">已通过</span>' : '已拒绝')}</td><td class="r">${a.status === 'pending' ? `<button class="aa-ok btn-go rounded px-2 py-1 text-[11px]" data-id="${a.id}">通过</button> <button class="aa-no btn-ghost rounded px-2 py-1 text-[11px]" data-id="${a.id}">拒绝</button>` : '—'}</td></tr>`).join('');
+    return `<div class="card p-4 overflow-x-auto"><table><thead><tr><th>申请人</th><th>智能体名</th><th>理由</th><th>时间</th><th>状态</th><th class="r">操作</th></tr></thead><tbody>${rows || '<tr><td colspan=6 class="text-center" style="color:var(--ink-soft)">暂无申请</td></tr>'}</tbody></table>
+      <p class="text-[12px] text-[var(--ink-soft)] mt-2">通过即给该用户 +1 个智能体配额（普通默认1 / 合伙人3 / 管理员不限）。</p></div>`;
+  },
+  // —— 角色管理：角色增删改名 + 成员分配（手机号→角色）——
+  async roles() {
+    const { j } = await aget('/api/admin/roles'); if (!j.ok) return '加载失败：' + (j.error || '');
+    RBAC = { roles: j.roles || [], menus: j.menus || [], staff: j.staff || [] };
+    const staffRows = RBAC.staff.map(s => `<tr><td>${s.phone}</td><td>${s.roleName || s.role}</td><td>${s.note || ''}</td><td class="r"><button class="st-del btn-ghost rounded px-2 py-1 text-[11px]" data-phone="${s.phone}">移除</button></td></tr>`).join('');
+    const roleOpts = RBAC.roles.map(r => `<option value="${r.key}">${r.name}</option>`).join('');
+    return `<div class="space-y-5">
+      <div class="card p-4 overflow-x-auto">
+        <div class="text-[13px] font-medium mb-2">👤 角色（点「N 人」展开成员；权限在「权限管理」里配）</div>
+        <table><thead><tr><th>标识</th><th>名称</th><th class="r">权限菜单数</th><th class="r">成员</th><th class="r">操作</th></tr></thead><tbody id="roBody">${rbacRoleRowsHTML()}</tbody></table>
+        <div class="flex flex-wrap items-center gap-2 mt-3">
+          <input id="roKey" class="field rounded-lg px-3 py-1.5 text-[12px]" placeholder="角色标识(英文,如 editor)" style="width:170px">
+          <input id="roNewName" class="field rounded-lg px-3 py-1.5 text-[12px]" placeholder="角色名称(如 编辑)" style="width:140px">
+          <button id="roAdd" class="btn-ghost rounded-lg px-4 py-1.5 text-[12px]">＋ 新增角色</button>
+          <button id="roSave" class="btn-go rounded-lg px-5 py-1.5 text-[12px]">保存角色</button>
+          <button id="roExport" class="btn-ghost rounded-lg px-4 py-1.5 text-[12px]">⬇ 导出成员CSV</button>
+          <span id="roMsg" class="text-[12px] text-[var(--ink-soft)]"></span>
+        </div>
+      </div>
+      <div class="card p-4 overflow-x-auto">
+        <div class="text-[13px] font-medium mb-2">🧑‍💼 员工成员（手机号 → 角色；该号登录后台即按角色权限显示）</div>
+        <table><thead><tr><th>手机号</th><th>角色</th><th>备注</th><th class="r">操作</th></tr></thead><tbody>${staffRows || '<tr><td colspan=4 class="text-center" style="color:var(--ink-soft)">暂无成员</td></tr>'}</tbody></table>
+        <div class="flex flex-wrap items-center gap-2 mt-3">
+          <input id="stPhone" class="field rounded-lg px-3 py-1.5 text-[12px]" placeholder="员工手机号" style="width:150px">
+          <select id="stRole" class="field rounded-lg px-2 py-1.5 text-[12px]">${roleOpts}</select>
+          <input id="stNote" class="field rounded-lg px-3 py-1.5 text-[12px]" placeholder="备注(可选)" style="width:140px">
+          <button id="stAdd" class="btn-go rounded-lg px-4 py-1.5 text-[12px]">添加 / 更新</button>
+          <span id="stMsg" class="text-[12px] text-[var(--ink-soft)]"></span>
+        </div>
+        <p class="text-[12px] text-[var(--ink-soft)] mt-2">超管仍以 .env 的 ADMIN_PHONES / ADMIN_TOKEN 为准（拥有全部）。</p>
+      </div></div>`;
+  },
+  // —— 权限管理：角色 × 菜单 矩阵 ——
+  async perms() {
+    const { j } = await aget('/api/admin/roles'); if (!j.ok) return '加载失败：' + (j.error || '');
+    RBAC = { roles: j.roles || [], menus: j.menus || [], staff: j.staff || [] };
+    const cols = RBAC.menus; // 全部菜单（含禁用，仍可配权限）
+    const head = cols.map(m => `<th class="r" style="white-space:nowrap">${m.label}</th>`).join('');
+    const body = RBAC.roles.map(r => { const isA = r.key === 'admin';
+      const cells = cols.map(m => `<td class="r"><input type="checkbox" class="pm-cell" data-role="${r.key}" data-menu="${m.key}" ${r.menus.includes(m.key) ? 'checked' : ''} ${isA ? 'disabled' : ''}></td>`).join('');
+      return `<tr><td style="white-space:nowrap"><b>${r.name}</b> ${isA ? '<span style="color:var(--ink-soft);font-size:11px">全部</span>' : ''}</td>${cells}</tr>`; }).join('');
+    return `<div class="card p-4 overflow-x-auto">
+      <div class="text-[13px] font-medium mb-2">🔐 权限矩阵（勾选每个角色可访问的后台菜单）</div>
+      <table><thead><tr><th style="white-space:nowrap">角色 \\ 菜单</th>${head}</tr></thead><tbody>${body}</tbody></table>
+      <div class="flex items-center gap-2 mt-3"><button id="pmSave" class="btn-go rounded-lg px-5 py-2 text-[13px]">保存权限</button><span id="pmMsg" class="text-[12px] text-[var(--ink-soft)]"></span></div>
+      <p class="text-[12px] text-[var(--ink-soft)] mt-2">「超级管理员」恒为全部、不可改。被禁用的菜单即便有权限也不显示（见「菜单管理」）。</p></div>`;
+  },
+  // —— 菜单管理：菜单名称 + 启用 ——
+  async menus() {
+    const { j } = await aget('/api/admin/menus'); if (!j.ok) return '加载失败：' + (j.error || '');
+    const rows = (j.menus || []).map(m => { const locked = ['overview', 'roles', 'perms', 'menus'].includes(m.key);
+      return `<tr data-key="${m.key}"><td><code>${m.key}</code></td><td><input class="mn-label field rounded px-2 py-1 text-[12px]" style="width:150px" value="${(m.label || '').replace(/"/g, '&quot;')}"></td><td class="r"><input type="checkbox" class="mn-on" ${m.enabled ? 'checked' : ''} ${locked ? 'disabled' : ''}>${locked ? '<span style="color:var(--ink-soft);font-size:10px"> 必开</span>' : ''}</td></tr>`; }).join('');
+    return `<div class="card p-4 overflow-x-auto">
+      <div class="text-[13px] font-medium mb-2">🧭 后台菜单（改显示名 / 启用停用；停用后所有角色都看不到该菜单）</div>
+      <table><thead><tr><th>标识</th><th>显示名称</th><th class="r">启用</th></tr></thead><tbody id="mnBody">${rows}</tbody></table>
+      <div class="flex items-center gap-2 mt-3"><button id="mnSave" class="btn-go rounded-lg px-5 py-2 text-[13px]">保存菜单</button><span id="mnMsg" class="text-[12px] text-[var(--ink-soft)]"></span></div>
+      <p class="text-[12px] text-[var(--ink-soft)] mt-2">概览 / 角色 / 权限 / 菜单 为系统必开项，不可停用。改名后顶部标签即时生效。</p></div>`;
+  },
+};
+let RBAC = { roles: [], menus: [], staff: [] };
+// 角色行（含可展开的成员明细行）——初始渲染与本地增删后复用
+function rbacRoleRowsHTML() {
+  return RBAC.roles.map(r => { const mem = RBAC.staff.filter(s => s.role === r.key); const isA = r.key === 'admin';
+    const memList = mem.length ? mem.map(s => `${s.phone}${s.note ? '（' + s.note + '）' : ''}`).join('、') : '（暂无成员）';
+    return `<tr data-key="${r.key}"><td><code>${r.key}</code></td><td><input class="ro-name field rounded px-2 py-1 text-[12px]" style="width:120px" value="${(r.name || '').replace(/"/g, '&quot;')}" ${isA ? 'disabled' : ''}></td><td class="r">${r.menus.length}${isA ? '（全部）' : ''}</td><td class="r"><button class="ro-mem btn-ghost rounded px-2 py-1 text-[11px]" data-key="${r.key}">${mem.length} 人 ▸</button></td><td class="r">${isA ? '<span style="color:var(--ink-soft)">内置</span>' : `<button class="ro-del btn-ghost rounded px-2 py-1 text-[11px]" data-key="${r.key}">删除</button>`}</td></tr><tr class="ro-detail" data-key="${r.key}" style="display:none"><td colspan="5" style="background:var(--paper-2)"><div style="font-size:12px;color:var(--ink-soft);padding:2px 2px">👥 ${memList}</div></td></tr>`;
+  }).join('');
+}
+async function apost(path, body) {
+  const h = { 'content-type': 'application/json' }; const t = adminToken(); if (t) h['x-admin-token'] = t;
+  const r = await fetch(path, { method: 'POST', headers: h, body: JSON.stringify(body) }); let j = {}; try { j = await r.json(); } catch {}
+  return { ok: r.ok, j };
+}
+// 查看某用户流水明细（弹窗，只读）
+const LED_LABEL = { grant: '🎁 赠送', recharge: '💰 充值', consume: '✂️ 消耗', admin_grant: '🛠 管理员充值', admin_deduct: '🛠 管理员扣减', refund: '↩️ 退回', hold: '🔒 预扣', settle: '✅ 结算', transfer_out: '🤝 转赠成员', transfer_in: '🎁 合伙人转赠' };
+async function viewLedger(phone) {
+  const { j } = await aget('/api/admin/user?phone=' + encodeURIComponent(phone));
+  if (!j.ok) { alert('加载失败：' + (j.error || '')); return; }
+  $('#ledTitle').textContent = `流水明细 · ${phone} · 余额 ${j.balance}`;
+  const led = j.ledger || [];
+  $('#ledBody').innerHTML = led.length ? led.map(e => {
+    const pos = e.amount >= 0; let note = ''; try { const m = JSON.parse(e.meta || '{}'); note = m.reason || m.action || (m.pack ? '套餐 ' + m.pack : '') || ''; } catch {}
+    return `<div class="flex items-center justify-between py-1.5 px-2 rounded-lg" style="background:var(--paper-2)">
+      <span><span class="font-medium">${LED_LABEL[e.type] || e.type}</span>${note ? ` · <span style="color:var(--ink-soft)">${note}</span>` : ''} <span style="font-size:10.5px;color:var(--ink-soft)">${ts(e.created_at)}</span></span>
+      <span class="font-medium" style="color:${pos ? '#00a052' : 'var(--cinnabar-deep)'}">${pos ? '+' : ''}${e.amount} <span style="color:var(--ink-soft);font-weight:400">→ ${e.balance_after}</span></span></div>`;
+  }).join('') : '<div style="color:var(--ink-soft)">暂无流水</div>';
+  $('#ledModal').style.display = 'flex';
+}
+// 管理员手动充/扣积分（写入对方流水留痕，不走支付）。sign: +1 充值 / -1 扣减
+async function doAdjust(phone, sign) {
+  const act = sign < 0 ? '扣减' : '充值';
+  const v = prompt(`给 ${phone} ${act}多少积分？请输入正整数：`, '');
+  if (v === null) return; const n = Math.abs(parseInt(v, 10)); if (!n) { alert('请输入大于 0 的整数'); return; }
+  const delta = sign < 0 ? -n : n;
+  const reason = prompt('备注（写入流水留痕，可选）：', sign < 0 ? '管理员手动扣减' : '管理员手动充值') || '';
+  const { ok, j } = await apost('/api/admin/adjust', { phone, delta, reason });
+  if (ok && j.ok) { alert(`✓ ${phone} ${delta >= 0 ? '+' : ''}${delta} 积分 → 当前余额 ${j.balance}`); renderView(); }
+  else alert('失败：' + (j.error || ''));
+}
+function msg(el, txt, good) { const e = $(el); if (e) { e.textContent = txt; e.style.color = good ? '#00a052' : 'var(--cinnabar-deep)'; } }
+async function renderView() {
+  $('#view').innerHTML = '<div class="text-[13px] text-[var(--ink-soft)]">加载中…</div>';
+  $('#view').innerHTML = await views[curView]();
+  const V = $('#view');
+  if (curView === 'orders') V.querySelectorAll('.oc-ok').forEach(b => b.addEventListener('click', async () => { if (!confirm('确认该订单已收款、给用户入账？')) return; const { ok, j } = await apost('/api/admin/order-confirm', { out_trade_no: b.dataset.otn }); if (ok && j.ok) renderView(); else alert('失败：' + (j.error || '')); }));
+  if (curView === 'users') {
+    V.querySelectorAll('.adj-add').forEach(b => b.addEventListener('click', () => doAdjust(b.dataset.phone, 1)));
+    V.querySelectorAll('.adj-sub').forEach(b => b.addEventListener('click', () => doAdjust(b.dataset.phone, -1)));
+    V.querySelectorAll('.led-view').forEach(b => b.addEventListener('click', () => viewLedger(b.dataset.phone)));
+    $('#ledClose')?.addEventListener('click', () => { $('#ledModal').style.display = 'none'; });
+    $('#ledModal')?.addEventListener('click', e => { if (e.target === $('#ledModal')) $('#ledModal').style.display = 'none'; });
+  }
+  if (curView === 'levels') {
+    V.querySelectorAll('.lv-del').forEach(b => b.addEventListener('click', () => { b.closest('tr').remove(); }));
+    $('#lvAdd').addEventListener('click', () => { const tb = $('#lvBody'); tb.insertAdjacentHTML('beforeend', `<tr><td><input class="lv-name field rounded px-2 py-1 text-[12px]" style="width:90px" value="新等级"></td><td><input class="lv-min field rounded px-2 py-1 text-[12px] r" style="width:90px" type="number" value="0"> 元</td><td><input class="lv-bonus field rounded px-2 py-1 text-[12px] r" style="width:60px" type="number" value="0"> %</td><td><input class="lv-perks field rounded px-2 py-1 text-[12px]" style="width:100%;min-width:220px" value=""></td><td class="r"><button class="lv-del btn-ghost rounded px-2 py-1 text-[11px]">删</button></td></tr>`); tb.lastElementChild.querySelector('.lv-del').addEventListener('click', e => e.target.closest('tr').remove()); });
+    $('#lvSave').addEventListener('click', async () => {
+      const levels = [...V.querySelectorAll('#lvBody tr')].map(tr => ({ name: tr.querySelector('.lv-name').value.trim(), key: tr.querySelector('.lv-name').value.trim(), min: Math.round(parseFloat(tr.querySelector('.lv-min').value || '0') * 100), bonus: (parseFloat(tr.querySelector('.lv-bonus').value || '0') / 100), perks: tr.querySelector('.lv-perks').value.trim() })).filter(x => x.name);
+      const { ok, j } = await apost('/api/admin/levels', { levels }); msg('#lvMsg', ok && j.ok ? '✓ 已保存，会员体系即时生效' : ('保存失败：' + (j.error || '')), ok && j.ok);
+    });
+  }
+  if (curView === 'prices') {
+    $('#prSave').addEventListener('click', async () => {
+      let okAll = true; for (const tr of V.querySelectorAll('tr[data-k]')) { const k = tr.getAttribute('data-k'); const c = tr.querySelector('.pr-c').value; const r = await apost('/api/admin/price', { action_key: k, credits: c }); if (!r.ok || !r.j.ok) okAll = false; }
+      msg('#prMsg', okAll ? '✓ 计费已更新' : '部分保存失败', okAll);
+    });
+  }
+  if (curView === 'rules') {
+    const bindDel = () => V.querySelectorAll('.row-del').forEach(b => { b.onclick = () => b.closest('tr').remove(); });
+    bindDel();
+    $('#kbAdd').addEventListener('click', () => { const M = window.XHS_RULES_META || { src: '', date: '' }; $('#kbBody').insertAdjacentHTML('beforeend', `<tr><td><input class="kb-t field rounded px-2 py-1 text-[12px]" style="width:100px"></td><td><textarea class="kb-d field rounded px-2 py-1 text-[12px]" rows="2" style="width:100%;min-width:240px"></textarea></td><td><input class="kb-date field rounded px-2 py-1 text-[12px]" style="width:78px" placeholder="2026-06" value="${(M.date||'').replace(/"/g,'&quot;')}"></td><td><input class="kb-src field rounded px-2 py-1 text-[12px]" style="width:150px" placeholder="官方出处" value="${(M.src||'').replace(/"/g,'&quot;')}"></td><td class="r"><button class="row-del btn-ghost rounded px-2 py-1 text-[11px]">删</button></td></tr>`); bindDel(); });
+    $('#docAdd').addEventListener('click', () => { $('#docBody').insertAdjacentHTML('beforeend', `<tr><td><input class="doc-q field rounded px-2 py-1 text-[12px]" style="width:160px"></td><td><textarea class="doc-a field rounded px-2 py-1 text-[12px]" rows="2" style="width:100%;min-width:300px"></textarea></td><td class="r"><button class="row-del btn-ghost rounded px-2 py-1 text-[11px]">删</button></td></tr>`); bindDel(); });
+    $('#faqAdd').addEventListener('click', () => { $('#faqBody').insertAdjacentHTML('beforeend', `<tr><td><input class="faq-q field rounded px-2 py-1 text-[12px]" style="width:160px"></td><td><textarea class="faq-a field rounded px-2 py-1 text-[12px]" rows="2" style="width:100%;min-width:300px"></textarea></td><td class="r"><button class="row-del btn-ghost rounded px-2 py-1 text-[11px]">删</button></td></tr>`); bindDel(); });
+    $('#kbSave').addEventListener('click', async () => {
+      const rules = [...V.querySelectorAll('#kbBody tr')].map(tr => ({ t: tr.querySelector('.kb-t').value.trim(), d: tr.querySelector('.kb-d').value.trim(), date: (tr.querySelector('.kb-date')?.value || '').trim(), src: (tr.querySelector('.kb-src')?.value || '').trim() })).filter(x => x.t);
+      const docs = [...V.querySelectorAll('#docBody tr')].map(tr => ({ q: tr.querySelector('.doc-q').value.trim(), a: tr.querySelector('.doc-a').value.trim() })).filter(x => x.q);
+      const faq = [...V.querySelectorAll('#faqBody tr')].map(tr => ({ q: tr.querySelector('.faq-q').value.trim(), a: tr.querySelector('.faq-a').value.trim() })).filter(x => x.q);
+      const { ok, j } = await apost('/api/admin/kb', { rules, docs, faq }); msg('#kbMsg', ok && j.ok ? '✓ 已保存，帮助页/悬浮助手即时生效' : ('保存失败：' + (j.error || '')), ok && j.ok);
+    });
+  }
+  if (curView === 'agentApps') {
+    const decide = async (id, approve) => { const { ok, j } = await apost('/api/admin/agent-apps', { id, approve }); if (ok && j.ok) renderView(); else alert('操作失败：' + (j.error || '')); };
+    V.querySelectorAll('.aa-ok').forEach(b => b.addEventListener('click', () => decide(b.dataset.id, true)));
+    V.querySelectorAll('.aa-no').forEach(b => b.addEventListener('click', () => decide(b.dataset.id, false)));
+  }
+  if (curView === 'roles') {
+    // 成员增删
+    V.querySelectorAll('.st-del').forEach(b => b.addEventListener('click', async () => { await apost('/api/admin/staff', { phone: b.dataset.phone, remove: true }); renderView(); }));
+    $('#stAdd')?.addEventListener('click', async () => {
+      const phone = $('#stPhone').value.trim(), role = $('#stRole').value, note = $('#stNote').value.trim();
+      const { ok, j } = await apost('/api/admin/staff', { phone, role, note });
+      if (ok && j.ok) renderView(); else msg('#stMsg', '添加失败：' + (j.error || ''), false);
+    });
+    // 角色 新增/删除/改名 → 保存
+    $('#roAdd')?.addEventListener('click', () => {
+      const key = ($('#roKey').value || '').trim().replace(/[^a-zA-Z0-9_]/g, ''), name = ($('#roNewName').value || '').trim();
+      if (!key || !name) { msg('#roMsg', '请填角色标识(英文)和名称', false); return; }
+      if (RBAC.roles.find(r => r.key === key)) { msg('#roMsg', '该标识已存在', false); return; }
+      RBAC.roles.push({ key, name, menus: ['overview'] }); renderRoleRows();
+      $('#roKey').value = ''; $('#roNewName').value = '';
+    });
+    const bindRoleRows = () => {
+      V.querySelectorAll('.ro-del').forEach(b => b.addEventListener('click', () => { RBAC.roles = RBAC.roles.filter(r => r.key !== b.dataset.key); renderRoleRows(); }));
+      V.querySelectorAll('.ro-mem').forEach(b => b.addEventListener('click', () => { const d = V.querySelector('.ro-detail[data-key="' + b.dataset.key + '"]'); if (!d) return; const open = d.style.display !== 'none'; d.style.display = open ? 'none' : 'table-row'; b.textContent = b.textContent.replace(open ? '▾' : '▸', open ? '▸' : '▾'); }));
+    };
+    const renderRoleRows = () => { $('#roBody').innerHTML = rbacRoleRowsHTML(); bindRoleRows(); };
+    bindRoleRows();
+    // 导出成员 CSV
+    $('#roExport')?.addEventListener('click', () => {
+      const rows = [['手机号', '角色标识', '角色名称', '备注']].concat(RBAC.staff.map(s => [s.phone, s.role, s.roleName || s.role, (s.note || '').replace(/[\r\n,]/g, ' ')]));
+      const csv = '﻿' + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = '员工成员_' + new Date().toISOString().slice(0, 10) + '.csv'; a.click(); URL.revokeObjectURL(a.href);
+    });
+    $('#roSave')?.addEventListener('click', async () => {
+      V.querySelectorAll('#roBody tr').forEach(tr => { const r = RBAC.roles.find(x => x.key === tr.dataset.key); if (r) { const ni = tr.querySelector('.ro-name'); if (ni && !ni.disabled) r.name = ni.value.trim() || r.name; } });
+      const { ok, j } = await apost('/api/admin/roles', { roles: RBAC.roles });
+      if (ok && j.ok) { msg('#roMsg', '✓ 已保存', true); renderView(); } else msg('#roMsg', '保存失败：' + (j.error || ''), false);
+    });
+  }
+  if (curView === 'perms') {
+    $('#pmSave')?.addEventListener('click', async () => {
+      RBAC.roles.forEach(r => { if (r.key === 'admin') return; const ms = []; V.querySelectorAll('.pm-cell[data-role="' + r.key + '"]:checked').forEach(c => ms.push(c.dataset.menu)); r.menus = ms; });
+      const { ok, j } = await apost('/api/admin/roles', { roles: RBAC.roles });
+      msg('#pmMsg', ok && j.ok ? '✓ 已保存，员工下次进后台即按此显示' : ('保存失败：' + (j.error || '')), ok && j.ok);
+    });
+  }
+  if (curView === 'menus') {
+    $('#mnSave')?.addEventListener('click', async () => {
+      const menus = [...V.querySelectorAll('#mnBody tr')].map(tr => ({ key: tr.dataset.key, label: tr.querySelector('.mn-label').value.trim(), enabled: tr.querySelector('.mn-on').checked }));
+      const { ok, j } = await apost('/api/admin/menus', { menus });
+      if (ok && j.ok) {
+        msg('#mnMsg', '✓ 已保存（标签即时生效，停用的菜单刷新后隐藏）', true);
+        const lm = {}; (j.menus || []).forEach(m => lm[m.key] = m.label);
+        $('#navSeg').querySelectorAll('button').forEach(b => { if (lm[b.dataset.v]) b.textContent = lm[b.dataset.v]; });
+      } else msg('#mnMsg', '保存失败：' + (j.error || ''), false);
+    });
+  }
+}
+$('#navSeg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  curView = b.dataset.v; $('#navSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderView();
+}));
+
+async function boot() {
+  // 先看是否管理员（手机号登录）；否则看 token 能否拉通
+  let isAdmin = false;
+  try { const me = await (await fetch('/api/auth/me')).json(); if (me.ok) { $('#who').textContent = (me.nickname || me.phone || '') + '（' + (me.role === 'admin' ? '管理员' : '普通用户') + '）'; if (me.role === 'admin') isAdmin = true; } } catch {}
+  if (!isAdmin && adminToken()) { const t = await aget('/api/admin/summary'); if (t.ok && t.j.ok) isAdmin = true; }
+  if (isAdmin) {
+    $('#gate').classList.add('hidden'); $('#adminBody').classList.remove('hidden');
+    // 按 RBAC 菜单权限 + 菜单管理（启用/显示名）渲染顶部标签
+    let menus = null, menuCfg = null;
+    try { const mm = await aget('/api/admin/my-menus'); if (mm.ok && mm.j.ok) { menus = mm.j.menus; menuCfg = mm.j.menuCfg; } } catch {}
+    window.__applyMenuLabels = () => { if (!menuCfg) return; const lm = {}; menuCfg.forEach(m => lm[m.key] = m.label); $('#navSeg').querySelectorAll('button').forEach(b => { if (lm[b.dataset.v]) b.textContent = lm[b.dataset.v]; }); };
+    window.__applyMenuLabels();
+    if (menus) {
+      $('#navSeg').querySelectorAll('button').forEach(b => { b.style.display = menus.includes(b.dataset.v) ? '' : 'none'; });
+      if (!menus.includes(curView)) { curView = menus[0] || 'overview'; $('#navSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === curView)); }
+    }
+    renderView();
+  } else { $('#adminBody').classList.add('hidden'); $('#gate').classList.remove('hidden'); }
+}
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>合规自检 · 第八步 · 赛道智能体操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+</head>
+<body class="stage grain min-h-screen" data-page="compliance">
+
+<!-- 旧 header 已移除：导航由全局外壳（左边栏+顶栏）统一承载 -->
+<main class="ag-page">
+
+  <a href="/流水线.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-5">← 返回上一步 · 创作流水线</a>
+  <div class="mb-8">
+    <div class="text-[var(--cinnabar)] text-[12px] tracking-[.3em] font-medium mb-2">第八步 · 发布前最后一道闸</div>
+    <h1 class="font-display font-light leading-[.9] text-[clamp(36px,6vw,70px)] tracking-tight">合规<span class="italic" style="color:var(--cinnabar)">自检</span></h1>
+    <p class="mt-3 text-[14px] text-[var(--ink-soft)] max-w-xl">违禁词 / 绝对化用词 / 升学保证 / 站外导流 / 未核实硬信息 / 他人隐私，逐项查并给改后版本。<span class="text-[var(--cinnabar-deep)]">⛔ 通过后仍需运营终审改定才发。</span></p>
+  </div>
+
+  <div class="grid lg:grid-cols-[1fr_1fr] gap-7 items-start">
+
+    <!-- 输入 -->
+    <section class="card p-5 space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h2 class="font-song font-bold text-[15px]">待检内容</h2>
+        <button id="importBtn" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">从流水线导入</button>
+      </div>
+      <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">标题</label>
+        <input id="cTitle" class="field w-full rounded-lg px-3 py-2 text-[13.5px]" placeholder="标题" /></div>
+      <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">封面文案</label>
+        <input id="cCover" class="field w-full rounded-lg px-3 py-2 text-[13.5px]" placeholder="封面文案（两行用 / 或换行分隔）" /></div>
+      <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">正文</label>
+        <textarea id="cBody" rows="9" class="field w-full rounded-lg px-3 py-2.5 text-[13.5px] leading-relaxed" placeholder="正文全文"></textarea></div>
+      <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">标签</label>
+        <input id="cTags" class="field w-full rounded-lg px-3 py-2 text-[13.5px]" placeholder="#美术考研 #考研 …" /></div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-[12px] text-[var(--ink-soft)]">笔记图片（封面 / 配图）</label>
+          <div class="flex gap-2">
+            <button id="imgCheck" class="btn-ghost rounded-md px-2.5 py-1 text-[11px]">🔍 图片合规初查</button>
+            <button id="imgUp" class="btn-ghost rounded-md px-2.5 py-1 text-[11px]">📎 上传</button>
+          </div>
+        </div>
+        <input id="cImgFile" type="file" class="hidden" multiple accept="image/*" />
+        <div id="imgList" class="flex flex-wrap gap-2"></div>
+        <div id="imgCheckStatus" class="text-[11px] text-[var(--ink-soft)] mt-1"></div>
+      </div>
+      <div class="flex items-center gap-2.5 pt-1">
+        <button id="checkBtn" class="btn-go flex-1 rounded-xl py-3 text-[14px] font-medium flex items-center justify-center gap-2"><span id="ci">🛡</span><span id="ct">开始自检</span></button>
+        <select id="model" class="field rounded-xl px-3 py-3 text-[12px] hidden">
+          <option value="claude-opus-4-8">Opus 4.8</option>
+          <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+          <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+        </select>
+      </div>
+      <div id="status" class="text-[12px] text-[var(--ink-soft)] min-h-[18px]"></div>
+    </section>
+
+    <!-- 报告 -->
+    <section>
+      <div id="report" class="card p-8 text-center text-[13px] text-[var(--ink-soft)]">左侧填好待检内容（或「从流水线导入」），点「开始自检」，这里出风险清单与改后版本。</div>
+    </section>
+  </div>
+
+  <footer class="mt-14 pt-6 border-t hairline flex flex-wrap items-center justify-between gap-3 text-[11px] text-[var(--ink-soft)]">
+    <span>第八步 · 挂载 KB4 违禁词与平台规则</span>
+    <span class="font-song">这是法律与限流的护栏 · 有风险必须改后再发</span>
+  </footer>
+</main>
+
+<!-- 从流水线导入：历史记录选择弹窗 -->
+<div id="impModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.38);align-items:center;justify-content:center;padding:20px">
+  <div class="card" style="width:min(640px,94vw);max-height:84vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)">
+      <div class="font-song" style="font-weight:700;font-size:16px">📋 选择要自检的成稿（历史记录）</div>
+      <button id="impClose" class="btn-ghost rounded-lg" style="padding:6px 14px;font-size:12px">关闭</button>
+    </div>
+    <div id="impList" style="padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
+<style>
+  .imp-row{ display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:var(--paper-2); }
+  .imp-row:hover{ border-color:rgba(255,36,66,.3); }
+  .imp-go{ flex:0 0 auto; font-size:12px; font-weight:600; color:#fff; background:var(--cinnabar); border:none; border-radius:999px; padding:6px 16px; cursor:pointer; transition:.15s; }
+  .imp-go:hover{ filter:brightness(1.06); transform:translateY(-1px); }
+</style>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=30"></script>
+<script>
+$('#model').value = localStorage.getItem('ag_model') || 'claude-opus-4-8';
+$('#model').addEventListener('change', e => localStorage.setItem('ag_model', e.target.value));
+
+let cImages = [];
+function imgSrc(u){ return (u||'').startsWith('data:') ? u : '/api/img-proxy?u='+encodeURIComponent(u); }
+// 长图笔记（note://）/ 模板卡（tpl://）渲染（与成稿预览一致），避免被当成 <img> 裂图
+function hexA(h,a){ const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim()); if(!m)return 'rgba(255,150,60,'+a+')'; const n=parseInt(m[1],16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+function noteStyleVars(page){ const p=page||{};
+  const bg=/^#?[0-9a-f]{6}$/i.test(p.bg||'')?(p.bg[0]==='#'?p.bg:'#'+p.bg):'#ffffff';
+  const acc=/^#?[0-9a-f]{6}$/i.test(p.accent||'')?(p.accent[0]==='#'?p.accent:'#'+p.accent):'#ff6a3d';
+  const hl=/^#?[0-9a-f]{6}$/i.test(p.hl||'')?(p.hl[0]==='#'?p.hl:'#'+p.hl):'#ff8a3d';
+  const dark=!!p.dark, ink=dark?'#ffffff':'#16181d', ink2=dark?'rgba(255,255,255,.88)':'#33373d', meta=dark?'rgba(255,255,255,.62)':'#b6bbc2', tag=dark?'rgba(255,255,255,.78)':'#3a5a8c';
+  return `--nt-bg:${bg};--nt-ink:${ink};--nt-ink2:${ink2};--nt-meta:${meta};--nt-tag:${tag};--nt-accent:${acc};--nt-hl:${hexA(hl,.42)};--nt-hl-line:${hl}`; }
+function noteBlock(b){ if(!b)return''; const t=b.t||'p';
+  if(t==='title')return `<div class="nt-h1">${mark(b.text||'')}</div>`;
+  if(t==='meta')return `<div class="nt-meta">${mark(b.text||'')}</div>`;
+  if(t==='sec')return `<div class="nt-sec"><span class="nt-dot"></span>${mark(b.text||'')}</div>`;
+  if(t==='sub')return `<div class="nt-sub">${mark(b.text||'')}</div>`;
+  if(t==='ol')return `<ul class="nt-ol">${(b.items||[]).map((x,k)=>`<li><svg class="nt-num" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#ff6a3d"/><text x="11" y="11.5" fill="#ffffff" font-size="12.5" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,PingFang SC,sans-serif">${k+1}</text></svg><span class="nt-tx">${mark(x)}</span></li>`).join('')}</ul>`;
+  if(t==='tags')return ''; // 长图笔记图里不放话题标签
+  return `<p class="nt-p">${mark(b.text||'')}</p>`; }
+function isCoverPage(page){ const b=(page&&page.blocks)||[]; return b.length&&b[0].t==='title'&&b.every(x=>['title','meta','tags'].includes(x.t)); }
+function noteCardHTML(page){ const cover=isCoverPage(page); const inner=((page&&page.blocks)||[]).map(noteBlock).join(''); return `<div class="cv-note${cover?' is-cover':''}" style="${noteStyleVars(page)}">${cover?inner:`<div class="cv-note-fit">${inner}</div>`}</div>`; }
+function fitNote(el){ const fit=el.querySelector('.cv-note-fit'); if(!fit)return; fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(el); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=el.clientHeight-padV, need=fit.scrollHeight; if(need>avail+1&&avail>0){ const s=Math.max(.45,avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } }
+function fitAllNotes(root){ (root||document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); requestAnimationFrame(()=>requestAnimationFrame(()=>{ (root||document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); })); }
+// 单个缩略：note:// / tpl:// → CSS 卡；普通 URL/data → 图片
+function imgCellHTML(u, wpx){ u=u||'';
+  if(u.startsWith('note://')) return `<div class="cv-frame tpl note-zoom" data-note="${+u.slice(7)}" title="点击放大" style="width:${wpx}px;box-shadow:none;border:1px solid var(--line);cursor:zoom-in">${noteCardHTML((window.__notePages||[])[+u.slice(7)])}</div>`;
+  if(u.startsWith('tpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;box-shadow:none;border:1px solid var(--line)"><div class="cv-tpl t0"></div></div>`;
+  return `<div class="out p-0" style="width:${wpx}px;aspect-ratio:3/4;border-radius:8px;overflow:hidden"><img class="zoomable" title="点击放大" src="${imgSrc(u)}" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in"/></div>`; }
+// 长图笔记卡点击放大（CSS 卡不是图，用大号 cv-frame 弹层显示）
+function showNoteLightbox(page){ if(!page)return;
+  let lb=document.getElementById('__noteLb');
+  if(!lb){ lb=document.createElement('div'); lb.id='__noteLb'; lb.style.cssText='position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out'; document.body.appendChild(lb); lb.addEventListener('click',()=>lb.style.display='none'); document.addEventListener('keydown',e=>{if(e.key==='Escape')lb.style.display='none';}); }
+  lb.innerHTML='<div class="cv-frame" style="width:min(86vw,360px);box-shadow:0 12px 48px rgba(0,0,0,.55)">'+noteCardHTML(page)+'</div>';
+  lb.style.display='flex'; requestAnimationFrame(()=>requestAnimationFrame(()=>fitAllNotes(lb)));
+}
+function bindNoteZoom(root){ (root||document).querySelectorAll('.note-zoom[data-note]').forEach(fr=>fr.addEventListener('click',()=>showNoteLightbox((window.__notePages||[])[+fr.dataset.note]))); }
+function renderImgs(){
+  const box = $('#imgList'); if(!box) return;
+  box.innerHTML = cImages.map((u,i)=>`
+    <div style="position:relative">
+      ${imgCellHTML(u.url||u, 84)}
+      ${(u.verdict)?`<div class="text-[10px] text-center mt-0.5" style="color:${u.bad?'var(--cinnabar-deep)':(/文字卡/.test(u.verdict)?'var(--ink-soft)':'#00a152')}">${u.verdict}</div>`:(u.cap&&u.cap.title?`<div class="text-[9.5px] text-center mt-0.5 text-[var(--ink-soft)] leading-tight" style="width:84px">${mark(u.cap.title)}</div>`:'')}
+      <span class="ci-del" data-i="${i}" style="position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:10px;box-shadow:0 1px 4px rgba(0,0,0,.15)">✕</span>
+    </div>`).join('');
+  box.querySelectorAll('.ci-del').forEach(x=>x.addEventListener('click',()=>{ cImages.splice(+x.dataset.i,1); renderImgs(); }));
+  fitAllNotes(box); bindNoteZoom(box);
+}
+function downscaleImage(file, max = 1100) {
+  return new Promise(res => { const rd = new FileReader(); rd.onload = () => { const img = new Image(); img.onload = () => { let w = img.width, h = img.height; const s = Math.min(1, max / Math.max(w, h)); const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', 0.85)); }; img.onerror = () => res(rd.result); img.src = rd.result; }; rd.onerror = () => res(''); rd.readAsDataURL(file); });
+}
+
+// ===== S8 按改后内容重新出图 —— 与 S6「🎨 生成配图」(generateCoverImagesCore) 完全一致的逻辑 =====
+// 运行在基于「草稿状态 + 改后内容」构建的 GST 上（mirror 流水线 state）。
+let GST = {}; function gstPersist() { /* 合规自检无需回写草稿 */ }
+const asStr = x => typeof x === 'string' ? x : (x == null ? '' : (x.text || x.title || x.content || (Array.isArray(x) ? x.join(' ') : String(x))));
+const REF_VISION_PROMPT = '提取这张小红书图上的关键文字（大标题 + 主要要点/数字/编号，原样照抄但不要概括），不要写"这张图展示了…"之类总结。如果是思维导图/长图/信息特别多，只取最核心的标题和最多 8 条要点，不要把整张图所有文字都搬下来。严格按三行输出：\n【文字】逐条列出（用 / 或换行分隔，最多 8 条；没有就写"无文字"）\n【版式】选填：封面大字 / 编号清单 / 前后对比 / 数据清单 / 要点列表 / 思维导图\n【画面】≤15字描述画面';
+async function visionOne(imgUrl) {
+  const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: imgUrl, prompt: REF_VISION_PROMPT }) })).json();
+  return (j.ok && j.desc) ? j.desc.trim().slice(0, 360) : '';
+}
+async function analyzeRefImageSet(setStatusFn) {
+  const imgs = (GST.refImages || []).slice(0, 8);
+  if (!imgs.length) return [];
+  if (GST.refVisions && GST.refVisions.length >= imgs.length) return GST.refVisions;
+  const out = [];
+  for (let i = 0; i < imgs.length; i++) { if (setStatusFn) setStatusFn('视觉解析对标第 ' + (i + 1) + '/' + imgs.length + ' 张…'); try { out.push(await visionOne(imgs[i])); } catch { out.push(''); } }
+  GST.refVisions = out; if (!GST.refVision && out[0]) GST.refVision = out[0]; gstPersist();
+  return out;
+}
+const IMG_NEG = '严禁出现：手机、电脑、屏幕、App 界面、截图、聊天框、清单/表格/文档、书页文字、便利贴、招牌、黑板，以及任何文字/汉字/字母/数字/logo/水印；也不要出现与主题无关的物体（如苹果/水果/食物/随机人脸/卡通玩偶）。';
+function buildImgPrompt(style, scene, theme) {
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const sp = aStyle ? `整体画风：${aStyle}。` : '';
+  if (theme === 'poster') return `${sp}一张精致的小红书干货海报「底图」（纯做背景，文字稍后叠加）：${scene || '与主题相关的极简插画风底图'}。要求：柔和马卡龙/莫兰迪配色的渐变或纸张质感打底，四周用与主题相关的极简手绘小元素、色块、虚线框、丝带胶带等做轻装饰，营造杂志/手账排版的设计感；中部与上部留出干净空白区给文字。整体高级、温柔、有呼吸感，不要太满。竖版 3:4。${IMG_NEG}`;
+  return `${sp}${style ? style + '。' : ''}${scene || ''}。小红书竖版配图，${aStyle ? '按上面画风' : '专业摄影或精致插画'}，超高清细节，构图干净留白、主体居中偏上（给顶部叠字留空间），柔和电影级调色；${IMG_NEG}`;
+}
+async function planOneImage(i, refVis, isCover, coverTitle, bodyTxt, t) {
+  const role = isCover ? `这是第 1 张＝封面：title 用我的主标题「${coverTitle || GST.topic}」` : `这是第 ${i + 1} 张配图`;
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  let p = { theme: 'photo', scene: '', title: '', lines: [], layout: isCover ? '封面' : '要点' };
+  try {
+    const j = extractJSON(await callClaude({
+      system: '你是小红书视觉指导，只输出 JSON。', json: true, max_tokens: 360, action: 'imgplan',
+      prompt: `严格对位：用「对标第 ${i + 1} 张」的样式，做我这篇的第 ${i + 1} 张图。
+【对标第 ${i + 1} 张的解析（文字内容 + 版式形式 + 画面）】${refVis}
+${role}。${aStyle ? `\n【本篇统一画风（最高优先）】${aStyle} —— scene 必须符合这个画风。` : ''}
+要求：① theme：实拍/实物/场景照→photo；白底或纯色文字排版图/干货海报/清单图→poster。② layout 与「条目数、形式」100% 照搬对标这张。③ title + lines 的内容换成我这篇的（取自下面选题/正文）。④ scene（绝不在图里画任何文字）：${aStyle ? '先服从上面画风，再' : ''}photo 时还原对标画面构图/主体/配色；poster 时为极简浅色留白背景。
+【选题】${GST.topic}
+【我的正文】${bodyTxt || '（无，按选题）'}
+只输出 JSON：{"theme":"photo|poster","layout":"","title":"","lines":[],"scene":""}`
+    }));
+    p.theme = j.theme === 'poster' ? 'poster' : 'photo';
+    p.scene = (j.scene || '').trim(); p.title = asStr((j.title || '')).trim();
+    p.lines = (Array.isArray(j.lines) ? j.lines : []).map(asStr).filter(Boolean).slice(0, 5);
+    p.layout = j.layout || (isCover ? '封面' : '要点');
+  } catch {}
+  if (/清单|编号|对比|排版|海报|备忘录|白底|纯色|黑底|文字图|列表|表格|数据/.test(refVis || '') || /[①②③④⑤]/.test(refVis || '')) p.theme = 'poster';
+  if (isCover && !p.title && coverTitle) p.title = coverTitle;
+  if (!p.scene) p.scene = p.theme === 'poster' ? '柔和米白纸张质感，大面积留白' : `${GST.topic} 相关的干净背景`;
+  return p;
+}
+function isTextHeavyRef(refVis) {
+  const v = refVis || '';
+  const textPart = (v.match(/【文字】([\s\S]*?)(?:【|$)/) || [])[1] || '';
+  const layoutPart = (v.match(/【版式】([\s\S]*?)(?:【|$)/) || [])[1] || '';
+  const cleanLen = textPart.replace(/[\s\/无文字。，、]/g, '').length;
+  if (/无文字/.test(textPart) || cleanLen < 6) return false;
+  if (/清单|编号|对比|列表|数据|导图|思维导图|要点|表格|步骤/.test(layoutPart)) return true;
+  if (/[①②③④⑤]/.test(textPart)) return true;
+  return cleanLen >= 12;
+}
+function refBlock() {
+  let b = '';
+  if (GST.ref && GST.ref.trim()) b += '【对标笔记（标题+正文+话题标签）】\n' + GST.ref.trim().slice(0, 2500) + '\n';
+  const vis = (GST.refVisions || []).filter(Boolean);
+  if (vis.length) b += '【对标图组 · 逐张视觉描述（第 i 张的文字/版式/画面）】\n' + vis.map((d, i) => `第${i + 1}张：${d}`).join('\n') + '\n';
+  else if (GST.refVision && GST.refVision.trim()) b += '【对标图片/封面 视觉描述】\n' + GST.refVision.trim() + '\n';
+  return b ? ('\n\n参考下面这篇对标（仅借鉴其方法/结构/视觉策略，绝不照抄、不洗稿）：\n' + b) : '';
+}
+function frameSliceForImage(n) {
+  const f = GST.frame || ''; if (!f) return '';
+  const hdr = /第\s*(\d{1,2})\s*张/g; const marks = []; let m;
+  while (m = hdr.exec(f)) marks.push({ num: +m[1], idx: m.index });
+  if (!marks.length) return ''; const cur = marks.find(x => x.num === n); if (!cur) return '';
+  const next = marks.filter(x => x.idx > cur.idx).sort((a, b) => a.idx - b.idx)[0];
+  return f.slice(cur.idx, next ? next.idx : cur.idx + 900).trim().slice(0, 900);
+}
+function hlKeywordsFromSeg(seg) {
+  const kws = []; const re = /高亮[^。\n]{0,40}/g; let m;
+  while (m = re.exec(seg || '')) { const q = /[“"「『'']([^”"「』''，。、\s]{1,10})[”"」』'']/g; let qm; while (qm = q.exec(m[0])) kws.push(qm[1]); }
+  return [...new Set(kws)].filter(Boolean);
+}
+function forceHighlight(text, kws) { let s = String(text || ''); for (const k of kws) { if (!k || s.indexOf(k) < 0 || s.indexOf('==' + k + '==') >= 0) continue; s = s.replace(k, '==' + k + '=='); } return s; }
+function isPureCoverSeg(seg) { const s = seg || ''; const hasBody = /示例|内容核心|内容要点|要点[:：]|步骤|对比|清单|【给你的话】/.test(s) || s.replace(/\s/g, '').length > 170; const labeledCover = /封面|总纲|大字标题|首图|主标题/.test(s); return labeledCover && !hasBody; }
+async function planNotePage(i, refVis, isCover, title, t) {
+  const seg = frameSliceForImage(i + 1);
+  const frameSrc = seg || (GST.frame || '').slice(0, 700);
+  const persona = (typeof PERSONA !== 'undefined' && PERSONA) ? PERSONA : '';
+  const coverMode = isCover && isPureCoverSeg(frameSrc); // 仅"纯大字封面"走封面规则
+  const coverVisual = coverMode ? ((GST.cover && GST.cover.visual) || '') : '';
+  try {
+    const j = extractJSON(await callClaude({
+      system: (persona ? persona + '\n\n' : '') + '【当前任务】你在做小红书长图笔记排版，只输出 JSON，文字口吻/事实都遵守上面的人设与知识库。',
+      json: true, max_tokens: 1400, action: 'imgplan',
+      prompt: `把【S3 框架·第 ${i + 1} 张的规划】排成我这篇的第 ${i + 1} 页长图笔记（竖版 3:4）。
+【内容骨架 = S3 框架里第 ${i + 1} 张的规划】
+${frameSrc || '（框架里没找到这张，先去跑 S3 并写清"配图规划：第1张…第2张…"）'}
+【对标第 ${i + 1} 张的内容（参照它把每条写具体、写充实；用我的人设口吻改写，不照抄、不编造）】${refVis}
+${coverMode ? `这是【封面页】：${coverVisual ? '\n【S6 视觉建议（配色以这里为准）】\n' + coverVisual + '\n' : ''}① title=短而冲主标题(≤14字，从规划文字提炼)；副标题用 t=meta。② 只有一句大标题→只放 title(+meta)，绝不补正文；若规划列了核心要点→标题下用一个 t=ol(≤3条/每条≤8字)。③ 标题与要点关键词用 ==高亮==。④ 配色优先用视觉建议的颜色填 style(bg/hl/accent 十六进制)，没写→ bg:"#ffffff"，深色背景 dark:true。` : `铁律：① 以 S3 规划为骨架，==参照规划里的"内容核心/示例/要点"把每条展开写具体写充实==（把示例/类比/做法都写进来，要有信息量），人设口吻改写，不照抄不编造，不确定标「需核实」；② 第一块顶部小标题：${isCover ? '开篇页→用 t=title 开篇大标题(≤16字)，可跟一句 t=meta' : '用 t=sec 带序号小标题'}；版式照搬对标这张；③ 每页 2~3 处 ==高亮==、小标题 **加粗**、步骤用 t=ol；④ 全页 ≤220 字、列表 ≤5 条/每条 ≤28 字、段落 ≤4 段/每段 ≤55 字，装下不溢出；⑤ 配色照搬版式颜色填 style，没写→ bg:"#ffffff"。`}
+只输出 JSON：{"style":{"bg":"#ffffff","accent":"#ff6a3d","hl":"#ff8a3d","dark":false},"blocks":[{"t":"title|meta|sec|sub|p|ol|tags","text":"","items":[]}]}`
+    }));
+    if (j.blocks && j.blocks.length) {
+      const head = j.blocks[0] && j.blocks[0].t;
+      if (isCover && head !== 'title') j.blocks.unshift({ t: 'title', text: (title || GST.topic || '').slice(0, 16) });
+      else if (!isCover && head !== 'sec' && head !== 'title') j.blocks.unshift({ t: 'sec', text: (title || GST.topic || '').slice(0, 16) });
+      const kws = hlKeywordsFromSeg(frameSrc);
+      if (kws.length) { const hb = j.blocks.find(b => b.t === 'title' || b.t === 'sec'); if (hb) hb.text = forceHighlight(hb.text, kws); }
+      const s = j.style || {}; return { blocks: j.blocks, bg: s.bg, accent: s.accent, hl: s.hl, dark: !!s.dark };
+    }
+  } catch {}
+  return { blocks: [{ t: isCover ? 'title' : 'sec', text: (title || GST.topic || '').slice(0, 16) }, { t: 'p', text: frameSrc.slice(0, 150) }] };
+}
+const COVER_PROVIDER = 'ark', INNER_PROVIDER = 'kling';
+async function genImageFromPlan(plan, style, provider) {
+  try {
+    const body = { prompt: buildImgPrompt(plan.theme === 'poster' ? '' : style, plan.scene, plan.theme) };
+    if (provider) body.provider = provider;
+    const r = await fetch('/api/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const tx = await r.text(); if (!r.ok) return '';
+    const j = JSON.parse(tx); return (j.data && j.data[0] && j.data[0].url) || '';
+  } catch { return ''; }
+}
+// 与 S6 同款核心：有对标→逐张(文字密集→笔记页/实拍→Seedream/可灵)；无对标→批量生成
+async function generateCoverImagesCore(n, statusFn) {
+  const t = (typeof getTrack === 'function') ? getTrack() : null;
+  const bodyTxt = (GST.body || []).join('\n').slice(0, 1500);
+  const refSet = (await analyzeRefImageSet(statusFn)).filter(Boolean);
+  const coverTitle = ((GST.cover && GST.cover.cover_lines) || []).join(' ');
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const styleTag = aStyle ? '（画风：' + aStyle + '）' : '';
+  const urls = [], captions = [], notePages = [];
+  if (refSet.length) {
+    for (let i = 0; i < refSet.length; i++) {
+      if (isTextHeavyRef(refSet[i])) {
+        if (statusFn) statusFn('按对标第 ' + (i + 1) + '/' + refSet.length + ' 张排长图笔记…');
+        const page = await planNotePage(i, refSet[i], i === 0, coverTitle, t);
+        urls.push('note://' + notePages.length); notePages.push(page); captions.push(null);
+      } else {
+        if (statusFn) statusFn('按对标第 ' + (i + 1) + '/' + refSet.length + ' 张出实拍配图…' + styleTag);
+        const plan = await planOneImage(i, refSet[i], i === 0, coverTitle, bodyTxt, t);
+        const u = await genImageFromPlan(plan, '', i === 0 ? COVER_PROVIDER : INNER_PROVIDER);
+        if (u) { urls.push(u); captions.push({ title: plan.title, lines: plan.lines, layout: plan.layout, theme: plan.theme }); }
+      }
+    }
+  } else {
+    let style = '', items = [];
+    try {
+      if (statusFn) statusFn('构思配图…');
+      const sp = await callClaude({
+        system: '你是资深小红书视觉指导，只输出 JSON。', json: true, max_tokens: 2000, action: 'imgplan',
+        prompt: `为这篇${t ? t.domain : ''}小红书笔记设计一组 ${n} 张配图。文字事后叠在图上。每张给：theme(photo实拍/poster白底排版)、scene(背景，绝不含文字)、title(≤12字)、lines(2~5条≤16字干货)、layout([封面|清单|对比|编号|要点])。第1张=封面(title 用「${coverTitle || GST.topic}」，layout=封面)。整组做成"标题+干货清单"的信息卡。
+【选题】${GST.topic}
+【本篇正文】${bodyTxt || '（无，按选题）'}
+${refBlock()}
+只输出 JSON：{"style":"统一背景风格一句话","items":[{"theme":"","scene":"","title":"","lines":[],"layout":""}]}  items 正好 ${n} 个。`
+      });
+      const j = extractJSON(sp); style = j.style || ''; items = (j.items || []).slice(0, n);
+    } catch {}
+    while (items.length < n) items.push({ theme: 'poster', scene: '柔和米白纸张质感，大面积留白', title: '', lines: [], layout: '要点' });
+    if (items[0] && !items[0].title && coverTitle) { items[0].title = coverTitle; items[0].layout = '封面'; }
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i], theme = it.theme === 'poster' ? 'poster' : 'photo';
+      if (statusFn) statusFn('出图 ' + (i + 1) + '/' + items.length + '…');
+      const u = theme === 'poster' ? 'tpl://poster' : await genImageFromPlan({ theme, scene: it.scene }, style, i === 0 ? COVER_PROVIDER : INNER_PROVIDER);
+      if (u) { urls.push(u); captions.push({ title: it.title || '', lines: Array.isArray(it.lines) ? it.lines.filter(Boolean).slice(0, 5) : [], layout: it.layout || '要点', theme }); }
+    }
+  }
+  if (!urls.length) throw new Error('未生成任何图片');
+  GST.coverImages = urls; GST.coverCaptions = captions; GST.notePages = notePages;
+  return urls;
+}
+async function regenS8Images(btn) {
+  const v = window.__revised; if (!v) { setStatus('先点「开始自检」生成改后版本', 'err'); return; }
+  const d = window.__draftFull || {};
+  // 用「草稿状态 + 改后内容」构建 GST（与 S6 同一数据源；正文用改后正文、封面文案用改后封面）
+  GST = {
+    topic: d.topic || v.title || '', frame: d.frame || '', ref: d.ref || '',
+    refImages: d.refImages || [], refVisions: d.refVisions || null, refVision: d.refVision || '',
+    body: (v.body && v.body.length) ? v.body : (Array.isArray(d.body) ? d.body : []),
+    cover: { cover_lines: (v.cover_lines && v.cover_lines.length) ? v.cover_lines : ((d.cover && d.cover.cover_lines) || []), visual: (d.cover && d.cover.visual) || '' },
+    coverImages: [], coverCaptions: [], notePages: []
+  };
+  const n = Math.min(Math.max(cImages.length || GST.refImages.length || 4, 3), 9);
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '构思中…';
+  try {
+    const urls = await generateCoverImagesCore(n, m => { btn.textContent = m; });
+    cImages = urls.map((u, i) => ({ url: u, cap: GST.coverCaptions[i] || null }));
+    window.__notePages = GST.notePages; renderImgs();
+    setStatus('✓ 已按改后内容重新出图 ' + urls.length + ' 张' + ((typeof agentImgStyle === 'function' && agentImgStyle()) ? '（画风：' + agentImgStyle() + '）' : '') + '。可去成稿预览看叠字效果。');
+  } catch (e) { setStatus('出图失败：' + (e.message || e) + '（检查图像 key / 网络）', 'err'); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+
+// 真正导入一篇成稿到待检框
+function importDraftData(d) {
+  if (!d || (!d.body && !d.best && !d.title)) { setStatus('这篇还没有成稿内容', 'err'); return; }
+  $('#cTitle').value = d.best || d.title || '';
+  $('#cCover').value = (d.cover?.cover_lines || d.cover_lines || []).join(' / ');
+  $('#cBody').value  = Array.isArray(d.body) ? d.body.join('\n') : (d.body || '');
+  $('#cTags').value  = (d.tags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
+  window.__notePages = d.notePages || []; // 长图笔记页数据，供 note:// 渲染
+  window.__draftFull = d; // 完整草稿（frame/refImages/refVisions/cover），供「按改后内容重新出图」复用 S6 逻辑
+  const imgs = d.coverImages || (d.coverImage ? [d.coverImage] : []);
+  cImages = imgs.map(u => ({ url: u })); renderImgs();
+  setStatus('✓ 已导入' + (imgs.length ? ('（含 ' + imgs.length + ' 张图）') : ''));
+}
+// 点「从流水线导入」→ 先弹历史记录列表挑一篇
+function plHistory() { try { return JSON.parse(localStorage.getItem('ag_pl_history') || '[]'); } catch { return []; } }
+function fmtTime(ts) { const dt = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${dt.getFullYear()}/${p(dt.getMonth()+1)}/${p(dt.getDate())} ${p(dt.getHours())}:${p(dt.getMinutes())}`; }
+async function listHistory() { return (window.Cloud && await Cloud.loggedIn()) ? await Cloud.list() : plHistory(); }
+async function getHistoryData(id) { if (window.Cloud && await Cloud.loggedIn()) { const d = await Cloud.get(id); if (d) return d; } const r = plHistory().find(x => x.id === id); return r && r.data; }
+async function openImportPicker() {
+  $('#impModal').style.display = 'flex';
+  $('#impList').innerHTML = '<div class="text-center text-[13px] text-[var(--ink-soft)] py-8">加载中…</div>';
+  const arr = await listHistory();
+  const cur = Draft.load();
+  const curHasContent = cur && (cur.body || cur.best || cur.title);
+  const rows = [];
+  if (curHasContent) {
+    const ci = (cur.coverImages || []).length;
+    rows.push(`<div class="imp-row"><div class="flex-1 min-w-0"><div class="text-[13.5px] font-medium truncate">${mark(cur.topic || cur.best || cur.title || '当前草稿')}</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">📝 当前草稿（本机最新一篇）${ci ? ` · 🖼️${ci}图` : ''}</div></div><button class="imp-go" data-src="draft">导入</button></div>`);
+  }
+  arr.forEach(r => {
+    rows.push(`<div class="imp-row"><div class="flex-1 min-w-0"><div class="text-[13.5px] font-medium truncate">${mark(r.topic || '（未命名）')}</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">${fmtTime(r.ts)}${r.track ? ` · ${r.track}` : ''}${r.doneKeys && r.doneKeys.length ? ` · ${r.doneKeys.join(' ')}` : ''}${r.imgs ? ` · 🖼️${r.imgs}图` : ''}</div></div><button class="imp-go" data-id="${r.id}">导入</button></div>`);
+  });
+  $('#impList').innerHTML = rows.length ? rows.join('') : '<div class="text-center text-[13px] text-[var(--ink-soft)] py-10">还没有成稿。先去 S2–S7 跑一篇。</div>';
+  $('#impList').querySelectorAll('.imp-go').forEach(b => b.addEventListener('click', async () => {
+    let d;
+    if (b.dataset.src === 'draft') d = Draft.load();
+    else d = await getHistoryData(b.dataset.id);
+    importDraftData(d); $('#impModal').style.display = 'none';
+  }));
+}
+$('#importBtn').addEventListener('click', openImportPicker);
+$('#impClose').addEventListener('click', () => $('#impModal').style.display = 'none');
+$('#impModal').addEventListener('click', e => { if (e.target === $('#impModal')) $('#impModal').style.display = 'none'; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#impModal').style.display = 'none'; });
+// 进入页面自动导入「当前草稿」（= 流水线刚生成/正在编辑的这篇），无需手动筛选；换别篇再点「从流水线导入」。
+(function () { try { const d = Draft.load(); if (d && (d.body || d.best || d.title)) importDraftData(d); } catch {} })();
+
+// 上传图片
+$('#imgUp').addEventListener('click', () => $('#cImgFile').click());
+$('#cImgFile').addEventListener('change', async e => {
+  const files = [...e.target.files]; if (!files.length) { e.target.value = ''; return; }
+  for (const f of files) { const d = await downscaleImage(f); if (d) cImages.push({ url: d }); }
+  renderImgs(); e.target.value = '';
+});
+
+// 图片合规初查（GLM-4V 看图找：二维码/联系方式、绝对化或承诺类文字、违规元素）
+$('#imgCheck').addEventListener('click', async () => {
+  if (!cImages.length) { $('#imgCheckStatus').textContent = '先导入或上传图片'; $('#imgCheckStatus').style.color = 'var(--cinnabar-deep)'; return; }
+  const btn = $('#imgCheck'), st = $('#imgCheckStatus'); btn.disabled = true; const o = btn.textContent; btn.textContent = '查图中…';
+  st.style.color = 'var(--ink-soft)';
+  const prompt = '你是内容合规审核员。看这张小红书配图，只回一句：若画面里出现【二维码/微信号/电话等联系方式、绝对化或承诺类文字(最/第一/100%/包过等)、违规导流或敏感元素】就指出具体问题；都没有就回「未见明显问题」。20字内。';
+  let bad = 0, checked = 0;
+  for (let i = 0; i < cImages.length; i++) {
+    const u = cImages[i].url || '';
+    // 长图笔记 / 模板卡是纯文字 CSS（无图可识别），其文字已随正文「开始自检」检查 → 跳过图像初查
+    if (u.startsWith('note://') || u.startsWith('tpl://')) { cImages[i].verdict = '📝 文字卡·免识别'; cImages[i].bad = false; renderImgs(); continue; }
+    checked++;
+    st.textContent = '查第 ' + (i + 1) + '/' + cImages.length + ' 张…';
+    try {
+      const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: u, prompt }) })).json();
+      const desc = (j.desc || '').trim();
+      const isBad = j.ok && desc && !/未见明显问题|没有|无明显|未发现/.test(desc);
+      cImages[i].verdict = j.ok ? (isBad ? '⚠ ' + desc.slice(0, 14) : '✓ 无问题') : '解析失败';
+      cImages[i].bad = isBad; if (isBad) bad++;
+    } catch { cImages[i].verdict = '失败'; }
+    renderImgs();
+  }
+  st.textContent = bad ? ('⚠ ' + bad + ' 张图疑似有问题，请人工复核') : (checked ? '✓ 图片初查未见明显问题（仍需人工终审）' : '✓ 都是文字卡，文字已随正文自检（仍需人工终审）');
+  st.style.color = bad ? 'var(--cinnabar-deep)' : '#00a152';
+  btn.disabled = false; btn.textContent = o;
+});
+
+function setStatus(m, k) { const el = $('#status'); el.textContent = m || ''; el.style.color = k === 'err' ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; }
+function busy(on) { $('#checkBtn').disabled = on; $('#ci').className = on ? 'spin' : ''; $('#ci').textContent = on ? '◠' : '🛡'; $('#ct').textContent = on ? '自检中' : '开始自检'; }
+
+const LV = { high:{t:'高危',c:'#c0301d',bg:'rgba(210,59,39,.12)'}, mid:{t:'中风险',c:'#b8860b',bg:'rgba(184,134,11,.14)'}, low:{t:'提示',c:'#3a5a8c',bg:'rgba(58,90,140,.12)'} };
+
+function renderReport(r) {
+  const risks = r.risks || [];
+  const clean = risks.length === 0;
+  let html = `<div class="card p-5">
+    <div class="flex items-center gap-3 mb-1">
+      <span class="stamp text-[12px] px-2.5 py-1.5 leading-none" style="${clean?'background:#3fa34d;box-shadow:none':''}">${clean?'通过':'有风险'}</span>
+      <div class="font-song font-bold text-[16px]">${clean?'未发现明显风险':'发现 '+risks.length+' 处风险点'}</div>
+    </div>
+    <p class="text-[12px] text-[var(--ink-soft)]">${mark(r.verdict || '')}</p>
+  </div>`;
+
+  if (risks.length) {
+    html += '<div class="space-y-2.5 mt-4">' + risks.map(x => {
+      const lv = LV[x.level] || LV.low;
+      return `<div class="out p-4">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded" style="color:${lv.c};background:${lv.bg}">${lv.t}</span>
+          <span class="text-[12px] text-[var(--ink-soft)]">${mark(x.category||'')}${x.where?' · '+mark(x.where):''}</span>
+        </div>
+        <div class="text-[13.5px] mb-1.5">${mark(x.issue||'')}</div>
+        <div class="text-[13px] text-[var(--cinnabar-deep)]">→ 改：${mark(x.fix||'')}</div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  const rw = r.rewrite;
+  if (rw) {
+    // 改后版本是「可直接发布的终稿」：清掉残留的「需核实」等提示字眼
+    const rwTitle = stripVerify(rw.title || '');
+    const rwBody = (Array.isArray(rw.body) ? rw.body : [rw.body]).filter(Boolean).map(stripVerify);
+    const rwCover = (rw.cover_lines || []).map(stripVerify);
+    const imgsRow = cImages.length ? `
+      <div><span class="chip mr-1.5">图片</span><span class="text-[11px] text-[var(--ink-soft)]">${cImages.length} 张（随终稿一起带去预览/打包）</span>
+        <div class="flex flex-wrap gap-2 mt-2" id="fixImgRow">${cImages.map(c=>imgCellHTML(c.url, 54)).join('')}</div>
+      </div>` : '';
+    html += `<div class="card p-5 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="font-song font-bold text-[15px]">改后版本 <span class="text-[11px] text-[var(--ink-soft)] font-normal">· 可直接发布的终稿</span></div>
+        <button id="copyFix" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">复制改后</button>
+      </div>
+      <div class="space-y-2.5 text-[13.5px]">
+        ${rwTitle?`<div><span class="chip mr-1.5">标题</span>${mark(rwTitle)}</div>`:''}
+        ${rwCover.length?`<div><span class="chip mr-1.5">封面</span>${rwCover.map(mark).join(' / ')}</div>`:''}
+        ${imgsRow}
+        ${rwBody.length?`<div class="out p-4 leading-[1.8] space-y-2">${rwBody.map(p=>`<p>${mark(p)}</p>`).join('')}</div>`:''}
+        ${rw.tags?`<div class="flex flex-wrap gap-2">${(rw.tags||[]).map(t=>`<span class="chip" style="color:var(--xhs-tag);background:rgba(58,90,140,.08);border-color:rgba(58,90,140,.2)">${t.startsWith('#')?t:'#'+t}</span>`).join('')}</div>`:''}
+      </div>
+      <div class="flex flex-wrap gap-2.5 mt-4 pt-3 border-t hairline">
+        <button id="regenImgBtn" class="btn-go rounded-lg px-4 py-2 text-[12.5px] font-medium">🔄 按改后内容重新出图</button>
+        <button id="toPreviewBtn" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">去成稿预览 →</button>
+        <button id="dlPackBtn" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">⬇ 下载图文包</button>
+        <span class="text-[11px] text-[var(--ink-soft)] self-center w-full">重新出图＝按改后正文 + 你在「智能体」设的配图视觉风格生成</span>
+      </div>
+    </div>`;
+    // 暂存终稿，供按钮使用
+    window.__revised = { title: rwTitle, cover_lines: rwCover, body: rwBody, tags: rw.tags || [] };
+  }
+
+  $('#report').outerHTML = `<section id="report">${html}</section>`;
+  fitAllNotes(document.querySelector('#fixImgRow') || document); bindNoteZoom(document.querySelector('#fixImgRow')); // 长图笔记缩略自适配 + 点击放大
+
+  const cf = document.querySelector('#copyFix');
+  if (cf && rw) cf.addEventListener('click', async () => {
+    const v = window.__revised;
+    const text = [v.title, (v.cover_lines||[]).join(' / '), v.body.join('\n'), (v.tags||[]).join(' ')].filter(Boolean).join('\n\n');
+    try { await navigator.clipboard.writeText(text); cf.textContent = '已复制 ✓'; } catch {}
+  });
+  // 把终稿 + 图片写回草稿，跳成稿预览（exp=true 时自动触发打包下载）
+  function pushRevisedToDraft() {
+    const cur = Draft.load();
+    Draft.save({
+      title: window.__revised.title, best: window.__revised.title,
+      cover_lines: window.__revised.cover_lines.length ? window.__revised.cover_lines : cur.cover_lines,
+      body: window.__revised.body, tags: window.__revised.tags.length ? window.__revised.tags : cur.tags,
+      coverImages: cImages.map(c => c.url), coverImage: cImages[0] ? cImages[0].url : '',
+      coverCaptions: cImages.some(c => c.cap) ? cImages.map(c => c.cap || null) : cur.coverCaptions,
+      notePages: (window.__notePages && window.__notePages.length) ? window.__notePages : cur.notePages, // 长图笔记页随终稿带去预览
+    });
+  }
+  const tp = document.querySelector('#toPreviewBtn');
+  if (tp) tp.addEventListener('click', () => { pushRevisedToDraft(); location.href = '/成稿预览.html'; });
+  const dp = document.querySelector('#dlPackBtn');
+  if (dp) dp.addEventListener('click', () => { pushRevisedToDraft(); location.href = '/成稿预览.html?export=1'; });
+  const rb = document.querySelector('#regenImgBtn');
+  if (rb) rb.addEventListener('click', () => regenS8Images(rb));
+}
+// 去掉「需核实 / 需要核实 / 待核实」及其包裹符号，得到发布级干净文本
+function stripVerify(s) {
+  return String(s || '')
+    .replace(/[（(【\[「]?\s*(需要核实|需核实|待核实)\s*[）)】\]」]?/g, '')
+    .replace(/\s{2,}/g, ' ').trim();
+}
+
+$('#checkBtn').addEventListener('click', async () => {
+  const title = $('#cTitle').value.trim(), cover = $('#cCover').value.trim(), body = $('#cBody').value.trim(), tags = $('#cTags').value.trim();
+  if (!body && !title) { setStatus('至少填标题或正文', 'err'); return; }
+  const tk = getTrack();
+  const prompt = `对下面这篇${tk.domain}小红书笔记做发布前合规自检，逐项找风险并给修改建议；无风险则 risks 为空数组。
+【本赛道合规红线】${tk.compliance}
+【标题】${title}
+【封面文案】${cover}
+【正文】${body}
+【标签】${tags}
+检查维度：①违禁词/绝对化用词（最/第一/唯一/100%/永久/根治等）②效果或结果保证（${tk.compliance}）③站外导流痕迹（微信/电话/二维码/加V/私信发资料）④${tk.hardInfo}等未核实硬信息（应标「需核实」）⑤他人个人信息。
+★ rewrite 是「可直接发布的终稿」：自然通顺、合规，且**不得出现「需核实 / 需要核实 / 待核实」等任何提示字眼**——把不确定的硬信息改写成稳妥通用的表述或去掉，让读者读到干净成品。
+只输出 JSON：{"verdict":"一句话总体结论","risks":[{"level":"high|mid|low","category":"风险类别","where":"出现在标题/正文/标签的哪处","issue":"问题描述","fix":"具体改法"}],"rewrite":{"title":"改后标题","cover_lines":["改后封面行1","行2"],"body":["改后正文段1","段2"],"tags":["#改后标签"]}}
+即使整体无风险也要给出 rewrite（与原文一致即可），方便一键去成稿预览。`;
+  busy(true); setStatus('正在自检…');
+  try {
+    const txt = await callClaude({ prompt, model: $('#model').value, max_tokens: 2600, json: true, action: 'compliance' });
+    renderReport(extractJSON(txt));
+    setStatus('✓ 自检完成 · 发布前仍需运营终审改定（第八步）');
+  } catch (e) { setStatus('自检失败：' + (e.message || e), 'err'); }
+  finally { busy(false); }
+});
+</script>
+</body>
+</html>

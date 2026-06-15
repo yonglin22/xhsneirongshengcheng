@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>选题 · 第一步 · 赛道智能体操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+<style>
+  /* 嵌入模式（流水线弹框 iframe）：隐藏外壳与大标题，只留选题工作区 */
+  body.embed.ag-shelled{ padding-left:0 !important; }
+  body.embed #agSide, body.embed #agTop, body.embed > header, body.embed .embed-hide{ display:none !important; }
+  body.embed > main{ padding-top:10px !important; }
+  body.embed .mb-9{ margin-bottom:14px !important; }
+  body.embed #stageBadge{ margin-top:0 !important; }   /* 标题隐藏后去掉顶部空隙，当前阶段徽标置顶 */
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="topic">
+
+<!-- 旧 header 已移除：导航由全局外壳（左边栏+顶栏）统一承载 -->
+<main class="ag-page">
+
+  <div class="mb-9">
+    <div class="embed-hide">
+      <div class="text-[var(--cinnabar)] text-[12px] tracking-[.3em] font-medium mb-2">第一步 · 选题</div>
+      <h1 class="font-display font-light leading-[.9] text-[clamp(38px,6.5vw,74px)] tracking-tight">想<span class="italic" style="color:var(--cinnabar)">选题</span></h1>
+      <p class="mt-3 text-[14px] text-[var(--ink-soft)] max-w-lg">给人设和方向，产出 3–5 个当下最该发的选题。<span class="text-[var(--cinnabar-deep)]">⛔ 这一步是金矿，最后由运营挑 1 个去创作。</span></p>
+    </div>
+    <!-- 三层漏斗 · 当前阶段（考研类赛道自动显示，嵌入弹框也保留） -->
+    <div id="stageBadge" class="hidden mt-4 rounded-xl p-3.5" style="background:linear-gradient(135deg,rgba(255,66,89,.07),rgba(255,36,66,.03));border:1px solid rgba(255,36,66,.18)">
+      <div class="flex flex-wrap items-center gap-2 text-[13px]">
+        <span class="text-[11px] font-medium px-2.5 py-1 rounded-full" style="background:var(--cinnabar);color:#fff">📅 <span id="stageName">—</span></span>
+        <span class="text-[var(--ink-soft)]">今天 <span id="stageToday"></span> · 三层漏斗已按此出题</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5 mt-2.5 text-[11px]">
+        <span class="px-2 py-0.5 rounded-full" style="background:rgba(255,36,66,.1);color:var(--cinnabar-deep)">时间轴 40%</span>
+        <span class="px-2 py-0.5 rounded-full" style="background:rgba(58,90,140,.1);color:#3a5a8c">爆款仿写 35%</span>
+        <span class="px-2 py-0.5 rounded-full" style="background:rgba(120,90,60,.12);color:#7a5b3b">痛点填空 25%</span>
+      </div>
+      <div class="text-[11.5px] text-[var(--ink-soft)] mt-2 leading-relaxed">本阶段时间轴选题池：<span id="stagePool"></span></div>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-[380px_1fr] gap-8 items-start">
+
+    <!-- 输入 -->
+    <section class="card p-5 space-y-4">
+      <div class="flex items-center justify-between gap-2 -mb-1">
+        <span class="text-[12px] text-[var(--ink-soft)]">不知道填啥？</span>
+        <button id="suggestBtn" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px] whitespace-nowrap">💡 智能体按当前阶段建议</button>
+      </div>
+      <div id="suggestBox" class="hidden space-y-2"></div>
+      <div>
+        <label class="flex items-center gap-2 text-[13px] font-medium mb-2"><span class="stamp text-[11px] px-1.5 py-1 leading-none">设</span> 人设（必填）</label>
+        <input id="persona" class="field w-full rounded-lg px-3.5 py-2.5 text-[14px]" placeholder="例：考研上岸学姐 / 画室手绘老师" />
+      </div>
+      <div>
+        <label class="block text-[13px] font-medium mb-2">方向 / 科目（必填）</label>
+        <input id="direction" class="field w-full rounded-lg px-3.5 py-2.5 text-[14px]" placeholder="例：视觉传达考研 · 手绘快题 · 跨考" />
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2 gap-2">
+          <label class="block text-[13px] font-medium text-[var(--ink-soft)]">热点 / 时节 / 想推的（可选）</label>
+          <button id="hotBtn" class="btn-ghost rounded-lg px-3 py-1 text-[11px] whitespace-nowrap">🔥 拉今日艺术热点</button>
+        </div>
+        <input id="extra" class="field w-full rounded-lg px-3.5 py-2.5 text-[13px]" placeholder="填热点会走「热点三步法」，例：某画展开幕 / 某画家逝世 / 拍卖天价 / 暑期强化" />
+        <div id="hotBox" class="hidden mt-2 space-y-1"></div>
+      </div>
+      <div class="hidden">
+        <label class="block text-[12px] text-[var(--ink-soft)] mb-1.5">模型</label>
+        <select id="model" class="field w-full rounded-lg px-3 py-2.5 text-[13px]">
+          <option value="claude-opus-4-8">Opus 4.8 · 文笔最佳（默认）</option>
+          <option value="claude-sonnet-4-6">Sonnet 4.6 · 快而省</option>
+          <option value="claude-haiku-4-5-20251001">Haiku 4.5 · 最快</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2.5 pt-1">
+        <button id="genBtn" class="btn-go flex-1 rounded-xl py-3 text-[14px] font-medium tracking-wide flex items-center justify-center gap-2"><span id="genIcon">✶</span><span id="genTxt">生成选题</span></button>
+        <button id="sampleBtn" class="btn-ghost rounded-xl px-4 py-3 text-[13px] whitespace-nowrap">示例</button>
+      </div>
+      <div id="status" class="text-[12px] text-[var(--ink-soft)] min-h-[18px]"></div>
+    </section>
+
+    <!-- 结果 -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-song font-bold text-[16px]">选题候选</h2>
+        <span class="text-[11px] text-[var(--ink-soft)]">⛔ 人审节点：从下方挑 1 个</span>
+      </div>
+      <div id="results" class="grid sm:grid-cols-2 gap-4">
+        <div class="card p-8 text-center text-[13px] text-[var(--ink-soft)] sm:col-span-2">填好左边，点「生成选题」，这里会出现 3–5 个候选。</div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="mt-14 pt-6 border-t hairline flex flex-wrap items-center justify-between gap-3 text-[11px] text-[var(--ink-soft)]">
+    <span>第一步 · 选题 · 挂载 KB1 人设 / KB3 行业知识</span>
+    <span class="font-song">不编造政策与分数线（不确定标 <span class="needverify">需核实</span>）</span>
+  </footer>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=30"></script>
+<script>
+// 嵌入模式：被流水线弹框以 iframe 载入（?embed=1）。隐藏外壳，选中后回传父窗口而非跳页。
+const EMBED = new URLSearchParams(location.search).get('embed') === '1';
+if (EMBED) document.body.classList.add('embed');
+const TK = getTrack();
+if (TK) { $('#persona').placeholder = '例：' + TK.placeholders.persona; $('#direction').placeholder = '例：' + TK.placeholders.direction; }
+$('#model').value = localStorage.getItem('ag_model') || 'claude-opus-4-8';
+$('#persona').value = localStorage.getItem('ag_persona') || '';
+$('#direction').value = localStorage.getItem('ag_direction') || '';
+$('#model').addEventListener('change', e => localStorage.setItem('ag_model', e.target.value));
+$('#persona').addEventListener('input', e => localStorage.setItem('ag_persona', e.target.value));
+$('#direction').addEventListener('input', e => localStorage.setItem('ag_direction', e.target.value));
+
+function setStatus(m, k) { const el = $('#status'); el.textContent = m || ''; el.style.color = k === 'err' ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; }
+function busy(on) { $('#genBtn').disabled = on; $('#genIcon').className = on ? 'spin' : ''; $('#genIcon').textContent = on ? '◠' : '✶'; $('#genTxt').textContent = on ? '生成中' : '生成选题'; }
+
+function layerStyle(layer) {
+  const m = { '时间轴': '255,36,66', '爆款仿写': '58,90,140', '痛点填空': '122,91,59', '热点': '230,126,34' };
+  const c = m[layer] || '255,36,66';
+  return `background:rgba(${c},.1);color:rgb(${c});border:1px solid rgba(${c},.28)`;
+}
+function card(t, i) {
+  const rec = !!t.recommended;
+  return `<div class="card p-5 relative ${rec ? 'sm:col-span-2' : ''}" style="${rec ? 'border-color:rgba(210,59,39,.4)' : ''}">
+    ${rec ? '<span class="stamp absolute -top-2.5 left-5 text-[11px] px-2 py-1 leading-none">最推荐先做</span>' : ''}
+    <div class="flex items-start justify-between gap-2.5 ${rec ? 'mt-1.5' : ''}">
+      <div class="font-song font-bold text-[16px] leading-snug">${mark(t.topic || '')}</div>
+      ${t.layer ? `<span class="shrink-0 text-[10.5px] px-2 py-1 leading-none rounded-full whitespace-nowrap" style="${layerStyle(t.layer)}">${mark(t.layer)}</span>` : ''}
+    </div>
+    <div class="space-y-1.5 text-[13px] text-[var(--ink-soft)] leading-relaxed mt-2.5">
+      <div><span class="chip mr-1.5">受众·痛点</span>${mark(t.audience_pain || '')}</div>
+      <div><span class="chip mr-1.5">为何此时</span>${mark(t.why_now || '')}</div>
+      ${rec && t.reason ? `<div class="text-[var(--cinnabar-deep)] pt-1">★ 推荐理由：${mark(t.reason)}</div>` : ''}
+    </div>
+    <button class="useBtn btn-ghost rounded-lg px-3.5 py-2 text-[12px] mt-4" data-topic="${(t.topic || '').replace(/"/g, '&quot;')}">用它去创作 →</button>
+  </div>`;
+}
+
+function render(list) {
+  const box = $('#results');
+  if (!Array.isArray(list) || !list.length) { box.innerHTML = '<div class="card p-8 text-center text-[13px] text-[var(--ink-soft)] sm:col-span-2">没有解析到选题，换个说法再试。</div>'; return; }
+  list.sort((a, b) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
+  box.innerHTML = list.map(card).join('');
+  $$('.useBtn').forEach(b => b.addEventListener('click', () => {
+    if (EMBED) { try { parent.postMessage({ type: 'pickTopic', topic: b.dataset.topic }, '*'); } catch {} return; }
+    Draft.save({ topic: b.dataset.topic });
+    location.href = '/流水线.html';
+  }));
+}
+
+const SAMPLE = (getTrack() && getTrack().sampleTopics) || [];
+$('#sampleBtn').addEventListener('click', () => { render(SAMPLE); setStatus('已载入「' + (getTrack()?.name || '') + '」示例（未调用接口）'); });
+
+// 考研阶段（时间轴层）：按当前月份给出阶段 + 该阶段固定选题池
+function kaoyanStage() {
+  const m = new Date().getMonth() + 1;
+  if (m >= 3 && m <= 6) return { stage: '基础期', months: '3–6月', pool: '择校方法论、参考书红黑榜、全年时间轴、第一轮背诵计划、跨专业怎么补基础、手绘/理论入门避坑' };
+  if (m >= 7 && m <= 9) return { stage: '强化期', months: '7–9月', pool: '口诀大全、论述题万能句、知识点串联图、真题答题模板、错题本整理技巧、美术史高频考点' };
+  if (m >= 10 && m <= 12) return { stage: '冲刺期', months: '10–12月', pool: '高频考点预测、陌生题拆解三步法、模考避坑指南、考前心态调整、背诵自检表、最后押题' };
+  return { stage: '择校/收尾期', months: '1–2月', pool: '复试经验、调剂信息、出分后规划、下一届择校启动、寒假预热计划' };
+}
+// 页面加载即展示「当前阶段」徽章（考研类赛道）
+(function showStageBadge() {
+  const tk = getTrack();
+  const isKaoyan = /考研/.test(tk.domain || '') || tk.id === 'art-grad';
+  if (!isKaoyan) return;
+  const s = kaoyanStage();
+  $('#stageName').textContent = s.stage + '（' + s.months + '）';
+  $('#stageToday').textContent = new Date().toLocaleDateString('zh-CN');
+  $('#stagePool').textContent = s.pool;
+  $('#stageBadge').classList.remove('hidden');
+})();
+$('#genBtn').addEventListener('click', async () => {
+  const persona = $('#persona').value.trim(), direction = $('#direction').value.trim(), extra = $('#extra').value.trim();
+  if (!persona || !direction) { setStatus('请先填人设和方向', 'err'); return; }
+  const tk = getTrack();
+  const isKaoyan = /考研/.test(tk.domain || '') || tk.id === 'art-grad';
+  const today = new Date().toLocaleDateString('zh-CN');
+  // 三层漏斗法（仅考研类启用；其它赛道走通用逻辑）
+  let funnel = '';
+  if (isKaoyan) {
+    const s = kaoyanStage();
+    funnel = `\n采用「三层漏斗法」，3–5 个选题按比例分布，每条用 layer 字段标明来源层：
+① 时间轴驱动（占 ~40%，layer="时间轴"）：今天是 ${today}，正处【${s.stage}·${s.months}】，从该阶段选题池里出题——池子示例：${s.pool}。要「应季」。
+② 爆款仿写（占 ~35%，layer="爆款仿写"）：对标「去年此时（距今 11–13 个月）${tk.domain}爆过的笔记」做结构化仿写——沿用其标题公式/干货形式，但素材、口诀、案例 100% 换成本人的，标题改动＞30%。在 why_now 里点明对标的是哪类去年爆款。
+③ 痛点填空（占 ~25%，layer="痛点填空"）：把目标人群高频真实提问直接做成选题（评论区/私信/考研群常被问 3 次以上的问题）。audience_pain 写清是哪个高频问题。
+④ 若用户在【结合】里给了热点，额外按下方「热点三步法」产出 1–2 条，layer 标 "热点"。`;
+  }
+  // 热点选题三步法（用户在【结合】里给了热点事件时启用）
+  const hotspot = (isKaoyan && extra) ? `
+【若【结合】是一个热点事件 → 按「热点不硬蹭、落点必考点」三步法做（不是热点就当普通结合处理）】
+第一步·筛选：过滤娱乐八卦 / 社会负面；只用同时满足「与美术考研大纲考点直接相关」且「能衍生 ≥2 个考点」的热点。来源参考：微博热搜（画展/美术馆/拍卖/考古发现/艺术家）、小红书热榜（美术生/看展/艺术史）、抖音热榜（名画/画家故事/技法）、行业垂直号（雅昌艺术网/艺术中国）。
+第二步·关联考点（按真实事件套这套映射，不确定的史实标「需核实」）：
+ · 某画家逝世 → 代表作品 / 艺术风格 / 所属流派 / 影响
+ · 某画展开幕 → 对应艺术运动 / 参展艺术家 / 时代背景
+ · 某文物修复 → 文物保护原则 / 绘画材料学 / 传统技法
+ · 拍卖天价成交 → 艺术市场 / 收藏史 / 作品艺术价值
+第三步·选三种形式之一产出（在 why_now 注明用了哪种形式 A/B/C）：
+ A 热点速递（刚发生、时效强）：标题《XX 火了，美术考研人必须知道这 3 个考点》；正文＝热点 1 句 + 2~3 个考点清单 + 每点一句话。
+ B 深度专题（考点多可展开）：标题《XX，美术史必考的 5 个角度》；正文＝生平/背景简述 + 代表作解析 + 历年真题出现次数（需核实）+ 今年可能考的题型预测。
+ C 资料衍生（热点本身是资料）：标题《蹭个热点：XX 的作品我都帮你整理成考点了》；正文＝「作品名-作者-年代-考点方向」表格/思维导图。
+铁律：不编造画家/作品/事件/真题数据，不确定的史实一律标「需核实」。` : '';
+  const prompt = `基于人设【${persona}】和方向【${direction}】，产出 3–5 个${tk.domain}方向的小红书选题${extra ? `（结合：${extra}）` : ''}。
+要求：紧扣「${tk.audience}」当下最关心的话题与痛点；${tk.compliance}，涉及${tk.hardInfo}等硬信息不编造、不确定标「需核实」；3–5 个里恰好 1 个标 recommended=true（最推荐先做）。${funnel}${hotspot}
+只输出 JSON 对象，不要任何解释或代码块标记，结构严格如下：
+{"topics":[{"topic":"一句话选题（像标题）","layer":"${isKaoyan ? '时间轴/爆款仿写/痛点填空/热点 之一' : ''}","audience_pain":"受众+戳的痛点","why_now":"为什么这个时间点能火","recommended":false,"reason":"仅 recommended 为 true 时填，说明为什么先做这个"}]}`;
+  busy(true); setStatus('正在生成…');
+  try {
+    const txt = await callClaude({ prompt, model: $('#model').value, max_tokens: 1600, json: true, action: 'topic' });
+    const data = extractJSON(txt);
+    let list = Array.isArray(data) ? data : (data.topics || []);
+    // 兜底：考研赛道若模型漏了 layer，按 40/35/25 比例自动补来源层，保证 chip 必出
+    if (isKaoyan && list.length && list.some(t => !t.layer)) {
+      const n = list.length, a = Math.round(n * 0.4), b = Math.round(n * 0.35);
+      list.forEach((t, i) => { if (!t.layer) t.layer = i < a ? '时间轴' : i < a + b ? '爆款仿写' : '痛点填空'; });
+    }
+    render(list);
+    setStatus('✓ 已生成 · 挑 1 个点「用它去创作」带去流水线');
+  } catch (e) { setStatus('生成失败：' + (e.message || e), 'err'); }
+  finally { busy(false); }
+});
+
+// 🔥 拉热点：美术考研赛道 = 通用热点 + 艺术资讯；其它赛道 = 微博/知乎/B站/抖音热点
+const HOT_IS_ART = (() => { const tk = getTrack(); return /考研/.test(tk.domain || '') || tk.id === 'art-grad'; })();
+$('#hotBtn').textContent = HOT_IS_ART ? '🔥 拉今日艺术热点' : '🔥 拉今日热点';
+$('#hotBtn').addEventListener('click', async () => {
+  const btn = $('#hotBtn'), old = btn.textContent, box = $('#hotBox');
+  btn.disabled = true; btn.textContent = '拉取中…';
+  try {
+    const j = await (await fetch('/api/hot-art' + (HOT_IS_ART ? '?art=1' : ''))).json();
+    box.classList.remove('hidden');
+    if (!j.hots || !j.hots.length) {
+      box.innerHTML = `<div class="text-[11px] text-[var(--ink-soft)]">热榜源暂时取不到（共 ${j.total || 0} 条），可手动填热点或稍后再拉。</div>`;
+      return;
+    }
+    const tip = HOT_IS_ART ? `前 5 条为微博/知乎/B站/抖音热点，其余 ${j.artCount || 0} 条🎨艺术资讯。挑一条填入 ↓` : `今日微博/知乎/B站/抖音热点，挑一条填入 ↓`;
+    box.innerHTML = `<div class="text-[11px] text-[var(--ink-soft)]">${tip}</div>` + j.hots.map((h, i) => `
+      <div class="hot-item out p-2 text-[12px] leading-snug" data-i="${i}" style="cursor:pointer;${h.art ? 'border-color:rgba(230,126,34,.4)' : ''}">
+        ${h.art ? '<span class="chip mr-1.5" style="font-size:10px;background:rgba(230,126,34,.12);color:#e07e22;border-color:rgba(230,126,34,.3)">🎨 艺术</span>' : `<span class="chip mr-1.5" style="font-size:10px">${h.source}</span>`}${mark(h.word)}${h.hot ? ` <span class="text-[var(--ink-soft)]">· 🔥${h.hot}</span>` : ''}
+      </div>`).join('');
+    box.querySelectorAll('.hot-item').forEach(el => el.addEventListener('click', () => {
+      $('#extra').value = j.hots[+el.dataset.i].word; box.classList.add('hidden');
+      setStatus('✓ 已填入热点，点「生成选题」会走「热点三步法」（映射考点 + A/B/C 形式）');
+    }));
+  } catch (e) { box.classList.remove('hidden'); box.innerHTML = `<div class="text-[11px] text-[var(--cinnabar-deep)]">拉取失败：${e.message || e}</div>`; }
+  finally { btn.disabled = false; btn.textContent = old; }
+});
+
+// 智能体按当前阶段建议「人设 + 方向」（系统 prompt 默认带上智能体人设/KB）
+$('#suggestBtn').addEventListener('click', async () => {
+  const tk = getTrack();
+  const isKaoyan = /考研/.test(tk.domain || '') || tk.id === 'art-grad';
+  let stageInfo = '';
+  if (isKaoyan) { const s = kaoyanStage(); stageInfo = `今天 ${new Date().toLocaleDateString('zh-CN')}，正处【${s.stage}·${s.months}】，该阶段适合：${s.pool}`; }
+  const btn = $('#suggestBtn'), old = btn.textContent; btn.disabled = true; btn.textContent = '思考中…';
+  try {
+    const prompt = `结合这个「${tk.domain}」智能体已设定的人设与知识库（见系统设定）+ 当前阶段，给我 3 组「人设 + 方向」建议，让我直接拿去生成选题。
+${stageInfo ? '【当前阶段】' + stageInfo : ''}
+- 人设＝用谁的口吻发（简短标签，如"考研上岸学姐"/"画室手绘老师"），要贴合该智能体已有人设；
+- 方向＝具体细分方向 + 当下最该切的角度（如"视觉传达考研·基础期择校避坑"），要应季、贴合「${tk.audience}」。
+只输出 JSON：{"suggestions":[{"persona":"","direction":"","why":"一句话：为什么现在适合发这个方向"}]}`;
+    const data = extractJSON(await callClaude({ prompt, model: $('#model').value, max_tokens: 900, json: true }));
+    const arr = (data.suggestions || data.topics || []).slice(0, 3);
+    const box = $('#suggestBox');
+    if (!arr.length) { box.classList.add('hidden'); setStatus('没生成建议，再试一次', 'err'); return; }
+    box.innerHTML = '<div class="flex items-center justify-between"><span class="text-[11px] text-[var(--ink-soft)]">点一条直接填入 ↓</span><button id="suggestAgain" class="btn-ghost rounded-lg px-2.5 py-1 text-[11px]">🔄 换一换</button></div>' + arr.map((s, i) => `
+      <div class="out p-3 sug-item" data-i="${i}" style="cursor:pointer">
+        <div class="text-[13px] leading-snug"><b>${mark(s.persona || '')}</b> <span class="text-[var(--ink-soft)]">·</span> ${mark(s.direction || '')}</div>
+        ${s.why ? `<div class="text-[11px] text-[var(--ink-soft)] mt-1">${mark(s.why)}</div>` : ''}
+      </div>`).join('');
+    const again = $('#suggestAgain'); if (again) again.addEventListener('click', () => $('#suggestBtn').click());
+    box.classList.remove('hidden');
+    box.querySelectorAll('.sug-item').forEach(el => el.addEventListener('click', () => {
+      const s = arr[+el.dataset.i];
+      $('#persona').value = s.persona || ''; $('#direction').value = s.direction || '';
+      localStorage.setItem('ag_persona', s.persona || ''); localStorage.setItem('ag_direction', s.direction || '');
+      box.classList.add('hidden'); setStatus('✓ 已填入人设/方向，可直接点「生成选题」');
+    }));
+  } catch (e) { setStatus('建议失败：' + (e.message || e), 'err'); }
+  finally { btn.disabled = false; btn.textContent = old; }
+});
+</script>
+</body>
+</html>

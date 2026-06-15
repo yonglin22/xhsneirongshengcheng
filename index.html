@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>赛道智能体 · 操盘台</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+<style>
+  .hm-hero{ display:flex; gap:24px; align-items:center; padding:30px 34px; background:linear-gradient(120deg,var(--paper),var(--tint)); }
+  .hm-hero-l{ flex:1; min-width:0; }
+  .hm-kick{ color:var(--cinnabar); font-size:12px; letter-spacing:.26em; font-weight:600; }
+  .hm-h1{ font-size:clamp(30px,4.2vw,50px); font-weight:300; line-height:1.02; letter-spacing:-.02em; margin:10px 0 12px; }
+  .hm-sub{ color:var(--ink-soft); font-size:14px; max-width:560px; line-height:1.7; }
+  .hm-acts{ display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; }
+  .hm-acts .btn-go{ padding:13px 28px; font-size:15px; font-weight:600; }
+  .hm-acts .btn-ghost{ padding:13px 20px; font-size:13.5px; }
+  .hm-flow{ flex:0 0 auto; width:210px; display:flex; flex-direction:column; gap:7px; }
+  .hm-flow .fs{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft); background:var(--paper-2); border-radius:10px; padding:7px 11px; }
+  .hm-flow .fs b{ color:var(--cinnabar-deep); }
+  /* Hero 轮播 */
+  .hm-carousel{ position:relative; overflow:hidden; padding:0; }
+  .hm-track{ display:flex; transition:transform .5s cubic-bezier(.22,.7,.2,1); }
+  .hm-slide{ flex:0 0 100%; min-width:0; cursor:pointer; }
+  .hm-slide .hm-hero{ height:100%; }
+  .hm-hero-invite{ background:linear-gradient(120deg,var(--paper),var(--gold-bg)) !important; }
+  .hm-hero-pay{ background:linear-gradient(120deg,var(--paper),#eaf1fb) !important; }
+  html[data-theme="dark"] .hm-hero-pay{ background:linear-gradient(120deg,var(--paper-2),#1b2230) !important; }
+  .hm-dots{ position:absolute; bottom:12px; left:0; right:0; display:flex; gap:6px; justify-content:center; z-index:3; }
+  .hm-dots i{ width:8px; height:8px; border-radius:999px; background:rgba(120,120,120,.28); cursor:pointer; transition:.22s; }
+  .hm-dots i.on{ background:var(--cinnabar); width:20px; }
+  .hm-arrow{ position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:32px; height:32px; border-radius:999px; border:none; background:rgba(255,255,255,.8); color:#333; box-shadow:0 3px 12px -3px rgba(0,0,0,.18); cursor:pointer; font-size:17px; line-height:1; opacity:0; transition:.2s; }
+  .hm-carousel:hover .hm-arrow{ opacity:1; }
+  .hm-arrow.prev{ left:12px } .hm-arrow.next{ right:12px }
+  html[data-theme="dark"] .hm-arrow{ background:rgba(40,40,42,.82); color:#ddd; }
+  @media(max-width:900px){ .hm-arrow{ display:none } }
+  .hm-steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:18px; }
+  .hm-sechead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .hm-sectitle{ font-size:18px; font-weight:700; }
+  .hm-more{ font-size:12.5px; color:var(--cinnabar); white-space:nowrap; }
+  .hm-search{ background:var(--paper-2); border:1px solid transparent; border-radius:999px; padding:8px 15px; font-size:13px; color:var(--ink); width:200px; }
+  .hm-search:focus{ outline:none; background:var(--paper); border-color:var(--cinnabar); }
+  .hm-works{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .hm-work{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r-lg); overflow:hidden; transition:.18s; position:relative; cursor:pointer; }
+  .hm-work:hover{ box-shadow:var(--shadow-pop); transform:translateY(-2px); }
+  .hm-work .thumb{ aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; font-size:42px; background:linear-gradient(150deg,var(--tint-deep),var(--tint-2)); position:relative; }
+  .hm-badge{ position:absolute; left:9px; top:9px; font-size:11px; font-weight:600; color:#fff; padding:3px 9px; border-radius:999px; }
+  .hm-work .meta{ padding:10px 12px 12px; }
+  .hm-work .ttl{ font-size:13px; font-weight:600; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .hm-work .dt{ font-size:11px; color:var(--ink-soft); margin-top:5px; }
+  .hm-wacts{ position:absolute; right:9px; top:9px; display:flex; gap:5px; opacity:0; transition:.15s; }
+  .hm-work:hover .hm-wacts{ opacity:1; }
+  .hm-wacts button{ width:27px; height:27px; border-radius:8px; border:none; background:rgba(255,255,255,.94); box-shadow:0 2px 8px rgba(0,0,0,.22); cursor:pointer; font-size:12.5px; display:grid; place-items:center; }
+  .hm-wacts button:hover{ background:#fff; }
+  .hm-empty{ grid-column:1/-1; text-align:center; padding:42px 20px; color:var(--ink-soft); font-size:13.5px; border:1px dashed var(--line); border-radius:var(--r-lg); }
+  .hm-agents{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .hm-agent{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r-lg); padding:16px; cursor:pointer; transition:.18s; position:relative; }
+  .hm-agent:hover{ box-shadow:var(--shadow-card); transform:translateY(-2px); border-color:rgba(255,36,66,.25); }
+  .hm-agent.on{ border-color:var(--cinnabar); box-shadow:0 0 0 1px var(--cinnabar) inset; }
+  .hm-agent .em{ font-size:28px; }
+  .hm-agent .nm{ font-size:15px; font-weight:700; margin-top:6px; }
+  .hm-agent .dm{ font-size:12px; color:var(--ink-soft); margin-top:3px; line-height:1.5; min-height:36px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .hm-agent .go{ font-size:12px; color:var(--cinnabar); margin-top:8px; font-weight:600; }
+  .hm-agent .delx{ position:absolute; right:10px; top:10px; font-size:13px; color:var(--ink-soft); opacity:0; transition:.15s; }
+  .hm-agent:hover .delx{ opacity:.7; }
+  .hm-agent .delx:hover{ opacity:1; color:var(--cinnabar); }
+  .hm-agent.add{ display:flex; flex-direction:column; align-items:center; justify-content:center; border-style:dashed; color:var(--cinnabar-deep); min-height:128px; font-weight:600; }
+  .hm-tpl{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  /* 购买交互：toast + 弹窗 */
+  .ag-toast{ position:fixed; top:18px; left:50%; transform:translateX(-50%) translateY(-16px); z-index:300; background:#16181d; color:#fff; padding:11px 18px; border-radius:12px; font-size:13.5px; font-weight:600; box-shadow:0 14px 34px -8px rgba(0,0,0,.45); opacity:0; transition:.28s cubic-bezier(.22,.7,.2,1); pointer-events:none; max-width:88vw; }
+  .ag-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .ag-toast.ok{ background:linear-gradient(135deg,#16a34a,#22c55e); }
+  .ag-toast.err{ background:linear-gradient(135deg,#dc2626,#ef4444); }
+  .bm-mask{ position:fixed; inset:0; z-index:280; background:rgba(17,19,24,.48); backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; transition:.2s; }
+  .bm-mask.show{ opacity:1; }
+  .bm-card{ background:var(--paper); border:1px solid var(--line); border-radius:18px; width:min(380px,92vw); padding:22px 22px 20px; box-shadow:0 30px 70px -20px rgba(0,0,0,.5); transform:scale(.96); transition:.2s cubic-bezier(.22,.7,.2,1); }
+  .bm-mask.show .bm-card{ transform:scale(1); }
+  .tpl .tpl-buy{ transition:transform .14s, filter .15s; }
+  .tpl .tpl-buy:active{ transform:scale(.96); }
+  @media(max-width:1100px){ .hm-works,.hm-agents{ grid-template-columns:repeat(3,1fr);} }
+  @media(max-width:900px){ .hm-steps{ grid-template-columns:repeat(2,1fr);} .hm-flow{ display:none;} }
+  @media(max-width:760px){ .hm-works,.hm-agents{ grid-template-columns:repeat(2,1fr);} .hm-tpl{ grid-template-columns:1fr;} .hm-search{ width:140px;} }
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="home">
+
+<!-- 导航已由全局外壳（左边栏 + 顶栏，app.js buildShell 注入）统一承载，旧 header 已移除 -->
+<main class="ag-page">
+
+  <!-- 隐藏：旧赛道选择区（逻辑保留，给 applyTrack 用；chips 已移到顶栏）-->
+  <div id="trackSection" style="display:none"><div id="trackChips"></div></div>
+
+  <!-- Hero 轮播：创作引导 / 邀请有礼 / 充值有礼 -->
+  <div class="hm-carousel card" id="heroCarousel">
+    <div class="hm-track" id="heroTrack">
+
+      <!-- Slide 1 · 创作引导 -->
+      <div class="hm-slide" data-href="/流水线.html?new=1"><div class="hm-hero">
+        <div class="hm-hero-l">
+          <div class="hm-kick">第一步 → 第八步 · 一条流水线</div>
+          <h1 class="hm-h1"><span style="color:var(--cinnabar)">3 分钟</span>出一篇<span style="color:var(--cinnabar)">不限流·高质量</span>的小红书笔记</h1>
+          <p id="heroTagline" class="hm-sub">把 0-1 发笔记经验做成可运行的智能体：选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签 → 合规自检。</p>
+          <div class="hm-acts">
+            <a href="/流水线.html?new=1" class="btn-go">✍️ 开始创作 →</a>
+            <button id="replayGuide" class="btn-ghost">🔰 新手引导</button>
+          </div>
+        </div>
+        <div class="hm-flow">
+          <div class="fs"><b>1</b> 选题 · 找当下该发的</div>
+          <div class="fs"><b>2-3</b> 对标拆解 · 出框架</div>
+          <div class="fs"><b>4-5</b> 正文 · 标题 · 标签</div>
+          <div class="fs"><b>6-7</b> 封面 · 配图</div>
+          <div class="fs"><b>8</b> 合规自检 · 导出</div>
+        </div>
+      </div></div>
+
+      <!-- Slide 2 · 邀请有礼 -->
+      <div class="hm-slide" data-href="/邀请有礼.html"><div class="hm-hero hm-hero-invite">
+        <div class="hm-hero-l">
+          <div class="hm-kick" style="color:var(--gold)">🎁 邀请有礼</div>
+          <h1 class="hm-h1">邀请好友，<span style="color:var(--cinnabar)">好友得 200 · 你得 100</span></h1>
+          <p class="hm-sub">好友通过你的链接注册：好友得 200 积分、你得 100 积分；好友首充你再返 10%。单级 · 仅积分 · 不可提现 · 每日封顶防刷。</p>
+          <div class="hm-acts">
+            <a href="/邀请有礼.html" class="btn-go">🎁 邀请有礼 →</a>
+            <a href="/分享海报.html" class="btn-ghost">生成分享海报</a>
+          </div>
+        </div>
+        <div class="hm-flow">
+          <div class="fs"><b>+200</b> 好友注册 · TA 得</div>
+          <div class="fs"><b>+100</b> 好友注册 · 你得</div>
+          <div class="fs"><b>10%</b> 好友首充 · 返积分</div>
+          <div class="fs"><b>朋友圈</b> 一键生成海报</div>
+        </div>
+      </div></div>
+
+      <!-- Slide 3 · 充值有礼 -->
+      <div class="hm-slide" data-href="/充值.html"><div class="hm-hero hm-hero-pay">
+        <div class="hm-hero-l">
+          <div class="hm-kick" style="color:var(--cinnabar)">💎 充值有礼</div>
+          <h1 class="hm-h1">充值积分，<span style="color:var(--cinnabar)">越充越划算</span></h1>
+          <p class="hm-sub">1 积分 = ¥0.01，后扣费、失败不收费。基础包最划算、体验包新人首选；合伙人充值额外赠分 30%。</p>
+          <div class="hm-acts">
+            <a href="/充值.html" class="btn-go">＋ 去充值 →</a>
+            <a href="/账户.html" class="btn-ghost">查看我的积分</a>
+          </div>
+        </div>
+        <div class="hm-flow">
+          <div class="fs"><b>🔥</b> 基础包 · 最划算</div>
+          <div class="fs"><b>👍</b> 体验包 · 新人首选</div>
+          <div class="fs"><b>💎</b> 充值赠分 · 等级越高越多</div>
+          <div class="fs"><b>合伙人</b> 充值赠分 30%</div>
+        </div>
+      </div></div>
+
+    </div>
+    <button class="hm-arrow prev" id="heroPrev" aria-label="上一张">‹</button>
+    <button class="hm-arrow next" id="heroNext" aria-label="下一张">›</button>
+    <div class="hm-dots" id="heroDots"></div>
+  </div>
+
+  <!-- 核心能力（选题已并入创作流水线）-->
+  <div class="hm-steps">
+    <a href="/流水线.html?new=1" class="card p-5 block group" style="transition:.18s">
+      <div class="flex items-center justify-between mb-2"><span class="stamp text-[11px] px-2 py-1 leading-none">第1–7步</span><span class="text-[var(--ink-soft)] group-hover:translate-x-1 transition">→</span></div>
+      <div class="font-song font-bold text-[16px] mb-1">创作流水线（含选题）</div>
+      <p class="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签，一条龙。</p>
+    </a>
+    <a href="/合规自检.html" class="card p-5 block group" style="transition:.18s">
+      <div class="flex items-center justify-between mb-2"><span class="stamp text-[11px] px-2 py-1 leading-none">第8步</span><span class="text-[var(--ink-soft)] group-hover:translate-x-1 transition">→</span></div>
+      <div class="font-song font-bold text-[16px] mb-1">合规自检</div>
+      <p class="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">违禁/导流/绝对化逐项查，给改后版。</p>
+    </a>
+    <a href="/成稿预览.html" class="card p-5 block group" style="transition:.18s">
+      <div class="flex items-center justify-between mb-2"><span class="stamp text-[11px] px-2 py-1 leading-none">预览</span><span class="text-[var(--ink-soft)] group-hover:translate-x-1 transition">→</span></div>
+      <div class="font-song font-bold text-[16px] mb-1">成稿预览</div>
+      <p class="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">真实小红书排版，一键导出图文包。</p>
+    </a>
+  </div>
+
+  <!-- 我的作品 -->
+  <section style="margin-top:32px">
+    <div class="hm-sechead">
+      <h2 class="hm-sectitle">📒 我的作品</h2>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input id="worksSearch" class="hm-search" placeholder="🔍 搜索作品名称" />
+        <a href="/流水线.html" class="hm-more">历史记录 →</a>
+      </div>
+    </div>
+    <div id="worksGrid" class="hm-works"></div>
+  </section>
+
+  <!-- 当前赛道模板 -->
+  <section style="margin-top:32px">
+    <div class="hm-sechead"><h2 id="tplTitle" class="hm-sectitle">模板</h2><span class="hm-more" style="cursor:default;color:var(--ink-soft)">点模板带着方向去创作 →</span></div>
+    <div id="tplGrid" class="hm-tpl"></div>
+  </section>
+
+  <footer class="mt-14 pt-6 border-t hairline flex flex-wrap items-center justify-between gap-3 text-[11px] text-[var(--ink-soft)]">
+    <span>朱砂 · 赛道智能体操盘台 · 本地代理（key 不进浏览器）</span>
+    <span class="font-song">⛔ 知识库 KB1–KB5 喂满后产出才像本人</span>
+  </footer>
+</main>
+
+<!-- 新手首次登录操作引导 -->
+<div id="onb" style="display:none;position:fixed;inset:0;z-index:140">
+  <!-- 聚光高亮框：超大 box-shadow 把四周压暗，只亮出目标元素 -->
+  <div id="onbRing" style="position:fixed;border:2px solid var(--cinnabar);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.55);transition:top .3s cubic-bezier(.22,.7,.2,1),left .3s cubic-bezier(.22,.7,.2,1),width .3s,height .3s;pointer-events:none;display:none"></div>
+  <div id="onbCard" class="card" style="position:fixed;width:min(360px,92vw);padding:0;overflow:hidden;z-index:141;box-shadow:0 24px 60px -18px rgba(0,0,0,.5);transition:top .28s cubic-bezier(.22,.7,.2,1),left .28s cubic-bezier(.22,.7,.2,1)">
+    <div style="height:4px;background:var(--paper-2)"><div id="onbBar" style="height:100%;background:var(--cinnabar);width:20%;transition:.25s"></div></div>
+    <div style="padding:18px 20px 15px">
+      <div style="display:flex;align-items:center;gap:9px"><span id="onbEmoji" style="font-size:24px;line-height:1">👋</span><span id="onbTitle" class="font-song font-bold text-[16px]">欢迎</span></div>
+      <div id="onbBody" class="text-[13px] text-[var(--ink-soft)] leading-relaxed mt-2.5" style="min-height:52px"></div>
+      <div class="flex items-center justify-between mt-4">
+        <button id="onbSkip" class="text-[12px] text-[var(--ink-soft)]" style="background:none;border:none;cursor:pointer">跳过</button>
+        <div class="flex items-center gap-2">
+          <span id="onbStep" class="text-[11px] text-[var(--ink-soft)]"></span>
+          <button id="onbPrev" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">上一步</button>
+          <button id="onbNext" class="btn-go rounded-lg px-3.5 py-1.5 text-[12px] font-medium">下一步</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  // 每步都锚定到页面真实元素（sel），聚光高亮 + 卡片就近显示
+  const STEPS = [
+    { e: '👋', t: '这里是你的操盘台', b: '欢迎来到朱砂 · 操盘台首页（工作台）。跟着 5 步走，约 3 分钟出一篇不限流·高质量的小红书笔记。', sel: '.ag-brand' },
+    { e: '🧩', t: '1 · 选 / 建你的赛道智能体', b: '顶栏这里切换赛道（美术考研 / 职场求职 / 母婴…），或点「＋ 新增赛道」建专属智能体。每个赛道自带人设、合规红线、模板，多篇不串味。', sel: '#agTracks' },
+    { e: '⚙️', t: '2 · 设置智能体（更像你）', b: '点「⚙ 智能体设置」：设定语气/配图风格、喂知识库 KB、上传你自己的笔记让 AI 学你的口吻。', sel: '#agTracks' },
+    { e: '✍️', t: '3 · 开始创作（含选题）', b: '从这里进创作流水线：生成选题 → 对标拆解 → 框架 → 正文·标题·标签 → 封面·配图，每步可改，也能「一键按对标生成全套」。', sel: '.ag-create' },
+    { e: '🛡️', t: '4 · 合规自检 → 成稿导出', b: '这三张卡：创作流水线 / 合规自检 / 成稿预览。发布前过合规（违禁/导流/绝对化逐项查），再一键导出 1080P 图文包。', sel: '.hm-steps' },
+    { e: '💬', t: '随时问「小红书助手」', b: '右下角小助手：操作文档 / 常见问题 / 平台规则随便查，还能「🔄 实时检索」拿一手内容。准备好了，开始第一篇吧！', sel: '#xhsFab' },
+  ];
+  let i = 0;
+  const $ = s => document.getElementById(s);
+  function place() {
+    const s = STEPS[i], card = $('onbCard'), ring = $('onbRing'), onb = $('onb');
+    const target = s.sel ? document.querySelector(s.sel) : null;
+    if (target) {
+      try { target.scrollIntoView({ block: 'center', behavior: 'auto' }); } catch {}
+      const r = target.getBoundingClientRect();
+      ring.style.display = 'block';
+      ring.style.top = (r.top - 6) + 'px'; ring.style.left = (r.left - 6) + 'px';
+      ring.style.width = (r.width + 12) + 'px'; ring.style.height = (r.height + 12) + 'px';
+      onb.style.background = 'transparent';
+      const cw = card.offsetWidth, ch = card.offsetHeight, vw = innerWidth, vh = innerHeight, gap = 16;
+      let left = Math.min(Math.max(12, r.left), vw - cw - 12);
+      let top;
+      if (r.bottom + gap + ch <= vh - 8) top = r.bottom + gap;          // 目标下方
+      else if (r.top - gap - ch >= 8) top = r.top - gap - ch;            // 目标上方
+      else { top = Math.min(Math.max(12, (vh - ch) / 2), vh - ch - 12); left = Math.min(r.right + gap, vw - cw - 12); if (left < r.left) left = Math.max(12, r.left - cw - gap); } // 侧边
+      card.style.top = top + 'px'; card.style.left = left + 'px';
+    } else {
+      ring.style.display = 'none'; onb.style.background = 'rgba(0,0,0,.55)';
+      card.style.top = Math.max(12, (innerHeight - card.offsetHeight) / 2) + 'px';
+      card.style.left = Math.max(12, (innerWidth - card.offsetWidth) / 2) + 'px';
+    }
+  }
+  function render() {
+    const s = STEPS[i];
+    $('onbEmoji').textContent = s.e; $('onbTitle').textContent = s.t; $('onbBody').textContent = s.b;
+    $('onbBar').style.width = ((i + 1) / STEPS.length * 100) + '%';
+    $('onbStep').textContent = (i + 1) + '/' + STEPS.length;
+    $('onbPrev').style.visibility = i === 0 ? 'hidden' : 'visible';
+    $('onbNext').textContent = i === STEPS.length - 1 ? '开始创作 →' : '下一步';
+    place();
+  }
+  let _onbResize = null;
+  function open() { i = 0; $('onb').style.display = 'block'; render(); _onbResize = () => place(); window.addEventListener('resize', _onbResize); }
+  function close() { $('onb').style.display = 'none'; if (_onbResize) window.removeEventListener('resize', _onbResize); try { localStorage.setItem('ag_onboarded', '1'); } catch {} }
+  $('onbNext').addEventListener('click', () => { if (i < STEPS.length - 1) { i++; render(); } else { close(); location.href = '/流水线.html?new=1'; } });
+  $('onbPrev').addEventListener('click', () => { if (i > 0) { i--; render(); } });
+  $('onbSkip').addEventListener('click', close);
+  const rg = $('replayGuide'); if (rg) rg.addEventListener('click', open);
+  // Hero 轮播：自动播放 + 圆点 + 左右箭头 + 悬停暂停
+  (function () {
+    const track = document.getElementById('heroTrack'); if (!track) return;
+    const n = track.children.length; let idx = 0, timer = null;
+    const dots = document.getElementById('heroDots');
+    for (let i = 0; i < n; i++) { const d = document.createElement('i'); d.addEventListener('click', () => go(i)); dots.appendChild(d); }
+    function paint() { track.style.transform = 'translateX(-' + (idx * 100) + '%)'; [...dots.children].forEach((d, i) => d.classList.toggle('on', i === idx)); }
+    function go(i) { idx = (i + n) % n; paint(); arm(); }
+    function arm() { clearInterval(timer); timer = setInterval(() => go(idx + 1), 5500); }
+    document.getElementById('heroNext').addEventListener('click', (e) => { e.stopPropagation(); go(idx + 1); });
+    document.getElementById('heroPrev').addEventListener('click', (e) => { e.stopPropagation(); go(idx - 1); });
+    // 整卡可点 → 跳到该轮播的目标页（点内部按钮/链接除外）
+    [...track.children].forEach(sl => sl.addEventListener('click', e => { if (e.target.closest('a,button')) return; const h = sl.dataset.href; if (h) location.href = h; }));
+    const car = document.getElementById('heroCarousel');
+    car.addEventListener('mouseenter', () => clearInterval(timer));
+    car.addEventListener('mouseleave', arm);
+    paint(); arm();
+  })();
+  // 首次访问自动弹（用 localStorage 标记；登录态无关，纯本机首访引导）
+  let seen = false; try { seen = localStorage.getItem('ag_onboarded') === '1'; } catch {}
+  if (!seen) setTimeout(open, 500);
+})();
+</script>
+
+<!-- 新增赛道智能体 弹窗 -->
+<div class="modal-overlay" id="trackModal">
+  <div class="modal card p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-song font-bold text-[18px]">创建我的智能体（赛道）</h3>
+      <button id="closeModal" class="text-[var(--ink-soft)] text-[20px] leading-none">✕</button>
+    </div>
+    <div class="rounded-lg p-3 mb-4" style="background:linear-gradient(135deg,rgba(255,66,89,.08),rgba(255,36,66,.03));border:1px solid rgba(255,36,66,.18)">
+      <div class="text-[12.5px] font-medium mb-1" style="color:var(--cinnabar-deep)">💡 「赛道」就是你的专属内容智能体</div>
+      <div class="text-[11.5px] text-[var(--ink-soft)] leading-relaxed">一个赛道 = 一个垂直方向的 AI 操盘手（如母婴 / 考公 / 家居）。它会按你设的<b>人设、合规红线、爆文风格</b>来产出整条笔记（选题→正文→封面→标签→合规自检），<b>多篇风格统一、不串味</b>。填下面几项即可生成，全站立即可用；之后还能在「智能体」页继续喂人设与知识库。</div>
+    </div>
+    <div class="space-y-3">
+      <div class="flex gap-3">
+        <div class="w-16"><label class="block text-[12px] text-[var(--ink-soft)] mb-1">图标</label>
+          <input id="mEmoji" class="field w-full rounded-lg px-2 py-2 text-[18px] text-center" value="🧩" maxlength="2" /></div>
+        <div class="flex-1"><label class="block text-[12px] text-[var(--ink-soft)] mb-1">赛道名称（必填）</label>
+          <input id="mName" class="field w-full rounded-lg px-3 py-2 text-[14px]" placeholder="例：母婴 / 考公 / 家居 / 数码" /></div>
+      </div>
+      <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">领域（可选，默认同名称）</label>
+        <input id="mDomain" class="field w-full rounded-lg px-3 py-2 text-[13.5px]" placeholder="例：母婴育儿" /></div>
+      <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">目标受众</label>
+        <input id="mAudience" class="field w-full rounded-lg px-3 py-2 text-[13.5px]" placeholder="例：0-3 岁宝宝的新手妈妈" /></div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-[12px] text-[var(--ink-soft)]">基础人设（可留空自动生成）</label>
+          <button id="aiPersona" class="btn-ghost rounded-md px-2.5 py-1 text-[11px]">✨ AI 帮我写</button>
+        </div>
+        <textarea id="mPersona" rows="5" class="field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" placeholder="留空则按名称/领域自动生成一套合规人设；也可点「AI 帮我写」"></textarea>
+      </div>
+      <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">大流量标签（逗号分隔，可选）</label>
+        <input id="mTags" class="field w-full rounded-lg px-3 py-2 text-[13.5px]" placeholder="#母婴 #育儿 #新手妈妈" /></div>
+    </div>
+    <div class="flex items-center gap-2.5 mt-5">
+      <button id="createTrack" class="btn-go rounded-xl px-6 py-2.5 text-[14px] font-medium">创建并切换</button>
+      <span id="modalStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=30"></script>
+<script>
+function activeId(){ return localStorage.getItem('ag_track') || TRACK_ORDER[0]; }
+
+function renderChips(){
+  const cur = activeId();
+  $('#trackChips').innerHTML = TRACK_ORDER.map(id => { const t = TRACKS[id]; if (!t) return '';
+    const del = isCustomTrack(id) ? `<span class="x" data-del="${id}" title="删除赛道">✕</span>` : '';
+    return `<button class="tk-chip ${id===cur?'on':''}" data-id="${id}">${t.emoji} ${t.name}${del}</button>`; }).join('')
+    + `<button class="tk-chip add" id="addTrackChip">＋ 新增赛道</button>`;
+  $$('#trackChips .tk-chip[data-id]').forEach(b => b.addEventListener('click', e => {
+    if (e.target.dataset.del) { e.stopPropagation(); delTrack(e.target.dataset.del); return; }
+    setTrack(b.dataset.id); applyTrack();
+  }));
+  $('#addTrackChip').addEventListener('click', openModal);
+  const ctn = document.getElementById('curTrackName'); if (ctn && TRACKS[cur]) ctn.textContent = TRACKS[cur].name;
+}
+function delTrack(id){
+  if (!confirm('删除赛道「' + (TRACKS[id] ? TRACKS[id].name : id) + '」？该智能体的配置也会一并移除。')) return;
+  const wasCur = activeId() === id;
+  removeCustomTrack(id);
+  try { localStorage.removeItem('ag_cfg_' + id); } catch {}
+  if (wasCur) localStorage.removeItem('ag_track');
+  applyTrack();
+}
+
+function applyTrack(){
+  const t = TRACKS[activeId()];
+  $('#heroTagline').textContent = `${t.tagline || t.domain || t.name || '内容创作'}：选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签 → 合规自检。两个人审节点兜底质量与合规。`;
+  window.__curTrackName = t.name;
+  renderTemplates(t.name);
+  const hc = document.querySelector('#trackChip'); if (hc) hc.textContent = t.emoji + ' ' + t.name;
+  // 同步顶栏「我的智能体·赛道名」标签（app.js 建的 nav）
+  const ctn = document.getElementById('curTrackName'); if (ctn) ctn.textContent = t.name;
+  renderChips();
+  if (typeof window.buildMyAgentNav === 'function') window.buildMyAgentNav(); // 同步顶栏赛道 chips 高亮
+  if (typeof renderAgents === 'function') renderAgents();
+}
+
+// ===== 新增赛道智能体 弹窗 =====
+const modal = $('#trackModal');
+function openModal(){ modal.classList.add('open'); $('#modalStatus').textContent = ''; $('#mName').focus(); }
+function closeModal(){ modal.classList.remove('open'); }
+$('#closeModal').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+$('#aiPersona').addEventListener('click', async () => {
+  const name = $('#mName').value.trim();
+  if (!name) { $('#modalStatus').textContent = '先填赛道名称'; $('#modalStatus').style.color = 'var(--cinnabar-deep)'; return; }
+  const domain = $('#mDomain').value.trim() || name, aud = $('#mAudience').value.trim();
+  const b = $('#aiPersona'); b.disabled = true; b.textContent = '生成中…'; $('#modalStatus').textContent = ''; $('#modalStatus').style.color = 'var(--ink-soft)';
+  try {
+    const txt = await callClaude({
+      system: '你是小红书内容策略专家，只输出合法 JSON。', json: true, max_tokens: 900,
+      prompt: `为「${domain}」赛道（受众：${aud || '相关人群'}）设计小红书内容智能体配置。只输出 JSON：{"persona":"第一人称资深操盘手的系统人设，含写作风格与铁律(原创不洗稿/不绝对化/不做效果或结果保证/不站外导流/不确定标需核实)，150字内","compliance":"该赛道最该守的合规红线一句话","hardInfo":"该赛道不能编造、需标需核实的硬信息类别","bigTags":["#标签1","#标签2","#标签3"]}`
+    });
+    const j = extractJSON(txt);
+    if (j.persona) $('#mPersona').value = j.persona;
+    if (j.bigTags) $('#mTags').value = j.bigTags.join(' ');
+    $('#mPersona').dataset.compliance = j.compliance || '';
+    $('#mPersona').dataset.hardinfo = j.hardInfo || '';
+    $('#modalStatus').textContent = '✓ 已生成，可再手动微调';
+  } catch (e) { $('#modalStatus').textContent = '生成失败：' + (e.message || e); $('#modalStatus').style.color = 'var(--cinnabar-deep)'; }
+  finally { b.disabled = false; b.textContent = '✨ AI 帮我写'; }
+});
+
+$('#createTrack').addEventListener('click', async () => {
+  const name = $('#mName').value.trim();
+  if (!name) { $('#modalStatus').textContent = '请填赛道名称'; $('#modalStatus').style.color = 'var(--cinnabar-deep)'; return; }
+  const ms = $('#modalStatus'); const roleCn = r => r === 'admin' ? '管理员' : (r === 'partner' ? '合伙人' : '普通用户');
+  // 配额检查：limit 来自服务端(按角色 base + 审批 extra)；used = 本机实际自定义赛道数（含历史已建）
+  let q = null; try { q = await (await fetch('/api/agent/quota')).json(); } catch {}
+  const limit = (q && q.ok) ? q.limit : 1;
+  const role = (q && q.ok) ? q.role : 'user';
+  const used = (window.TRACK_ORDER || []).filter(id => typeof isCustomTrack === 'function' && isCustomTrack(id)).length;
+  if (role !== 'admin' && used >= limit) {
+    const reason = prompt(`你的角色「${roleCn(role)}」最多可建 ${limit} 个自定义智能体（已用 ${used}）。再新增需后台审批，请填写申请理由：`, '');
+    if (reason === null) return;
+    let r = {}; try { r = await (await fetch('/api/agent/apply', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, reason }) })).json(); } catch {}
+    ms.textContent = r.ok ? '✓ 已提交申请，等待后台审批通过后即可新增' : ('申请失败：' + (r.error || '请先登录')); ms.style.color = r.ok ? '#00a052' : 'var(--cinnabar-deep)';
+    return;
+  }
+  const tags = $('#mTags').value.trim().split(/[\s,，]+/).filter(Boolean).map(x => x.startsWith('#') ? x : '#' + x);
+  const t = buildTrack({
+    name, emoji: $('#mEmoji').value.trim() || '🧩', domain: $('#mDomain').value.trim() || name,
+    audience: $('#mAudience').value.trim(), persona: $('#mPersona').value.trim(),
+    bigTags: tags, compliance: $('#mPersona').dataset.compliance || '', hardInfo: $('#mPersona').dataset.hardinfo || ''
+  });
+  try { await fetch('/api/agent/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: t.name }) }); } catch {}
+  addCustomTrack(t); setTrack(t.id); closeModal(); applyTrack();
+});
+
+// ===== 我的作品（云端历史，登录后按账号存）=====
+let _works = [];
+function workEmoji(trackName) { const t = Object.values(window.TRACKS || {}).find(x => x.name === trackName); return t ? t.emoji : '📝'; }
+const CN = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+// 步骤号 → 步骤名称（与创作流水线一致：1 选题 / 2 对标拆解 / 3 框架 / 4 正文·标题·标签 / 5 封面·配图）
+const STEP_NAMES = { 1: '选题', 2: '对标拆解', 3: '框架', 4: '正文·标题·标签', 5: '封面·配图' };
+function workStepNo(w) { const ks = (w.doneKeys || []).map(k => parseInt(String(k).replace(/\D/g, '')) || 0).filter(Boolean); return ks.length ? Math.max(...ks) : (w.topic ? 1 : 0); }
+function workStatus(w) {
+  if ((w.imgs || 0) > 0) return { t: '已完成', bg: 'rgba(31,157,85,.92)' };
+  const n = workStepNo(w);
+  if (n >= 2) return { t: '第' + (CN[n] || n) + '步 · ' + (STEP_NAMES[n] || ''), bg: 'rgba(201,122,20,.92)' };
+  return { t: n === 1 ? '第一步 · 选题' : '草稿', bg: 'rgba(96,100,106,.88)' };
+}
+function fmtD(ts) { const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function renderWorks(filter) {
+  const grid = document.getElementById('worksGrid'); if (!grid) return;
+  let list = _works.slice(); if (filter) { const f = filter.toLowerCase(); list = list.filter(w => String(w.topic || '').toLowerCase().includes(f)); }
+  if (!list.length) { grid.innerHTML = `<div class="hm-empty">${_works.length ? '没有匹配的作品。' : '还没有作品 —— 点上方「✍️ 开始创作」生成你的第一篇不限流·高质量笔记吧。'}</div>`; return; }
+  grid.innerHTML = list.slice(0, 12).map(w => { const s = workStatus(w);
+    // ① 有真实出图(http) → 显示首图；② 长文笔记款 → 用首张笔记卡的底色/标题渲染彩色封面缩略图；③ 还没出图 → 浅色标题占位
+    const esc = s => String(s || '').replace(/</g, '&lt;');
+    let thumb;
+    if (w.cover) {
+      thumb = `<img src="${w.cover}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover"/>`;
+    } else if (w.coverCard && (w.coverCard.bg || w.coverCard.title)) {
+      const cc = w.coverCard; const bg = cc.bg || '#1a1a2e'; const ink = cc.dark ? '#fff' : '#16181d'; const ac = cc.accent || 'var(--cinnabar)';
+      thumb = `<div style="width:100%;height:100%;background:${bg};padding:16px 15px;display:flex;flex-direction:column;justify-content:center;text-align:left">
+           <div style="width:26px;height:3px;border-radius:2px;background:${ac};margin-bottom:10px"></div>
+           <div style="font-size:15px;font-weight:800;line-height:1.4;color:${ink};display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden">${esc(cc.title || w.topic)}</div>
+         </div>`;
+    } else {
+      thumb = `<div style="width:100%;height:100%;background:linear-gradient(160deg,#fff,#fff3f4);padding:14px 14px 10px;display:flex;flex-direction:column;text-align:left">
+           <div style="font-size:14px;font-weight:800;line-height:1.35;color:#16181d;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(w.topic || '未命名笔记')}</div>
+           <div style="margin-top:auto;font-size:11px;color:var(--ink-soft)">${workEmoji(w.track)} ${esc(w.track || '')}</div>
+         </div>`;
+    }
+    return `<div class="hm-work" data-id="${w.id}" title="${(w.imgs || 0) > 0 ? '点击继续编辑' : '点击进入流水线，定位到当前步骤'}">
+      <div class="thumb">${thumb}<span class="hm-badge" style="background:${s.bg}">${s.t}</span>
+        <div class="hm-wacts"><button class="wk-export" data-id="${w.id}" title="去导出">⬇</button><button class="wk-del" data-id="${w.id}" title="删除">🗑</button></div></div>
+      <div class="meta"><div class="ttl">${(w.topic || '（未命名）').replace(/</g, '&lt;')}</div><div class="dt">${w.track ? w.track + ' · ' : ''}${fmtD(w.ts)}</div></div>
+    </div>`; }).join('');
+  grid.querySelectorAll('.hm-work').forEach(c => c.addEventListener('click', e => { if (e.target.closest('.hm-wacts')) return; openWork(c.dataset.id, '/流水线.html'); }));
+  grid.querySelectorAll('.wk-export').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openWork(b.dataset.id, '/成稿预览.html'); }));
+  grid.querySelectorAll('.wk-del').forEach(b => b.addEventListener('click', async e => { e.stopPropagation(); if (!confirm('删除这个作品？')) return; try { await Cloud.del(b.dataset.id); } catch {} _works = _works.filter(x => x.id !== b.dataset.id); renderWorks(($('#worksSearch') || {}).value || ''); }));
+}
+async function openWork(id, dest) { try { const d = await Cloud.get(id); if (d) { Draft.clear(); d._runId = id; Draft.save(d); } } catch {} location.href = dest; }
+async function loadWorks() { try { _works = await Cloud.list(); } catch { _works = []; } renderWorks(); }
+
+// ===== 付费成品模板（120 积分/套，买了进「我的作品」可改；预览免费）=====
+let _tplCatalog = null, _tplPrice = 120, _tplOwned = {};
+async function loadTplOwned() { try { const j = await (await fetch('/api/template/purchased')).json(); if (j.ok) { _tplOwned = {}; (j.list || []).forEach(x => _tplOwned[x.id] = x.runId); } } catch {} }
+async function renderTemplates(trackName) {
+  const grid = document.getElementById('tplGrid'), ttl = document.getElementById('tplTitle'); if (!grid) return;
+  const esc = s => String(s || '').replace(/</g, '&lt;');
+  if (!_tplCatalog) { try { const j = await (await fetch('/api/templates')).json(); _tplCatalog = j.templates || []; _tplPrice = j.price || 120; } catch { _tplCatalog = []; } }
+  await loadTplOwned();
+  const matched = _tplCatalog.filter(t => !trackName || t.track === trackName);
+  const show = matched.length ? matched : _tplCatalog;
+  if (ttl) ttl.innerHTML = `付费成品模板 <span style="color:var(--ink-soft);font-weight:400">· ${show.length} 套 · 买了直接进「我的作品」可改</span>`;
+  if (!show.length) { grid.innerHTML = '<div class="hm-empty">该赛道成品模板即将上线。</div>'; return; }
+  grid.innerHTML = show.map(tp => {
+    const owned = _tplOwned[tp.id];
+    const badge = owned
+      ? '<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full" style="background:var(--gold-bg);color:var(--gold)">已拥有</span>'
+      : `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full" style="background:rgba(255,36,66,.1);color:var(--cinnabar-deep)">💎 ${_tplPrice} 积分</span>`;
+    return `<div class="tpl card p-4">
+      <div class="flex items-start justify-between gap-2 mb-1"><div class="font-medium text-[14px]">${esc(tp.emoji || '')} ${esc(tp.name)}</div>${badge}</div>
+      <div class="text-[12px] text-[var(--ink-soft)] leading-relaxed">${esc(tp.desc || '')}</div>
+      <div class="flex gap-2 mt-3">
+        <button class="tpl-prev btn-ghost rounded-lg px-3 py-1.5 text-[12px]" data-id="${tp.id}">👁 预览</button>
+        <button class="tpl-buy btn-go rounded-lg px-3.5 py-1.5 text-[12px]" data-id="${tp.id}" data-run="${owned || ''}">${owned ? '✏️ 去编辑' : '🔓 购买复用'}</button>
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.tpl-prev').forEach(b => b.addEventListener('click', () => location.href = '/成稿预览.html?tpl=' + encodeURIComponent(b.dataset.id)));
+  grid.querySelectorAll('.tpl-buy').forEach(b => b.addEventListener('click', () => tplBuy(b)));
+}
+// 轻量 toast + 弹窗（替代原生 alert/confirm，交互更顺）
+function toast(msg, type) {
+  let t = document.getElementById('agToast');
+  if (!t) { t = document.createElement('div'); t.id = 'agToast'; document.body.appendChild(t); }
+  t.className = 'ag-toast ' + (type || ''); t.textContent = msg;
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function popup(html) {
+  return new Promise(resolve => {
+    const m = document.createElement('div'); m.className = 'bm-mask';
+    m.innerHTML = '<div class="bm-card">' + html + '</div>';
+    document.body.appendChild(m); requestAnimationFrame(() => m.classList.add('show'));
+    const close = v => { m.classList.remove('show'); setTimeout(() => m.remove(), 200); resolve(v); };
+    m.addEventListener('click', e => { if (e.target === m) return close(null); const a = e.target.closest('[data-act]'); if (a) close(a.dataset.act); });
+  });
+}
+async function tplBuy(btn) {
+  const id = btn.dataset.id;
+  if (btn.dataset.run) return openWork(btn.dataset.run, '/流水线.html'); // 已拥有 → 去编辑
+  const tpl = (_tplCatalog || []).find(t => t.id === id) || {};
+  const bal = (window.__me && window.__me.balance != null) ? window.__me.balance : null;
+  const act = await popup(
+    `<div style="font-size:16.5px;font-weight:800;margin-bottom:8px">购买成品模板</div>
+     <div style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin-bottom:16px">${tpl.emoji || ''} <b style="color:var(--ink)">${(tpl.name || '').replace(/</g,'&lt;')}</b><br>扣 <b style="color:var(--cinnabar)">${_tplPrice} 积分</b>，复制到「我的作品」后可自由修改/编辑。${bal != null ? '<br>当前余额：<b style="color:var(--ink)">' + bal + '</b> 积分' : ''}</div>
+     <div style="display:flex;gap:10px;justify-content:flex-end">
+       <button class="btn-ghost rounded-lg px-4 py-2 text-[13px]" data-act="cancel">取消</button>
+       <button class="btn-go rounded-lg px-5 py-2 text-[13px] font-semibold" data-act="ok">确认购买 · ${_tplPrice}积分</button>
+     </div>`);
+  if (act !== 'ok') return;
+  btn.disabled = true; const old = btn.textContent; btn.textContent = '购买中…';
+  try {
+    const j = await (await fetch('/api/template/buy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id }) })).json();
+    if (j.ok) {
+      _tplOwned[id] = j.runId;
+      try { if (window.refreshTopNav) await window.refreshTopNav(); } catch {}
+      await loadWorks();
+      renderTemplates(window.__curTrackName);
+      toast('✓ 已购买，已加入「我的作品」', 'ok');
+    } else if (j.error === '积分不足') {
+      btn.disabled = false; btn.textContent = old;
+      const go = await popup(
+        `<div style="font-size:16px;font-weight:800;margin-bottom:8px">积分不足</div>
+         <div style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin-bottom:16px">购买需 <b style="color:var(--cinnabar)">${j.need || _tplPrice}</b> 积分，当前 <b>${j.balance || 0}</b> 积分。</div>
+         <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn-ghost rounded-lg px-4 py-2 text-[13px]" data-act="cancel">再想想</button><button class="btn-go rounded-lg px-5 py-2 text-[13px] font-semibold" data-act="ok">去充值</button></div>`);
+      if (go === 'ok') location.href = '/充值.html';
+    } else { btn.disabled = false; btn.textContent = old; toast('购买失败：' + (j.error || ''), 'err'); }
+  } catch (e) { btn.disabled = false; btn.textContent = old; toast('网络错误，请重试', 'err'); }
+}
+$('#worksSearch')?.addEventListener('input', e => renderWorks(e.target.value.trim()));
+
+// ===== 我的智能体（赛道卡片）=====
+function renderAgents() {
+  const grid = document.getElementById('agentsGrid'); if (!grid) return;
+  const cur = activeId();
+  const cards = (window.TRACK_ORDER || []).map(id => { const t = window.TRACKS[id]; if (!t) return ''; const isC = isCustomTrack(id);
+    return `<div class="hm-agent ${id === cur ? 'on' : ''}" data-id="${id}">${isC ? `<span class="delx" data-del="${id}" title="删除">✕</span>` : ''}
+      <div class="em">${t.emoji || '🧩'}</div><div class="nm">${t.name}</div>
+      <div class="dm">${(t.tagline || t.domain || '').replace(/</g, '&lt;')}</div>
+      <div class="go">${id === cur ? '当前 · 进入创作 →' : '切换并创作 →'}</div></div>`; }).join('');
+  grid.innerHTML = cards + `<div class="hm-agent add" id="addAgentCard"><div style="font-size:26px">＋</div><div style="margin-top:4px;font-size:13px">新增赛道智能体</div></div>`;
+  grid.querySelectorAll('.hm-agent[data-id]').forEach(c => c.addEventListener('click', e => {
+    const del = e.target && e.target.dataset && e.target.dataset.del;
+    if (del) { e.stopPropagation(); delTrack(del); renderAgents(); loadWorks(); return; }
+    setTrack(c.dataset.id); location.href = '/流水线.html';
+  }));
+  $('#addAgentCard')?.addEventListener('click', openModal);
+}
+
+applyTrack();
+loadWorks();
+
+// 从顶栏「我的智能体 · ＋创建」过来（/?create=1）→ 自动打开新增赛道弹窗并滚到赛道区
+(function autoOpenCreate(){
+  try {
+    if (new URLSearchParams(location.search).get('create') === '1') {
+      const sec = document.getElementById('trackSection'); if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(openModal, 350);
+      history.replaceState(null, '', '/' + location.hash); // 清掉 query，避免刷新再次弹窗
+    }
+  } catch {}
+})();
+</script>
+</body>
+</html>

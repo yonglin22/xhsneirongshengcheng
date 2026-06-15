@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>S6 模板卡样例</title>
+<script src="/assets/tailwind.js?v=1"></script>
+<link rel="stylesheet" href="/assets/atelier.css?v=29"/>
+<style>body{background:#f4f5f7;padding:28px;font-family:-apple-system,"PingFang SC",sans-serif}
+.demo{display:flex;flex-wrap:wrap;gap:22px}
+.demo .cv-frame{width:300px}
+.lbl{font-size:12px;color:#9499a0;text-align:center;margin-top:6px}</style>
+</head><body>
+<h1 style="font-size:20px;font-weight:800;margin-bottom:6px">S6 配图实际效果（方案 B）</h1>
+<p style="font-size:13px;color:#9499a0;margin-bottom:20px">poster 类 = 纯 CSS 模板设计卡（不调 AI）；photo 类 = Seedream/可灵 真实照片 + 叠字。下面是各版式真实渲染：</p>
+<div class="demo" id="demo"></div>
+<script>
+function mark(t){ return String(t||'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/==(.+?)==/g,'<span class="hl">$1</span>'); }
+function li(s,cls){ return `<div class="cv-li ${cls||''}">${mark(s)}</div>`; }
+function num(i,s){ return `<div class="cv-li num"><b>${i}</b><span>${mark(s)}</span></div>`; }
+const cards = [
+  {lbl:'封面 · 干净大字款(t0)', cls:'tpl', tpl:'t0', card:`<div class="cv-card theme-poster is-cover lay-封面"><div class="cv-card-t">零基础工科5个月 跨考浙大设计学第二名</div><div class="cv-card-b"><div class="cv-li">公共课避坑 + 手绘零基础逆袭经验</div></div></div>`},
+  {lbl:'内页 · 经验贴款(t1)', cls:'tpl', tpl:'t1', card:`<div class="cv-card theme-poster lay-要点"><div class="cv-card-t">二、关于择校</div><div class="cv-card-b">${li('**浙大艺术与考古学院**·设计学学硕视传方向')}${li('想留杭州，浙大设计方向==对跨考友好==')}${li('专业课更看重==逻辑思维==，而非视觉表现')}${li('综合下来最适合我的工科背景')}</div></div>`},
+  {lbl:'内页 · 编号清单款(t2)', cls:'tpl', tpl:'t2', card:`<div class="cv-card theme-poster lay-编号"><div class="cv-card-t">手绘零基础三步逆袭</div><div class="cv-card-b">${num(1,'**8月起**临马克笔技法，先抄后创')}${num(2,'**10月**做思维发散，每题理逻辑链')}${num(3,'**考前3周**限时模考，3小时画完')}</div></div>`},
+  {lbl:'内页 · 前后对比款(t3)', cls:'tpl', tpl:'t3', card:`<div class="cv-card theme-poster lay-对比"><div class="cv-card-t">公共课踩过的坑</div><div class="cv-card-b">${li('只看颜值买马克笔','no')}${li('选双头·酒精性·专用纸','ok')}${li('同色叠超3层糊成一团','no')}${li('先浅后深·留白是王','ok')}</div></div>`},
+  {lbl:'封面 · 照片款(Seedream/可灵)', cls:'', img:'https://picsum.photos/seed/deskart/600/800', card:`<div class="cv-scrim"></div><div class="cv-card theme-photo is-cover lay-封面"><div class="cv-card-t">专业课太吃时间 政英每天这1h</div></div>`},
+  {lbl:'内页 · 照片款 + 叠字', cls:'', img:'https://picsum.photos/seed/books2/600/800', card:`<div class="cv-scrim"></div><div class="cv-card theme-photo lay-要点"><div class="cv-card-t">7-8月强化期</div><div class="cv-card-b">${li('政治：刷1000题')}${li('英语：每天1篇真题')}</div></div>`},
+];
+document.getElementById('demo').innerHTML = cards.map(c=>`<div><div class="cv-frame ${c.cls}">${c.tpl?`<div class="cv-tpl ${c.tpl}"></div>`:`<img src="${c.img}"/>`}${c.card}</div><div class="lbl">${c.lbl}</div></div>`).join('');
+</script>
+</body></html>
