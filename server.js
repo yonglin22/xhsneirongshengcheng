@@ -382,7 +382,15 @@ const server = http.createServer(async (req, res) => {
         let url, body;
         if (provider === 'ark') { // 火山方舟 Seedream（注意：自定义尺寸需 ≥3.6M 像素，用 SEEDREAM_SIZE 的 3:4 大图）
           url = (process.env.SEEDREAM_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3') + '/images/generations';
-          const refImg = reqBody.init_image || reqBody.ref_image || ''; // 参考图（URL 或 data:base64）→ 走 SeedEdit 真·图生图
+          let refImg = reqBody.init_image || reqBody.ref_image || ''; // 参考图（URL 或 data:base64）→ 走 SeedEdit 真·图生图
+          // 是 http(s) 链接（如对标原图走小红书 CDN，有防盗链）→ 服务端带 referer 抓下来转 base64，更稳；取不到就退回文生图
+          if (refImg && /^https?:\/\//i.test(refImg)) {
+            try {
+              const ir = await fetch(refImg, { headers: { 'user-agent': 'Mozilla/5.0', 'referer': 'https://www.xiaohongshu.com/' } });
+              if (ir.ok) { const ct = ir.headers.get('content-type') || 'image/jpeg'; refImg = 'data:' + ct + ';base64,' + Buffer.from(await ir.arrayBuffer()).toString('base64'); }
+              else refImg = '';
+            } catch { refImg = ''; }
+          }
           if (refImg) {
             // 真·图生图：优先用单独配的 SeedEdit 模型；未配则复用现有 Seedream 模型（5.0+ 支持传 image 做 i2i）
             const editModel = reqBody.editModel || process.env.SEEDEDIT_MODEL || process.env.SEEDREAM_MODEL || model;
@@ -621,13 +629,15 @@ const server = http.createServer(async (req, res) => {
       const { keyword } = JSON.parse((await readBody(req)) || '{}');
       if (!keyword) return send(res, 400, JSON.stringify({ ok: false, error: '缺少 keyword' }), { 'content-type': 'application/json' });
       const searchUrl = 'https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(keyword);
-      const r = await fetch(searchUrl, {
-        redirect: 'follow',
-        headers: {
-          'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-          'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'accept-language': 'zh-CN,zh;q=0.9',
-        },
-      });
+      // 线上(Render/容器)没有 xhs CLI 的登录态，直连搜索页会被登录墙挡住 → 注入小红书网页 Cookie 即可过墙。
+      // 在 Render 环境变量里填 XHS_COOKIE（整段 document.cookie，含 web_session=…）。本地有 CLI 不依赖它。
+      const xhsCookie = (process.env.XHS_COOKIE || '').trim();
+      const hdr = {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'accept-language': 'zh-CN,zh;q=0.9',
+      };
+      if (xhsCookie) hdr.cookie = xhsCookie;
+      const r = await fetch(searchUrl, { redirect: 'follow', headers: hdr });
       const html = await r.text();
       let notes = [];
       const sIdx = html.indexOf('__INITIAL_STATE__');

@@ -21,6 +21,13 @@ services:
         value: "true"
       - key: SIGNUP_GRANT_CREDITS
         value: "20"
+      # —— 客服/收款（指向仓库内已提交的二维码图，非密钥，可直接固化）——
+      - key: PAY_WECHAT_QR
+        value: /assets/pay-qr.png
+      - key: SUPPORT_WECHAT_QR
+        value: /assets/support-qr.png
+      - key: SUPPORT_WECHAT_ID
+        value: Syl18268346784
       - key: API_FORMAT
         value: openai
       - key: ANTHROPIC_BASE_URL
