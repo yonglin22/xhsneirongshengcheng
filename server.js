@@ -695,13 +695,34 @@ const server = http.createServer(async (req, res) => {
   // ---- 小红书搜索（走 agent-reach 的 xhs CLI，已登录，命中率高、字段全：点赞/收藏/评论/发布日期/博主主页）----
   if (pathname === '/api/xhs-search' && req.method === 'POST') {
     try {
-      const { keyword, sort } = JSON.parse((await readBody(req)) || '{}');
+      const { keyword, sort, type, page } = JSON.parse((await readBody(req)) || '{}');
       if (!keyword) return send(res, 400, JSON.stringify({ ok: false, error: '缺少 keyword' }), { 'content-type': 'application/json' });
-      const { execFile } = require('child_process');
       const sortOpt = ['general', 'popular', 'latest'].includes(sort) ? sort : 'popular';
+      const typeOpt = ['all', 'video', 'image'].includes(type) ? type : 'all';
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+
+      // 优先走「采集服务」：常开主机(VPS/本机)上跑 xhs CLI(扫码登录)，对外开 /collect。线上 Render 没装 CLI → 配 COLLECTOR_URL 即用它。
+      const collector = (process.env.COLLECTOR_URL || '').trim().replace(/\/+$/, '');
+      if (collector) {
+        try {
+          const cr = await fetch(collector + '/collect', {
+            method: 'POST', signal: AbortSignal.timeout(55000),
+            headers: { 'content-type': 'application/json', 'x-collector-token': process.env.COLLECTOR_TOKEN || '' },
+            body: JSON.stringify({ keyword: String(keyword), sort: sortOpt, type: typeOpt, page: pageNum }),
+          });
+          const txt = await cr.text();
+          if (!cr.ok) return send(res, 200, JSON.stringify({ ok: false, error: '采集服务 ' + cr.status + '：' + txt.slice(0, 200) }), { 'content-type': 'application/json' });
+          return send(res, 200, txt, { 'content-type': 'application/json' }); // collector 直接返回 {ok,notes}
+        } catch (e) {
+          return send(res, 200, JSON.stringify({ ok: false, error: '采集服务不可达：' + (e.message || e) }), { 'content-type': 'application/json' });
+        }
+      }
+
+      // 本地/自托管：直接调本机 xhs CLI
+      const { execFile } = require('child_process');
       const env = { ...process.env, PATH: (process.env.PATH || '') + ':' + (process.env.HOME || '') + '/.local/bin:/usr/local/bin' };
       const stdout = await new Promise((resolve, reject) => {
-        execFile('xhs', ['search', String(keyword), '--sort', sortOpt, '--json'], { timeout: 50000, maxBuffer: 12 * 1024 * 1024, env }, (err, so, se) => {
+        execFile('xhs', ['search', String(keyword), '--sort', sortOpt, '--type', typeOpt, '--page', String(pageNum), '--json'], { timeout: 50000, maxBuffer: 12 * 1024 * 1024, env }, (err, so, se) => {
           if (err && !so) return reject(new Error((se || err.message || '').toString().slice(0, 300)));
           resolve(so);
         });
