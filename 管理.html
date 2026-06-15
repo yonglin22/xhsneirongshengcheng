@@ -429,13 +429,15 @@ $('#navSeg').querySelectorAll('button').forEach(b => b.addEventListener('click',
 async function boot() {
   // 先看是否管理员（手机号登录）；否则看 token 能否拉通
   let isAdmin = false, me = null;
-  // 容错：Render 免费档冷启动首个请求可能慢/失败，重试一次再判定
-  for (let i = 0; i < 2 && !me; i++) {
-    try { me = await (await fetch('/api/auth/me')).json(); } catch { if (i === 0) await new Promise(r => setTimeout(r, 1500)); }
+  // 容错：Render 免费档冷启动首个请求可能慢/失败（甚至返回非 JSON 的 502 页）→ 重试两次再判定
+  for (let i = 0; i < 3 && !me; i++) {
+    try { const r = await fetch('/api/auth/me'); me = await r.json(); }
+    catch { if (i < 2) await new Promise(r => setTimeout(r, 1500)); }
   }
   if (me && me.ok) { $('#who').textContent = (me.nickname || me.phone || '') + '（' + (me.role === 'admin' ? '管理员' : '普通用户') + '）'; if (me.role === 'admin') isAdmin = true; }
   else if (me && !me.ok) { const gm = $('#gateMsg'); if (gm) gm.textContent = '当前未登录。请先用管理员手机号在电脑端登录。'; }
-  if (!isAdmin && adminToken()) { const t = await aget('/api/admin/summary'); if (t.ok && t.j.ok) isAdmin = true; }
+  else { const gm = $('#gateMsg'); if (gm) gm.textContent = '服务正在唤醒（免费服务器冷启动），请等几秒后刷新本页重试。'; }
+  if (!isAdmin && adminToken()) { try { const t = await aget('/api/admin/summary'); if (t.ok && t.j.ok) isAdmin = true; } catch {} }
   if (isAdmin) {
     $('#gate').classList.add('hidden'); $('#adminBody').classList.remove('hidden');
     // 按 RBAC 菜单权限 + 菜单管理（启用/显示名）渲染顶部标签
@@ -450,7 +452,10 @@ async function boot() {
     renderView();
   } else { $('#adminBody').classList.add('hidden'); $('#gate').classList.remove('hidden'); }
 }
-boot();
+// 永不空白：boot 抛错 → 显示登录入口；并兜底，若 5 秒后两块都还藏着，强制显示登录入口
+function showGate(msg) { const a = $('#adminBody'), g = $('#gate'); if (a) a.classList.add('hidden'); if (g) g.classList.remove('hidden'); if (msg) { const gm = $('#gateMsg'); if (gm) gm.textContent = msg; } }
+boot().catch(e => showGate('页面加载出错：' + (e && e.message || e) + '。请刷新重试。'));
+setTimeout(() => { const a = $('#adminBody'), g = $('#gate'); if (a && a.classList.contains('hidden') && g && g.classList.contains('hidden')) showGate('加载较慢（免费服务器冷启动），请刷新本页重试。'); }, 5000);
 </script>
 </body>
 </html>

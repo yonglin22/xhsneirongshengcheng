@@ -4,8 +4,11 @@ const { DatabaseSync } = require('node:sqlite');
 const crypto = require('crypto');
 const path = require('path');
 
-const db = new DatabaseSync(path.join(__dirname, 'billing.db'));
+// DB 路径可配置：Render 等容器磁盘是临时的，重部署会清空数据 → 挂持久化磁盘后用 DB_PATH 指过去（如 /var/data/billing.db）即可保住用户/作品/积分。
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'billing.db');
+const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL;');
+console.log('  [billing] 数据库:', DB_PATH);
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users(
