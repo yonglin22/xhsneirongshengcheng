@@ -1089,6 +1089,8 @@ function renderPanel() {
 
 // 渲染「找对标」结果：左=关键词(可折叠) + 右=对标笔记20篇(可排序)，左右随折叠互相切换宽度
 let benchNotes = [], benchSort = 'likes', benchKwCollapsed = false, benchWindow = 3; // benchWindow: 月数，0=全部
+// 抓取维度（传给小红书，决定抓回来的是哪批；区别于上面抓回后前端重排的 benchSort）
+let benchFetchSort = 'popular', benchFetchType = 'all'; // sort: general/popular/latest · type: all/image/video
 function renderFinder(d) {
   const box = $('#finderOut'); if (!box || !d) return;
   if (typeof d === 'string') { box.innerHTML = '<div class="out p-3 mt-1" style="white-space:pre-wrap;line-height:1.7">' + mark(d) + '</div>'; return; }
@@ -1114,7 +1116,18 @@ function renderFinder(d) {
       <div id="fdNotePane" style="flex:1;min-width:0">
         <div class="flex items-center gap-2 mb-1.5 flex-wrap">
           <button id="grabBench" class="btn-go rounded-lg px-3 py-1 text-[12px] whitespace-nowrap">📥 抓约20篇对标</button>
-          <div style="display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden">
+          <select id="benchFetchSort" title="抓取排序（决定抓回来的是哪批）" class="field rounded-lg text-[11px]" style="padding:3px 6px">
+            <option value="popular" ${benchFetchSort === 'popular' ? 'selected' : ''}>🔥 最热</option>
+            <option value="latest" ${benchFetchSort === 'latest' ? 'selected' : ''}>🆕 最新</option>
+            <option value="general" ${benchFetchSort === 'general' ? 'selected' : ''}>🎯 综合</option>
+          </select>
+          <select id="benchFetchType" title="笔记类型" class="field rounded-lg text-[11px]" style="padding:3px 6px">
+            <option value="all" ${benchFetchType === 'all' ? 'selected' : ''}>📄 全部</option>
+            <option value="image" ${benchFetchType === 'image' ? 'selected' : ''}>🖼 图文</option>
+            <option value="video" ${benchFetchType === 'video' ? 'selected' : ''}>🎬 视频</option>
+          </select>
+          <span class="text-[10px] text-[var(--ink-soft)] whitespace-nowrap">抓取维度</span>
+          <div style="display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden" title="抓回后在本地重排这20篇">
             <button class="bench-sort ${benchSort === 'likes' ? 'on' : ''}" data-sort="likes" style="border:none;background:${benchSort === 'likes' ? 'var(--cinnabar)' : 'transparent'};color:${benchSort === 'likes' ? '#fff' : 'var(--ink-soft)'};font-size:11px;padding:3px 10px;cursor:pointer">🔥 点赞</button>
             <button class="bench-sort ${benchSort === 'comments' ? 'on' : ''}" data-sort="comments" style="border:none;border-left:1px solid var(--line);background:${benchSort === 'comments' ? 'var(--cinnabar)' : 'transparent'};color:${benchSort === 'comments' ? '#fff' : 'var(--ink-soft)'};font-size:11px;padding:3px 10px;cursor:pointer">💬 评论</button>
             <button class="bench-sort ${benchSort === 'date' ? 'on' : ''}" data-sort="date" style="border:none;border-left:1px solid var(--line);background:${benchSort === 'date' ? 'var(--cinnabar)' : 'transparent'};color:${benchSort === 'date' ? '#fff' : 'var(--ink-soft)'};font-size:11px;padding:3px 10px;cursor:pointer">🆕 最新</button>
@@ -1132,6 +1145,8 @@ function renderFinder(d) {
     </div>
   </div>`;
   const gb = $('#grabBench'); if (gb) gb.addEventListener('click', () => grabBenchmarkNotes(searches));
+  const bfs = $('#benchFetchSort'); if (bfs) bfs.addEventListener('change', () => { benchFetchSort = bfs.value; });
+  const bft = $('#benchFetchType'); if (bft) bft.addEventListener('change', () => { benchFetchType = bft.value; });
   const tg = $('#fdKwToggle'); if (tg) tg.addEventListener('click', () => { benchKwCollapsed = !benchKwCollapsed; renderFinder(d); if (benchNotes.length) renderBenchNotes(); });
   box.querySelectorAll('.bench-sort').forEach(b => b.addEventListener('click', () => { benchSort = b.dataset.sort; renderFinder(d); renderBenchNotes(); }));
   const bw = $('#benchWin'); if (bw) bw.addEventListener('change', () => { benchWindow = +bw.value; renderBenchNotes(); });
@@ -1187,7 +1202,7 @@ async function grabBenchmarkNotes(searches) {
   for (let i = 0; i < kws.length && all.length < 20; i++) {
     if (st) st.textContent = `正在抓「${kws[i]}」…（已得 ${all.length} 篇）`;
     try {
-      let j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: 'popular' }) })).json();
+      let j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: benchFetchSort, type: benchFetchType }) })).json();
       // 线上没有 xhs CLI（ENOENT/未找到 xhs 命令）→ 回退到直连搜索 /api/search（需配 XHS_COOKIE 才有结果）
       if ((!j.ok || !(j.notes && j.notes.length)) && j.error && /未找到 xhs|ENOENT|xhs 搜索失败/.test(j.error)) {
         try { j = await (await fetch('/api/search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i] }) })).json(); } catch {}
