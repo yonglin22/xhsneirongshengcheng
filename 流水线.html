@@ -497,7 +497,7 @@ function buildImgPrompt(style, scene, theme) {
     // 白底排版图 → 生成一张"精致小红书干货海报底图"：柔和有设计感、不空，但中部留白给叠字
     return `${sp}一张精致的小红书干货海报「底图」（纯做背景，文字稍后叠加）：${scene || '与主题相关的极简插画风底图'}。要求：柔和马卡龙/莫兰迪配色的渐变或纸张质感打底，四周用与主题相关的极简手绘小元素、色块、虚线框、丝带胶带等做轻装饰，营造杂志/手账排版的设计感；中部与上部留出干净空白区给文字。整体高级、温柔、有呼吸感，不要太满。竖版 3:4。${IMG_NEG}`;
   }
-  return `${sp}${style ? style + '。' : ''}${scene || ''}。小红书竖版配图，${aStyle ? '按上面画风' : '专业摄影或精致插画'}，超高清细节，构图干净留白、主体居中偏上（给顶部叠字留空间），柔和电影级调色；${IMG_NEG}`;
+  return `${sp}${style ? style + '。' : ''}${scene || ''}。小红书竖版配图，${aStyle ? '按上面画风' : '专业摄影或精致插画'}，小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深虚化背景、细腻材质、4K 超清细节，构图干净留白、主体居中偏上（给顶部叠字留空间），柔和电影级调色；${IMG_NEG}`;
 }
 // 严格对位单张：照搬对标第 i 张的版式/条目数，内容换成我这篇的（解析→改写）
 async function planOneImage(i, refVis, isCover, coverTitle, bodyTxt, t) {
@@ -659,7 +659,7 @@ async function genImageFromPlan(plan, style, provider, initImage) {
     const body = useI2I
       ? {
           provider: 'ark', init_image: initImage,
-          prompt: `参考所给图片：完整保留它的构图、版式结构、主体位置、拍摄视角与配色风格，结构保持高度一致；只把画面主题/内容替换为「${plan.scene || state.topic}」。${aStyle ? '整体画风：' + aStyle + '。' : ''}真实质感、3:4 竖版，画面里不要出现任何文字。${IMG_NEG}`,
+          prompt: `参考所给图片：完整保留它的构图、版式结构、主体位置、拍摄视角与配色风格，结构保持高度一致；只把画面主题/内容替换为「${plan.scene || state.topic}」。${aStyle ? '整体画风：' + aStyle + '。' : ''}小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深虚化背景、细腻肤质/材质、4K 超清、电影级调色；3:4 竖版，画面里不要出现任何文字。${IMG_NEG}`,
         }
       : { prompt: buildImgPrompt(plan.theme === 'poster' ? '' : style, plan.scene, plan.theme) };
     if (!useI2I && provider) body.provider = provider;
@@ -684,7 +684,8 @@ async function generateCoverImagesCore(n) {
       const seg = (typeof frameSliceForImage === 'function' && frameSliceForImage(i + 1)) || '';
       const sc = (seg.match(/生图提示词[：:]\s*([^\n]+)/) || [])[1] || '';
       const s3Photo = sc && !/清单|编号|对比|列表|表格|文字|排版|备忘录|大字|标题卡/.test(sc); // S3 明确要实拍 → 即使对标文字密集也走 i2i
-      return { i, isNote: isTextHeavyRef(rv) && !s3Photo };
+      const textHeavy = isTextHeavyRef(rv);
+      return { i, textHeavy, isNote: textHeavy && !s3Photo };
     });
     let _seq = 0; planned.forEach(p => { if (!p.isNote) p.photoIdx = _seq++; }); // 实拍图编号，超体验期上限的跳过
     const results = new Array(refSet.length).fill(null);
@@ -696,7 +697,9 @@ async function generateCoverImagesCore(n) {
           results[p.i] = { kind: 'note', page };
         } else if (p.photoIdx < imgCap) {
           const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
-          const u = await genImageFromPlan(plan, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, (state.refImages || [])[p.i] || '');
+          // 只有对标本身是「实拍图」才拿来当垫图；文字清单图当垫图会出四不像 → 改纯文生图
+          const initImg = p.textHeavy ? '' : ((state.refImages || [])[p.i] || '');
+          const u = await genImageFromPlan(plan, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg);
           if (u) results[p.i] = { kind: 'photo', url: u, caption: { title: plan.title, lines: plan.lines, layout: plan.layout, theme: plan.theme } };
         }
       } catch {}
