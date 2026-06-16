@@ -135,7 +135,13 @@ async function sendSmsAliyun(phone, code) {
   const stringToSign = 'GET&' + enc('/') + '&' + enc(canon);
   const sig = crypto.createHmac('sha1', KSEC + '&').update(stringToSign).digest('base64');
   const url = 'https://dysmsapi.aliyuncs.com/?Signature=' + enc(sig) + '&' + canon;
-  const r = await fetch(url);
+  // 香港→杭州跨境偶发 fetch failed，重试 3 次（同一签名 URL 在有效期内可重发）
+  let r, lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try { r = await fetch(url, { signal: AbortSignal.timeout(8000) }); break; }
+    catch (e) { lastErr = e; await new Promise(s => setTimeout(s, 400)); }
+  }
+  if (!r) throw new Error('阿里云短信网络失败（重试3次）：' + ((lastErr && lastErr.message) || 'fetch failed'));
   const j = await r.json().catch(() => ({}));
   if (j.Code !== 'OK') throw new Error('阿里云 ' + (j.Code || '') + '：' + (j.Message || '发送失败'));
   return true;
