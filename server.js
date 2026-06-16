@@ -172,6 +172,16 @@ async function sendSmsTencent(phone, code) {
   return true;
 }
 function clientIp(req) { return (String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || (req.socket && req.socket.remoteAddress) || ''; }
+// 抓取日限：每用户每天最多 N 次（保护全平台共用的小红书账号不被少数人刷爆触发风控）。内存计数、按本地日期，重启清零。
+const XHS_DAILY_LIMIT = parseInt(process.env.XHS_DAILY_LIMIT || '20', 10);
+const _xhsCounts = new Map(); // key(u<uid>/ip<ip>) -> { day:'YYYY-MM-DD', n }
+function xhsDailyCheck(key) {
+  const day = new Date().toISOString().slice(0, 10);
+  let r = _xhsCounts.get(key);
+  if (!r || r.day !== day) { r = { day, n: 0 }; _xhsCounts.set(key, r); }
+  if (r.n >= XHS_DAILY_LIMIT) return { ok: false, used: r.n, limit: XHS_DAILY_LIMIT };
+  return { ok: true, used: r.n, limit: XHS_DAILY_LIMIT, inc() { r.n++; } };
+}
 // 充值套餐（cny 单位：分）。前端只传 pack_id，金额/积分由服务端定，杜绝篡改。
 const PACKS = {
   exp: { id: 'exp', cny: 150, credits: 150, name: '体验套餐', desc: '¥1.5 体验一次完整流程（含 ≤4 张配图），每人限一次', once: true },
@@ -697,6 +707,11 @@ const server = http.createServer(async (req, res) => {
     try {
       const { keyword, sort, type, page } = JSON.parse((await readBody(req)) || '{}');
       if (!keyword) return send(res, 400, JSON.stringify({ ok: false, error: '缺少 keyword' }), { 'content-type': 'application/json' });
+      // 每用户每天抓取上限（保护共用小红书账号）
+      const _uid = authUid(req);
+      const _rl = xhsDailyCheck(_uid ? ('u' + _uid) : ('ip' + clientIp(req)));
+      if (!_rl.ok) return send(res, 200, JSON.stringify({ ok: false, limited: true, error: `今日抓取已达上限（每天 ${_rl.limit} 次），明天再来～可先用已抓到的对标，或手动粘贴对标链接/上传对标图。` }), { 'content-type': 'application/json' });
+      _rl.inc();
       const sortOpt = ['general', 'popular', 'latest'].includes(sort) ? sort : 'popular';
       const typeOpt = ['all', 'video', 'image'].includes(type) ? type : 'all';
       const pageNum = Math.max(1, parseInt(page, 10) || 1);

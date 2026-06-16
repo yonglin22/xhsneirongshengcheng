@@ -1217,6 +1217,8 @@ async function grabBenchmarkNotes(searches) {
     if (st) st.textContent = `正在抓「${kws[i]}」…（已得 ${all.length} 篇）`;
     try {
       let j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: benchFetchSort, type: benchFetchType }) })).json();
+      // 命中每日抓取上限 → 停止并友好提示
+      if (j.limited) { if (st) st.textContent = '⚠ ' + j.error; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
       // 线上没有 xhs CLI（ENOENT/未找到 xhs 命令）→ 回退到直连搜索 /api/search（需配 XHS_COOKIE 才有结果）
       if ((!j.ok || !(j.notes && j.notes.length)) && j.error && /未找到 xhs|ENOENT|xhs 搜索失败/.test(j.error)) {
         try { j = await (await fetch('/api/search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i] }) })).json(); } catch {}
