@@ -445,7 +445,15 @@ function coverCardOf(data) {
 }
 function historyList(uid) {
   return db.prepare('SELECT run_id AS id, topic, track, done_keys, imgs, cover, data, updated_at AS ts FROM pipeline_history WHERE user_id=? ORDER BY updated_at DESC LIMIT 200').all(uid)
-    .map(r => ({ id: r.id, topic: r.topic, track: r.track, imgs: r.imgs, cover: r.cover || '', coverCard: (r.cover ? null : coverCardOf(r.data)), ts: r.ts, doneKeys: r.done_keys ? JSON.parse(r.done_keys) : [] }));
+    .map(r => {
+      const doneKeys = r.done_keys ? JSON.parse(r.done_keys) : [];
+      let d = {}; try { d = JSON.parse(r.data || '{}'); } catch {}
+      // 已到达步骤号：已完成步骤最大号；对标素材(图/正文)就绪但还没出骨架 → 至少第2步「拆解中」
+      let stepNo = doneKeys.map(k => parseInt(String(k).replace(/\D/g, '')) || 0).reduce((a, b) => Math.max(a, b), 0);
+      if (stepNo < 1 && (r.topic || '').trim()) stepNo = 1;
+      if (stepNo < 2 && ((d.refImages || []).length || (d.ref || '').trim())) stepNo = 2;
+      return { id: r.id, topic: r.topic, track: r.track, imgs: r.imgs, cover: r.cover || '', coverCard: (r.cover ? null : coverCardOf(r.data)), ts: r.ts, doneKeys, stepNo };
+    });
 }
 function historyGet(uid, id) { const r = db.prepare('SELECT data FROM pipeline_history WHERE user_id=? AND run_id=?').get(uid, id); try { return r ? JSON.parse(r.data) : null; } catch { return null; } }
 function historyUpsert(uid, rec) {

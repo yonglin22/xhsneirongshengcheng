@@ -436,7 +436,7 @@ function workEmoji(trackName) { const t = Object.values(window.TRACKS || {}).fin
 const CN = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 // 步骤号 → 步骤名称（与创作流水线一致：1 选题 / 2 对标拆解 / 3 框架 / 4 正文·标题·标签 / 5 封面·配图）
 const STEP_NAMES = { 1: '选题', 2: '对标拆解', 3: '框架', 4: '正文·标题·标签', 5: '封面·配图' };
-function workStepNo(w) { const ks = (w.doneKeys || []).map(k => parseInt(String(k).replace(/\D/g, '')) || 0).filter(Boolean); return ks.length ? Math.max(...ks) : (w.topic ? 1 : 0); }
+function workStepNo(w) { if (w.stepNo) return w.stepNo; const ks = (w.doneKeys || []).map(k => parseInt(String(k).replace(/\D/g, '')) || 0).filter(Boolean); return ks.length ? Math.max(...ks) : (w.topic ? 1 : 0); }
 function workStatus(w) {
   if ((w.imgs || 0) > 0) return { t: '已完成', bg: 'rgba(31,157,85,.92)' };
   const n = workStepNo(w);

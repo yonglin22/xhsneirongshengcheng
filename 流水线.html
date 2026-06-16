@@ -209,7 +209,10 @@ const PLHistory = {
     const imgs = (st.coverImages || []).length;
     const hasTopic = !!(st.topic && st.topic.trim());
     if (!doneKeys.length && !imgs && !hasTopic) return null; // 完全空白（连选题都没填）才不存；有选题即存为「已选题」草稿
-    return { id: st._runId, ts: Date.now(), topic: (st.topic || '').trim() || (st.best || '') || '（未命名）', track: (typeof getTrack === 'function' && getTrack()) ? getTrack().name : '', doneKeys, imgs, data: JSON.parse(JSON.stringify(st)) };
+    // 已到达的最远步骤号（卡片用）：已完成步骤的最大号；对标素材(图/正文)已就绪但还没出骨架 → 至少算到第2步「拆解中」
+    let stepNo = doneKeys.length ? Math.max(...doneKeys.map(k => parseInt(String(k).replace(/\D/g, '')) || 0)) : (hasTopic ? 1 : 0);
+    if (stepNo < 2 && ((st.refImages || []).length || (st.ref || '').trim())) stepNo = 2;
+    return { id: st._runId, ts: Date.now(), topic: (st.topic || '').trim() || (st.best || '') || '（未命名）', track: (typeof getTrack === 'function' && getTrack()) ? getTrack().name : '', doneKeys, stepNo, imgs, data: JSON.parse(JSON.stringify(st)) };
   },
   upsert(st) {
     if (!st || !st._runId) return;
@@ -260,6 +263,8 @@ $('#histModal').addEventListener('click', e => { if (e.target === $('#histModal'
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHist(); });
 
 function persist() { Draft.save(state); PLHistory.upsert(state); renderRail(); }
+// 同步云端但不重绘导轨（用于输入框 oninput，避免每次按键闪烁；云端写入已 1.5s 防抖）
+function persistSoft() { Draft.save(state); PLHistory.upsert(state); }
 function done(step) { return doneOf(state, step); }
 
 function renderRail() {
@@ -917,7 +922,7 @@ async function onRefUpload(e) {
   const before = state.refImages.length;
   for (const f of files) { const d = await downscaleImage(f, 1280); if (d) state.refImages.push(d); }
   state.refVision = ''; state.refVisions = null; // 新对标图，重新解析全部
-  Draft.save(state); renderRefImages();
+  persist(); renderRefImages(); // 同步云端，避免返回后丢失对标图
   const added = state.refImages.length - before;
   await runRefAnalysis((m) => { if (fs) fs.textContent = m; }, false);
   if (fs) fs.textContent = '✓ 已上传 ' + added + ' 张 · 已解析 ' + (state.refVisions || []).filter(Boolean).length + ' 张对标图';
@@ -1017,7 +1022,7 @@ function renderPanel() {
         $('#refIn').value = txt; state.ref = txt;
         state.refImages = j.images || []; state.refTags = j.tags || [];
         state.refVision = ''; state.refVisions = null; // 新对标，清掉旧视觉缓存，重新解析
-        Draft.save(state); renderRefImages();
+        persist(); renderRefImages(); // 同步云端，避免返回后丢失
         fs.style.color = 'var(--ink-soft)';
         const baseMsg = '✓ 已抓取：' + (j.title || '').slice(0, 22) + ' · ' + (j.images || []).length + ' 图 · ' + (j.tags || []).length + ' 标签';
         fs.textContent = baseMsg;
@@ -1039,12 +1044,12 @@ function renderPanel() {
     body.style.display = open ? '' : 'none'; if (open) body.style.marginTop = '12px';
     const chev = h.querySelector('.s2-chev'); if (chev) chev.textContent = open ? '收起 ▲' : '展开 ▼';
   }));
-  const editOut = $('#editOut'); if (editOut) editOut.addEventListener('input', e => { state[st.key] = e.target.value; Draft.save(state); });
-  const editBody = $('#editBody'); if (editBody) editBody.addEventListener('input', e => { state.body = e.target.value.split(/\n{2,}/).map(s => s.trim()).filter(Boolean); Draft.save(state); });
-  const editTitles = $('#editTitles'); if (editTitles) editTitles.addEventListener('input', e => { state.titles = e.target.value.split('\n').map(s => s.trim()).filter(Boolean); state.best = state.titles[0] || ''; Draft.save(state); });
-  const editTags = $('#editTags'); if (editTags) editTags.addEventListener('input', e => { state.tags = e.target.value.split(/[\s,，]+/).filter(Boolean); Draft.save(state); });
-  ['cl0', 'cl1'].forEach((id, idx) => { const el = $('#' + id); if (el) el.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.cover_lines = state.cover.cover_lines || []; state.cover.cover_lines[idx] = e.target.value; Draft.save(state); const tt = document.querySelector('.cv-title'); if (tt) tt.innerHTML = (state.cover.cover_lines || []).filter(Boolean).map(mark).join('<br>'); }); });
-  const cvVisual = $('#cvVisual'); if (cvVisual) cvVisual.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.visual = e.target.value; Draft.save(state); });
+  const editOut = $('#editOut'); if (editOut) editOut.addEventListener('input', e => { state[st.key] = e.target.value; persistSoft(); });
+  const editBody = $('#editBody'); if (editBody) editBody.addEventListener('input', e => { state.body = e.target.value.split(/\n{2,}/).map(s => s.trim()).filter(Boolean); persistSoft(); });
+  const editTitles = $('#editTitles'); if (editTitles) editTitles.addEventListener('input', e => { state.titles = e.target.value.split('\n').map(s => s.trim()).filter(Boolean); state.best = state.titles[0] || ''; persistSoft(); });
+  const editTags = $('#editTags'); if (editTags) editTags.addEventListener('input', e => { state.tags = e.target.value.split(/[\s,，]+/).filter(Boolean); persistSoft(); });
+  ['cl0', 'cl1'].forEach((id, idx) => { const el = $('#' + id); if (el) el.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.cover_lines = state.cover.cover_lines || []; state.cover.cover_lines[idx] = e.target.value; persistSoft(); const tt = document.querySelector('.cv-title'); if (tt) tt.innerHTML = (state.cover.cover_lines || []).filter(Boolean).map(mark).join('<br>'); }); });
+  const cvVisual = $('#cvVisual'); if (cvVisual) cvVisual.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.visual = e.target.value; persistSoft(); });
   $('#prevStep')?.addEventListener('click', () => { cur--; renderRail(); renderPanel(); });
   $('#nextStep')?.addEventListener('click', () => { cur++; renderRail(); renderPanel(); });
   $('#genStep').addEventListener('click', () => genStep(st));
