@@ -111,7 +111,7 @@
       <button id="loginBtn" class="btn-go rounded-xl w-full py-3.5 text-[15px] font-medium">登录 / 注册</button>
 
       <div class="text-[11.5px] text-[var(--ink-soft)] mt-4 leading-relaxed">
-        开发模式验证码会直接显示。登录即代表同意服务条款。遇到问题可 <a href="/帮助.html" class="text-[var(--cinnabar-deep)]">联系客服</a>。
+        验证码 5 分钟内有效。登录即代表同意服务条款。遇到问题可 <a href="/帮助.html" class="text-[var(--cinnabar-deep)]">联系客服</a>。
       </div>
     </div>
   </section>
@@ -158,17 +158,22 @@ const goAfterLogin = () => location.replace(IS_MOBILE ? '/请用电脑.html' : N
   if (r) { try { localStorage.setItem('ag_ref', r.trim()); } catch {} const h = $('#codeHint'); if (h) { h.textContent = '🎁 检测到邀请码 ' + r.trim() + '，注册成功后你和好友都得积分'; h.style.color = 'var(--cinnabar-deep)'; } }
 })();
 
+let _cdTimer = null;
+function startCountdown(sec) {
+  const b = $('#sendCode'); let n = sec; b.disabled = true; b.textContent = '重发 (' + n + 's)';
+  clearInterval(_cdTimer);
+  _cdTimer = setInterval(() => { n--; if (n <= 0) { clearInterval(_cdTimer); b.disabled = false; b.textContent = '发送验证码'; } else { b.textContent = '重发 (' + n + 's)'; } }, 1000);
+}
 $('#sendCode').addEventListener('click', async () => {
   const phone = $('#phone').value.trim();
   if (!/^1\d{10}$/.test(phone)) { $('#codeHint').textContent = '请输入正确的 11 位手机号'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; return; }
-  $('#sendCode').disabled = true; const old = $('#sendCode').textContent; $('#sendCode').textContent = '发送中…';
+  $('#sendCode').disabled = true; $('#sendCode').textContent = '发送中…';
   const { j } = await api('/api/auth/send-code', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone }) });
-  $('#sendCode').disabled = false; $('#sendCode').textContent = old;
   if (j.ok) {
-    if (j.dev && j.code) { $('#codeHint').innerHTML = `开发模式验证码：<b style="color:var(--cinnabar-deep)">${j.code}</b>（已自动填入）`; $('#code').value = j.code; }
-    else { $('#codeHint').textContent = '验证码已发送，请查收短信'; }
-    $('#codeHint').style.color = 'var(--ink-soft)';
-  } else { $('#codeHint').textContent = j.error || '发送失败'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; }
+    if (j.dev && j.code) { $('#codeHint').innerHTML = `开发模式验证码：<b style="color:var(--cinnabar-deep)">${j.code}</b>（已自动填入）`; $('#code').value = j.code; $('#codeHint').style.color = 'var(--ink-soft)'; }
+    else { $('#codeHint').innerHTML = '✓ 验证码已发送，请查收短信（一般 10~30 秒到达，慢则等 1 分钟）'; $('#codeHint').style.color = '#1f9d55'; $('#code').focus(); }
+    startCountdown(60); // 与后端 60s 限频一致，避免重复点
+  } else { $('#sendCode').disabled = false; $('#sendCode').textContent = '发送验证码'; $('#codeHint').textContent = j.error || '发送失败'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; }
 });
 
 async function doLogin() {
