@@ -13,9 +13,12 @@
   body{ background:#eceef1; font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; color:var(--ink);
     min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:18px; padding:30px 16px 60px; }
   /* 海报本体 3:4（朋友圈竖图）*/
-  .poster{ width:540px; max-width:94vw; aspect-ratio:3/4; position:relative; overflow:hidden; border-radius:26px;
+  /* 固定 540×720（3:4）：html2canvas 对 aspect-ratio 支持差，用固定像素更稳，下载不丢内容 */
+  .poster{ width:540px; height:720px; position:relative; overflow:hidden; border-radius:26px;
     background:linear-gradient(170deg,#fff5f6 0%,#ffffff 42%,#fff 100%); box-shadow:0 26px 60px -28px rgba(0,0,0,.4);
     padding:40px 38px; display:flex; flex-direction:column; }
+  /* 小屏等比缩放显示（不影响导出的 540×720 PNG）*/
+  @media (max-width:580px){ .poster{ transform:scale(calc((100vw - 32px)/540)); transform-origin:top center; } }
   .poster::after{ content:""; position:absolute; inset:0; pointer-events:none; background:
     radial-gradient(420px 320px at 92% -4%,rgba(255,36,66,.16),transparent 60%),
     radial-gradient(360px 360px at -6% 104%,rgba(255,36,66,.10),transparent 60%); }
@@ -25,20 +28,22 @@
   .pp-logo .nm{ font-weight:800; font-size:18px; }
   .pp-logo .en{ font-size:10px; letter-spacing:.3em; color:var(--soft); }
   .pp-kick{ margin-top:30px; font-size:13px; letter-spacing:.22em; color:var(--red); font-weight:700; }
-  .pp-h1{ margin-top:12px; font-size:42px; line-height:1.16; font-weight:300; letter-spacing:-.01em; }
+  .pp-h1{ margin-top:12px; font-size:42px; line-height:1.16; font-weight:400; letter-spacing:-.01em; }
   .pp-h1 b{ font-weight:900; color:var(--red); }
   .pp-sub{ margin-top:14px; font-size:15px; line-height:1.7; color:#4a4f56; max-width:400px; }
   .pp-chips{ margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .pp-chip{ display:flex; align-items:center; gap:9px; background:#fff; border:1px solid #ffe0e5; border-radius:13px; padding:10px 12px; font-weight:700; font-size:14px; }
   .pp-chip .ic{ font-size:18px; }
   /* 福利 + 二维码区 */
-  .pp-bottom{ margin-top:auto; display:flex; gap:12px; align-items:stretch; }
+  /* 底部福利+二维码：顶部对齐、各自按内容收紧（不再 stretch 撑高），整体更紧凑 */
+  .pp-bottom{ margin-top:auto; display:flex; gap:12px; align-items:flex-start; }
   .pp-perk{ flex:1; background:linear-gradient(135deg,var(--red),var(--red2)); color:#fff; border-radius:16px; padding:11px 15px;
-    display:flex; flex-direction:column; justify-content:center; gap:4px; box-shadow:0 14px 28px -12px rgba(255,36,66,.6); }
-  .pp-perk .pt{ font-size:11.5px; font-weight:600; display:flex; align-items:center; gap:7px; line-height:1.3; }
+    display:flex; flex-direction:column; justify-content:center; gap:5px; box-shadow:0 14px 28px -12px rgba(255,36,66,.6); }
+  .pp-perk .pt{ font-size:11.5px; font-weight:600; display:flex; align-items:center; gap:7px; line-height:1.25; }
   .pp-perk .pt b{ font-weight:900; }
-  .pp-qr{ flex:0 0 auto; width:104px; background:#fff; border-radius:16px; padding:8px; text-align:center; box-shadow:0 10px 24px -14px rgba(0,0,0,.3); border:1px solid #f0f1f3; display:flex; flex-direction:column; align-items:center; gap:4px; }
-  .pp-qr #qr img,.pp-qr #qr canvas{ width:64px!important; height:64px!important; }
+  .pp-qr{ flex:0 0 auto; width:96px; background:#fff; border-radius:14px; padding:8px 8px 7px; text-align:center; box-shadow:0 10px 24px -14px rgba(0,0,0,.3); border:1px solid #f0f1f3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; }
+  .pp-qr #qr{ width:64px; height:64px; display:flex; align-items:center; justify-content:center; }
+  .pp-qr #qr img,.pp-qr #qr canvas{ width:64px!important; height:64px!important; display:block; }
   .pp-qr .qh{ font-size:10px; color:var(--soft); line-height:1.4; }
   .pp-qr .qh b{ color:var(--red); }
   .pp-foot{ margin-top:16px; font-size:11.5px; color:var(--soft); display:flex; justify-content:space-between; }
@@ -105,12 +110,18 @@ function buildQR(){
   const box = $('#qr'); box.innerHTML = '';
   // 二维码由 JS 自动生成：内容 = 你的落地页链接（带邀请码）。优先本地 qrcodejs（清晰、可导出）；
   // CDN 被墙/加载失败时，自动回退到在线二维码图片，保证一定能出码。
+  let ok = false;
   try {
     if (!window.QRCode) throw new Error('lib-missing');
     new QRCode(box, { text: url, width: 96, height: 96, colorDark: '#16181d', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
-  } catch (e) {
+    ok = !!box.querySelector('canvas');
+  } catch (e) {}
+  if (ok) {
+    box.querySelectorAll('img').forEach(im => im.remove()); // 本地 canvas 已出码 → 移除 qrcodejs 自带备用 img，避免双码叠加把框撑高
+  } else {
+    box.innerHTML = ''; // 本地库不可用才回退外部（注意：api.qrserver.com 国内可能打不开）
     const img = document.createElement('img'); img.crossOrigin = 'anonymous'; img.alt = '二维码';
-    img.style.cssText = 'width:96px;height:96px';
+    img.style.cssText = 'width:64px;height:64px';
     img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=192x192&margin=0&data=' + encodeURIComponent(url);
     box.appendChild(img);
   }
@@ -126,11 +137,16 @@ buildQR();
 // 保存 PNG（高清 2x）
 $('#saveBtn').addEventListener('click', async () => {
   const btn = $('#saveBtn'); const old = btn.textContent; btn.textContent = '生成中…'; btn.disabled = true;
+  const el = $('#poster'); const prevT = el.style.transform;
   try {
-    const canvas = await html2canvas($('#poster'), { scale: 2, backgroundColor: null, useCORS: true });
+    try { await document.fonts.ready; } catch {}      // 等字体加载完再截，避免文字渲染不出/发虚
+    el.style.transform = 'none';                       // 取消小屏缩放，按原始 540×720 截图
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, width: 540, height: 720, windowWidth: 1200 });
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png'); a.download = '朱砂操盘台_分享海报.png'; a.click();
   } catch (e) { alert('生成失败：' + (e.message || e)); }
+  el.style.transform = prevT;
   btn.textContent = old; btn.disabled = false;
 });
 </script>
