@@ -679,24 +679,36 @@ async function generateCoverImagesCore(n) {
 
   const imgCap = maxImagesForUser(); let realCount = 0; // 体验期真实配图≤4
   if (refSet.length) {
-    // 有对标图组 → 逐张严格对位：文字密集类 → 长文笔记页；实拍场景类 → Seedream/可灵 照片
-    for (let i = 0; i < refSet.length; i++) {
-      // S3 这张明确写了「实拍/插画」类生图提示词 → 即使对标是文字密集图，也按实拍走 i2i（S3 意图优先）
-      const _seg = (typeof frameSliceForImage === 'function' && frameSliceForImage(i + 1)) || '';
-      const _s3Scene = (_seg.match(/生图提示词[：:]\s*([^\n]+)/) || [])[1] || '';
-      const _s3Photo = _s3Scene && !/清单|编号|对比|列表|表格|文字|排版|备忘录|大字|标题卡/.test(_s3Scene);
-      if (isTextHeavyRef(refSet[i]) && !_s3Photo) {
-        if (typeof setAuto === 'function') setAuto('按对标第 ' + (i + 1) + '/' + refSet.length + ' 张排长图笔记…');
-        const page = await planNotePage(i, refSet[i], i === 0, coverTitle, t);
-        urls.push('note://' + notePages.length); notePages.push(page); captions.push(null);
-      } else {
-        if (realCount >= imgCap) continue; // 体验期真实配图达上限，跳过余下实拍（长文笔记不受限）
-        if (typeof setAuto === 'function') setAuto('按对标第 ' + (i + 1) + '/' + refSet.length + ' 张出实拍配图…' + styleTag);
-        const plan = await planOneImage(i, refSet[i], i === 0, coverTitle, bodyTxt, t);
-        // 把对标第 i 张原图当垫图 → 图生图保结构（取不到原图时 genImageFromPlan 自动退回文生图）
-        const u = await genImageFromPlan(plan, '', i === 0 ? COVER_PROVIDER : INNER_PROVIDER, (state.refImages || [])[i] || '');
-        if (u) { urls.push(u); captions.push({ title: plan.title, lines: plan.lines, layout: plan.layout, theme: plan.theme }); realCount++; }
-      }
+    // 有对标图组 → 逐张对位：文字密集→长图笔记；实拍→i2i。并发出图(最多3张同时)提速，结果按对标顺序组装。
+    const planned = refSet.map((rv, i) => {
+      const seg = (typeof frameSliceForImage === 'function' && frameSliceForImage(i + 1)) || '';
+      const sc = (seg.match(/生图提示词[：:]\s*([^\n]+)/) || [])[1] || '';
+      const s3Photo = sc && !/清单|编号|对比|列表|表格|文字|排版|备忘录|大字|标题卡/.test(sc); // S3 明确要实拍 → 即使对标文字密集也走 i2i
+      return { i, isNote: isTextHeavyRef(rv) && !s3Photo };
+    });
+    let _seq = 0; planned.forEach(p => { if (!p.isNote) p.photoIdx = _seq++; }); // 实拍图编号，超体验期上限的跳过
+    const results = new Array(refSet.length).fill(null);
+    let done = 0; const total = planned.length;
+    const runOne = async (p) => {
+      try {
+        if (p.isNote) {
+          const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
+          results[p.i] = { kind: 'note', page };
+        } else if (p.photoIdx < imgCap) {
+          const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
+          const u = await genImageFromPlan(plan, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, (state.refImages || [])[p.i] || '');
+          if (u) results[p.i] = { kind: 'photo', url: u, caption: { title: plan.title, lines: plan.lines, layout: plan.layout, theme: plan.theme } };
+        }
+      } catch {}
+      done++; if (typeof setAuto === 'function') setAuto('并发生成配图中… ' + done + '/' + total + ' 张' + styleTag);
+    };
+    let qi = 0;
+    const worker = async () => { while (qi < planned.length) { await runOne(planned[qi++]); } };
+    await Promise.all(Array.from({ length: Math.min(3, planned.length) }, worker)); // 并发池 3
+    for (let i = 0; i < refSet.length; i++) { // 按对标顺序组装，保证封面/配图次序不乱
+      const r = results[i]; if (!r) continue;
+      if (r.kind === 'note') { urls.push('note://' + notePages.length); notePages.push(r.page); captions.push(null); }
+      else { urls.push(r.url); captions.push(r.caption); }
     }
   } else {
     // 无对标图 → 单次批量生成 n 张
