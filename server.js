@@ -402,7 +402,7 @@ const server = http.createServer(async (req, res) => {
           // 是 http(s) 链接（如对标原图走小红书 CDN，有防盗链）→ 服务端带 referer 抓下来转 base64，更稳；取不到就退回文生图
           if (refImg && /^https?:\/\//i.test(refImg)) {
             try {
-              const ir = await fetch(refImg, { headers: { 'user-agent': 'Mozilla/5.0', 'referer': 'https://www.xiaohongshu.com/' } });
+              const ir = await fetch(refImg, { signal: AbortSignal.timeout(10000), headers: { 'user-agent': 'Mozilla/5.0', 'referer': 'https://www.xiaohongshu.com/' } });
               if (ir.ok) { const ct = ir.headers.get('content-type') || 'image/jpeg'; refImg = 'data:' + ct + ';base64,' + Buffer.from(await ir.arrayBuffer()).toString('base64'); }
               else refImg = '';
             } catch { refImg = ''; }
@@ -424,7 +424,7 @@ const server = http.createServer(async (req, res) => {
           url = (process.env.IMAGE_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4') + '/images/generations';
           body = { model, prompt, size: sz };
         }
-        const up = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + ikey }, body: JSON.stringify(body) });
+        const up = await fetch(url, { signal: AbortSignal.timeout(90000), method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + ikey }, body: JSON.stringify(body) });
         const text = await up.text();
         if (!up.ok) return send(res, up.status, text, { 'content-type': 'application/json' });
         try {

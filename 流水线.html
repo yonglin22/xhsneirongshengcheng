@@ -657,7 +657,7 @@ async function genImageFromPlan(plan, style, provider, initImage) {
         }
       : { prompt: buildImgPrompt(plan.theme === 'poster' ? '' : style, plan.scene, plan.theme) };
     if (!useI2I && provider) body.provider = provider;
-    const r = await fetch('/api/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const tx = await r.text(); if (!r.ok) return '';
     const j = JSON.parse(tx); return (j.data && j.data[0] && j.data[0].url) || '';
   } catch { return ''; }
