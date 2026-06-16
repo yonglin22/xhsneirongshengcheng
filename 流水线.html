@@ -323,15 +323,16 @@ function outputHTML(st) {
       </div>
       <div class="mt-3 flex items-center gap-2.5 flex-wrap">
         <button id="genNote" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">📝 生成长文笔记图</button>
-        <button id="genImg" class="btn-ghost rounded-xl px-5 py-2.5 text-[13px] font-medium">🎨 生成 ${coverCount()} 张配图${isTrialUser() ? '（体验上限4张）' : ''}</button>
-        <button id="upImg" class="btn-ghost rounded-xl px-4 py-2.5 text-[13px]">📎 上传图片</button>
+        <button id="genImg" class="btn-ghost rounded-xl px-5 py-2.5 text-[13px] font-medium">🎨 生成 ${coverCount()} 张配图（封面/氛围）${isTrialUser() ? '（体验上限4张）' : ''}</button>
+        <button id="upImg" class="btn-go rounded-xl px-4 py-2.5 text-[13px]">📎 上传真实图（实拍最佳）</button>
         <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
         <span class="text-[11px] text-[var(--ink-soft)]">${(state.refImages||[]).length?('对标 '+state.refImages.length+' 张 → 生成 '+Math.min(Math.max(state.refImages.length,1),9)+' 张，按对标结构'):('默认 3 张；贴对标后按其张数')}${(typeof agentImgStyle==='function'&&agentImgStyle())?(' · 画风：'+agentImgStyle()):' · 未设画风（智能体页可设）'}</span>
         <span id="imgStatus" class="text-[12px]"></span>
       </div>
       <div class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
-        📝 <b>长文笔记图</b>：内容来自 <b style="color:var(--cinnabar-deep)">S3 框架的「配图规划」</b>（第N张 → 出几页，正文仅在没框架规划时兜底）；对标图作版式参照，封面配色看 S6 视觉建议。
-        　·　🎨 <b>生成配图</b>：AI 实拍/海报照片（按正文要点+对标画面）。
+        📌 <b>建议</b>：产品实物 / 真人 / 宝宝等<b>实拍图</b>，点「📎 上传真实图」用你自己的照片——<b style="color:var(--cinnabar-deep)">真实素材质感远胜 AI</b>；AI 擅长做<b>封面、氛围底图、长图笔记</b>。<br>
+        📝 <b>长文笔记图（主推）</b>：内容来自 <b style="color:var(--cinnabar-deep)">S3 框架「配图规划」</b>，纯排版文字零乱码、最稳。
+        　·　🎨 <b>生成配图</b>：AI 出封面/氛围底图（实拍类建议上传真实图替换）。
       </div>
       <div id="imgWrap" class="mt-3"></div>`;
   }
