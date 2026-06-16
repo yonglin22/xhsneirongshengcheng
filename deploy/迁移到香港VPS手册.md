@@ -38,8 +38,8 @@ chown -R app:app /opt/zhusha
 ```bash
 su - app
 cd /opt/zhusha
-cp .env.上线模板 .env
-nano .env          # 按下面填写
+cp .env.example .env
+nano .env          # 按下面填写（真实密钥从你本地 .env / Render 面板拷过来）
 ```
 `.env` 必填项（其余保持模板默认即可）：
 ```
