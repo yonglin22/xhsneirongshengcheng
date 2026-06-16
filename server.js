@@ -138,7 +138,7 @@ async function sendSmsAliyun(phone, code) {
   // 香港→杭州跨境偶发 fetch failed，重试 3 次（同一签名 URL 在有效期内可重发）
   let r, lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
-    try { r = await fetch(url, { signal: AbortSignal.timeout(8000) }); break; }
+    try { r = await fetch(url, { signal: AbortSignal.timeout(6000) }); break; }
     catch (e) { lastErr = e; await new Promise(s => setTimeout(s, 400)); }
   }
   if (!r) throw new Error('阿里云短信网络失败（重试3次）：' + ((lastErr && lastErr.message) || 'fetch failed'));
@@ -940,9 +940,10 @@ const server = http.createServer(async (req, res) => {
       if (!rl.ok) return sendJSON(res, 429, { error: rl.msg });
       const code = billing.setCode(phone);
       const dev = !process.env.SMS_PROVIDER;
-      if (dev) console.log(`  [验证码] ${phone} → ${code}`);
-      else { try { await sendSms(phone, code); } catch (e) { console.error('[SMS] 发送失败:', e.message); return sendJSON(res, 502, { error: '短信发送失败，请稍后重试' }); } }
-      return sendJSON(res, 200, { ok: true, dev, ...(dev ? { code } : {}) });
+      if (dev) { console.log(`  [验证码] ${phone} → ${code}`); return sendJSON(res, 200, { ok: true, dev: true, code }); }
+      // 立即响应、后台异步发短信：不让前端等跨境 API 往返，按钮秒回，短信由运营商投递（约几秒~十几秒）
+      sendSms(phone, code).catch(e => console.error('[SMS] 发送失败:', e.message));
+      return sendJSON(res, 200, { ok: true, dev: false });
     }
     // 登录：验证码核对 → 建/取用户（新用户送积分）→ 下发 httpOnly Cookie
     if (pathname === '/api/auth/login' && req.method === 'POST') {
