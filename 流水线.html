@@ -464,7 +464,7 @@ async function regenWithRef(i, refDataUrl) {
 // 逐张视觉解析对标图组（得每张的作用/构图），供 S6 对位生成。结果存 state.refVisions。
 const REF_VISION_PROMPT = '提取这张小红书图上的关键文字（大标题 + 主要要点/数字/编号，原样照抄但不要概括），不要写"这张图展示了…"之类总结。如果是思维导图/长图/信息特别多，只取最核心的标题和最多 8 条要点，不要把整张图所有文字都搬下来。严格按三行输出：\n【文字】逐条列出（用 / 或换行分隔，最多 8 条；没有就写"无文字"）\n【版式】选填：封面大字 / 编号清单 / 前后对比 / 数据清单 / 要点列表 / 思维导图\n【画面】≤15字描述画面';
 async function visionOne(imgUrl) {
-  const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: imgUrl, prompt: REF_VISION_PROMPT }) })).json();
+  const j = await (await fetch('/api/vision', { method: 'POST', signal: AbortSignal.timeout(45000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: imgUrl, prompt: REF_VISION_PROMPT }) })).json();
   return (j.ok && j.desc) ? j.desc.trim().slice(0, 360) : '';
 }
 async function analyzeRefImageSet(setStatusFn) {
