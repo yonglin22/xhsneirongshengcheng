@@ -154,7 +154,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=34"></script>
+<script src="/assets/app.js?v=35"></script>
 <script>
 const SKILLS = [
   ['S1','选题','产出 3–5 个当下最该发的选题，标最推荐'],
@@ -195,14 +195,24 @@ function load() {
   kbFiles = { kb1: c.kb1_files || [], kb2: c.kb2_files || [], kb3: c.kb3_files || [], kb4: c.kb4_files || [] };
   customSkills = Array.isArray(c.skills) ? c.skills.map(s => ({ name: s.name || '', prompt: s.prompt || '', github: s.github || '' })) : [];
   const b = c.boundary || {}; $('#bForbidden').value = b.forbidden || ''; $('#bFacts').value = b.facts || ''; $('#bTone').value = b.tone || ''; $('#bPrefs').value = c.prefs || '';
-  styleRefs = Array.isArray(c.styleRefs) ? c.styleRefs : [];
+  // 兼容旧数据（纯 url 字符串）→ 统一成 {url, prompt}
+  styleRefs = (Array.isArray(c.styleRefs) ? c.styleRefs : []).map(x => typeof x === 'string' ? { url: x, prompt: '' } : { url: (x && x.url) || '', prompt: (x && x.prompt) || '' }).filter(x => x.url);
   renderChips(); renderSkills(); renderCustomSkills(); renderAllKbFiles(); updateKbStat(c); renderStyleRefs();
 }
 let styleRefs = [];
 function renderStyleRefs() {
   const box = document.getElementById('styleRefs'); if (!box) return;
-  box.innerHTML = styleRefs.map((u, i) => `<div style="position:relative"><img src="${u}" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"/><span class="sr-del" data-i="${i}" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:10px">✕</span></div>`).join('') || '<span class="text-[11px] text-[var(--ink-soft)]">还没参考图。上传几张，配图会参照保持统一风格。</span>';
+  if (!styleRefs.length) { box.innerHTML = '<span class="text-[11px] text-[var(--ink-soft)]">还没参考图。上传几张，点「✨提炼画风」给每张生成提示词模板，配图按它保持统一风格。</span>'; return; }
+  box.innerHTML = styleRefs.map((it, i) => `<div style="display:flex;gap:8px;align-items:flex-start;width:100%;margin-bottom:8px">
+    <div style="position:relative;flex:0 0 auto"><img src="${it.url}" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"/><span class="sr-del" data-i="${i}" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:10px">✕</span></div>
+    <div style="flex:1;min-width:0">
+      <textarea class="sr-prompt field" data-i="${i}" rows="2" placeholder="这张图的生图提示词模板（点「✨提炼画风」自动生成，可改）" style="width:100%;font-size:12px;border-radius:8px;padding:6px 8px;resize:vertical">${(it.prompt || '').replace(/</g, '&lt;')}</textarea>
+      <button class="sr-distill1 btn-ghost rounded-md px-2 py-0.5 text-[11px]" data-i="${i}" style="margin-top:3px">✨ 提炼这张</button>
+    </div>
+  </div>`).join('');
   box.querySelectorAll('.sr-del').forEach(b => b.addEventListener('click', () => { styleRefs.splice(+b.dataset.i, 1); renderStyleRefs(); }));
+  box.querySelectorAll('.sr-prompt').forEach(t => t.addEventListener('input', e => { styleRefs[+e.target.dataset.i].prompt = e.target.value; }));
+  box.querySelectorAll('.sr-distill1').forEach(b => b.addEventListener('click', () => distillOne(+b.dataset.i, b)));
 }
 
 // A1② 样例笔记 → 一键建人设（语气克隆 + 方法论提取 + 配图风格）
@@ -352,17 +362,32 @@ $('#kbFile').addEventListener('change', async e => {
 $('#styleRefUp')?.addEventListener('click', () => $('#styleRefFile').click());
 $('#styleRefFile')?.addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = '';
-  for (const f of files) { const d = await fileToThumb(f, 760); if (d) styleRefs.push(d); }
-  renderStyleRefs(); $('#status').textContent = '✓ 已加参考图到风格库（记得保存）'; $('#status').style.color = 'var(--ink-soft)';
+  for (const f of files) { const d = await fileToThumb(f, 760); if (d) styleRefs.push({ url: d, prompt: '' }); }
+  renderStyleRefs(); $('#status').textContent = '✓ 已加参考图。点「✨提炼画风」给每张生成提示词模板（记得保存）'; $('#status').style.color = 'var(--ink-soft)';
 });
+// 提炼单张 → 生成可复用的生图提示词模板（画面/构图/配色/质感，换内容时复用）
+async function distillOne(i, btn) {
+  const it = styleRefs[i]; if (!it || !it.url) return;
+  const o = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = '提炼中…'; }
+  try {
+    const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: it.url, prompt: '把这张图提炼成一条「可复用的小红书生图提示词模板」：依次写画面类型(实拍/插画/3D)、构图/版式、主体布局、配色、光影、质感氛围；用于以后换内容时复用同款风格。只输出这条提示词本身（中文、一句话、≤60字），不要解释、不写具体文字内容。' }) })).json();
+    if (j.ok && j.desc) { styleRefs[i].prompt = j.desc.trim().replace(/\s+/g, ' ').slice(0, 80); renderStyleRefs(); }
+    else { $('#status').textContent = '提炼失败：' + (j.error || '换张更清晰的图'); $('#status').style.color = 'var(--cinnabar-deep)'; }
+  } catch (e) { $('#status').textContent = '提炼失败：' + (e.message || e); $('#status').style.color = 'var(--cinnabar-deep)'; }
+  finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
+}
 $('#styleRefDistill')?.addEventListener('click', async () => {
   if (!styleRefs.length) { $('#status').textContent = '先上传几张参考图再提炼画风'; $('#status').style.color = 'var(--cinnabar-deep)'; return; }
-  const btn = $('#styleRefDistill'), o = btn.textContent; btn.disabled = true; btn.textContent = '提炼中…';
+  const btn = $('#styleRefDistill'), o = btn.textContent; btn.disabled = true;
   try {
-    // 用视觉模型看第一张参考图，提炼成一句可复用画风
-    const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: styleRefs[0], prompt: '用一句中文概括这张图的「视觉风格」：画面类型(实拍/插画/3D…)、配色、质感、排版氛围、光影。只输出风格短句，不描述具体内容，≤30字。' }) })).json();
-    if (j.ok && j.desc) { $('#imgStyle').value = j.desc.trim().replace(/\s+/g, ' ').slice(0, 40); $('#status').textContent = '✓ 已据参考图提炼画风，填入「配图视觉风格」，记得保存'; $('#status').style.color = '#00a052'; }
-    else { $('#status').textContent = '提炼失败：' + (j.error || '换张更清晰的参考图'); $('#status').style.color = 'var(--cinnabar-deep)'; }
+    // ① 逐张提炼提示词模板
+    for (let i = 0; i < styleRefs.length; i++) { btn.textContent = `提炼中 ${i + 1}/${styleRefs.length}…`; await distillOne(i, null); }
+    // ② 据第一张提炼一句整体「配图视觉风格」填进上面的框（统一画风用）
+    if (!$('#imgStyle').value.trim()) {
+      const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: styleRefs[0].url, prompt: '用一句中文概括这张图的「视觉风格」：画面类型(实拍/插画/3D…)、配色、质感、排版氛围、光影。只输出风格短句，不描述具体内容，≤30字。' }) })).json();
+      if (j.ok && j.desc) $('#imgStyle').value = j.desc.trim().replace(/\s+/g, ' ').slice(0, 40);
+    }
+    $('#status').textContent = '✓ 已为每张图生成提示词模板 + 填好整体画风，记得保存'; $('#status').style.color = '#00a052';
   } catch (e) { $('#status').textContent = '提炼失败：' + (e.message || e); $('#status').style.color = 'var(--cinnabar-deep)'; }
   finally { btn.disabled = false; btn.textContent = o; }
 });
