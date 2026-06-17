@@ -378,8 +378,7 @@ function renderCoverImages() {
   box.innerHTML = '<div class="flex flex-wrap gap-3 items-start">' + imgs.map((u, i) => `
     <div style="position:relative">
       <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
-      <span class="ci-regen" data-i="${i}" title="重新生成这张" style="position:absolute;top:-7px;left:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">🔄</span>
-      <span class="ci-ref" data-i="${i}" title="上传参考图，按它的构图/风格重出这张（图生图·SeedEdit）" style="position:absolute;top:18px;left:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">📎</span>
+      <span class="ci-regen" data-i="${i}" title="重新生成这张（可改提示词/上传参考图）" style="position:absolute;top:-7px;left:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">🔄</span>
       <span class="ci-del" data-i="${i}" style="position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">✕</span>
       <div class="text-[10px] text-center text-[var(--ink-soft)] mt-1">${i === 0 ? '封面' : '配图 ' + i}</div>
     </div>`).join('') + '</div>';
@@ -388,23 +387,14 @@ function renderCoverImages() {
     state.coverImage = state.coverImages[0] || ''; persist(); renderCoverImages();
   }));
   box.querySelectorAll('.ci-regen').forEach(x => x.addEventListener('click', async () => {
-    const i = +x.dataset.i; const o = x.textContent; x.textContent = '⏳';
-    try { await regenOneCover(i); renderCoverImages(); }
-    catch (e) { x.textContent = o; const st = $('#imgStatus'); if (st) { st.textContent = '重生成失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
-  }));
-  // 📎 参考图垫图重生（图生图 · SeedEdit）：上传一张参考图，按其构图/风格重出该图
-  box.querySelectorAll('.ci-ref').forEach(x => x.addEventListener('click', () => {
-    const i = +x.dataset.i;
-    let inp = document.getElementById('__ciRefFile');
-    if (!inp) { inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.id = '__ciRefFile'; inp.style.display = 'none'; document.body.appendChild(inp); }
-    inp.onchange = async () => {
-      const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
-      const span = box.querySelector('.ci-ref[data-i="' + i + '"]'); const o = span ? span.textContent : '📎'; if (span) span.textContent = '⏳';
-      const st = $('#imgStatus'); if (st) { st.textContent = '按参考图垫图重出第 ' + (i === 0 ? '封面' : i) + ' 张…'; st.style.color = 'var(--ink-soft)'; }
-      try { const dataUrl = await downscaleImage(f, 1024); await regenWithRef(i, dataUrl); renderCoverImages(); if (st) { st.textContent = '✓ 已按参考图重出'; st.style.color = '#00a052'; } }
-      catch (e) { if (span) span.textContent = o; if (st) { st.textContent = '图生图失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
-    };
-    inp.click();
+    const i = +x.dataset.i; const curU = (state.coverImages || [])[i] || '';
+    if (curU.startsWith('note://')) { // 长图笔记页 → 直接重排（不弹图片弹框）
+      const o = x.textContent; x.textContent = '⏳';
+      try { await regenOneCover(i); renderCoverImages(); }
+      catch (e) { x.textContent = o; const st = $('#imgStatus'); if (st) { st.textContent = '重排失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
+      return;
+    }
+    openRegenModal(i); // 图片 → 弹框：改提示词 / 上传参考图
   }));
   // 长图笔记页：内容超框就等比缩小（双 rAF + 字体加载完后再各测一次，保证导出也准）
   requestAnimationFrame(() => requestAnimationFrame(() => fitAllNotes(box)));
@@ -459,6 +449,71 @@ async function regenWithRef(i, refDataUrl) {
   if (!u) throw new Error('上游无图');
   state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
   state.coverImages[i] = u; state.coverImage = state.coverImages[0]; persist();
+}
+// 这张图当前的「画面提示词」：优先 S3 配图规划的生图提示词，其次 caption 标题
+function imgPromptFor(i) {
+  const cap = (state.coverCaptions || [])[i] || {};
+  const seg = (typeof frameSliceForImage === 'function' && frameSliceForImage(i + 1)) || '';
+  const s3Scene = (seg.match(/生图提示词[：:]\s*([^\n]+)/) || [])[1] || '';
+  return (s3Scene || cap.title || ((state.topic || '') + ' 相关的小红书竖版配图')).trim();
+}
+// 单图重新生成弹框：改提示词 + 可选上传参考图（合一入口）
+function openRegenModal(i) {
+  const old = document.getElementById('regenModal'); if (old) old.remove();
+  const m = document.createElement('div'); m.id = 'regenModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  const cur = imgPromptFor(i).replace(/</g, '&lt;');
+  m.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:430px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-weight:800;font-size:16px;margin-bottom:4px">重新生成「${i === 0 ? '封面' : '配图 ' + i}」</div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">改下方提示词重画；或上传一张参考图，按它的构图/风格重出（图生图）。</div>
+    <label style="font-size:12px;color:var(--ink-soft);font-weight:600">画面提示词（描述画面，别写要叠的文字）</label>
+    <textarea id="rgPrompt" style="width:100%;height:88px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;margin:6px 0 14px;resize:vertical;box-sizing:border-box">${cur}</textarea>
+    <label style="font-size:12px;color:var(--ink-soft);font-weight:600">参考图（可选 · 上传后按它的构图/风格重出，质感最稳）</label>
+    <div style="display:flex;align-items:center;gap:10px;margin:6px 0 12px">
+      <button id="rgPick" class="btn-ghost rounded-lg px-3 py-2 text-[12px]">📎 选择参考图</button>
+      <span id="rgRefName" style="font-size:12px;color:var(--ink-soft)">未选择</span>
+    </div>
+    <div id="rgStatus" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button id="rgCancel" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">取消</button>
+      <button id="rgGo" class="btn-go rounded-lg px-5 py-2 text-[13px] font-medium">🔄 重新生成</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+  let refData = '';
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  m.querySelector('#rgCancel').onclick = () => m.remove();
+  m.querySelector('#rgPick').onclick = () => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; const nm = m.querySelector('#rgRefName'); nm.textContent = '处理中…'; try { refData = await downscaleImage(f, 1024); nm.textContent = '✓ 已选参考图（将按它重出）'; nm.style.color = '#00a052'; } catch { nm.textContent = '图片处理失败'; } };
+    inp.click();
+  };
+  m.querySelector('#rgGo').onclick = async () => {
+    const prompt = m.querySelector('#rgPrompt').value.trim();
+    const go = m.querySelector('#rgGo'); go.disabled = true; const o = go.textContent; go.textContent = '生成中…';
+    const stEl = m.querySelector('#rgStatus'); stEl.textContent = '正在出图…（约 30 秒）'; stEl.style.color = 'var(--ink-soft)';
+    try { await regenImageCustom(i, prompt, refData); m.remove(); renderCoverImages(); const st = $('#imgStatus'); if (st) { st.textContent = '✓ 已重新生成第 ' + (i === 0 ? '封面' : i) + ' 张'; st.style.color = '#00a052'; } }
+    catch (e) { go.disabled = false; go.textContent = o; stEl.textContent = '失败：' + (e.message || e); stEl.style.color = 'var(--cinnabar-deep)'; }
+  };
+  setTimeout(() => { const ta = m.querySelector('#rgPrompt'); if (ta) ta.focus(); }, 50);
+}
+// 按自定义提示词(+可选参考图垫图)重出第 i 张
+async function regenImageCustom(i, promptText, refDataUrl) {
+  const isCover = i === 0;
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const scene = promptText || imgPromptFor(i);
+  const body = refDataUrl
+    ? { provider: 'ark', init_image: refDataUrl, action: 'cover', prompt: `参考所给图片：保留它的构图、版式、主体位置与配色风格，结构高度一致；只把画面内容替换为「${scene}」。${aStyle ? '画风：' + aStyle + '。' : ''}小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
+    : { provider: isCover ? 'ark' : 'kling', prompt: buildImgPrompt('', scene, 'photo') };
+  const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const tx = await r.text();
+  if (!r.ok) { let msg = '出图失败'; try { msg = JSON.parse(tx).error || msg; } catch {} throw new Error(typeof msg === 'string' ? msg.slice(0, 90) : '出图失败'); }
+  let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
+  if (!u) throw new Error('上游无图');
+  state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
+  state.coverImages[i] = u; state.coverImage = state.coverImages[0];
+  state.coverCaptions = state.coverCaptions || []; if (!state.coverCaptions[i]) state.coverCaptions[i] = { theme: 'photo' };
+  persist();
 }
 
 // 生成 n 张配图：每张对应正文一个要点、整组统一风格、构图贴对标。供手动与自动复用。
