@@ -343,7 +343,6 @@ function outputHTML(st) {
       </div>
       <div class="mt-3 flex items-center gap-2.5 flex-wrap">
         <button id="genNote" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">📝 生成长文笔记图</button>
-        <button id="genImg" class="btn-ghost rounded-xl px-5 py-2.5 text-[13px] font-medium">🎨 生成 ${coverCount()} 张配图（封面/氛围）${isTrialUser() ? '（体验上限4张）' : ''}</button>
         <button id="upImg" class="btn-go rounded-xl px-4 py-2.5 text-[13px]">📎 上传真实图（实拍最佳）</button>
         <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
         <span class="text-[11px] text-[var(--ink-soft)]">${(state.refImages||[]).length?('对标 '+state.refImages.length+' 张 → 生成 '+Math.min(Math.max(state.refImages.length,1),9)+' 张，按对标结构'):('默认 3 张；贴对标后按其张数')}${(typeof agentImgStyle==='function'&&agentImgStyle())?(' · 画风：'+agentImgStyle()):' · 未设画风（智能体页可设）'}</span>
@@ -352,7 +351,7 @@ function outputHTML(st) {
       <div class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
         📌 <b>建议</b>：产品实物 / 真人 / 宝宝等<b>实拍图</b>，点「📎 上传真实图」用你自己的照片——<b style="color:var(--cinnabar-deep)">真实素材质感远胜 AI</b>；AI 擅长做<b>封面、氛围底图、长图笔记</b>。<br>
         📝 <b>长文笔记图（主推）</b>：内容来自 <b style="color:var(--cinnabar-deep)">S3 框架「配图规划」</b>，纯排版文字零乱码、最稳。
-        　·　🎨 <b>生成配图</b>：AI 出封面/氛围底图（实拍类建议上传真实图替换）。
+        　·　🎨 想要 <b>AI 配图（封面/氛围底图）</b>？在每张卡下点「🔄 重排这页」，写提示词 / 传参考图即可出图（实拍类直接上传真实图最佳）。
       </div>
       <div id="imgWrap" class="mt-3"></div>`;
   }
@@ -397,8 +396,7 @@ function renderCoverImages() {
   const caps = state.coverCaptions || [];
   box.innerHTML = '<div class="flex flex-wrap gap-3 items-start">' + imgs.map((u, i) => `
     <div style="position:relative">
-      <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
-      <span class="ci-regen" data-i="${i}" title="重新生成这张（可改提示词/上传参考图）" style="position:absolute;top:-7px;left:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">🔄</span>
+      <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : (caps[i] && caps[i].raw) ? `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>` : `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
       <span class="ci-del" data-i="${i}" style="position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">✕</span>
       <div class="mt-1 flex flex-col items-center gap-1" style="width:156px">
         <span class="text-[10px] text-[var(--ink-soft)]">${i === 0 ? '封面' : '配图 ' + i}</span>
@@ -481,9 +479,9 @@ function openRegenModal(i) {
   const label = i === 0 ? '封面' : (isNote ? '笔记页 ' : '配图 ') + (i === 0 ? '' : i);
   m.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:430px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
     <div style="font-weight:800;font-size:16px;margin-bottom:4px">${isNote ? '重排这页' : '重新出图'}「${label}」</div>
-    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">${isNote ? '填补充要求重排这页文字；或直接上传一张图替换这页。' : '改下方提示词让 AI 重画；或直接上传一张图替换（推荐，精确秒出）。'}</div>
-    <label style="font-size:12px;color:var(--ink-soft);font-weight:600">${isNote ? '补充要求（可留空＝按原规划重排）' : 'AI 画面提示词（没上传图时才用，描述画面别写文字）'}</label>
-    <textarea id="rgPrompt" placeholder="${isNote ? '例：第2点说得更具体、加一个数字例子' : ''}" style="width:100%;height:88px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;margin:6px 0 14px;resize:vertical;box-sizing:border-box">${cur}</textarea>
+    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">${isNote ? '①「🔄 重排文字」：填补充要求重排这页；②「🎨 生成配图」：写画面提示词 / 传参考图，让 AI 出封面/氛围图替换这页；③ 直接上传真实图最佳。' : '改下方提示词让 AI 重画；或直接上传一张图替换（推荐，精确秒出）。'}</div>
+    <label style="font-size:12px;color:var(--ink-soft);font-weight:600">${isNote ? '补充要求（重排用）／ 或 AI 画面提示词（生成配图用，描述画面别写文字）' : 'AI 画面提示词（没上传图时才用，描述画面别写文字）'}</label>
+    <textarea id="rgPrompt" placeholder="${isNote ? '重排例：第2点加个数字例子　｜　生成配图例：浅灰粉书桌特写，摊开美术史书' : ''}" style="width:100%;height:88px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;margin:6px 0 14px;resize:vertical;box-sizing:border-box">${cur}</textarea>
     <label style="font-size:12px;color:var(--ink-soft);font-weight:600">上传图片</label>
     <div style="display:flex;align-items:center;gap:10px;margin:6px 0 8px">
       <button id="rgPick" class="btn-ghost rounded-lg px-3 py-2 text-[12px]">📎 选择图片</button>
@@ -494,9 +492,11 @@ function openRegenModal(i) {
       <span>直接用这张原图（推荐 · 精确秒出、不经 AI）；<b style="color:var(--cinnabar-deep)">取消勾选</b>则让 AI 参考它重画（约30秒，可能不完全一样）</span>
     </label>
     <div id="rgStatus" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
       <button id="rgCancel" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">取消</button>
-      <button id="rgGo" class="btn-go rounded-lg px-5 py-2 text-[13px] font-medium">🔄 ${isNote ? '重排这页' : '重新出图'}</button>
+      ${isNote
+        ? '<button id="rgGo" class="btn-ghost rounded-lg px-4 py-2 text-[13px] font-medium">🔄 重排文字</button><button id="rgGenImg" class="btn-go rounded-lg px-4 py-2 text-[13px] font-medium">🎨 生成配图</button>'
+        : '<button id="rgGo" class="btn-go rounded-lg px-5 py-2 text-[13px] font-medium">🎨 重新出图</button>'}
     </div>
   </div>`;
   document.body.appendChild(m);
@@ -508,32 +508,34 @@ function openRegenModal(i) {
     inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; const nm = m.querySelector('#rgRefName'); nm.textContent = '处理中…'; try { refData = await downscaleImage(f, 1280); nm.textContent = '✓ 已选图片'; nm.style.color = '#00a052'; const row = m.querySelector('#rgUseRawRow'); if (row) row.style.display = 'flex'; } catch { nm.textContent = '图片处理失败'; } };
     inp.click();
   };
-  m.querySelector('#rgGo').onclick = async () => {
+  // mode: 'relayout'=重排文字（仅笔记卡）| 'image'=生成/重出 AI 配图
+  const run = async (mode) => {
     const prompt = m.querySelector('#rgPrompt').value.trim();
-    const go = m.querySelector('#rgGo'); go.disabled = true; const o = go.textContent; go.textContent = '生成中…';
+    const btns = [m.querySelector('#rgGo'), m.querySelector('#rgGenImg')].filter(Boolean);
+    btns.forEach(b => b.disabled = true);
     const stEl = m.querySelector('#rgStatus');
     const useRaw = !!(refData && m.querySelector('#rgUseRaw') && m.querySelector('#rgUseRaw').checked);
-    stEl.textContent = useRaw ? '应用图片…' : (refData ? 'AI 参考重画中…（约 30 秒）' : (isNote ? '正在重排这页…（约 10 秒）' : '正在出图…（约 30 秒）')); stEl.style.color = 'var(--ink-soft)';
+    stEl.textContent = useRaw ? '应用图片…' : (mode === 'image' ? (refData ? 'AI 参考重画中…（约 30 秒）' : '正在出图…（约 30 秒）') : '正在重排这页…（约 10 秒）'); stEl.style.color = 'var(--ink-soft)';
     try {
-      if (useRaw) { // 上传图 + 勾选"直接用" → 直接当配图（精确、秒出，不经 AI）
+      if (useRaw) { // 上传图 + 勾选"直接用" → 直接当配图（精确秒出、不经 AI、不盖文字）
         state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
         state.coverImages[i] = refData; state.coverImage = state.coverImages[0];
-        state.coverCaptions = state.coverCaptions || []; if (!state.coverCaptions[i]) state.coverCaptions[i] = { theme: 'photo' };
+        state.coverCaptions = state.coverCaptions || []; state.coverCaptions[i] = { theme: 'photo', raw: true };
         persist();
-      } else if (refData) { // 上传图 + 取消勾选 → AI 参考它重画（Seedream i2i，约30s，可能不完全一样）
+      } else if (mode === 'image') { // 生成 AI 配图（有参考图则垫图 i2i，否则按提示词出图）
         await regenImageCustom(i, prompt, refData);
-      } else if (isNote) { // 笔记页重排（带补充要求）
+      } else { // 笔记页重排（带补充要求）
         const t = getTrack(); const refVis = (state.refVisions || [])[i] || '';
         const page = await planNotePage(i, refVis, i === 0, ((state.cover && state.cover.cover_lines) || []).join(' '), t, prompt);
         const idx = +((state.coverImages || [])[i] || 'note://0').slice(7);
         state.notePages = state.notePages || []; state.notePages[idx] = page; persist();
-      } else { // 没传图、只填提示词 → AI 出封面/氛围图
-        await regenImageCustom(i, prompt, '');
       }
       m.remove(); renderCoverImages();
-      const st = $('#imgStatus'); if (st) { st.textContent = '✓ 已重新生成第 ' + (i === 0 ? '封面' : i) + ' 张'; st.style.color = '#00a052'; }
-    } catch (e) { go.disabled = false; go.textContent = o; stEl.textContent = '失败：' + (e.message || e); stEl.style.color = 'var(--cinnabar-deep)'; }
+      const st = $('#imgStatus'); if (st) { st.textContent = '✓ 已更新第 ' + (i === 0 ? '封面' : i) + ' 张'; st.style.color = '#00a052'; }
+    } catch (e) { btns.forEach(b => b.disabled = false); stEl.textContent = '失败：' + (e.message || e); stEl.style.color = 'var(--cinnabar-deep)'; }
   };
+  m.querySelector('#rgGo').onclick = () => run(isNote ? 'relayout' : 'image');
+  const gi = m.querySelector('#rgGenImg'); if (gi) gi.onclick = () => run('image');
   setTimeout(() => { const ta = m.querySelector('#rgPrompt'); if (ta) ta.focus(); }, 50);
 }
 // 按自定义提示词(+可选参考图垫图)重出第 i 张
@@ -1128,8 +1130,9 @@ async function onRefUpload(e) {
 async function onCoverUpload(e) {
   const files = [...e.target.files]; if (!files.length) { e.target.value = ''; return; }
   state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
+  state.coverCaptions = state.coverCaptions || [];
   const st = $('#imgStatus'); if (st) { st.textContent = '处理图片中…'; st.style.color = 'var(--ink-soft)'; }
-  for (const f of files) { const d = await downscaleImage(f); if (d) state.coverImages.push(d); }
+  for (const f of files) { const d = await downscaleImage(f); if (d) { state.coverImages.push(d); state.coverCaptions[state.coverImages.length - 1] = { theme: 'photo', raw: true }; } } // raw=真实上传图：直接显示，不盖文字/蒙层
   state.coverImage = state.coverImages[0]; persist(); renderCoverImages();
   if (st) st.textContent = '✓ 已添加 ' + files.length + ' 张上传图片';
   e.target.value = '';
