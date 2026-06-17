@@ -118,6 +118,23 @@ async function sendSms(phone, code) {
   throw new Error('SMS_PROVIDER=' + p + ' 未接入：设 SMS_PROVIDER=tencent（配腾讯云参数）或 SMS_WEBHOOK_URL');
 }
 // 阿里云短信 SendSms（RPC 风格 HMAC-SHA1 签名，零依赖）
+// 到阿里云的常驻热连接：避免每次冷连接(香港→杭州 TCP connect 5~7s)，让验证码发送瞬时
+const _https = require('node:https');
+const _smsAgent = new _https.Agent({ keepAlive: true, keepAliveMsecs: 30000, maxSockets: 4 });
+function smsHttpGetJSON(u) {
+  return new Promise((resolve, reject) => {
+    const req = _https.get(u, { agent: _smsAgent, timeout: 9000 }, res => {
+      let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } });
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+  });
+}
+// 每 25s 保活一次，让 TLS 连接常驻（keepAliveMsecs 30s 内复用），真实发送时秒达
+if ((process.env.SMS_PROVIDER || '').toLowerCase() === 'aliyun') {
+  const warm = () => { try { const r = _https.get('https://dysmsapi.aliyuncs.com/', { agent: _smsAgent, timeout: 8000 }, res => res.resume()); r.on('error', () => {}); r.on('timeout', () => r.destroy()); } catch {} };
+  setTimeout(warm, 2000); const _wt = setInterval(warm, 25000); if (_wt.unref) _wt.unref();
+}
 async function sendSmsAliyun(phone, code) {
   const KID = process.env.ALIYUN_ACCESS_KEY_ID, KSEC = process.env.ALIYUN_ACCESS_KEY_SECRET;
   const SIGN = process.env.ALIYUN_SMS_SIGN, TPL = process.env.ALIYUN_SMS_TEMPLATE;
@@ -135,14 +152,12 @@ async function sendSmsAliyun(phone, code) {
   const stringToSign = 'GET&' + enc('/') + '&' + enc(canon);
   const sig = crypto.createHmac('sha1', KSEC + '&').update(stringToSign).digest('base64');
   const url = 'https://dysmsapi.aliyuncs.com/?Signature=' + enc(sig) + '&' + canon;
-  // 香港→杭州跨境偶发 fetch failed，重试 3 次（同一签名 URL 在有效期内可重发）
-  let r, lastErr;
+  // 走常驻热连接发送；偶发失败重试 3 次（同一签名 URL 在有效期内可重发）
+  let j, lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
-    try { r = await fetch(url, { signal: AbortSignal.timeout(6000) }); break; }
-    catch (e) { lastErr = e; await new Promise(s => setTimeout(s, 400)); }
+    try { j = await smsHttpGetJSON(url); break; } catch (e) { lastErr = e; await new Promise(s => setTimeout(s, 400)); }
   }
-  if (!r) throw new Error('阿里云短信网络失败（重试3次）：' + ((lastErr && lastErr.message) || 'fetch failed'));
-  const j = await r.json().catch(() => ({}));
+  if (!j) throw new Error('阿里云短信网络失败（重试3次）：' + ((lastErr && lastErr.message) || 'timeout'));
   if (j.Code !== 'OK') throw new Error('阿里云 ' + (j.Code || '') + '：' + (j.Message || '发送失败'));
   return true;
 }
