@@ -106,6 +106,9 @@
 // 嵌入模式：被流水线弹框以 iframe 载入（?embed=1）。隐藏外壳，选中后回传父窗口而非跳页。
 const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 if (EMBED) document.body.classList.add('embed');
+// 父页传来的当前赛道 id：强制按它走，避免 iframe 里 getTrack 回退到公共赛道（串内容）
+const _qtrack = new URLSearchParams(location.search).get('track');
+if (_qtrack) { try { if (typeof reloadCustomTracks === 'function') reloadCustomTracks(); if (window.TRACKS && window.TRACKS[_qtrack]) setTrack(_qtrack); } catch {} }
 const TK = getTrack();
 if (TK) { $('#persona').placeholder = '例：' + TK.placeholders.persona; $('#direction').placeholder = '例：' + TK.placeholders.direction; }
 $('#model').value = localStorage.getItem('ag_model') || 'claude-opus-4-8';

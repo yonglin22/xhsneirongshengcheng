@@ -158,7 +158,7 @@ $('#topic').addEventListener('input', e => { state.topic = e.target.value; persi
 // 选中后回传到本页填入选题、关弹框，不跳页。
 const tModal = $('#topicModal'), tFrame = $('#topicFrame');
 $('#genTopicBtn')?.addEventListener('click', () => {
-  if (tFrame && !tFrame.getAttribute('src')) tFrame.setAttribute('src', '/选题.html?embed=1');
+  if (tFrame && !tFrame.getAttribute('src')) tFrame.setAttribute('src', '/选题.html?embed=1&track=' + encodeURIComponent((typeof getTrack === 'function' && getTrack() && getTrack().id) || ''));
   if (tModal) tModal.style.display = 'flex';
 });
 $('#topicModalClose')?.addEventListener('click', () => { if (tModal) tModal.style.display = 'none'; });
