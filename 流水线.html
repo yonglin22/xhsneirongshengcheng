@@ -152,10 +152,10 @@ const STEPS = [
 【大纲(S3)】${s.frame || '（无，自行合理组织）'}
 要求：
 · 正文：1500～2500字；开头两段内快速留人；正文用【## 小标题】分 4～6 段（每个小标题单独成段，紧跟该段正文）；多用具体案例/数字/金句，少空话；涉及${getTrack().hardInfo}等硬信息一律写「需核实」；原创、不与对标实质相似；结尾升华 + 合规互动引导（点赞/在看/转发/关注），不留任何联系方式。
-· body 数组：每个元素是一个段落；小标题段落以"## "开头（如"## 一、xxx"）。
+· body：==整篇正文放在一个字符串里==，段落之间用一个空行（\\n\\n）分隔，小标题段落以"## "开头（如"## 一、xxx"）。正文里若要用引号请用中文引号""，不要用英文双引号（避免破坏 JSON）。
 · 标题：给 3 个公众号标题，≤30字、有钩子不标题党、不绝对化、不做承诺，并选最推荐一个。
 · 摘要：一句话 ≤120字（公众号"摘要"栏用，能勾人点开）。
-只输出 JSON：{"body":["段落1","## 小标题","段落2","..."],"titles":["标题1","..."],"best":"最推荐标题","summary":"一句话摘要"}`
+只输出 JSON：{"body":"第一段\\n\\n## 一、小标题\\n\\n这段正文…\\n\\n## 二、小标题\\n\\n…","titles":["标题1","标题2","标题3"],"best":"最推荐标题","summary":"一句话摘要"}`
       : `按下面框架，一次性产出本篇的【正文 + 标题候选 + 标签】（用过来人第一人称，真人感，避免明显 AI 腔）：
 【选题】${s.topic}
 【框架(S3)】${s.frame || '（无，自行合理组织）'}
@@ -657,7 +657,7 @@ async function regenImageCustom(i, promptText, refDataUrl) {
     : { provider: isCover ? 'ark' : 'kling', prompt: buildImgPrompt('', scene, 'photo') };
   const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const tx = await r.text();
-  if (!r.ok) { let msg = '出图失败'; try { msg = JSON.parse(tx).error || msg; } catch {} throw new Error(typeof msg === 'string' ? msg.slice(0, 90) : '出图失败'); }
+  if (!r.ok) { throw new Error(errMsg(tx)); }
   let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
   if (!u) throw new Error('上游无图');
   state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
@@ -1235,6 +1235,11 @@ async function onRefUpload(e) {
   if (fs) fs.textContent = '✓ 已上传 ' + added + ' 张 · 已解析 ' + (state.refVisions || []).filter(Boolean).length + ' 张对标图';
   e.target.value = '';
 }
+// 统一解析后端/上游错误（ark 错误是 {error:{message}} 对象，避免显示成 [object Object]）
+function errMsg(tx) {
+  try { const j = JSON.parse(tx); const e = j.error || j; return String((e && e.message) || (typeof e === 'string' ? e : '') || j.error || '出图失败').slice(0, 120); }
+  catch { return (tx || '出图失败').slice(0, 120); }
+}
 // 公众号横版首图：预览（2.35:1）
 function renderGzhCover() {
   const w = $('#imgWrap'); if (!w) return;
@@ -1255,12 +1260,12 @@ async function genGzhCover() {
   if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
   if (stx) { stx.textContent = '正在生成横版首图…（约 30 秒）'; stx.style.color = 'var(--ink-soft)'; }
   try {
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'ark', prompt, size: '2912x1240' }) });
-    const tx = await r.text(); if (!r.ok) { let m = '出图失败'; try { m = JSON.parse(tx).error || m; } catch {} throw new Error(String(m).slice(0, 90)); }
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'ark', prompt, size: '2960x1260' }) });
+    const tx = await r.text(); if (!r.ok) { throw new Error(errMsg(tx)); }
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {} if (!u) throw new Error('上游无图');
     state.coverImages = [u]; state.coverImage = u; state.coverCaptions = [{ theme: 'photo', raw: true }]; persist(); renderGzhCover();
     if (stx) { stx.textContent = '✓ 首图已生成'; stx.style.color = '#00a152'; }
-  } catch (e) { if (stx) { stx.textContent = '生成失败：' + (e.message || e); stx.style.color = 'var(--cinnabar-deep)'; } }
+  } catch (e) { if (stx) { stx.textContent = '生成失败：' + (e && e.message || e); stx.style.color = 'var(--cinnabar-deep)'; } }
   finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
 }
 async function onCoverUpload(e) {
@@ -1736,7 +1741,7 @@ async function runStep(st) {
   const txt = await callClaude({ prompt, model: $('#model').value, max_tokens: st.key === 'copy' ? 2600 : st.key === 'frame' ? 3200 : 1400, json: st.type === 'json', action: st.key });
   if (st.type === 'json') {
     const j = extractJSON(txt);
-    if (st.key === 'copy') { state.body = j.body || []; state.titles = j.titles || []; state.best = j.best || (j.titles || [])[0] || ''; state.tags = j.tags || []; if (j.summary !== undefined) state.summary = j.summary; }
+    if (st.key === 'copy') { state.body = Array.isArray(j.body) ? j.body : String(j.body || '').split(/\n{2,}/).map(x => x.trim()).filter(Boolean); state.titles = j.titles || []; state.best = j.best || (j.titles || [])[0] || ''; state.tags = j.tags || []; if (j.summary !== undefined) state.summary = j.summary; }
     else if (st.key === 'cover') state.cover = { cover_lines: j.cover_lines || [], visual: j.visual || '' };
   } else { state[st.key] = txt; }
   persist();

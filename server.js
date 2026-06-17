@@ -838,6 +838,16 @@ const server = http.createServer(async (req, res) => {
         const clean = ((title ? title + '\n\n' : '') + body).trim();
         if (clean.length > 30) return send(res, 200, JSON.stringify({ ok: true, url, chars: clean.length, text: clean.slice(0, 20000) }), { 'content-type': 'application/json' });
       }
+      // 普通网页(HTML) → 去 script/style/标签转纯文本，绝不把页面源码/JS 回吐；正文太少视为抓不到（如小红书等 JS 动态页）
+      const ct = (r.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('text/html') || /^\s*<(?:!doctype|html)/i.test(text)) {
+        let t = text.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ')
+                    .replace(/<\/(p|div|section|article|li|h\d|br)>/gi, '\n').replace(/<[^>]+>/g, ' ')
+                    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#\d+;/g, '')
+                    .replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+        if (t.length < 120) return send(res, 200, JSON.stringify({ ok: false, error: '这个页面是动态加载/无正文，抓不到文字（如小红书）。请直接复制文章正文粘贴。' }), { 'content-type': 'application/json' });
+        return send(res, 200, JSON.stringify({ ok: true, url, chars: t.length, text: t.slice(0, 20000) }), { 'content-type': 'application/json' });
+      }
       return send(res, 200, JSON.stringify({ ok: r.ok, url, chars: text.length, text: text.slice(0, 40000) }), { 'content-type': 'application/json' });
     } catch (err) {
       return send(res, 200, JSON.stringify({ ok: false, error: '抓取失败：' + (err.message || String(err)) }), { 'content-type': 'application/json' });
