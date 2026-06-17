@@ -261,10 +261,13 @@ $('#suggestBtn').addEventListener('click', async () => {
   if (isKaoyan) { const s = kaoyanStage(); stageInfo = `今天 ${new Date().toLocaleDateString('zh-CN')}，正处【${s.stage}·${s.months}】，该阶段适合：${s.pool}`; }
   const btn = $('#suggestBtn'), old = btn.textContent; btn.disabled = true; btn.textContent = '思考中…';
   try {
+    const _egP = (tk.placeholders && tk.placeholders.persona) || (tk.name + '博主');
+    const _egD = (tk.placeholders && tk.placeholders.direction) || tk.domain;
     const prompt = `结合这个「${tk.domain}」智能体已设定的人设与知识库（见系统设定）+ 当前阶段，给我 3 组「人设 + 方向」建议，让我直接拿去生成选题。
+==必须严格围绕「${tk.domain}」这个领域，面向「${tk.audience}」；绝不串到其它行业（尤其别默认成考研/美术）。==
 ${stageInfo ? '【当前阶段】' + stageInfo : ''}
-- 人设＝用谁的口吻发（简短标签，如"考研上岸学姐"/"画室手绘老师"），要贴合该智能体已有人设；
-- 方向＝具体细分方向 + 当下最该切的角度（如"视觉传达考研·基础期择校避坑"），要应季、贴合「${tk.audience}」。
+- 人设＝用谁的口吻发（简短标签，贴合本领域，如"${_egP}"），要贴合该智能体已有人设；
+- 方向＝具体细分方向 + 当下最该切的角度（如"${_egD}"相关的细分角度），要应季、贴合「${tk.audience}」。
 只输出 JSON：{"suggestions":[{"persona":"","direction":"","why":"一句话：为什么现在适合发这个方向"}]}`;
     const data = extractJSON(await callClaude({ prompt, model: $('#model').value, max_tokens: 900, json: true }));
     const arr = (data.suggestions || data.topics || []).slice(0, 3);
