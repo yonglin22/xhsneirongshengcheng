@@ -548,7 +548,7 @@ async function regenImageCustom(i, promptText, refDataUrl) {
   const _hasRefs = (typeof agentStyleRefs === 'function' && agentStyleRefs().length > 0);
   const myStyle = aStyle || (_hasRefs ? '我设定的统一视觉风格（贴合我风格库样图的配色/质感/排版调性）' : '');
   const scene = promptText || imgPromptFor(i);
-  const ref = refDataUrl || ((typeof agentStyleRefs === 'function' && agentStyleRefs()[0]) || ''); // 没上传参考图 → 退回风格库图统一调性
+  const ref = refDataUrl || ''; // 只在用户显式上传参考图时才走 i2i 垫图；没传 → 文生图（风格以 myStyle 文字注入，避免 i2i 模型未开通导致出图失败）
   const body = ref
     ? { provider: 'ark', init_image: ref, action: 'cover', prompt: `参考所给图片：保留它的【构图、版式、主体位置、视角】（结构照搬）；${myStyle ? '但【画风、配色、质感】优先按我的风格——' + myStyle + '，不要照搬参考图配色；' : '配色质感也贴近参考图；'}把画面内容替换为「${scene}」。小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
     : { provider: isCover ? 'ark' : 'kling', prompt: buildImgPrompt('', scene, 'photo') };

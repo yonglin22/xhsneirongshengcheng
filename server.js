@@ -441,8 +441,14 @@ const server = http.createServer(async (req, res) => {
           url = (process.env.IMAGE_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4') + '/images/generations';
           body = { model, prompt, size: sz };
         }
-        const up = await fetch(url, { signal: AbortSignal.timeout(90000), method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + ikey }, body: JSON.stringify(body) });
-        const text = await up.text();
+        let up = await fetch(url, { signal: AbortSignal.timeout(90000), method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + ikey }, body: JSON.stringify(body) });
+        let text = await up.text();
+        // ark 图生图(i2i)失败（如 SeedEdit 模型未开通/不支持 image 入参）→ 自动退回文生图，保证能出图
+        if (!up.ok && provider === 'ark' && (reqBody.init_image || reqBody.ref_image)) {
+          const t2iBody = { model, prompt, size: size || process.env.SEEDREAM_SIZE || '1728x2304', sequential_image_generation: 'disabled', response_format: 'url', stream: false, watermark: false };
+          up = await fetch(url, { signal: AbortSignal.timeout(90000), method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + ikey }, body: JSON.stringify(t2iBody) });
+          text = await up.text();
+        }
         if (!up.ok) return send(res, up.status, text, { 'content-type': 'application/json' });
         try {
           const j = JSON.parse(text);
