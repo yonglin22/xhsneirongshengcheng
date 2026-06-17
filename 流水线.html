@@ -84,7 +84,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=33"></script>
+<script src="/assets/app.js?v=34"></script>
 <script>
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
@@ -506,8 +506,9 @@ async function regenImageCustom(i, promptText, refDataUrl) {
   const isCover = i === 0;
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
   const scene = promptText || imgPromptFor(i);
-  const body = refDataUrl
-    ? { provider: 'ark', init_image: refDataUrl, action: 'cover', prompt: `参考所给图片：保留它的构图、版式、主体位置与配色风格，结构高度一致；只把画面内容替换为「${scene}」。${aStyle ? '画风：' + aStyle + '。' : ''}小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
+  const ref = refDataUrl || ((typeof agentStyleRefs === 'function' && agentStyleRefs()[0]) || ''); // 没上传参考图 → 退回风格库图统一调性
+  const body = ref
+    ? { provider: 'ark', init_image: ref, action: 'cover', prompt: `参考所给图片：保留它的构图、版式、主体位置与配色风格，结构高度一致；只把画面内容替换为「${scene}」。${aStyle ? '画风：' + aStyle + '。' : ''}小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
     : { provider: isCover ? 'ark' : 'kling', prompt: buildImgPrompt('', scene, 'photo') };
   const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const tx = await r.text();
@@ -757,8 +758,9 @@ async function generateCoverImagesCore(n) {
           results[p.i] = { kind: 'note', page };
         } else if (p.photoIdx < imgCap) {
           const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
-          // 只有对标本身是「实拍图」才拿来当垫图；文字清单图当垫图会出四不像 → 改纯文生图
-          const initImg = p.textHeavy ? '' : ((state.refImages || [])[p.i] || '');
+          // 垫图优先级：实拍对标原图 > 配图风格库第1张（文字对标当垫图会四不像，故退回风格库图统一调性）
+          const styleRef = (typeof agentStyleRefs === 'function' && agentStyleRefs()[0]) || '';
+          const initImg = p.textHeavy ? styleRef : ((state.refImages || [])[p.i] || styleRef);
           const u = await genImageFromPlan(plan, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg);
           if (u) results[p.i] = { kind: 'photo', url: u, caption: { title: plan.title, lines: plan.lines, layout: plan.layout, theme: plan.theme } };
         }
@@ -789,9 +791,10 @@ ${refBlock()}
     } catch {}
     while (items.length < n) items.push({ theme: 'poster', scene: '柔和米白纸张质感，大面积留白', title: '', lines: [], layout: '要点' });
     if (items[0] && !items[0].title && coverTitle) { items[0].title = coverTitle; items[0].layout = '封面'; }
+    const sref0 = (typeof agentStyleRefs === 'function' && agentStyleRefs()[0]) || ''; // 无对标 → 用风格库图当垫图统一调性
     for (let i = 0; i < items.length; i++) {
       const it = items[i], theme = it.theme === 'poster' ? 'poster' : 'photo';
-      const u = theme === 'poster' ? 'tpl://poster' : await genImageFromPlan({ theme, scene: it.scene }, style, i === 0 ? COVER_PROVIDER : INNER_PROVIDER);
+      const u = theme === 'poster' ? 'tpl://poster' : await genImageFromPlan({ theme, scene: it.scene }, style, i === 0 ? COVER_PROVIDER : INNER_PROVIDER, sref0);
       if (u) { urls.push(u); captions.push({ title: it.title || '', lines: Array.isArray(it.lines) ? it.lines.filter(Boolean).slice(0, 5) : [], layout: it.layout || '要点', theme }); }
     }
   }
