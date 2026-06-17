@@ -417,7 +417,7 @@ function setCoverImage(u){
 function importDraftData(d){
   if(!d || (!d.body && !d.best && !d.title)){ setStatus('这篇还没有成稿内容', 'err'); return; }
   if(d.topic) $('#topic').value=d.topic;
-  render({ cover_lines:(d.cover&&d.cover.cover_lines)||d.cover_lines, title:d.best||d.title, body:d.body, tags:d.tags });
+  render({ cover_lines:(d.cover&&d.cover.cover_lines)||d.cover_lines, title:d.best||d.title, body:d.body, tags:d.tags, platform:d.platform, summary:d.summary });
   window.__notePages = d.notePages || [];
   const imgs = d.coverImages || (d.coverImage?[d.coverImage]:[]);
   setCoverImages(imgs, d.coverCaptions || []);
@@ -471,11 +471,24 @@ function mark(t){
   return s.replace(/需核实/g,'<span class="needverify">需核实</span>');
 }
 
+window.__isGzhStage = false;
 function render(d){
+  const gzh = d.platform === 'gzh';
+  window.__isGzhStage = gzh;
   if(d.cover_lines){ const lines = Array.isArray(d.cover_lines)? d.cover_lines : String(d.cover_lines).split(/\n|\\n/); $('#coverText').innerHTML = lines.slice(0,2).map(x=>x.trim()).join('<br>'); }
   if(d.title) $('#noteTitle').textContent = d.title;
-  if(d.body){ const ps = Array.isArray(d.body)? d.body : String(d.body).split(/\n{1,}/); $('#noteBody').innerHTML = ps.filter(Boolean).map(p=>`<p>${mark(p)}</p>`).join(''); }
-  if(d.tags){ const ts = Array.isArray(d.tags)? d.tags : String(d.tags).split(/[\s,，]+/); $('#noteTags').innerHTML = ts.filter(Boolean).map(t=>`<span class="tagchip">${t.startsWith('#')?t:'#'+t}</span>`).join(''); }
+  if(d.body){
+    const ps = Array.isArray(d.body)? d.body : String(d.body).split(/\n{1,}/);
+    // 公众号：## 开头的段落渲染成小标题，正文长文阅读
+    $('#noteBody').innerHTML = ps.filter(Boolean).map(p=>{
+      const t = String(p).trim();
+      if(gzh && /^#{1,3}\s+/.test(t)) return `<h3 style="font-size:16px;font-weight:800;margin:14px 0 6px;color:var(--ink)">${mark(t.replace(/^#{1,3}\s+/,''))}</h3>`;
+      return `<p>${mark(t)}</p>`;
+    }).join('');
+  }
+  // 公众号用「摘要」替代标签
+  if(gzh){ $('#noteTags').innerHTML = d.summary ? `<div style="font-size:12px;color:var(--ink-soft);line-height:1.7;border-top:1px dashed var(--line);padding-top:8px">📄 摘要：${mark(d.summary)}</div>` : ''; }
+  else if(d.tags){ const ts = Array.isArray(d.tags)? d.tags : String(d.tags).split(/[\s,，]+/); $('#noteTags').innerHTML = ts.filter(Boolean).map(t=>`<span class="tagchip">${t.startsWith('#')?t:'#'+t}</span>`).join(''); }
   reveal();
 }
 
@@ -701,6 +714,12 @@ $('#exportBtn').addEventListener('click', async ()=>{
 // ===== 复制文案 =====
 $('#copyTextBtn').addEventListener('click', async ()=>{
   const title = $('#noteTitle').textContent.trim();
+  if (window.__isGzhStage) { // 公众号：标题 + 长文全文（含小标题），无标签
+    const body = [...$('#noteBody').children].map(el=>el.textContent.trim()).filter(Boolean).join('\n\n');
+    try{ await navigator.clipboard.writeText(`${title}\n\n${body}`); setStatus('✓ 已复制公众号全文（标题+正文）'); }
+    catch{ setStatus('复制失败，请手动选择文本', 'err'); }
+    return;
+  }
   const body  = [...$('#noteBody').querySelectorAll('p')].map(p=>p.textContent.trim()).join('\n');
   const tags  = [...$('#noteTags').querySelectorAll('.tagchip')].map(t=>t.textContent.trim()).join(' ');
   const text  = `${title}\n\n${body}\n\n${tags}`;

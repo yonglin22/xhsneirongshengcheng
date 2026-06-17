@@ -825,8 +825,19 @@ const server = http.createServer(async (req, res) => {
       url = url.replace(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/i, 'https://raw.githubusercontent.com/$1/$2/$3');
       const mRepo = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/?$/i);
       if (mRepo) url = `https://raw.githubusercontent.com/${mRepo[1]}/${mRepo[2]}/HEAD/README.md`;
-      const r = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0', 'accept': 'text/plain,text/markdown,*/*' } });
+      const r = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0', 'accept': 'text/html,text/plain,*/*' } });
       let text = (await r.text()).replace(/\r\n/g, '\n');
+      // 微信公众号文章：抽出标题 + 正文(#js_content)，去标签转纯文本，方便当对标
+      if (/mp\.weixin\.qq\.com/i.test(url)) {
+        const title = ((text.match(/<h1[^>]*class="rich_media_title"[^>]*>([\s\S]*?)<\/h1>/i) || text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || '').replace(/<[^>]+>/g, '').trim();
+        let body = (text.match(/id="js_content"[^>]*>([\s\S]*)/i) || [])[1] || text;
+        body = body.split(/<script|id="js_pc_qr_code"|class="rich_media_area_extra"/i)[0];
+        body = body.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|section|div|h\d)>/gi, '\n').replace(/<[^>]+>/g, '')
+                   .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&#\d+;/g, '')
+                   .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+        const clean = ((title ? title + '\n\n' : '') + body).trim();
+        if (clean.length > 30) return send(res, 200, JSON.stringify({ ok: true, url, chars: clean.length, text: clean.slice(0, 20000) }), { 'content-type': 'application/json' });
+      }
       return send(res, 200, JSON.stringify({ ok: r.ok, url, chars: text.length, text: text.slice(0, 40000) }), { 'content-type': 'application/json' });
     } catch (err) {
       return send(res, 200, JSON.stringify({ ok: false, error: '抓取失败：' + (err.message || String(err)) }), { 'content-type': 'application/json' });

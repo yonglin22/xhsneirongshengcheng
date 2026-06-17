@@ -428,12 +428,13 @@ function outputHTML(st) {
         <textarea id="cvVisual" class="field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" rows="2">${(v&&v.visual)||''}</textarea>
       </div>
       <div class="mt-3 flex items-center gap-2.5 flex-wrap">
-        <button id="upImg" class="btn-go rounded-xl px-4 py-2.5 text-[13px]">📎 上传首图（推荐 · 实拍/自制图最佳）</button>
+        <button id="genGzhCover" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">🎨 生成首图（横版 2.35:1）</button>
+        <button id="upImg" class="btn-go rounded-xl px-4 py-2.5 text-[13px]">📎 上传首图（实拍/自制最佳）</button>
         <input id="coverFile" type="file" class="hidden" accept="image/*" />
         <span id="imgStatus" class="text-[12px]"></span>
       </div>
       <div class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
-        📰 <b>公众号首图</b>建议尺寸 <b>900×383（2.35:1 横版）</b>。先用上面「视觉建议」作画面参考，<b style="color:var(--cinnabar-deep)">上传你自己的首图</b>最稳；AI 横版首图生成稍后支持。正文请在上一步「复制公众号全文」后粘进公众号编辑器。
+        📰 <b>公众号首图</b>横版 <b>2.35:1（约 900×383）</b>。点「生成首图」按上面「视觉建议」AI 出图（画面不含文字，标题你在公众号后台叠或用我们叠字）；或<b style="color:var(--cinnabar-deep)">上传自己的图</b>最稳。正文在上一步点「复制公众号全文」粘进公众号编辑器。
       </div>
       <div id="imgWrap" class="mt-3"></div>`;
   }
@@ -1234,8 +1235,42 @@ async function onRefUpload(e) {
   if (fs) fs.textContent = '✓ 已上传 ' + added + ' 张 · 已解析 ' + (state.refVisions || []).filter(Boolean).length + ' 张对标图';
   e.target.value = '';
 }
+// 公众号横版首图：预览（2.35:1）
+function renderGzhCover() {
+  const w = $('#imgWrap'); if (!w) return;
+  const u = (state.coverImages || [])[0];
+  if (!u) { w.innerHTML = ''; return; }
+  w.innerHTML = `<div style="position:relative;width:100%;max-width:520px;aspect-ratio:2.35/1;border-radius:10px;overflow:hidden;border:1px solid var(--line)">
+      <img src="${imgSrc(u)}" style="width:100%;height:100%;object-fit:cover;display:block" alt="公众号首图"/>
+      <button id="gzhCoverDel" title="删除重做" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:999px;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:12px">✕</button>
+    </div>
+    <a href="${imgSrc(u)}" download="公众号首图.png" style="color:var(--cinnabar);display:inline-block;margin-top:6px;font-size:11px">⬇ 下载首图</a>`;
+  $('#gzhCoverDel')?.addEventListener('click', () => { state.coverImages = []; state.coverImage = ''; persist(); renderGzhCover(); });
+}
+async function genGzhCover() {
+  const stx = $('#imgStatus'); const btn = $('#genGzhCover'); const o = btn ? btn.textContent : '';
+  const visual = (state.cover && state.cover.visual) || state.topic || '';
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const prompt = `${aStyle ? aStyle + '，' : ''}${visual}。微信公众号横版首图（2.35:1 宽幅），干净有设计感、主体居中、左右适当留白，真实质感、高级感、电影级柔光、4K 超清；画面不要出现任何文字。${IMG_NEG}`;
+  if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
+  if (stx) { stx.textContent = '正在生成横版首图…（约 30 秒）'; stx.style.color = 'var(--ink-soft)'; }
+  try {
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'ark', prompt, size: '2912x1240' }) });
+    const tx = await r.text(); if (!r.ok) { let m = '出图失败'; try { m = JSON.parse(tx).error || m; } catch {} throw new Error(String(m).slice(0, 90)); }
+    let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {} if (!u) throw new Error('上游无图');
+    state.coverImages = [u]; state.coverImage = u; state.coverCaptions = [{ theme: 'photo', raw: true }]; persist(); renderGzhCover();
+    if (stx) { stx.textContent = '✓ 首图已生成'; stx.style.color = '#00a152'; }
+  } catch (e) { if (stx) { stx.textContent = '生成失败：' + (e.message || e); stx.style.color = 'var(--cinnabar-deep)'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
+}
 async function onCoverUpload(e) {
   const files = [...e.target.files]; if (!files.length) { e.target.value = ''; return; }
+  if (isGzh()) { // 公众号：单张横版首图，替换
+    const st0 = $('#imgStatus'); if (st0) st0.textContent = '处理图片中…';
+    const d = await downscaleImage(files[0], 1600);
+    if (d) { state.coverImages = [d]; state.coverImage = d; state.coverCaptions = [{ theme: 'photo', raw: true }]; persist(); renderGzhCover(); if (st0) st0.textContent = '✓ 首图已上传'; }
+    e.target.value = ''; return;
+  }
   state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
   state.coverCaptions = state.coverCaptions || [];
   const st = $('#imgStatus'); if (st) { st.textContent = '处理图片中…'; st.style.color = 'var(--ink-soft)'; }
@@ -1286,7 +1321,7 @@ function renderPanel() {
           <div>
             <div class="text-[11px] text-[var(--ink-soft)] mb-1">笔记来源</div>
             <div class="flex flex-wrap items-center gap-2">
-              <input id="noteUrl" class="field flex-1 min-w-[200px] rounded-lg px-3 py-2 text-[13px]" placeholder="粘贴小红书链接（xiaohongshu.com / xhslink.com），可选" value="${state.refUrl||''}" />
+              <input id="noteUrl" class="field flex-1 min-w-[200px] rounded-lg px-3 py-2 text-[13px]" placeholder="${isGzh()?'粘贴公众号文章链接（mp.weixin.qq.com），自动抓正文':'粘贴小红书链接（xiaohongshu.com / xhslink.com），可选'}" value="${state.refUrl||''}" />
               <button id="fetchNote" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
               <button id="upRefImg" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap" title="抓不到时，直接传对标图截图，自动解析">📎 上传对标图</button>
               <input id="refImgFile" type="file" class="hidden" multiple accept="image/*" />
@@ -1320,7 +1355,19 @@ function renderPanel() {
     if (!url) { fs.textContent = '请先粘贴链接'; fs.style.color = 'var(--cinnabar-deep)'; return; }
     state.refUrl = url; Draft.save(state);
     fetchNote.disabled = true; const o = fetchNote.textContent; fetchNote.textContent = '抓取中…';
-    fs.style.color = 'var(--ink-soft)'; fs.textContent = '正在抓取（小红书有反爬，失败请手动粘贴）…';
+    fs.style.color = 'var(--ink-soft)'; fs.textContent = isGzh() ? '正在抓取公众号文章正文…' : '正在抓取（小红书有反爬，失败请手动粘贴）…';
+    // 公众号：抓正文文本（/api/fetch-url 提取 #js_content），落到对标正文框
+    if (isGzh()) {
+      try {
+        const j = await (await fetch('/api/fetch-url', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ url }) })).json();
+        if (j.ok && j.text && j.text.trim().length > 30) {
+          $('#refIn').value = j.text; state.ref = j.text; state.refImages = []; state.refVisions = null; persist();
+          fs.style.color = 'var(--ink-soft)'; fs.textContent = '✓ 已抓取公众号正文 · ' + (j.chars || j.text.length) + ' 字，可在下方编辑';
+        } else { fs.style.color = 'var(--cinnabar-deep)'; fs.textContent = '⚠ ' + (j.error || '抓取失败，请手动复制文章正文粘贴'); }
+      } catch (e) { fs.style.color = 'var(--cinnabar-deep)'; fs.textContent = '抓取失败：' + (e.message || e); }
+      finally { fetchNote.disabled = false; fetchNote.textContent = o; }
+      return;
+    }
     try {
       const j = await (await fetch('/api/fetch-note', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ url }) })).json();
       if (j.ok) {
@@ -1408,9 +1455,10 @@ function renderPanel() {
   }
   $('#genNote')?.addEventListener('click', genNoteImages);
   $('#genImg')?.addEventListener('click', genCoverImage);
+  $('#genGzhCover')?.addEventListener('click', genGzhCover);
   $('#upImg')?.addEventListener('click', () => $('#coverFile')?.click());
   $('#coverFile')?.addEventListener('change', onCoverUpload);
-  if (st.key === 'cover') renderCoverImages();
+  if (st.key === 'cover') { if (isGzh()) renderGzhCover(); else renderCoverImages(); }
   if (st.input === 'ref') {
     renderRefImages();
     const rg = $('#refGoal'); if (rg && state.refGoal) rg.value = state.refGoal;
