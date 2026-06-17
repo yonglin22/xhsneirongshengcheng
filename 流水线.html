@@ -512,7 +512,7 @@ async function regenImageCustom(i, promptText, refDataUrl) {
   const scene = promptText || imgPromptFor(i);
   const ref = refDataUrl || ((typeof agentStyleRefs === 'function' && agentStyleRefs()[0]) || ''); // 没上传参考图 → 退回风格库图统一调性
   const body = ref
-    ? { provider: 'ark', init_image: ref, action: 'cover', prompt: `参考所给图片：保留它的构图、版式、主体位置与配色风格，结构高度一致；只把画面内容替换为「${scene}」。${aStyle ? '画风：' + aStyle + '。' : ''}小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
+    ? { provider: 'ark', init_image: ref, action: 'cover', prompt: `参考所给图片：保留它的【构图、版式、主体位置、视角】（结构照搬）；${aStyle ? '但【画风、配色、质感】优先按我的风格——' + aStyle + '，不要照搬参考图配色；' : '配色质感也贴近参考图；'}把画面内容替换为「${scene}」。小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
     : { provider: isCover ? 'ark' : 'kling', prompt: buildImgPrompt('', scene, 'photo') };
   const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const tx = await r.text();
@@ -724,7 +724,7 @@ async function genImageFromPlan(plan, style, provider, initImage) {
     const body = useI2I
       ? {
           provider: 'ark', init_image: initImage,
-          prompt: `参考所给图片：完整保留它的构图、版式结构、主体位置、拍摄视角与配色风格，结构保持高度一致；只把画面主题/内容替换为「${plan.scene || state.topic}」。${aStyle ? '整体画风：' + aStyle + '。' : ''}小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深虚化背景、细腻肤质/材质、4K 超清、电影级调色；3:4 竖版，画面里不要出现任何文字。${IMG_NEG}`,
+          prompt: `参考所给图片：保留它的【构图、版式、主体位置、拍摄视角】（结构布局照搬，高度一致）；${aStyle ? '但【画风、配色、质感】优先按我的风格来——' + aStyle + '，不要照搬参考图的配色调性；' : '配色与质感也贴近参考图；'}把画面主题/内容替换为「${plan.scene || state.topic}」。小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深虚化背景、细腻肤质/材质、4K 超清、电影级调色；3:4 竖版，画面里不要出现任何文字。${IMG_NEG}`,
         }
       : { prompt: buildImgPrompt(plan.theme === 'poster' ? '' : style, plan.scene, plan.theme) };
     if (!useI2I && provider) body.provider = provider;
