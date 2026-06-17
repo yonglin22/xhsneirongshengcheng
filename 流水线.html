@@ -21,6 +21,15 @@
 
   <!-- 当前选题（没选题可手写，或一键生成选题方向）-->
   <div class="card p-4 mb-6">
+    <!-- 平台切换：小红书笔记 / 公众号文章（影响对标拆解→大纲→正文→首图 的产出形态）-->
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-[11px] text-[var(--ink-soft)] shrink-0">内容平台</span>
+      <div id="platformTabs" class="inline-flex rounded-lg overflow-hidden" style="border:1px solid var(--line)">
+        <button class="pf-tab" data-pf="xhs" style="padding:6px 14px;font-size:12.5px;font-weight:600;border:none;cursor:pointer">📕 小红书笔记</button>
+        <button class="pf-tab" data-pf="gzh" style="padding:6px 14px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;border-left:1px solid var(--line)">📰 公众号文章</button>
+      </div>
+      <span id="pfHint" class="text-[11px] text-[var(--ink-soft)]"></span>
+    </div>
     <div class="flex flex-wrap items-center gap-3">
       <span class="stamp text-[11px] px-2 py-1 leading-none shrink-0">选题</span>
       <input id="topic" class="field flex-1 min-w-[240px] rounded-lg px-3.5 py-2 text-[14px]" placeholder="没有选题？直接在此手写本篇选题，或点右侧「✶ 生成选题」" />
@@ -89,16 +98,38 @@
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
 const dispNo = no => STEP_DISP[no] || no;
+// 内容平台：xhs=小红书笔记 / gzh=公众号文章。影响各步 prompt 与产出形态。
+const isGzh = () => (state && state.platform) === 'gzh';
+// 步骤显示名按平台变（key 不变）
+function stepDispName(st) {
+  if (!isGzh()) return st.name;
+  return { skeleton:'对标拆解', frame:'文章大纲', copy:'正文·标题·摘要', cover:'首图·摘要' }[st.key] || st.name;
+}
 const STEPS = [
   { no:'S2', key:'skeleton', name:'对标拆解', type:'text', input:'ref',
-    uses: s => '本篇选题 + 你粘贴的对标笔记',
-    prompt: s => `仅基于用户提供的这篇对标笔记拆解（不臆测平台数据，不照抄原文）：
+    uses: s => '本篇选题 + 你粘贴的对标',
+    prompt: s => isGzh()
+      ? `仅基于用户提供的这篇对标【公众号文章】拆解（不臆测数据，不照抄原文）：
+【本篇选题】${s.topic}
+【对标文章】${s.ref}
+请逐项给：①选题角度切的痛点/情绪 ②标题钩子（公众号标题套路）③开头怎么抓人（前两段如何留人）④正文结构：分几个小标题段落、每段讲什么、论证节奏（故事/观点/案例/金句怎么排）⑤升华与结尾引导（点赞/在看/转发/关注怎么收）⑥一句话总结「可能为什么爆」+ 哪些可借鉴。最后产出一份可复用的「长文结构骨架」（开头→各小标题段→结尾，分点列出）。直接输出中文文本，不要代码块。`
+      : `仅基于用户提供的这篇对标笔记拆解（不臆测平台数据，不照抄原文）：
 【本篇选题】${s.topic}
 【对标笔记】${s.ref}
 请逐项给：①选题角度切的痛点 ②标题钩子 ③开头前3行怎么抓人 ④正文结构分块与节奏 ⑤【逐张图片拆解】不只看封面——对标的每一张图都拆：这张图上的实际文字内容（标题/要点/数字照实列）、版式形式（封面大字/编号清单/前后对比/数据）、可复用的呈现方式 ⑥一句话总结「可能为什么有效」+ 哪些是可借鉴的方法。最后产出一份可复用的「结构骨架」（分点列出，并标明每张图该放什么内容），供本篇借鉴。直接输出中文文本，不要代码块。` },
   { no:'S3', key:'frame', name:'框架', type:'text',
     uses: s => '选题 + S2 结构骨架',
-    prompt: s => { const refN = (s.refImages || []).length; return `为下面这个选题设计本篇结构骨架。==严格围绕【选题】和【S2 拆解】的真实主题来写，topic/对标是什么领域就写什么领域，绝不套用其它行业的话术或案例==：
+    prompt: s => isGzh() ? `为下面这个选题设计一篇【微信公众号文章】的大纲。==严格围绕【选题】和【S2 拆解】的真实主题，绝不套用其它领域==：
+【选题】${s.topic}
+【可借鉴结构骨架(S2)】${s.skeleton || '（无，按常见好结构搭）'}
+给出：
+1) 标题方向（2 个，公众号风格、≤30字、有钩子不标题党）
+2) 开头（2 段以内：用故事/痛点/反常识/数据中的一种快速留人，不铺垫）
+3) 正文主体：拆成 4～6 个【## 小标题】段落，逐个写清"这段讲什么 + 关键论点/案例/金句"（结合本领域真实信息点，不确定标「需核实」）
+4) 结尾：升华 + 合规互动引导（点赞/在看/转发/关注，不导流站外、不留联系方式）
+5) 首图建议：一句话描述首图画面（横版 2.35:1，绝不出现文字）
+只输出文本，不写完整正文，不要代码块。`
+      : (() => { const refN = (s.refImages || []).length; return `为下面这个选题设计本篇结构骨架。==严格围绕【选题】和【S2 拆解】的真实主题来写，topic/对标是什么领域就写什么领域，绝不套用其它行业的话术或案例==：
 【选题】${s.topic}
 【可借鉴的结构骨架(S2)】${s.skeleton || '（无，按常见好结构搭）'}
 给以下四部分：
@@ -112,10 +143,20 @@ const STEPS = [
 · 文字要点：（叠在图上的标题或要点，≤3条、每条≤10字；纯实拍展示图可留空）
 第2张：……（同样三行格式）
 ……依次写到第${refN || 'N'}张
-只输出文本，不写完整正文，不要代码块。`; } },
+只输出文本，不写完整正文，不要代码块。`; })() },
   { no:'S4', key:'copy', name:'正文·标题·标签', type:'json',
     uses: s => '选题 + S3 框架',
-    prompt: s => `按下面框架，一次性产出本篇的【正文 + 标题候选 + 标签】（用过来人第一人称，真人感，避免明显 AI 腔）：
+    prompt: s => isGzh()
+      ? `按下面大纲，产出一篇完整的【微信公众号文章】（真人口吻、有观点有信息量、避免 AI 腔）：
+【选题】${s.topic}
+【大纲(S3)】${s.frame || '（无，自行合理组织）'}
+要求：
+· 正文：1500～2500字；开头两段内快速留人；正文用【## 小标题】分 4～6 段（每个小标题单独成段，紧跟该段正文）；多用具体案例/数字/金句，少空话；涉及${getTrack().hardInfo}等硬信息一律写「需核实」；原创、不与对标实质相似；结尾升华 + 合规互动引导（点赞/在看/转发/关注），不留任何联系方式。
+· body 数组：每个元素是一个段落；小标题段落以"## "开头（如"## 一、xxx"）。
+· 标题：给 3 个公众号标题，≤30字、有钩子不标题党、不绝对化、不做承诺，并选最推荐一个。
+· 摘要：一句话 ≤120字（公众号"摘要"栏用，能勾人点开）。
+只输出 JSON：{"body":["段落1","## 小标题","段落2","..."],"titles":["标题1","..."],"best":"最推荐标题","summary":"一句话摘要"}`
+      : `按下面框架，一次性产出本篇的【正文 + 标题候选 + 标签】（用过来人第一人称，真人感，避免明显 AI 腔）：
 【选题】${s.topic}
 【框架(S3)】${s.frame || '（无，自行合理组织）'}
 要求：
@@ -125,11 +166,17 @@ const STEPS = [
 只输出 JSON：{"body":["段落1","段落2","..."],"titles":["标题1","..."],"best":"最推荐标题","tags":["#标签1","..."]}` },
   { no:'S5', key:'cover', name:'封面·配图', type:'json',
     uses: s => 'S3 框架·封面规划',
-    prompt: s => { const fc = (typeof frameSliceForImage === 'function' && frameSliceForImage(1)) || ''; return `给这篇做封面方案，==必须与下面 S3 框架里"第1张(封面)"的规划保持一致==：文案用它「文字/主标题」的意思，视觉建议照搬它「版式/画面/配色」的描述（背景色、高亮色、关键词、构图都要对上），不要另起炉灶、不要编造。
+    prompt: s => isGzh()
+      ? `给这篇【公众号文章】做首图方案：
+【选题】${s.topic}
+【大纲(S3)】${(s.frame||'').slice(0,800)}
+输出：cover_lines = 首图主标题 1～2 行(每行≤14字，抓眼球)；visual = 首图视觉建议（==横版 2.35:1==、画面内容、配色、构图，绝不含文字）。
+只输出 JSON：{"cover_lines":["第一行","第二行"],"visual":"横版2.35:1 视觉与构图建议"}`
+      : (() => { const fc = (typeof frameSliceForImage === 'function' && frameSliceForImage(1)) || ''; return `给这篇做封面方案，==必须与下面 S3 框架里"第1张(封面)"的规划保持一致==：文案用它「文字/主标题」的意思，视觉建议照搬它「版式/画面/配色」的描述（背景色、高亮色、关键词、构图都要对上），不要另起炉灶、不要编造。
 ${fc ? '【S3 框架·封面(第1张)规划】\n' + fc : '【提示】S3 框架里没找到第1张(封面)规划，请先去跑 S3 并写清"配图规划：第1张(封面)…"'}
 【选题】${s.topic}
 输出：cover_lines = 封面文案2行(每行≤12字，取自上面规划的主标题/副标题)；visual = 视觉与构图建议(背景色/高亮关键词/构图，与上面规划一致)。
-只输出 JSON：{"cover_lines":["第一行","第二行"],"visual":"视觉与构图建议"}`; } },
+只输出 JSON：{"cover_lines":["第一行","第二行"],"visual":"视觉与构图建议"}`; })() },
 ];
 
 const newRunId = () => 'r' + Date.now() + Math.random().toString(36).slice(2, 7);
@@ -167,6 +214,22 @@ let cur = landingStep();
 $('#topic').value = state.topic || '';
 $('#model').value = localStorage.getItem('ag_model') || 'claude-opus-4-8';
 $('#topic').addEventListener('input', e => { state.topic = e.target.value; persistSoft(); });
+// —— 内容平台切换（小红书笔记 / 公众号文章）——
+if (!state.platform) state.platform = 'xhs';
+function renderPlatformTabs() {
+  document.querySelectorAll('#platformTabs .pf-tab').forEach(b => {
+    const on = b.dataset.pf === state.platform;
+    b.style.background = on ? 'var(--cinnabar)' : '#fff';
+    b.style.color = on ? '#fff' : 'var(--ink-soft)';
+  });
+  const h = $('#pfHint'); if (h) h.textContent = isGzh() ? '长文 · 无标签 · 首图横版 2.35:1' : '短笔记 · 带话题标签 · 封面竖版 3:4';
+}
+document.querySelectorAll('#platformTabs .pf-tab').forEach(b => b.addEventListener('click', () => {
+  if (state.platform === b.dataset.pf) return;
+  state.platform = b.dataset.pf; persist();
+  renderPlatformTabs(); renderRail(); renderPanel();
+}));
+renderPlatformTabs();
 // 带入素材：回到顶部从「选题」开始（已自动填好选题+把结果放进对标素材），用户确认选题后顺序往下跑
 if (_seededSkill) setTimeout(() => {
   try { window.scrollTo({ top: 0, behavior: 'smooth' }); $('#topic') && $('#topic').focus(); } catch {}
@@ -299,7 +362,7 @@ function renderRail() {
   $('#rail').innerHTML = s1 + STEPS.map((st, i) =>
     `<div class="step ${i===cur?'active':''} ${done(st)?'done':''}" data-i="${i}">
        <span class="step-no">${done(st)?'✓':st.no.replace('S','')}</span>
-       <span class="step-name">${dispNo(st.no)} ${st.name}</span>
+       <span class="step-name">${dispNo(st.no)} ${stepDispName(st)}</span>
      </div>`).join('');
   $('#railTopic')?.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => { const t = $('#topic'); if (t) t.focus(); }, 320); });
   $$('#rail .step[data-i]').forEach(el => el.addEventListener('click', () => { cur = +el.dataset.i; renderRail(); renderPanel(); }));
@@ -319,6 +382,26 @@ function outputHTML(st) {
             <p class="text-[11px] text-[var(--ink-soft)] mt-1.5">可直接编辑，自动保存。</p>`;
   if (st.key === 'copy') {
     const body = state.body || [], titles = state.titles || [], tags = state.tags || [];
+    if (isGzh()) {
+      return `<div class="space-y-4">
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <div class="text-[12px] text-[var(--ink-soft)]">📰 公众号正文（小标题以 ## 开头，每段空一行）</div>
+          <button id="copyGzh" class="btn-ghost rounded-lg px-3 py-1 text-[11.5px]">📋 复制公众号全文</button>
+        </div>
+        <textarea class="field w-full rounded-xl p-4 text-[14px] leading-[1.9]" rows="16" id="editBody" placeholder="点上方「生成${dispNo(st.no)}」一次出长文+标题+摘要，或在此手写。">${body.join('\n\n')}</textarea>
+      </div>
+      <div>
+        <div class="text-[12px] text-[var(--ink-soft)] mb-1">🏷 公众号标题候选（一行一个，第一行为默认）</div>
+        <textarea class="field w-full rounded-xl p-4 text-[14px] leading-[1.8]" rows="3" id="editTitles" placeholder="一行一个标题。">${titles.join('\n')}</textarea>
+      </div>
+      <div>
+        <div class="text-[12px] text-[var(--ink-soft)] mb-1">📄 摘要（公众号"摘要"栏，≤120字）</div>
+        <textarea id="editSummary" class="field w-full rounded-xl p-4 text-[13.5px] leading-[1.7]" rows="2" placeholder="一句话摘要，勾人点开。">${esc(state.summary||'')}</textarea>
+      </div>
+      <p class="text-[11px] text-[var(--ink-soft)]">长文/标题/摘要一步生成，均可编辑、自动保存。点「复制公众号全文」可直接粘进公众号编辑器。</p>
+    </div>`;
+    }
     return `<div class="space-y-4">
       <div>
         <div class="text-[12px] text-[var(--ink-soft)] mb-1">📝 正文（每段空一行）</div>
@@ -334,6 +417,25 @@ function outputHTML(st) {
       </div>
       <p class="text-[11px] text-[var(--ink-soft)]">正文/标题/标签合并为一步，一次生成、均可编辑，自动保存。</p>
     </div>`;
+  }
+  if (st.key === 'cover' && isGzh()) {
+    const cl = (v && v.cover_lines) || [];
+    return `<div class="out p-4 space-y-2">
+        <div class="text-[11px] text-[var(--ink-soft)]">首图主标题（横版图上叠字，1～2 行）</div>
+        <input id="cl0" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[0])}" placeholder="第一行" />
+        <input id="cl1" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[1])}" placeholder="第二行（可空）" />
+        <div class="text-[11px] text-[var(--ink-soft)] pt-1">首图视觉建议（横版 2.35:1）</div>
+        <textarea id="cvVisual" class="field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" rows="2">${(v&&v.visual)||''}</textarea>
+      </div>
+      <div class="mt-3 flex items-center gap-2.5 flex-wrap">
+        <button id="upImg" class="btn-go rounded-xl px-4 py-2.5 text-[13px]">📎 上传首图（推荐 · 实拍/自制图最佳）</button>
+        <input id="coverFile" type="file" class="hidden" accept="image/*" />
+        <span id="imgStatus" class="text-[12px]"></span>
+      </div>
+      <div class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
+        📰 <b>公众号首图</b>建议尺寸 <b>900×383（2.35:1 横版）</b>。先用上面「视觉建议」作画面参考，<b style="color:var(--cinnabar-deep)">上传你自己的首图</b>最稳；AI 横版首图生成稍后支持。正文请在上一步「复制公众号全文」后粘进公众号编辑器。
+      </div>
+      <div id="imgWrap" class="mt-3"></div>`;
   }
   if (st.key === 'cover') {
     const cl = (v && v.cover_lines) || [];
@@ -1147,7 +1249,7 @@ function renderPanel() {
   const st = STEPS[cur];
   $('#panel').innerHTML = `
     <div class="flex items-center justify-between">
-      <h2 class="font-song font-bold text-[17px]">${dispNo(st.no)} · ${st.name}</h2>
+      <h2 class="font-song font-bold text-[17px]">${dispNo(st.no)} · ${stepDispName(st)}</h2>
       <span class="text-[11px] text-[var(--ink-soft)]">用到：${st.uses(state)}</span>
     </div>
     ${st.input === 'ref' ? (() => {
@@ -1253,6 +1355,13 @@ function renderPanel() {
   const editBody = $('#editBody'); if (editBody) editBody.addEventListener('input', e => { state.body = e.target.value.split(/\n{2,}/).map(s => s.trim()).filter(Boolean); persistSoft(); });
   const editTitles = $('#editTitles'); if (editTitles) editTitles.addEventListener('input', e => { state.titles = e.target.value.split('\n').map(s => s.trim()).filter(Boolean); state.best = state.titles[0] || ''; persistSoft(); });
   const editTags = $('#editTags'); if (editTags) editTags.addEventListener('input', e => { state.tags = e.target.value.split(/[\s,，]+/).filter(Boolean); persistSoft(); });
+  const editSummary = $('#editSummary'); if (editSummary) editSummary.addEventListener('input', e => { state.summary = e.target.value; persistSoft(); });
+  const copyGzh = $('#copyGzh'); if (copyGzh) copyGzh.addEventListener('click', async () => {
+    const title = (state.titles && state.titles[0]) || state.topic || '';
+    const full = title + '\n\n' + (state.body || []).join('\n\n');
+    try { await navigator.clipboard.writeText(full); copyGzh.textContent = '✓ 已复制'; setTimeout(() => copyGzh.textContent = '📋 复制公众号全文', 1800); }
+    catch { copyGzh.textContent = '复制失败,请手动选中'; }
+  });
   ['cl0', 'cl1'].forEach((id, idx) => { const el = $('#' + id); if (el) el.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.cover_lines = state.cover.cover_lines || []; state.cover.cover_lines[idx] = e.target.value; persistSoft(); const tt = document.querySelector('.cv-title'); if (tt) tt.innerHTML = (state.cover.cover_lines || []).filter(Boolean).map(mark).join('<br>'); }); });
   const cvVisual = $('#cvVisual'); if (cvVisual) cvVisual.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.visual = e.target.value; persistSoft(); });
   $('#prevStep')?.addEventListener('click', () => { cur--; renderRail(); renderPanel(); });
@@ -1579,7 +1688,7 @@ async function runStep(st) {
   const txt = await callClaude({ prompt, model: $('#model').value, max_tokens: st.key === 'copy' ? 2600 : st.key === 'frame' ? 3200 : 1400, json: st.type === 'json', action: st.key });
   if (st.type === 'json') {
     const j = extractJSON(txt);
-    if (st.key === 'copy') { state.body = j.body || []; state.titles = j.titles || []; state.best = j.best || (j.titles || [])[0] || ''; state.tags = j.tags || []; }
+    if (st.key === 'copy') { state.body = j.body || []; state.titles = j.titles || []; state.best = j.best || (j.titles || [])[0] || ''; state.tags = j.tags || []; if (j.summary !== undefined) state.summary = j.summary; }
     else if (st.key === 'cover') state.cover = { cover_lines: j.cover_lines || [], visual: j.visual || '' };
   } else { state[st.key] = txt; }
   persist();
@@ -1607,10 +1716,10 @@ async function autoRun() {
       const st = STEPS[i];
       if (st.input === 'ref' && !state.ref) continue; // 没贴对标就跳过 S2
       cur = i; renderRail(); renderPanel();
-      setAuto('正在生成 ' + dispNo(st.no) + ' · ' + st.name + ' …');
+      setAuto('正在生成 ' + dispNo(st.no) + ' · ' + stepDispName(st) + ' …');
       await runStep(st);
-      // S6 完成后自动生成多张配图（张数对齐对标，图失败不中断整体）
-      if (st.key === 'cover') {
+      // S6 完成后自动生成多张配图（张数对齐对标，图失败不中断整体）。公众号=长文，只需 1 张横版首图，自己传/单出，不自动批量出竖版笔记卡
+      if (st.key === 'cover' && !isGzh()) {
         const cn = coverCount();
         setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
         try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
