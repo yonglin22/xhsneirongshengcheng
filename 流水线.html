@@ -137,6 +137,20 @@ const newRunId = () => 'r' + Date.now() + Math.random().toString(36).slice(2, 7)
 // 其它入口（我的作品续写、流水线内跳转、模板带选题）沿用当前草稿。
 (function () { try { if (new URLSearchParams(location.search).get('new') === '1') { Draft.clear(); ['ag_topic', 'ag_persona', 'ag_direction'].forEach(k => { try { localStorage.removeItem(k); } catch {} }); history.replaceState(null, '', location.pathname); } } catch {} })();
 let state = Object.assign({ topic:'', ref:'' }, Draft.load());
+// 「带入流水线」：从智能体页「自定义 Skill 运行结果」带入的素材 → 作为本篇选题 + 对标素材(ref)，落地后可直接从 S2 开始
+let _seededSkill = '';
+try {
+  const seedRaw = localStorage.getItem('ag_pipeline_seed');
+  if (seedRaw) {
+    const seed = JSON.parse(seedRaw);
+    localStorage.removeItem('ag_pipeline_seed');
+    if (seed && seed.material && (Date.now() - (seed.ts || 0) < 10 * 60 * 1000)) {
+      state = { topic: (seed.topic || '').slice(0, 80), ref: String(seed.material || '').slice(0, 6000) };
+      _seededSkill = seed.skill || '技能';
+      Draft.save(state);
+    }
+  }
+} catch {}
 // 打开已有进度时，定位到「第一个未完成步骤」作为创作落点（从首页作品点进来直接到当前步）
 function landingStep() {
   try {
@@ -153,6 +167,8 @@ let cur = landingStep();
 $('#topic').value = state.topic || '';
 $('#model').value = localStorage.getItem('ag_model') || 'claude-opus-4-8';
 $('#topic').addEventListener('input', e => { state.topic = e.target.value; persistSoft(); });
+// 带入素材提示
+if (_seededSkill) setTimeout(() => { const st = $('#autoStatus'); if (st) { st.textContent = `✓ 已带入技能「${_seededSkill}」的结果作为对标素材，可直接点「对标拆解」开始（也可先改选题）`; st.style.color = '#00a052'; } }, 350);
 
 // 选题已并入流水线：「✶ 生成选题方向」弹框内用原版选题智能体（三层漏斗/热点·逻辑不变，iframe 嵌入），
 // 选中后回传到本页填入选题、关弹框，不跳页。

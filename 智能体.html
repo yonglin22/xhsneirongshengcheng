@@ -462,7 +462,13 @@ async function runCustomSkill(i, card) {
     }
     if (!prompt.trim()) prompt = input || '请基于以上内容完成任务。';
     const txt = await callClaude({ system: ($('#persona').value.trim() || undefined), prompt, max_tokens: 1600 });
-    out.innerHTML = '<div class="out p-3 mt-1 text-[13px] leading-relaxed">' + mark(txt) + '</div>';
+    out.innerHTML = '<div class="out p-3 mt-1 text-[13px] leading-relaxed">' + mark(txt) + '</div>'
+      + '<div class="mt-2 flex items-center gap-2"><button class="cs-topipe btn-go rounded-lg px-3 py-1.5 text-[12px]">📋 带入流水线（当素材做笔记）</button><span class="text-[11px]" style="color:var(--ink-soft)">把这段结果带到创作流水线，从「对标拆解」开始一键成稿</span></div>';
+    const toPipe = out.querySelector('.cs-topipe');
+    if (toPipe) toPipe.addEventListener('click', () => {
+      try { localStorage.setItem('ag_pipeline_seed', JSON.stringify({ topic: input || '', material: txt, skill: s.name || '技能', ts: Date.now() })); } catch {}
+      location.href = '/流水线.html';
+    });
   } catch (e) { out.innerHTML = '<div class="text-[12px] mt-1" style="color:var(--cinnabar-deep)">失败：' + (e.message || e) + '</div>'; }
   finally { btn.disabled = false; btn.textContent = '运行'; }
 }
