@@ -465,11 +465,15 @@ function openRegenModal(i) {
     <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">${isNote ? '填补充要求重排这页文字；或直接上传一张图替换这页。' : '改下方提示词让 AI 重画；或直接上传一张图替换（推荐，精确秒出）。'}</div>
     <label style="font-size:12px;color:var(--ink-soft);font-weight:600">${isNote ? '补充要求（可留空＝按原规划重排）' : 'AI 画面提示词（没上传图时才用，描述画面别写文字）'}</label>
     <textarea id="rgPrompt" placeholder="${isNote ? '例：第2点说得更具体、加一个数字例子' : ''}" style="width:100%;height:88px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;margin:6px 0 14px;resize:vertical;box-sizing:border-box">${cur}</textarea>
-    <label style="font-size:12px;color:var(--ink-soft);font-weight:600">上传图片（推荐 · <b style="color:var(--cinnabar-deep)">直接用这张</b>当配图，精确、秒出，不经 AI）</label>
-    <div style="display:flex;align-items:center;gap:10px;margin:6px 0 12px">
+    <label style="font-size:12px;color:var(--ink-soft);font-weight:600">上传图片</label>
+    <div style="display:flex;align-items:center;gap:10px;margin:6px 0 8px">
       <button id="rgPick" class="btn-ghost rounded-lg px-3 py-2 text-[12px]">📎 选择图片</button>
       <span id="rgRefName" style="font-size:12px;color:var(--ink-soft)">未选择</span>
     </div>
+    <label id="rgUseRawRow" style="display:none;align-items:center;gap:7px;font-size:12px;color:var(--ink);margin:0 0 12px;cursor:pointer">
+      <input type="checkbox" id="rgUseRaw" checked style="width:15px;height:15px" />
+      <span>直接用这张原图（推荐 · 精确秒出、不经 AI）；<b style="color:var(--cinnabar-deep)">取消勾选</b>则让 AI 参考它重画（约30秒，可能不完全一样）</span>
+    </label>
     <div id="rgStatus" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button id="rgCancel" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">取消</button>
@@ -482,20 +486,23 @@ function openRegenModal(i) {
   m.querySelector('#rgCancel').onclick = () => m.remove();
   m.querySelector('#rgPick').onclick = () => {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
-    inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; const nm = m.querySelector('#rgRefName'); nm.textContent = '处理中…'; try { refData = await downscaleImage(f, 1280); nm.textContent = '✓ 已选图片（直接用这张，秒出）'; nm.style.color = '#00a052'; } catch { nm.textContent = '图片处理失败'; } };
+    inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; const nm = m.querySelector('#rgRefName'); nm.textContent = '处理中…'; try { refData = await downscaleImage(f, 1280); nm.textContent = '✓ 已选图片'; nm.style.color = '#00a052'; const row = m.querySelector('#rgUseRawRow'); if (row) row.style.display = 'flex'; } catch { nm.textContent = '图片处理失败'; } };
     inp.click();
   };
   m.querySelector('#rgGo').onclick = async () => {
     const prompt = m.querySelector('#rgPrompt').value.trim();
     const go = m.querySelector('#rgGo'); go.disabled = true; const o = go.textContent; go.textContent = '生成中…';
     const stEl = m.querySelector('#rgStatus');
-    stEl.textContent = refData ? '应用图片…' : (isNote ? '正在重排这页…（约 10 秒）' : '正在出图…（约 30 秒）'); stEl.style.color = 'var(--ink-soft)';
+    const useRaw = !!(refData && m.querySelector('#rgUseRaw') && m.querySelector('#rgUseRaw').checked);
+    stEl.textContent = useRaw ? '应用图片…' : (refData ? 'AI 参考重画中…（约 30 秒）' : (isNote ? '正在重排这页…（约 10 秒）' : '正在出图…（约 30 秒）')); stEl.style.color = 'var(--ink-soft)';
     try {
-      if (refData) { // ★ 上传了图 → 直接用这张当配图（精确、秒出，不经 AI；AI 无法忠实复刻上传图）
+      if (useRaw) { // 上传图 + 勾选"直接用" → 直接当配图（精确、秒出，不经 AI）
         state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
         state.coverImages[i] = refData; state.coverImage = state.coverImages[0];
         state.coverCaptions = state.coverCaptions || []; if (!state.coverCaptions[i]) state.coverCaptions[i] = { theme: 'photo' };
         persist();
+      } else if (refData) { // 上传图 + 取消勾选 → AI 参考它重画（Seedream i2i，约30s，可能不完全一样）
+        await regenImageCustom(i, prompt, refData);
       } else if (isNote) { // 笔记页重排（带补充要求）
         const t = getTrack(); const refVis = (state.refVisions || [])[i] || '';
         const page = await planNotePage(i, refVis, i === 0, ((state.cover && state.cover.cover_lines) || []).join(' '), t, prompt);
