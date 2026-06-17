@@ -509,10 +509,12 @@ function openRegenModal(i) {
 async function regenImageCustom(i, promptText, refDataUrl) {
   const isCover = i === 0;
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const _hasRefs = (typeof agentStyleRefs === 'function' && agentStyleRefs().length > 0);
+  const myStyle = aStyle || (_hasRefs ? '我设定的统一视觉风格（贴合我风格库样图的配色/质感/排版调性）' : '');
   const scene = promptText || imgPromptFor(i);
   const ref = refDataUrl || ((typeof agentStyleRefs === 'function' && agentStyleRefs()[0]) || ''); // 没上传参考图 → 退回风格库图统一调性
   const body = ref
-    ? { provider: 'ark', init_image: ref, action: 'cover', prompt: `参考所给图片：保留它的【构图、版式、主体位置、视角】（结构照搬）；${aStyle ? '但【画风、配色、质感】优先按我的风格——' + aStyle + '，不要照搬参考图配色；' : '配色质感也贴近参考图；'}把画面内容替换为「${scene}」。小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
+    ? { provider: 'ark', init_image: ref, action: 'cover', prompt: `参考所给图片：保留它的【构图、版式、主体位置、视角】（结构照搬）；${myStyle ? '但【画风、配色、质感】优先按我的风格——' + myStyle + '，不要照搬参考图配色；' : '配色质感也贴近参考图；'}把画面内容替换为「${scene}」。小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
     : { provider: isCover ? 'ark' : 'kling', prompt: buildImgPrompt('', scene, 'photo') };
   const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const tx = await r.text();
@@ -721,10 +723,13 @@ async function genImageFromPlan(plan, style, provider, initImage) {
     // 有对标原图 + 实拍类 → 走 SeedEdit 图生图(ark)：以对标原图为垫图保结构，prompt 只换内容（结构相似度远高于纯文生图）
     const useI2I = !!initImage && plan.theme !== 'poster';
     const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+    const _hasRefs = (typeof agentStyleRefs === 'function' && agentStyleRefs().length > 0);
+    // 自己的风格 = 配图视觉风格文字 或 风格库有图；都没有才跟对标配色
+    const myStyle = aStyle || (_hasRefs ? '我设定的统一视觉风格（贴合我风格库样图的配色/质感/排版调性）' : '');
     const body = useI2I
       ? {
           provider: 'ark', init_image: initImage,
-          prompt: `参考所给图片：保留它的【构图、版式、主体位置、拍摄视角】（结构布局照搬，高度一致）；${aStyle ? '但【画风、配色、质感】优先按我的风格来——' + aStyle + '，不要照搬参考图的配色调性；' : '配色与质感也贴近参考图；'}把画面主题/内容替换为「${plan.scene || state.topic}」。小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深虚化背景、细腻肤质/材质、4K 超清、电影级调色；3:4 竖版，画面里不要出现任何文字。${IMG_NEG}`,
+          prompt: `参考所给图片：保留它的【构图、版式、主体位置、拍摄视角】（结构布局照搬，高度一致）；${myStyle ? '但【画风、配色、质感】优先按我的风格来——' + myStyle + '，不要照搬参考图的配色调性；' : '配色与质感也贴近参考图；'}把画面主题/内容替换为「${plan.scene || state.topic}」。小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深虚化背景、细腻肤质/材质、4K 超清、电影级调色；3:4 竖版，画面里不要出现任何文字。${IMG_NEG}`,
         }
       : { prompt: buildImgPrompt(plan.theme === 'poster' ? '' : style, plan.scene, plan.theme) };
     if (!useI2I && provider) body.provider = provider;
