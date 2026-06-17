@@ -1299,8 +1299,10 @@ function renderPanel() {
           <span class="text-[12px] text-[var(--ink-soft)]">${desc}</span>
           <span class="s2-chev ml-auto text-[12px] text-[var(--ink-soft)]">${open ? '收起 ▲' : '展开 ▼'}</span>
         </div>`;
+      const openB2 = !!picked || isGzh();
       return `
     <div class="space-y-3">
+      ${isGzh() ? `<div class="out p-4" style="background:var(--paper-2)"><div class="text-[12px] text-[var(--ink-soft)] leading-relaxed">📰 <b>公众号对标</b>：直接在下方粘贴一篇对标<b>公众号文章链接</b>（mp.weixin.qq.com）点「抓取」，或把文章正文贴进对标框。（小红书自动找对标仅用于小红书笔记模式）</div></div>` : `
       <!-- ① 找对标 -->
       <div class="out p-4">
         ${head('s2body1', '① 找对标', '按选题+目标给打法，自动抓约 20 篇真实对标', !picked)}
@@ -1318,13 +1320,13 @@ function renderPanel() {
           </div>
           <div id="finderOut"></div>
         </div>
-      </div>
+      </div>`}
       <!-- ② 选 1 篇拆解 -->
       <div class="out p-4">
-        ${head('s2body2', '② 选 1 篇拆解', '挑 1 篇点「用这篇拆解」带入；或自己贴链接 / 正文', !!picked)}
-        <div id="s2body2" class="space-y-3" style="${picked ? 'margin-top:12px' : 'display:none'}">
+        ${head('s2body2', isGzh()?'① 贴对标文章':'② 选 1 篇拆解', isGzh()?'粘贴公众号文章链接抓正文，或直接贴正文':'挑 1 篇点「用这篇拆解」带入；或自己贴链接 / 正文', openB2)}
+        <div id="s2body2" class="space-y-3" style="${openB2 ? 'margin-top:12px' : 'display:none'}">
           <div>
-            <div class="text-[11px] text-[var(--ink-soft)] mb-1">笔记来源</div>
+            <div class="text-[11px] text-[var(--ink-soft)] mb-1">${isGzh()?'公众号文章来源':'笔记来源'}</div>
             <div class="flex flex-wrap items-center gap-2">
               <input id="noteUrl" class="field flex-1 min-w-[200px] rounded-lg px-3 py-2 text-[13px]" placeholder="${isGzh()?'粘贴公众号文章链接（mp.weixin.qq.com），自动抓正文':'粘贴小红书链接（xiaohongshu.com / xhslink.com），可选'}" value="${state.refUrl||''}" />
               <button id="fetchNote" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
