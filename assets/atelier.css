@@ -397,7 +397,7 @@ html[data-theme="dark"] .ag-side{ background:linear-gradient(176deg, rgba(48,22,
 .ag-usage .uout:hover{ filter:brightness(1.07); }
 
 /* —— 顶栏赛道选择 chips —— */
-.ag-tracks{ display:flex; align-items:center; gap:7px; flex-wrap:nowrap; overflow-x:auto; margin-left:4px; padding:2px 0; scrollbar-width:none; }
+.ag-tracks{ display:flex; align-items:center; gap:9px; flex-wrap:nowrap; overflow:visible; margin-left:4px; padding:2px 0; scrollbar-width:none; }
 .ag-tracks::-webkit-scrollbar{ display:none; }
 .ag-trk{ display:inline-flex; align-items:center; gap:5px; height:32px; padding:0 13px; border-radius:999px; font-size:13px;
   font-weight:500; white-space:nowrap; background:var(--paper-2); color:var(--ink); border:1px solid transparent; cursor:pointer; transition:.15s; }
