@@ -244,17 +244,32 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-cover .nt-h1{ font-size:11cqw; line-height:1.28; }
 .cv-note.is-cover .nt-meta{ font-size:4cqw; margin:5cqw 0 0; }
 
-/* ===== 苹果备忘录风（is-memo）：纯净米白纸 + 顶部备忘录工具栏 + 黄色荧光高亮 + SF 字体 ===== */
-.cv-note.is-memo{ font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; padding:11.5cqw 6.5cqw 7cqw; --nt-meta:#a8a8ae; }
-.cv-note.is-memo .nt-memobar{ position:absolute; top:0; left:0; right:0; height:8.5cqw; display:flex; align-items:center; justify-content:space-between;
-  padding:0 5cqw; font-size:3.7cqw; color:#ff9f0a; background:rgba(252,252,250,.94); border-bottom:.35cqw solid rgba(0,0,0,.07); }
-.cv-note.is-memo .nt-mb-l,.cv-note.is-memo .nt-mb-r{ font-weight:500; }
-.cv-note.is-memo .nt-mb-c{ color:#8a8a90; font-size:3cqw; font-weight:600; letter-spacing:.02em; }
-.cv-note.is-memo .nt-h1{ font-weight:800; letter-spacing:0; color:#1c1c1e; }
+/* ===== 苹果备忘录风（is-memo）：仿真 iPhone 备忘录截图（状态栏+导航栏+底部工具栏+Home条，不随内容缩放）===== */
+.cv-note.is-memo{ background:#fff; padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
+.cv-note.is-memo .cv-note-fit{ padding:0 6.5cqw; }
+.cv-note.is-memo .nt-memodate{ text-align:center; color:#a0a0a6; font-size:2.85cqw; font-weight:500; margin:0 0 2.6cqw; letter-spacing:.01em; }
+.cv-note.is-memo .nt-h1{ font-size:6.6cqw; font-weight:800; color:#1c1c1e; margin-bottom:1.4cqw; letter-spacing:0; }
 .cv-note.is-memo .nt-sec{ font-weight:800; color:#1c1c1e; }
-.cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ color:#3a3a3c; }
+.cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ color:#2c2c2e; }
 .cv-note.is-memo .hl{ background-size:100% .46em; background-position:0 .96em; padding:0 .1em; }
-.cv-note.is-memo.is-cover{ padding-top:11.5cqw; }
+/* 顶部：状态栏 + 导航栏 */
+.cv-note.is-memo .nt-ios-top{ position:absolute; top:0; left:0; right:0; z-index:4; background:#fff; }
+.cv-note.is-memo .nt-ios-status{ height:6cqw; display:flex; align-items:center; justify-content:space-between; padding:0 6cqw 0 7.5cqw; }
+.cv-note.is-memo .nt-clock{ font-size:3.5cqw; font-weight:700; color:#000; letter-spacing:.03em; }
+.cv-note.is-memo .nt-stat-r{ display:flex; align-items:center; gap:1.5cqw; }
+.cv-note.is-memo .nt-si{ height:2.9cqw; width:auto; fill:#000; }
+.cv-note.is-memo .nt-bat{ height:3.2cqw; width:auto; fill:#000; color:#000; }
+.cv-note.is-memo .nt-ios-nav{ height:9cqw; display:flex; align-items:center; justify-content:space-between; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
+.cv-note.is-memo .nt-nav-back{ color:#e8a400; font-size:4cqw; font-weight:500; }
+.cv-note.is-memo .nt-nav-r{ display:flex; align-items:center; gap:3.4cqw; }
+.cv-note.is-memo .nt-ny{ height:5cqw; width:auto; fill:#e8a400; color:#e8a400; }
+/* 底部：工具栏 + Home 指示条 */
+.cv-note.is-memo .nt-ios-bottom{ position:absolute; bottom:0; left:0; right:0; z-index:4; background:#fff; }
+.cv-note.is-memo .nt-ios-tools{ height:9cqw; display:flex; align-items:center; justify-content:space-between; padding:0 7cqw; border-top:.3cqw solid rgba(0,0,0,.09); }
+.cv-note.is-memo .nt-tool{ height:4.7cqw; width:auto; color:#48484a; fill:none; }
+.cv-note.is-memo .nt-tool.acc{ color:#e8a400; }
+.cv-note.is-memo .nt-home{ height:4cqw; display:flex; align-items:center; justify-content:center; }
+.cv-note.is-memo .nt-home::after{ content:""; width:33cqw; height:1.1cqw; border-radius:1cqw; background:#000; }
 
 /* 健康状态点 */
 .dot{ width:7px; height:7px; border-radius:999px; background:#c9ccd1; display:inline-block; }
