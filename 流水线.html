@@ -152,7 +152,7 @@ if (!state._runId) state._runId = newRunId();
 let cur = landingStep();
 $('#topic').value = state.topic || '';
 $('#model').value = localStorage.getItem('ag_model') || 'claude-opus-4-8';
-$('#topic').addEventListener('input', e => { state.topic = e.target.value; persist(); });
+$('#topic').addEventListener('input', e => { state.topic = e.target.value; persistSoft(); });
 
 // 选题已并入流水线：「✶ 生成选题方向」弹框内用原版选题智能体（三层漏斗/热点·逻辑不变，iframe 嵌入），
 // 选中后回传到本页填入选题、关弹框，不跳页。
@@ -263,8 +263,12 @@ $('#histModal').addEventListener('click', e => { if (e.target === $('#histModal'
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHist(); });
 
 function persist() { Draft.save(state); PLHistory.upsert(state); renderRail(); }
-// 同步云端但不重绘导轨（用于输入框 oninput，避免每次按键闪烁；云端写入已 1.5s 防抖）
-function persistSoft() { Draft.save(state); PLHistory.upsert(state); }
+// 输入框 oninput 用：防抖 500ms 再写（state 含 base64 大图，每敲键都序列化会卡主线程）。离开页面时兜底刷写。
+let _softTimer = null;
+function persistSoft() { clearTimeout(_softTimer); _softTimer = setTimeout(() => { _softTimer = null; Draft.save(state); PLHistory.upsert(state); }, 500); }
+function flushSoft() { if (_softTimer) { clearTimeout(_softTimer); _softTimer = null; Draft.save(state); PLHistory.upsert(state); } }
+window.addEventListener('pagehide', flushSoft);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSoft(); });
 function done(step) { return doneOf(state, step); }
 
 function renderRail() {
@@ -1095,8 +1099,8 @@ function renderPanel() {
     </div>
     <div id="stOut">${outputHTML(st)}</div>`;
 
-  const refIn = $('#refIn'); if (refIn) refIn.addEventListener('input', e => { state.ref = e.target.value; persist(); });
-  const noteUrl = $('#noteUrl'); if (noteUrl) noteUrl.addEventListener('input', e => { state.refUrl = e.target.value; Draft.save(state); });
+  const refIn = $('#refIn'); if (refIn) refIn.addEventListener('input', e => { state.ref = e.target.value; persistSoft(); });
+  const noteUrl = $('#noteUrl'); if (noteUrl) noteUrl.addEventListener('input', e => { state.refUrl = e.target.value; persistSoft(); });
   const fetchNote = $('#fetchNote'); if (fetchNote) fetchNote.addEventListener('click', async () => {
     const fs = $('#fetchStatus'); const url = ($('#noteUrl').value || '').trim();
     if (!url) { fs.textContent = '请先粘贴链接'; fs.style.color = 'var(--cinnabar-deep)'; return; }
