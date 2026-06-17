@@ -1357,7 +1357,7 @@ async function grabBenchmarkNotes(searches) {
   const btn = $('#grabBench'); const o = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = '抓取中…'; }
   const seen = new Set(), all = [];
   for (let i = 0; i < kws.length && all.length < 20; i++) {
-    if (st) st.textContent = `正在抓「${kws[i]}」…（已得 ${all.length} 篇）`;
+    if (st) st.textContent = `正在抓「${kws[i]}」…（已得 ${all.length} 篇，约需 10~30 秒/词，请稍候）`;
     try {
       let j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: benchFetchSort, type: benchFetchType }) })).json();
       // 命中每日抓取上限 → 停止并友好提示
@@ -1367,6 +1367,9 @@ async function grabBenchmarkNotes(searches) {
         try { j = await (await fetch('/api/search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i] }) })).json(); } catch {}
       }
       if (j.ok && j.notes) for (const n of j.notes) { if (n.id && !seen.has(n.id)) { seen.add(n.id); all.push(n); if (all.length >= 20) break; } }
+      // 抓完这个词立刻刷新累计数 + 边抓边显示已抓到的（不再一直停在 0）
+      if (all.length) { benchNotes = all.slice(); try { renderBenchNotes(); } catch {} }
+      if (st) st.textContent = all.length >= 20 ? `✓ 已抓满 20 篇真实对标` : `已抓 ${all.length} 篇…（继续抓下一个词）`;
       else if (j.error && /未登录|xhs login/.test(j.error)) { if (st) st.textContent = '⚠ ' + j.error; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
     } catch {}
     if (i < kws.length - 1 && all.length < 20) await new Promise(r => setTimeout(r, 2500)); // 间隔，避免触发验证码
