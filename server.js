@@ -827,16 +827,23 @@ const server = http.createServer(async (req, res) => {
       if (mRepo) url = `https://raw.githubusercontent.com/${mRepo[1]}/${mRepo[2]}/HEAD/README.md`;
       const r = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0', 'accept': 'text/html,text/plain,*/*' } });
       let text = (await r.text()).replace(/\r\n/g, '\n');
-      // 微信公众号文章：抽出标题 + 正文(#js_content)，去标签转纯文本，方便当对标
+      // 微信公众号文章：抽标题 + 正文区 → 纯文本。先删 script/style，再取 rich_media_content（取最靠后的真实容器）到底部标记
       if (/mp\.weixin\.qq\.com/i.test(url)) {
-        const title = ((text.match(/<h1[^>]*class="rich_media_title"[^>]*>([\s\S]*?)<\/h1>/i) || text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || '').replace(/<[^>]+>/g, '').trim();
-        let body = (text.match(/id="js_content"[^>]*>([\s\S]*)/i) || [])[1] || text;
-        body = body.split(/<script|id="js_pc_qr_code"|class="rich_media_area_extra"/i)[0];
-        body = body.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|section|div|h\d)>/gi, '\n').replace(/<[^>]+>/g, '')
-                   .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&#\d+;/g, '')
-                   .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-        const clean = ((title ? title + '\n\n' : '') + body).trim();
-        if (clean.length > 30) return send(res, 200, JSON.stringify({ ok: true, url, chars: clean.length, text: clean.slice(0, 20000) }), { 'content-type': 'application/json' });
+        const title = ((text.match(/<h1[^>]*rich_media_title[^>]*>([\s\S]*?)<\/h1>/i) || text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || '').replace(/<[^>]+>/g, '').trim();
+        const h = text.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+        let region = h;
+        const ms = [...h.matchAll(/<div[^>]*(?:id="js_content"|class="[^"]*rich_media_content)[^>]*>/gi)];
+        if (ms.length) region = h.slice(ms[ms.length - 1].index);
+        region = region.split(/js_temp_bottom_area|rich_media_area_extra|rich_media_tool|js_profile_qrcode/i)[0];
+        let body = region.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|section|div|h[1-6]|li|tr)>/gi, '\n').replace(/<[^>]+>/g, '')
+                   .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#39;/g, "'").replace(/&#\d+;/g, '')
+                   .replace(/预览时标签不可点/g, '').replace(/^.*微信扫一扫.*$/gm, '')
+                   .replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+        if (body.length >= 60) {
+          const clean = ((title ? title + '\n\n' : '') + body).trim();
+          return send(res, 200, JSON.stringify({ ok: true, url, chars: clean.length, text: clean.slice(0, 20000) }), { 'content-type': 'application/json' });
+        }
+        return send(res, 200, JSON.stringify({ ok: false, error: '这篇公众号文章正文以图片为主（文字在图里），抓不到文字。请在浏览器打开文章、复制正文文字，粘贴到下面的对标框。' }), { 'content-type': 'application/json' });
       }
       // 普通网页(HTML) → 去 script/style/标签转纯文本，绝不把页面源码/JS 回吐；正文太少视为抓不到（如小红书等 JS 动态页）
       const ct = (r.headers.get('content-type') || '').toLowerCase();
