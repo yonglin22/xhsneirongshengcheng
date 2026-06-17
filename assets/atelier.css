@@ -351,6 +351,18 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .ag-growth-cta:hover{ transform:translateY(-2px); filter:brightness(1.04); }
 .ag-growth-cta:active{ transform:translateY(0) scale(.97); }
 
+/* 封面模板·微调（位置/对齐/字号）——叠加在各模板之上 */
+.cv-ctpl.adj-top{ justify-content:flex-start; }
+.cv-ctpl.adj-center{ justify-content:center; }
+.cv-ctpl.adj-bottom{ justify-content:flex-end; }
+.cv-ctpl.adj-ct{ align-items:center; text-align:center; }
+.cv-ctpl.adj-ct .ct-t,.cv-ctpl.adj-ct .ct-s,.cv-ctpl.adj-ct .ct-cap{ text-align:center; }
+.cv-ctpl.adj-left{ align-items:flex-start; text-align:left; }
+.cv-ctpl.adj-left .ct-t,.cv-ctpl.adj-left .ct-s{ text-align:left; }
+.cv-ctpl.tsz-sm .ct-t{ font-size:8.5cqw; }
+.cv-ctpl.tsz-md .ct-t{ font-size:12cqw; }
+.cv-ctpl.tsz-lg .ct-t{ font-size:16cqw; }
+
 /* 健康状态点 */
 .dot{ width:7px; height:7px; border-radius:999px; background:#c9ccd1; display:inline-block; }
 .dot.ok{ background:#00c25e; } .dot.err{ background:var(--cinnabar); }

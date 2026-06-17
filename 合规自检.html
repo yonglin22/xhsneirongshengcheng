@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>合规自检 · 第八步 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=37" />
+<link rel="stylesheet" href="/assets/atelier.css?v=38" />
 </head>
 <body class="stage grain min-h-screen" data-page="compliance">
 
@@ -123,7 +123,9 @@ function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&
 function fitNote(el){ const fit=el.querySelector('.cv-note-fit'); if(!fit)return; fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(el); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=el.clientHeight-padV, need=fit.scrollHeight; if(need>avail+1&&avail>0){ const s=Math.max(.45,avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } }
 function fitAllNotes(root){ (root||document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); requestAnimationFrame(()=>requestAnimationFrame(()=>{ (root||document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); })); }
 function autoEm(s){ return String(s||'').replace(/==(.+?)==/g,'<em>$1</em>').replace(/(?<!<em>)(\d+[%＋+分天]?|「[^」]+」)/g,'<em>$1</em>'); }
-function coverTemplateHTML(id, lines, opt){ opt=opt||{}; lines=(lines||[]).filter(Boolean);
+function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(spec||'').split('|'); const id=parts[0];
+  const adj=[parts[1]?'adj-'+parts[1]:'',parts[2]?'adj-'+parts[2]:'',parts[3]?'tsz-'+parts[3]:''].filter(Boolean).join(' ');
+  lines=(lines||[]).filter(Boolean);
   const title=autoEm(lines[0]||''); const sub=(lines.slice(1).join(' ')||'').replace(/==(.+?)==/g,'$1');
   const acc=opt.accent||'#ff2442', bg=opt.bg||'#ffffff', ink=opt.ink||'#16181d';
   const vars=`--c-bg:${bg};--c-ink:${ink};--c-accent:${acc}`;
@@ -134,7 +136,7 @@ function coverTemplateHTML(id, lines, opt){ opt=opt||{}; lines=(lines||[]).filte
   else if(id==='block') inner=`<div class="ct-block">${tt}</div>${ss}`;
   else if(id==='split') inner=`<div class="ct-img"></div><div class="ct-cap">${tt}${ss}</div>`;
   else inner=`${tt}${ss}`;
-  return `<div class="cv-ctpl ctpl-${id}" style="${vars}">${inner}</div>`;
+  return `<div class="cv-ctpl ctpl-${id} ${adj}" style="${vars}">${inner}</div>`;
 }
 function coverLinesForTpl(){ const c=($('#cCover')&&$('#cCover').value||'').trim(); const arr=c?c.split(/\s*\/\s*|\n+/).map(x=>x.trim()).filter(Boolean):[]; if(arr.length) return arr; const t=($('#cTitle')&&$('#cTitle').value||'').trim(); return t?[t]:[]; }
 // 单个缩略：note:// / tpl:// / ctpl:// → CSS 卡；普通 URL/data → 图片
