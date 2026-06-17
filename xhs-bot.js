@@ -29,19 +29,21 @@ async function verifyLogin(cookieStr) {
     const ctx = await b.newContext({ userAgent: UA, viewport: { width: 1280, height: 800 }, locale: 'zh-CN' });
     await ctx.addCookies(cookies);
     const p = await ctx.newPage();
-    await p.goto('https://www.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await p.waitForTimeout(2800);
+    // 创作中心：未登录必跳 /login，是可靠的登录信号（也正是发草稿要用的站点）
+    await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await p.waitForTimeout(3500);
+    const url = p.url();
     const info = await p.evaluate(() => {
       const t = (document.body && document.body.innerText) || '';
-      const needLogin = /扫码登录|手机号登录|新用户注册|登录后查看|登录小红书/.test(t);
-      const risk = /验证|环境异常|滑动|拼图|安全验证/.test(t) && t.length < 1500;
-      let nick = '';
-      const el = document.querySelector('.user .name, [class*=nickname], .reds-avatar-wrapper + span, .side-bar .name');
-      if (el) nick = (el.textContent || '').trim();
-      return { needLogin, risk, nick, len: t.length };
+      return {
+        risk: /环境异常|安全验证|滑动验证|拼图验证|验证后继续/.test(t) && t.length < 1800,
+        loginUI: /扫码登录|手机号登录|登录后即可|登录创作|二维码登录/.test(t),
+        nick: ((document.querySelector('[class*=nickname],[class*=name],.user-info .name') || {}).textContent || '').trim(),
+        len: t.length
+      };
     });
-    if (info.risk) return { ok: false, reason: '小红书风控验证页（VPS IP 触发），建议用本机登录导出的新鲜 cookie 或配置住宅代理' };
-    if (info.needLogin) return { ok: false, reason: 'cookie 已失效/未登录，请重新登录小红书后导出 cookie' };
+    if (info.risk) return { ok: false, reason: '小红书风控验证页（VPS 机房 IP 触发）。建议：用本机刚登录导出的新鲜 cookie，或给服务端配住宅代理' };
+    if (/\/login/i.test(url) || info.loginUI) return { ok: false, reason: 'cookie 已失效/未登录，请在电脑重新登录小红书后导出新 cookie' };
     return { ok: true, nickname: (info.nick || '').slice(0, 30) };
   } catch (e) {
     return { ok: false, reason: '检测失败：' + (e.message || String(e)).slice(0, 160) };
