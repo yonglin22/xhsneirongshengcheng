@@ -774,11 +774,9 @@ async function generateCoverImagesCore(n) {
   if (refSet.length) {
     // 有对标图组 → 逐张对位：文字密集→长图笔记；实拍→i2i。并发出图(最多3张同时)提速，结果按对标顺序组装。
     const planned = refSet.map((rv, i) => {
-      const seg = (typeof frameSliceForImage === 'function' && frameSliceForImage(i + 1)) || '';
-      const sc = (seg.match(/生图提示词[：:]\s*([^\n]+)/) || [])[1] || '';
-      const s3Photo = sc && !/清单|编号|对比|列表|表格|文字|排版|备忘录|大字|标题卡/.test(sc); // S3 明确要实拍 → 即使对标文字密集也走 i2i
       const textHeavy = isTextHeavyRef(rv);
-      return { i, textHeavy, isNote: textHeavy && !s3Photo };
+      // 默认走长文笔记卡（文字零乱码、版式精确、最稳）；只有「对标本身是实拍照片」才出 AI 图（AI 复刻不了文字排版，强行出图=四不像）
+      return { i, textHeavy, isNote: textHeavy };
     });
     let _seq = 0; planned.forEach(p => { if (!p.isNote) p.photoIdx = _seq++; }); // 实拍图编号，超体验期上限的跳过
     const results = new Array(refSet.length).fill(null);
