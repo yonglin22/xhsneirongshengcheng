@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>朱砂操盘台 · 3 分钟出一篇不限流·高质量的小红书笔记</title>
+<link rel="stylesheet" href="/assets/atelier.css?v=29" />
+<style>
+  *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; margin:0; }
+  body{ background:#fff; color:var(--ink); font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; }
+  .wrap{ max-width:560px; margin:0 auto; padding-bottom:96px; }
+  /* 顶栏 */
+  .ld-top{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px; }
+  .ld-top .lo{ display:flex; align-items:center; gap:10px; }
+  .ld-top img{ width:34px; height:34px; border-radius:9px; }
+  .ld-top .nm{ font-weight:800; font-size:15px; }
+  .ld-top .en{ font-size:9px; letter-spacing:.28em; color:var(--ink-soft); }
+  .ld-top a{ font-size:13px; color:var(--cinnabar-deep); font-weight:600; }
+  /* Hero */
+  .hero{ position:relative; overflow:hidden; padding:26px 22px 34px; text-align:center;
+    background:linear-gradient(170deg,#ffe6ea 0%,#fff4f5 46%,#fff 100%); }
+  .hero::after{ content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(360px 280px at 88% 4%,rgba(255,36,66,.16),transparent 60%); }
+  .hero > *{ position:relative; z-index:1; }
+  .pain{ display:inline-block; font-size:13px; font-weight:600; color:#b23a48; background:rgba(255,36,66,.08); border:1px solid rgba(255,36,66,.18); border-radius:999px; padding:6px 14px; }
+  .h1{ font-size:34px; font-weight:300; line-height:1.2; letter-spacing:-.01em; margin:16px 0 0; }
+  .h1 b{ font-weight:900; color:var(--cinnabar); }
+  .sub{ font-size:15px; color:#4a4f56; line-height:1.7; margin:14px auto 0; max-width:420px; }
+  .cta{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:52px; padding:0 34px; margin-top:22px;
+    border-radius:999px; background:linear-gradient(180deg,#ff4259,#ff2442 60%,#f81537); color:#fff; font-size:17px; font-weight:800;
+    box-shadow:0 14px 30px -10px rgba(255,36,66,.6); text-decoration:none; }
+  .cta-sub{ font-size:12px; color:var(--ink-soft); margin-top:10px; }
+  /* 区块 */
+  section{ padding:30px 22px; }
+  .sec-k{ font-size:12px; letter-spacing:.24em; color:var(--cinnabar); font-weight:700; text-align:center; }
+  .sec-h{ font-size:22px; font-weight:800; text-align:center; margin-top:8px; }
+  /* 痛点→解法 */
+  .pairs{ margin-top:20px; display:flex; flex-direction:column; gap:12px; }
+  .pair{ display:flex; align-items:center; gap:12px; background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:13px 15px; }
+  .pair .ic{ font-size:24px; flex:none; }
+  .pair .tt{ font-weight:800; font-size:15px; }
+  .pair .dd{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .pair .ar{ margin-left:auto; color:var(--cinnabar); font-weight:700; font-size:13px; white-space:nowrap; }
+  /* 亮点：智能体直接给方向 */
+  .spot{ margin:0 22px; background:linear-gradient(135deg,#16181d,#2a2030); color:#fff; border-radius:20px; padding:26px 22px; text-align:center; }
+  .spot .em{ font-size:34px; }
+  .spot .st{ font-size:20px; font-weight:800; margin-top:8px; }
+  .spot .sd{ font-size:13.5px; opacity:.86; line-height:1.7; margin-top:8px; }
+  .spot .sd b{ color:#ff8a9b; }
+  /* 流程 */
+  .flow{ margin-top:18px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .flow b{ background:rgba(255,36,66,.1); color:var(--cinnabar-deep); font-size:12.5px; font-weight:700; padding:5px 11px; border-radius:8px; }
+  /* 福利 */
+  .perk{ margin:0 22px; background:linear-gradient(135deg,var(--cinnabar),#ff5b73); color:#fff; border-radius:20px; padding:24px 22px; box-shadow:0 16px 34px -14px rgba(255,36,66,.55); }
+  .perk .pt{ font-size:13px; letter-spacing:.2em; font-weight:700; opacity:.9; }
+  .perk .ph{ font-size:24px; font-weight:900; margin-top:6px; }
+  .perk ul{ list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .perk li{ font-size:14px; font-weight:600; display:flex; align-items:center; gap:9px; }
+  /* 底部固定 CTA */
+  .sticky{ position:fixed; left:0; right:0; bottom:0; z-index:20; background:rgba(255,255,255,.92); backdrop-filter:blur(8px);
+    border-top:1px solid var(--line); padding:12px 20px; display:flex; justify-content:center; }
+  .sticky .cta{ margin-top:0; width:100%; max-width:520px; height:50px; }
+  .foot{ text-align:center; font-size:11.5px; color:var(--ink-soft); padding:8px 20px 20px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="ld-top">
+    <div class="lo"><img src="/assets/logo-mark.svg" alt="朱砂" /><div><div class="nm">赛道智能体 · 操盘台</div><div class="en">VERTICAL AGENT STUDIO</div></div></div>
+    <a href="/登录.html" id="loginTop">登录</a>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <span class="pain">😩 憋选题 · 写不出爆款 · 不会做封面 · 怕限流？</span>
+    <h1 class="h1"><b>3 分钟</b>出一篇<b>不限流</b><br><b>高质量</b>的小红书笔记</h1>
+    <p class="sub">给个方向，AI 一条流水线跑完：选题 → 对标拆解 → 框架 → 正文 → 封面配图 → 合规自检。0 基础也能上手。</p>
+    <a href="/登录.html" class="cta" id="ctaTop">立即免费试用 →</a>
+    <div class="cta-sub">🎁 注册即送 <b style="color:var(--cinnabar)">200 积分</b>，够你先跑几篇</div>
+  </div>
+
+  <!-- 痛点 → 解法 -->
+  <section>
+    <div class="sec-k">为什么用它</div>
+    <div class="sec-h">把四件最难的事，交给 AI</div>
+    <div class="pairs">
+      <div class="pair"><span class="ic">🎯</span><div><div class="tt">不知道发什么</div><div class="dd">三层漏斗选题，结合赛道+实时热点</div></div><span class="ar">→ 智能选题</span></div>
+      <div class="pair"><span class="ic">🧩</span><div><div class="tt">写不出爆款</div><div class="dd">对标拆解 + 框架 + 正文，一条龙</div></div><span class="ar">→ 爆款结构</span></div>
+      <div class="pair"><span class="ic">🎨</span><div><div class="tt">不会做封面</div><div class="dd">AI 自动出封面与配图，套版即用</div></div><span class="ar">→ 封面配图</span></div>
+      <div class="pair"><span class="ic">🛡️</span><div><div class="tt">怕违规限流</div><div class="dd">发布前合规自检，规避敏感/导流</div></div><span class="ar">→ 合规自检</span></div>
+    </div>
+  </section>
+
+  <!-- 亮点：智能体直接给方向 -->
+  <div class="spot">
+    <div class="em">🤖</div>
+    <div class="st">训练好的赛道智能体，直接告诉你「现在该发什么」</div>
+    <div class="sd">不是空白对话框，是<b>懂你赛道</b>的操盘手：选题有数据、正文有框架、口吻像真人。给个方向，<b>3 分钟出稿</b>。</div>
+    <div class="flow">
+      <b>选题</b><b>对标拆解</b><b>框架</b><b>正文·标题·标签</b><b>封面·配图</b><b>合规自检</b>
+    </div>
+  </div>
+
+  <!-- 福利 -->
+  <section>
+    <div class="perk">
+      <div class="pt">NEW USER · 新人福利</div>
+      <div class="ph">注册即送 200 积分</div>
+      <ul>
+        <li>🎁 <span>注册立得 <b>200 积分</b>，先免费跑几篇</span></li>
+        <li>👯 <span>邀请好友：<b>好友得 200 · 你得 100</b></span></li>
+        <li>💰 <span>好友首充，你再返 <b>10%</b> 积分</span></li>
+      </ul>
+    </div>
+    <div class="foot">单级 · 仅积分 · 不可提现 · 每日封顶防刷　|　1 积分 = ¥0.01</div>
+    <div id="ldBeian" class="foot" style="padding-top:0"></div>
+  </section>
+
+</div>
+
+<!-- 底部固定 CTA -->
+<div class="sticky"><a href="/登录.html" class="cta" id="ctaBottom">立即免费试用 · 领 200 积分 →</a></div>
+
+<script>
+// 带上邀请码（朋友圈/海报扫码进来的）→ 所有「登录」入口都透传 ?ref
+(function () {
+  const ref = (new URLSearchParams(location.search).get('ref') || '').trim();
+  if (!ref) return;
+  try { localStorage.setItem('ag_ref', ref); } catch {}
+  const q = '?ref=' + encodeURIComponent(ref);
+  ['loginTop', 'ctaTop', 'ctaBottom'].forEach(id => { const a = document.getElementById(id); if (a) a.href = '/登录.html' + q; });
+})();
+// ICP/公安 备案号页脚
+(async () => {
+  try { const j = await (await fetch('/api/health')).json(); if (!j || !j.icp) return;
+    let h = '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' + j.icp + '</a>';
+    if (j.police) h += ' · <a href="https://beian.mps.gov.cn/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">🛡 ' + j.police + '</a>';
+    const el = document.getElementById('ldBeian'); if (el) el.innerHTML = h;
+  } catch {}
+})();
+</script>
+</body>
+</html>

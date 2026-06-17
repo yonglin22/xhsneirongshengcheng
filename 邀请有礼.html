@@ -81,7 +81,7 @@ const $ = s => document.querySelector(s);
   try { j = await (await fetch('/api/invite')).json(); } catch {}
   if (!j || !j.ok) { $('#ivHint').textContent = '请先登录后再邀请。'; return; }
   const code = j.code || '';
-  $('#ivLink').value = location.origin + '/落地.html?ref=' + code;
+  $('#ivLink').value = location.origin + '/land.html?ref=' + code;
   $('#ivCount').textContent = j.count || 0;
   $('#ivEarned').textContent = j.earnedCredits || 0;
   if (code) $('#ivPoster').href = '/分享海报.html?ref=' + encodeURIComponent(code);

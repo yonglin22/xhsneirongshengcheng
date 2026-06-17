@@ -106,7 +106,7 @@ let SITE_BASE = (location.origin && location.origin.startsWith('http')) ? locati
 function buildQR(){
   const ref = ($('#refInput').value || refFromUrl()).trim();
   const base = SITE_BASE;
-  const url = base + '/落地.html' + (ref ? ('?ref=' + encodeURIComponent(ref)) : '');
+  const url = base + '/land.html' + (ref ? ('?ref=' + encodeURIComponent(ref)) : '');
   const box = $('#qr'); box.innerHTML = '';
   // 二维码由 JS 自动生成：内容 = 你的落地页链接（带邀请码）。优先本地 qrcodejs（清晰、可导出）；
   // CDN 被墙/加载失败时，自动回退到在线二维码图片，保证一定能出码。
