@@ -730,11 +730,14 @@ const server = http.createServer(async (req, res) => {
     try {
       const { keyword, sort, type, page } = JSON.parse((await readBody(req)) || '{}');
       if (!keyword) return send(res, 400, JSON.stringify({ ok: false, error: '缺少 keyword' }), { 'content-type': 'application/json' });
-      // 每用户每天抓取上限（保护共用小红书账号）
+      // 每用户每天抓取上限（保护共用小红书账号）。管理员/运营白名单免限额（自己测试不卡）
       const _uid = authUid(req);
-      const _rl = xhsDailyCheck(_uid ? ('u' + _uid) : ('ip' + clientIp(req)));
-      if (!_rl.ok) return send(res, 200, JSON.stringify({ ok: false, limited: true, error: `今日抓取已达上限（每天 ${_rl.limit} 次），明天再来～可先用已抓到的对标，或手动粘贴对标链接/上传对标图。` }), { 'content-type': 'application/json' });
-      _rl.inc();
+      const _isAdmin = isAdminReq(req);
+      if (!_isAdmin) {
+        const _rl = xhsDailyCheck(_uid ? ('u' + _uid) : ('ip' + clientIp(req)));
+        if (!_rl.ok) return send(res, 200, JSON.stringify({ ok: false, limited: true, error: `今日抓取已达上限（每天 ${_rl.limit} 次），明天再来～可先用已抓到的对标，或手动粘贴对标链接/上传对标图。` }), { 'content-type': 'application/json' });
+        _rl.inc();
+      }
       const sortOpt = ['general', 'popular', 'latest'].includes(sort) ? sort : 'popular';
       const typeOpt = ['all', 'video', 'image'].includes(type) ? type : 'all';
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
