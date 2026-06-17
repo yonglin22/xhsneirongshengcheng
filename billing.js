@@ -106,6 +106,12 @@ const INVITE_DAILY_CAP = parseInt(process.env.INVITE_DAILY_CAP || '2000', 10);  
 // 付费成品模板：购买扣积分 → 复制成「我的作品」可编辑；已购免费重看
 const TEMPLATE_PRICE = parseInt(process.env.TEMPLATE_PRICE || '120', 10);
 try { db.exec("CREATE TABLE IF NOT EXISTS template_purchases(user_id INTEGER, tpl_id TEXT, run_id TEXT, created_at INTEGER, PRIMARY KEY(user_id,tpl_id))"); } catch {}
+// 获客 Agent · 社媒账号矩阵（小红书/公众号…）。auth_blob=加密登录态/授权(敏感,不外发)
+try { db.exec("CREATE TABLE IF NOT EXISTS social_accounts(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, platform TEXT, nickname TEXT, grp TEXT, status TEXT DEFAULT 'pending', auth_blob TEXT, note TEXT, health TEXT, created_at INTEGER, updated_at INTEGER, last_active_at INTEGER)"); } catch {}
+function accountsList(uid){ return db.prepare("SELECT id,platform,nickname,grp,status,note,health,created_at,updated_at,last_active_at,(auth_blob IS NOT NULL AND auth_blob<>'') AS has_auth FROM social_accounts WHERE user_id=? ORDER BY id DESC").all(uid); }
+function accountAdd(uid, a){ const now=Date.now(); const r=db.prepare('INSERT INTO social_accounts(user_id,platform,nickname,grp,status,auth_blob,note,health,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(uid, a.platform||'xhs', String(a.nickname||'').slice(0,60), String(a.grp||'').slice(0,40), a.status||'pending', String(a.auth_blob||''), String(a.note||'').slice(0,200), '', now, now); return r.lastInsertRowid; }
+function accountUpdate(uid, id, p){ const cur=db.prepare('SELECT * FROM social_accounts WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; const f=(k,max)=>{ let v=p[k]!==undefined?p[k]:cur[k]; if(typeof v==='string'&&max) v=v.slice(0,max); return v; }; db.prepare('UPDATE social_accounts SET nickname=?,grp=?,status=?,auth_blob=?,note=?,health=?,updated_at=? WHERE id=? AND user_id=?').run(f('nickname',60),f('grp',40),f('status'),f('auth_blob'),f('note',200),f('health'),Date.now(),id,uid); return true; }
+function accountRemove(uid, id){ db.prepare('DELETE FROM social_accounts WHERE id=? AND user_id=?').run(id,uid); return true; }
 
 function txn(fn) { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; } }
 
@@ -508,6 +514,7 @@ module.exports = {
   rolesGet, rolesSet, menuCfgGet, menuCfgSet, enabledMenuKeys,
   partnerMemberOrders, partnerTransfer, hasPaidPack,
   qaLogAdd, qaLogList, qaTopQuestions, qaStats,
+  accountsList, accountAdd, accountUpdate, accountRemove,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
 };
 

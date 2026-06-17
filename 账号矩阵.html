@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>账号矩阵 · 获客 Agent · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=34" />
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <a href="/" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 返回工作台</a>
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT · M1</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02;letter-spacing:-.02em">账号<span class="italic" style="color:var(--cinnabar)">矩阵</span></h1>
+    <p class="mt-2 text-[13.5px] text-[var(--ink-soft)] max-w-2xl">统一管理你的多个小红书 / 公众号账号：分组、登录态、健康状态。内容生产好后可一键分发到所选账号<b>草稿箱</b>（发布到草稿箱 / 养号能力陆续上线）。</p>
+  </div>
+
+  <div class="card p-4 mb-5">
+    <div class="flex items-center justify-between mb-3">
+      <div class="font-song font-bold text-[15px]">＋ 添加账号</div>
+      <span class="text-[11px] text-[var(--ink-soft)]" id="cnt"></span>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div>
+        <div class="text-[11px] text-[var(--ink-soft)] mb-1">平台</div>
+        <select id="fPlatform" class="field w-full rounded-lg px-3 py-2 text-[13px]"><option value="xhs">📕 小红书</option><option value="gzh">📰 公众号</option></select>
+      </div>
+      <div>
+        <div class="text-[11px] text-[var(--ink-soft)] mb-1">账号昵称</div>
+        <input id="fNick" class="field w-full rounded-lg px-3 py-2 text-[13px]" placeholder="如：朱砂育儿号" />
+      </div>
+      <div>
+        <div class="text-[11px] text-[var(--ink-soft)] mb-1">分组（可选）</div>
+        <input id="fGroup" class="field w-full rounded-lg px-3 py-2 text-[13px]" placeholder="如：母婴矩阵 / A组" />
+      </div>
+      <div>
+        <div class="text-[11px] text-[var(--ink-soft)] mb-1">备注（可选）</div>
+        <input id="fNote" class="field w-full rounded-lg px-3 py-2 text-[13px]" placeholder="人设 / 用途" />
+      </div>
+    </div>
+    <div class="mt-3 flex items-center gap-2.5">
+      <button id="addBtn" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">＋ 添加到矩阵</button>
+      <span id="addStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
+    </div>
+    <div class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
+      ℹ️ 新账号默认「待接入」。<b>登录态接入（扫码登录）+ 发布到草稿箱 + 养号</b>需 VPS 浏览器自动化，正在建设中；接入后这里会显示「已登录 / 健康」。
+    </div>
+  </div>
+
+  <div id="list" class="space-y-4"></div>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=36"></script>
+<script>
+const PLAT = { xhs: '📕 小红书', gzh: '📰 公众号' };
+const STAT = { pending: ['待接入', '#b6bbc2'], active: ['已登录', '#00a152'], expired: ['登录失效', '#e8a400'], banned: ['受限/封禁', 'var(--cinnabar-deep)'] };
+async function api(path, method, body) {
+  const r = await fetch('/api/accounts' + path, { method: method || 'GET', headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  return r.json();
+}
+function statChip(s) { const [t, c] = STAT[s] || STAT.pending; return `<span style="font-size:11px;font-weight:600;color:${c};background:rgba(0,0,0,.04);border-radius:999px;padding:2px 9px">${t}</span>`; }
+function row(a) {
+  const d = new Date(a.created_at || Date.now());
+  return `<div class="flex items-center gap-3 flex-wrap" style="border:1px solid var(--line);border-radius:12px;padding:11px 14px;background:var(--paper-2)" data-id="${a.id}">
+    <span style="font-size:13px;font-weight:700;min-width:80px">${PLAT[a.platform] || a.platform}</span>
+    <span style="font-size:14px;font-weight:700;flex:1;min-width:120px">${a.nickname || '(未命名)'}</span>
+    ${a.grp ? `<span style="font-size:11px;color:var(--ink-soft);background:rgba(255,36,66,.07);border-radius:6px;padding:2px 8px">${a.grp}</span>` : ''}
+    ${statChip(a.status)}
+    <span style="font-size:11px;color:var(--ink-soft)">${a.note || ''}</span>
+    <select class="acc-stat field rounded-md px-2 py-1 text-[11px]" style="margin-left:auto">
+      ${Object.keys(STAT).map(k => `<option value="${k}" ${a.status === k ? 'selected' : ''}>${STAT[k][0]}</option>`).join('')}
+    </select>
+    <button class="acc-del btn-ghost rounded-md px-2.5 py-1 text-[11px]">删除</button>
+  </div>`;
+}
+async function load() {
+  const j = await api('');
+  const list = (j && j.list) || [];
+  $('#cnt').textContent = '共 ' + list.length + ' 个账号';
+  if (!list.length) { $('#list').innerHTML = '<div class="card p-8 text-center text-[13px] text-[var(--ink-soft)]">还没有账号。上面添加你的第一个小红书 / 公众号账号。</div>'; return; }
+  // 按分组聚合
+  const groups = {};
+  list.forEach(a => { const g = a.grp || '未分组'; (groups[g] = groups[g] || []).push(a); });
+  $('#list').innerHTML = Object.keys(groups).map(g => `
+    <div class="card p-4">
+      <div class="font-song font-bold text-[14px] mb-3">${g} <span class="text-[11px] text-[var(--ink-soft)] font-normal">· ${groups[g].length} 个</span></div>
+      <div class="space-y-2.5">${groups[g].map(row).join('')}</div>
+    </div>`).join('');
+  bind();
+}
+function bind() {
+  $$('.acc-del').forEach(b => b.addEventListener('click', async e => {
+    const id = +e.target.closest('[data-id]').dataset.id;
+    if (!confirm('删除这个账号？（仅从矩阵移除，不影响平台账号本身）')) return;
+    await api('/delete', 'POST', { id }); load();
+  }));
+  $$('.acc-stat').forEach(s => s.addEventListener('change', async e => {
+    const id = +e.target.closest('[data-id]').dataset.id;
+    await api('/update', 'POST', { id, patch: { status: e.target.value } }); load();
+  }));
+}
+$('#addBtn').addEventListener('click', async () => {
+  const nickname = $('#fNick').value.trim();
+  if (!nickname) { $('#addStatus').textContent = '请填账号昵称'; $('#addStatus').style.color = 'var(--cinnabar-deep)'; return; }
+  $('#addBtn').disabled = true;
+  await api('', 'POST', { platform: $('#fPlatform').value, nickname, grp: $('#fGroup').value.trim(), note: $('#fNote').value.trim() });
+  $('#fNick').value = ''; $('#fNote').value = '';
+  $('#addStatus').textContent = '✓ 已添加'; $('#addStatus').style.color = '#00a152';
+  $('#addBtn').disabled = false; load();
+});
+load();
+</script>
+</body>
+</html>

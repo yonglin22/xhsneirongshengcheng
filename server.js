@@ -954,7 +954,7 @@ const server = http.createServer(async (req, res) => {
   // ============ 账号 / 钱包 / 订单 / 支付 / 管理（计费）============
   if (pathname.startsWith('/api/auth/') || pathname === '/api/wallet' || pathname === '/api/price'
     || pathname.startsWith('/api/order') || pathname.startsWith('/api/pay/') || pathname.startsWith('/api/admin/')
-    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/')) {
+    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts')) {
     if (!billing) return sendJSON(res, 503, { error: '计费模块未启用（需 Node ≥ 22 的内置 node:sqlite）' });
 
     // 智能体配置（人设/KB/skills/配图风格，按账号存，跨设备）
@@ -968,6 +968,30 @@ const server = http.createServer(async (req, res) => {
       if (!trackId) return sendJSON(res, 400, { error: '缺少 trackId' });
       billing.agentConfigSave(uid, trackId, config || {});
       return sendJSON(res, 200, { ok: true });
+    }
+
+    // 获客 Agent · 社媒账号矩阵（按用户存）
+    if (pathname === '/api/accounts' && req.method === 'GET') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      return sendJSON(res, 200, { ok: true, list: billing.accountsList(uid) });
+    }
+    if (pathname === '/api/accounts' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const a = JSON.parse((await readBody(req)) || '{}');
+      const id = billing.accountAdd(uid, a);
+      return sendJSON(res, 200, { ok: true, id });
+    }
+    if (pathname === '/api/accounts/update' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const { id, patch } = JSON.parse((await readBody(req)) || '{}');
+      if (!id) return sendJSON(res, 400, { error: '缺少 id' });
+      return sendJSON(res, 200, { ok: billing.accountUpdate(uid, id, patch || {}) });
+    }
+    if (pathname === '/api/accounts/delete' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const { id } = JSON.parse((await readBody(req)) || '{}');
+      if (!id) return sendJSON(res, 400, { error: '缺少 id' });
+      return sendJSON(res, 200, { ok: billing.accountRemove(uid, id) });
     }
 
     // 创作流水线历史 / 作品库（按账号存，跨设备）

@@ -301,7 +301,7 @@ window.checkHealth = async function () {
 };
 
 /* ===== 全局外壳：左侧品牌边栏 + 顶部操作栏（参考工作台范式 · 朱砂红）===== */
-const PAGE_TITLES = { home: '工作台', topic: '第一步 · 选题', pipeline: '创作流水线', preview: '成稿预览', compliance: '合规自检', agent: '智能体设置', account: '我的账户', recharge: '充值积分', help: '联系客服', admin: '管理后台' };
+const PAGE_TITLES = { home: '工作台', topic: '第一步 · 选题', pipeline: '创作流水线', preview: '成稿预览', compliance: '合规自检', agent: '智能体设置', account: '我的账户', recharge: '充值积分', help: '联系客服', admin: '管理后台', matrix: '账号矩阵' };
 function escN(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 /* 注入外壳骨架（只建一次）：边栏 + 顶栏 */
@@ -314,6 +314,7 @@ window.buildShell = function () {
   side.innerHTML =
     `<a href="/" class="ag-brand"><img src="/assets/logo-mark.svg" alt="朱砂"/><div><div class="bn">朱砂 · 操盘台</div><div class="bs">VERTICAL AGENT STUDIO</div></div></a>
      <a href="/流水线.html?new=1" class="ag-create">✍️ 开始创作笔记</a>
+     <a href="/账号矩阵.html" class="ag-side-hint" style="display:block;margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-weight:600;color:var(--ink)">🎯 获客 · 账号矩阵</a>
      <div class="ag-side-hint">选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签 → 合规自检，一条流水线出一篇可发笔记。</div>
      <div class="ag-grow"></div>
      <div class="ag-usage" id="agUsage"></div>`;
