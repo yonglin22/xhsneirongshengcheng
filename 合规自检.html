@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>合规自检 · 第八步 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=34" />
+<link rel="stylesheet" href="/assets/atelier.css?v=35" />
 </head>
 <body class="stage grain min-h-screen" data-page="compliance">
 
@@ -122,8 +122,24 @@ const MEMO_BOTTOM='<div class="nt-ios-bottom">'+MEMO_TOOLS+'<div class="nt-home"
 function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&page.memo); const inner=((page&&page.blocks)||[]).map(noteBlock).join(''); if(memo){ const nav=MEMO_NAV.replace('</span><span class="nt-nav-r">', `</span><span class="nt-nav-date">${memoDateStr()}</span><span class="nt-nav-r">`); const top='<div class="nt-ios-top">'+MEMO_STATUS+nav+'</div>'; return `<div class="cv-note is-memo" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`; } return `<div class="cv-note${cover?' is-cover':''}" style="${noteStyleVars(page)}">${cover?inner:`<div class="cv-note-fit">${inner}</div>`}</div>`; }
 function fitNote(el){ const fit=el.querySelector('.cv-note-fit'); if(!fit)return; fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(el); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=el.clientHeight-padV, need=fit.scrollHeight; if(need>avail+1&&avail>0){ const s=Math.max(.45,avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } }
 function fitAllNotes(root){ (root||document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); requestAnimationFrame(()=>requestAnimationFrame(()=>{ (root||document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); })); }
-// 单个缩略：note:// / tpl:// → CSS 卡；普通 URL/data → 图片
+function autoEm(s){ return String(s||'').replace(/==(.+?)==/g,'<em>$1</em>').replace(/(?<!<em>)(\d+[%＋+分天]?|「[^」]+」)/g,'<em>$1</em>'); }
+function coverTemplateHTML(id, lines, opt){ opt=opt||{}; lines=(lines||[]).filter(Boolean);
+  const title=autoEm(lines[0]||''); const sub=(lines.slice(1).join(' ')||'').replace(/==(.+?)==/g,'$1');
+  const acc=opt.accent||'#ff2442', bg=opt.bg||'#ffffff', ink=opt.ink||'#16181d';
+  const vars=`--c-bg:${bg};--c-ink:${ink};--c-accent:${acc}`;
+  const tt=`<div class="ct-t">${title}</div>`, ss=sub?`<div class="ct-s">${sub}</div>`:'';
+  let inner;
+  if(id==='memo') inner=`<div class="ct-memobar"><span class="l">&lsaquo; 备忘录</span><span class="c">${(typeof memoDateStr==='function'?memoDateStr():'')}</span><span class="l">完成</span></div>${tt}${ss}`;
+  else if(id==='mag') inner=`<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
+  else if(id==='block') inner=`<div class="ct-block">${tt}</div>${ss}`;
+  else if(id==='split') inner=`<div class="ct-img"></div><div class="ct-cap">${tt}${ss}</div>`;
+  else inner=`${tt}${ss}`;
+  return `<div class="cv-ctpl ctpl-${id}" style="${vars}">${inner}</div>`;
+}
+function coverLinesForTpl(){ const c=($('#cCover')&&$('#cCover').value||'').trim(); const arr=c?c.split(/\s*\/\s*|\n+/).map(x=>x.trim()).filter(Boolean):[]; if(arr.length) return arr; const t=($('#cTitle')&&$('#cTitle').value||'').trim(); return t?[t]:[]; }
+// 单个缩略：note:// / tpl:// / ctpl:// → CSS 卡；普通 URL/data → 图片
 function imgCellHTML(u, wpx){ u=u||'';
+  if(u.startsWith('ctpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;box-shadow:none;border:1px solid var(--line)">${coverTemplateHTML(u.slice(7), coverLinesForTpl())}</div>`;
   if(u.startsWith('note://')) return `<div class="cv-frame tpl note-zoom" data-note="${+u.slice(7)}" title="点击放大" style="width:${wpx}px;box-shadow:none;border:1px solid var(--line);cursor:zoom-in">${noteCardHTML((window.__notePages||[])[+u.slice(7)])}</div>`;
   if(u.startsWith('tpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;box-shadow:none;border:1px solid var(--line)"><div class="cv-tpl t0"></div></div>`;
   return `<div class="out p-0" style="width:${wpx}px;aspect-ratio:3/4;border-radius:8px;overflow:hidden"><img class="zoomable" title="点击放大" src="${imgSrc(u)}" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in"/></div>`; }
