@@ -400,13 +400,16 @@ function renderCoverImages() {
       <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
       <span class="ci-regen" data-i="${i}" title="重新生成这张（可改提示词/上传参考图）" style="position:absolute;top:-7px;left:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">🔄</span>
       <span class="ci-del" data-i="${i}" style="position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">✕</span>
-      <div class="text-[10px] text-center text-[var(--ink-soft)] mt-1">${i === 0 ? '封面' : '配图 ' + i}</div>
+      <div class="mt-1 flex flex-col items-center gap-1" style="width:156px">
+        <span class="text-[10px] text-[var(--ink-soft)]">${i === 0 ? '封面' : '配图 ' + i}</span>
+        <button class="ci-regen2" data-i="${i}" title="重新生成这张（可改提示词/上传参考图）" style="width:100%;border:1px solid var(--cinnabar);color:var(--cinnabar);background:#fff;border-radius:8px;padding:4px 0;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">🔄 重新生成</button>
+      </div>
     </div>`).join('') + '</div>';
   box.querySelectorAll('.ci-del').forEach(x => x.addEventListener('click', () => {
     const i = +x.dataset.i; state.coverImages = state.coverImages || imgs.slice(); state.coverImages.splice(i, 1);
     state.coverImage = state.coverImages[0] || ''; persist(); renderCoverImages();
   }));
-  box.querySelectorAll('.ci-regen').forEach(x => x.addEventListener('click', () => openRegenModal(+x.dataset.i)));
+  box.querySelectorAll('.ci-regen, .ci-regen2').forEach(x => x.addEventListener('click', () => openRegenModal(+x.dataset.i)));
   // 长图笔记页：内容超框就等比缩小（双 rAF + 字体加载完后再各测一次，保证导出也准）
   requestAnimationFrame(() => requestAnimationFrame(() => fitAllNotes(box)));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitAllNotes(box));
