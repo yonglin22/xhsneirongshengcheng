@@ -70,7 +70,8 @@ function row(a) {
     ${a.grp ? `<span style="font-size:11px;color:var(--ink-soft);background:rgba(255,36,66,.07);border-radius:6px;padding:2px 8px">${a.grp}</span>` : ''}
     ${statChip(a.status)}
     <span style="font-size:11px;color:var(--ink-soft)">${a.note || ''}</span>
-    <select class="acc-stat field rounded-md px-2 py-1 text-[11px]" style="margin-left:auto">
+    <button class="acc-auth btn-go rounded-md px-2.5 py-1 text-[11px]" style="margin-left:auto">🔗 ${a.has_auth ? '重新接入' : '接入登录态'}</button>
+    <select class="acc-stat field rounded-md px-2 py-1 text-[11px]">
       ${Object.keys(STAT).map(k => `<option value="${k}" ${a.status === k ? 'selected' : ''}>${STAT[k][0]}</option>`).join('')}
     </select>
     <button class="acc-del btn-ghost rounded-md px-2.5 py-1 text-[11px]">删除</button>
@@ -101,6 +102,37 @@ function bind() {
     const id = +e.target.closest('[data-id]').dataset.id;
     await api('/update', 'POST', { id, patch: { status: e.target.value } }); load();
   }));
+  $$('.acc-auth').forEach(b => b.addEventListener('click', e => openAuthModal(+e.target.closest('[data-id]').dataset.id)));
+}
+function openAuthModal(id) {
+  const m = document.createElement('div'); m.id = '__authM';
+  m.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML = `<div class="card" style="width:min(520px,94vw);padding:22px">
+    <div class="font-song" style="font-weight:800;font-size:16px;margin-bottom:4px">🔗 接入小红书登录态</div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">登录态来自<b>真实手机号绑定的小红书账号</b>。当前最稳的方式：在电脑浏览器登录小红书 → 导出 Cookie 粘进来。（站内扫码登录正在建设中）</div>
+    <label style="font-size:12px;font-weight:600">该账号绑定的手机号</label>
+    <input id="amPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin:5px 0 12px" placeholder="如 138****8888（仅备注，便于识别）" />
+    <label style="font-size:12px;font-weight:600">小红书登录 Cookie</label>
+    <textarea id="amCookie" class="field w-full rounded-lg px-3 py-2 text-[12px]" rows="5" style="margin:5px 0 6px" placeholder="粘贴 www.xiaohongshu.com 的完整 Cookie（含 web_session 等）"></textarea>
+    <details style="font-size:11px;color:var(--ink-soft);margin-bottom:12px"><summary style="cursor:pointer">怎么拿 Cookie？</summary>
+      电脑 Chrome 用手机号登录 www.xiaohongshu.com → F12 打开开发者工具 → Application（应用）→ 左侧 Cookies → 选 xiaohongshu.com → 复制其中 <b>web_session</b> 等全部值；或装「Cookie-Editor」插件一键导出后粘贴。</details>
+    <div id="amStatus" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button id="amCancel" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">取消</button>
+      <button id="amSave" class="btn-go rounded-lg px-5 py-2 text-[13px] font-medium">保存并标为已登录</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  m.querySelector('#amCancel').onclick = () => m.remove();
+  m.querySelector('#amSave').onclick = async () => {
+    const phone = m.querySelector('#amPhone').value.trim();
+    const cookie = m.querySelector('#amCookie').value.trim();
+    const st = m.querySelector('#amStatus');
+    if (cookie.length < 20) { st.textContent = '请粘贴有效的 Cookie'; st.style.color = 'var(--cinnabar-deep)'; return; }
+    const auth = JSON.stringify({ phone, cookie, ts: Date.now() });
+    const r = await api('/update', 'POST', { id, patch: { auth_blob: auth, status: 'active', note: phone ? ('📱' + phone) : '' } });
+    if (r && r.ok) { m.remove(); load(); } else { st.textContent = '保存失败'; st.style.color = 'var(--cinnabar-deep)'; }
+  };
 }
 $('#addBtn').addEventListener('click', async () => {
   const nickname = $('#fNick').value.trim();
