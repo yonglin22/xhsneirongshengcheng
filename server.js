@@ -993,6 +993,19 @@ const server = http.createServer(async (req, res) => {
       if (!id) return sendJSON(res, 400, { error: '缺少 id' });
       return sendJSON(res, 200, { ok: billing.accountRemove(uid, id) });
     }
+    // 检测小红书登录态（Playwright 用账号 cookie 访问小红书，验真伪 + 探测风控）
+    if (pathname === '/api/accounts/verify' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const { id } = JSON.parse((await readBody(req)) || '{}');
+      const rec = id && billing.accountAuthBlob(uid, id);
+      if (!rec) return sendJSON(res, 404, { error: '账号不存在' });
+      let cookie = ''; try { const j = JSON.parse(rec.auth_blob || '{}'); cookie = j.cookie || ''; } catch { cookie = rec.auth_blob || ''; }
+      if (!cookie) return sendJSON(res, 200, { ok: false, reason: '该账号还没接入登录态（先点「接入登录态」粘贴 cookie）' });
+      let bot; try { bot = require('./xhs-bot'); } catch (e) { return sendJSON(res, 200, { ok: false, reason: '服务端未装 Playwright：' + (e.message || '').slice(0, 80) }); }
+      const r = await bot.verifyLogin(cookie);
+      billing.accountUpdate(uid, id, { status: r.ok ? 'active' : 'expired', health: r.ok ? ('✓ ' + (r.nickname || '已登录')) : (r.reason || '失效') });
+      return sendJSON(res, 200, r);
+    }
 
     // 创作流水线历史 / 作品库（按账号存，跨设备）
     if (pathname === '/api/history' && req.method === 'GET') {
