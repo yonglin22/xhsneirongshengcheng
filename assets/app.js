@@ -314,7 +314,7 @@ window.buildShell = function () {
   side.innerHTML =
     `<a href="/" class="ag-brand"><img src="/assets/logo-mark.svg" alt="朱砂"/><div><div class="bn">朱砂 · 操盘台</div><div class="bs">VERTICAL AGENT STUDIO</div></div></a>
      <a href="/流水线.html?new=1" class="ag-create">✍️ 开始创作笔记</a>
-     <a href="/账号矩阵.html" class="ag-side-hint" style="display:block;margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-weight:600;color:var(--ink)">🎯 获客 · 账号矩阵</a>
+     <a href="/账号矩阵.html" class="ag-growth-cta">🎯 获客 · 账号矩阵</a>
      <div class="ag-side-hint">选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签 → 合规自检，一条流水线出一篇可发笔记。</div>
      <div class="ag-grow"></div>
      <div class="ag-usage" id="agUsage"></div>`;
@@ -347,15 +347,38 @@ window.buildMyAgentNav = function () {
   const tk = (typeof getTrack === 'function') ? getTrack() : null;
   const curId = tk ? tk.id : null;
   const curName = tk ? tk.name : '智能体';
-  // 当前智能体标识 + 人设设置入口（点进 智能体.html）
-  const myAgent = `<a href="/智能体.html" class="ag-myagent" title="设置「${escN(curName)}」的人设 / 技能 / 边界">⚙ 智能体设置 · ${escN(curName)}</a><span class="ag-tracks-div"></span>`;
-  const chips = order.map(id => {
+  const trackItems = order.map(id => {
     const t = window.TRACKS && window.TRACKS[id]; if (!t) return '';
     const isC = window.isCustomTrack && window.isCustomTrack(id);
-    return `<button class="ag-trk ${id === curId ? 'on' : ''} ${isC ? 'own' : ''}" data-id="${id}" ${isC ? 'title="我的独立智能体"' : 'title="平台公共赛道"'}>${t.emoji || '🧩'} ${escN(t.name)}${isC ? '<i class="trk-mine">我的</i>' : ''}${isC ? `<span class="ag-trk-x" data-del="${id}" title="删除赛道">✕</span>` : ''}</button>`;
+    return `<div class="ag-dd-item ${id === curId ? 'on' : ''}" data-id="${id}"><span>${t.emoji || '🧩'} ${escN(t.name)}${isC ? ' <i class="trk-mine">我的</i>' : ''}</span>${isC ? `<span class="ag-dd-x" data-del="${id}" title="删除赛道">✕</span>` : ''}</div>`;
   }).join('');
-  el.innerHTML = myAgent + chips + `<a href="/?create=1" class="ag-trk add" title="创建你的专属赛道智能体">＋ 新增赛道</a>`;
-  el.querySelectorAll('.ag-trk[data-id]').forEach(b => b.addEventListener('click', e => {
+  // 顶栏合并为两个下拉：内容生成 Agent（赛道+新增+设置）/ 获客 Agent（矩阵+养号+发布）
+  el.innerHTML = `
+    <div class="ag-dd">
+      <button class="ag-dd-btn on" type="button">✍️ 内容生成 · ${escN(curName)} <i>▾</i></button>
+      <div class="ag-dd-menu">
+        <div class="ag-dd-h">切换赛道智能体</div>
+        ${trackItems}
+        <a href="/?create=1" class="ag-dd-item add">＋ 新增赛道</a>
+        <div class="ag-dd-sep"></div>
+        <a href="/智能体.html" class="ag-dd-item">⚙ 智能体设置 · ${escN(curName)}</a>
+      </div>
+    </div>
+    <div class="ag-dd">
+      <button class="ag-dd-btn" type="button">🎯 获客 Agent <i>▾</i></button>
+      <div class="ag-dd-menu">
+        <a href="/账号矩阵.html" class="ag-dd-item">🗂 账号矩阵</a>
+        <span class="ag-dd-item disabled" title="建设中">🌱 养号 <i class="soon">即将上线</i></span>
+        <span class="ag-dd-item disabled" title="建设中">🚀 一键发布 <i class="soon">即将上线</i></span>
+      </div>
+    </div>`;
+  el.querySelectorAll('.ag-dd-btn').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation(); const dd = b.parentElement; const wasOpen = dd.classList.contains('open');
+    el.querySelectorAll('.ag-dd').forEach(x => x.classList.remove('open'));
+    if (!wasOpen) dd.classList.add('open');
+  }));
+  if (!window.__ddCloseBound) { window.__ddCloseBound = 1; document.addEventListener('click', () => document.querySelectorAll('.ag-dd.open').forEach(x => x.classList.remove('open'))); }
+  el.querySelectorAll('.ag-dd-item[data-id]').forEach(b => b.addEventListener('click', e => {
     const del = e.target && e.target.dataset && e.target.dataset.del;
     if (del) {
       e.stopPropagation();
