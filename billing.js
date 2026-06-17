@@ -458,7 +458,7 @@ function historyList(uid) {
       let stepNo = doneKeys.map(k => parseInt(String(k).replace(/\D/g, '')) || 0).reduce((a, b) => Math.max(a, b), 0);
       if (stepNo < 1 && (r.topic || '').trim()) stepNo = 1;
       if (stepNo < 2 && ((d.refImages || []).length || (d.ref || '').trim())) stepNo = 2;
-      return { id: r.id, topic: r.topic, track: r.track, imgs: r.imgs, cover: r.cover || '', coverCard: (r.cover ? null : coverCardOf(r.data)), ts: r.ts, doneKeys, stepNo };
+      return { id: r.id, topic: r.topic, track: r.track, imgs: r.imgs, cover: r.cover || '', coverCard: (r.cover ? null : coverCardOf(r.data)), ts: r.ts, doneKeys, stepNo, platform: (d.platform === 'gzh' ? 'gzh' : 'xhs') };
     });
 }
 function historyGet(uid, id) { const r = db.prepare('SELECT data FROM pipeline_history WHERE user_id=? AND run_id=?').get(uid, id); try { return r ? JSON.parse(r.data) : null; } catch { return null; } }

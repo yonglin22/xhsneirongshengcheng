@@ -466,10 +466,12 @@ function renderWorks(filter) {
            <div style="margin-top:auto;font-size:11px;color:var(--ink-soft)">${workEmoji(w.track)} ${esc(w.track || '')}</div>
          </div>`;
     }
+    const isGzhW = w.platform === 'gzh';
+    const platChip = `<span style="position:absolute;top:8px;left:8px;z-index:2;font-size:11px;font-weight:700;color:#fff;border-radius:999px;padding:2px 9px;background:${isGzhW ? '#07c160' : '#ff2442'};box-shadow:0 2px 6px rgba(0,0,0,.18)">${isGzhW ? '📰 公众号' : '📕 小红书'}</span>`;
     return `<div class="hm-work" data-id="${w.id}" title="${(w.imgs || 0) > 0 ? '点击继续编辑' : '点击进入流水线，定位到当前步骤'}">
-      <div class="thumb">${thumb}<span class="hm-badge" style="background:${s.bg}">${s.t}</span>
+      <div class="thumb">${thumb}${platChip}<span class="hm-badge" style="background:${s.bg}">${s.t}</span>
         <div class="hm-wacts"><button class="wk-export" data-id="${w.id}" title="去导出">⬇</button><button class="wk-del" data-id="${w.id}" title="删除">🗑</button></div></div>
-      <div class="meta"><div class="ttl">${(w.topic || '（未命名）').replace(/</g, '&lt;')}</div><div class="dt">${w.track ? w.track + ' · ' : ''}${fmtD(w.ts)}</div></div>
+      <div class="meta"><div class="ttl">${(w.topic || '（未命名）').replace(/</g, '&lt;')}</div><div class="dt">${isGzhW ? '公众号' : '小红书'} · ${w.track ? w.track + ' · ' : ''}${fmtD(w.ts)}</div></div>
     </div>`; }).join('');
   grid.querySelectorAll('.hm-work').forEach(c => c.addEventListener('click', e => { if (e.target.closest('.hm-wacts')) return; openWork(c.dataset.id, '/流水线.html'); }));
   grid.querySelectorAll('.wk-export').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openWork(b.dataset.id, '/成稿预览.html'); }));
