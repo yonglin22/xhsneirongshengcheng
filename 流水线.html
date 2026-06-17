@@ -765,7 +765,9 @@ async function generateCoverImagesCore(n) {
   const refSet = (await analyzeRefImageSet(typeof setAuto === 'function' ? setAuto : null)).filter(Boolean);
   const coverTitle = ((state.cover && state.cover.cover_lines) || []).join(' ');
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-  const styleTag = aStyle ? '（画风：' + aStyle + '）' : '（未设画风，跟对标走；可在「智能体」页设「配图视觉风格」）';
+  const _refN = (typeof agentStyleRefs === 'function' ? agentStyleRefs().length : 0);
+  const _tplN = (typeof agentStyleRefPrompts === 'function' ? agentStyleRefPrompts().filter(Boolean).length : 0);
+  const styleTag = `（赛道:${t ? t.name : '?'}·风格库${_refN}张/模板${_tplN}条·画风文字:${aStyle ? '有' : '无'}）`;
   const urls = [], captions = [], notePages = [];
 
   const imgCap = maxImagesForUser(); let realCount = 0; // 体验期真实配图≤4
