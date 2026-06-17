@@ -690,12 +690,20 @@ async function planNotePage(i, refVis, isCover, title, t, extra) {
   // 第1张只有在"纯大字封面"时才走封面规则；带正文/示例/要点的开篇页 → 当内容页照常扩充
   const coverMode = isCover && isPureCoverSeg(frameSrc);
   const coverVisual = coverMode ? ((state.cover && state.cover.visual) || '') : '';
+  // ★ 笔记卡的「文字排版风格」= 智能体设置里你传的配图风格库（描述的就是版式/配色：标题/框线/字色/高亮等）→ 作为配色版式最高优先级
+  let styleGuide = '';
+  try {
+    const sref = (typeof pickStyleRef === 'function') ? pickStyleRef({ scene: '', layout: frameSrc, title: title || '' }) : null;
+    styleGuide = (sref && sref.prompt ? sref.prompt : '') || (typeof agentImgStyle === 'function' ? agentImgStyle() : '') || '';
+    styleGuide = styleGuide.trim();
+  } catch (e) {}
   try {
     const j = extractJSON(await callClaude({
       // 带上智能体人设/KB，让文字符合本账号设定；再叠加排版任务
       system: (persona ? persona + '\n\n' : '') + '【当前任务】你在做小红书长图笔记排版，只输出 JSON，文字口吻/事实都遵守上面的人设与知识库。',
       json: true, max_tokens: 1400, action: 'imgplan',
       prompt: `把【S3 框架·第 ${i + 1} 张的规划】排成我这篇的第 ${i + 1} 页长图笔记（竖版 3:4）。
+${styleGuide ? '【配图风格库 · 文字排版风格（==最高优先级：背景色/高亮色/主色/标题对齐/框线/字色 全部照这段来，不要自由发挥==）】\n' + styleGuide + '\n把这段描述里的颜色全部转成十六进制填进 style；版式（标题居中/左对齐、有无框线、列表/表格样式）也照它。\n' : ''}
 【内容骨架 = S3 框架里第 ${i + 1} 张的规划】
 ${frameSrc || '（框架里没找到这张，先去跑 S3 并写清"配图规划：第1张…第2张…"）'}
 【对标第 ${i + 1} 张的内容（参照它把每条写具体、写充实：补上具体做法/例子/数字/步骤，用我的人设口吻改写，不照抄原文、不编造）】${refVis}
@@ -703,14 +711,14 @@ ${coverMode ? `这是【封面页】，铁律：
 ${coverVisual ? '【S6 视觉建议（配色以这里为准：背景色/高亮色/主色都照它）】\n' + coverVisual + '\n' : ''}① title = 一句**短而冲**的主标题钩子，==≤14字==（从 S3 规划的「文字」里提炼，太长就压成一句，别照搬整段长句）；副标题/字数等放 t=meta（可空）。
 ② ==看 S3 规划：只有一句大标题 → 就只放 t=title(+t=meta)，绝不补正文/编造==；若规划里**明确列了核心要点/关键词**（如"造型基础/线条控制/色彩搭配"三个坑）→ 标题下用 **一个 t=ol**（≤3条、每条≤8字）原样列出，不要展开成长句。
 ③ 主标题与要点里的关键词用 ==高亮== 包起来（每处都标，呼应规划/视觉建议里点名要高亮的词）。
-④ ==配色优先用上面 S6 视觉建议里写的颜色==，其次看 S3「版式」；转十六进制填 style：例"浅灰背景、暗红高亮"→ bg:"#ededed",hl:"#c0392b",accent:"#c0392b"；"浅蓝/米白背景、黄高亮"→ bg:"#eef3fb",hl:"#ffd54a"；"莫兰迪绿"→ bg:"#cdd6c4"；都没写→ bg:"#ffffff"。深色背景把 dark 设 true。
+④ ==配色/版式优先按上面【配图风格库】，其次 S6 视觉建议，再次 S3「版式」==；转十六进制填 style：例"浅灰背景、暗红高亮"→ bg:"#ededed",hl:"#c0392b",accent:"#c0392b"；"浅蓝/米白背景、黄高亮"→ bg:"#eef3fb",hl:"#ffd54a"；"莫兰迪绿"→ bg:"#cdd6c4"；都没写→ bg:"#ffffff"。深色背景把 dark 设 true。
 ⑤ 注意：左右对比的"真实手绘图"这类**画面**文字卡画不了，封面页**只承载文字部分**（标题+要点），画面留给「🎨 生成配图」。`
         : `铁律：
 ① 内容以上面 S3 规划为骨架，==参照规划里的"内容核心/示例/要点"把每一条展开写具体写充实==：把规划的示例/类比/做法都写进来，给出**具体做法/例子/数字/步骤/类比**（别只写一句话，要有信息量）；用我的人设口吻改写，**不照抄、不编造、不套通用模板**；不确定的标「需核实」；
 ② 第一块顶部小标题：${isCover ? '这是开篇页 → 用 t=title 开篇大标题（≤16字，点题/钩子），可再跟一句 t=meta' : '用 t=sec 带序号小标题（如 "一、xxx"）'}；版式照搬对标第 ${i + 1} 张（它几个小标题/几条列表/有无对比，就对应几个）；
 ③ 重点用 ==高亮==(每页2~3处，标在关键名词/数字/结论上)、小标题 **加粗**；步骤用 t=ol+items，对比把 ❌/✅ 写进各条；
 ④ ==字数装得下一页 3:4、不溢出==：全页正文+列表合计 ≤ 220 字；标题 ≤ 16 字；列表 ≤ 5 条、每条 ≤ 28 字；段落 ≤ 4 段、每段 ≤ 55 字。在这个上限内尽量写具体、写满信息量，但不要超。
-⑤ ==配色照搬 S3 这张「版式」写的颜色==：转十六进制填 style。例"莫兰迪绿背景、黄色高亮"→ bg:"#cdd6c4", hl:"#ffd54a"；"白底"或没写→ bg:"#ffffff"。深色背景把 dark 设 true。accent 用作小标题色块/编号底色。`}
+⑤ ==配色/版式优先按上面【配图风格库】（如果有），其次照搬 S3 这张「版式」写的颜色==：转十六进制填 style。例"莫兰迪绿背景、黄色高亮"→ bg:"#cdd6c4", hl:"#ffd54a"；"白底"或没写→ bg:"#ffffff"。深色背景把 dark 设 true。accent 用作小标题色块/编号底色。`}
 只输出 JSON：{"style":{"bg":"#ffffff","accent":"#ff6a3d","hl":"#ff8a3d","dark":false},"blocks":[{"t":"title|meta|sec|sub|p|ol|tags","text":"","items":[]}]}`
     }));
     if (j.blocks && j.blocks.length) {
