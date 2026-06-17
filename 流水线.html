@@ -728,7 +728,7 @@ async function planNotePage(i, refVis, isCover, title, t, extra) {
   const memoBg = (() => {
     if (!memo) return '';
     const m = styleAll.match(/#([0-9a-fA-F]{6})/); if (m) return '#' + m[1];
-    const map = [[/米白|奶油|米色/, '#fffdf5'], [/(浅|淡|嫩)?黄|便签黄|legal|腾黄/, '#fff8d6'], [/(浅|淡)?灰/, '#f2f2f4'], [/(浅|淡)?蓝/, '#eaf1fb'], [/(浅|淡|嫩)?粉/, '#fdeef0'], [/(浅|淡|嫩)?绿|薄荷/, '#ebf6ee'], [/(浅|淡)?紫/, '#f1ecfb'], [/纯白|白底|白色/, '#ffffff']];
+    const map = [[/米白|奶油|米色/, '#fffdf5'], [/(浅|淡)?青|青色|cyan|teal|蓝绿|青绿/, '#e2f4f3'], [/(浅|淡|嫩)?黄|便签黄|legal|鹅黄/, '#fff8d6'], [/(浅|淡)?灰/, '#f2f2f4'], [/(浅|淡)?蓝/, '#eaf1fb'], [/(浅|淡|嫩)?粉/, '#fdeef0'], [/(浅|淡|嫩)?绿|薄荷/, '#ebf6ee'], [/(浅|淡)?紫/, '#f1ecfb'], [/(浅|淡)?橙|杏色|米黄/, '#fdeede'], [/纯白|白底|白色/, '#ffffff']];
     for (const [re, hex] of map) if (re.test(styleAll)) return hex;
     return '';
   })();
