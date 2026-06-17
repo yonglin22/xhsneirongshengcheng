@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <script src="/assets/tailwind.js?v=1"></script>
-<link rel="stylesheet" href="/assets/atelier.css?v=31" />
+<link rel="stylesheet" href="/assets/atelier.css?v=32" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -934,8 +934,10 @@ function noteCardHTML(page) {
   const memo = !!(page && page.memo);
   const inner = ((page && page.blocks) || []).map(noteBlock).join('');
   if (memo) {
-    // 仿真 iPhone 备忘录截图：状态栏 + 黄色导航栏 + 内容(日期+正文) + 底部工具栏 + Home条
-    return `<div class="cv-note is-memo" style="${noteStyleVars(page)}">${MEMO_TOP}<div class="cv-note-fit"><div class="nt-memodate">${memoDateStr()}</div>${inner}</div>${MEMO_BOTTOM}</div>`;
+    // 仿真 iPhone 备忘录截图：状态栏 + 黄色导航栏(日期居中) + 内容 + 底部工具栏 + Home条
+    const nav = MEMO_NAV.replace('</span><span class="nt-nav-r">', `</span><span class="nt-nav-date">${memoDateStr()}</span><span class="nt-nav-r">`);
+    const top = '<div class="nt-ios-top">' + MEMO_STATUS + nav + '</div>';
+    return `<div class="cv-note is-memo" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`;
   }
   return `<div class="cv-note${cover ? ' is-cover' : ''}" style="${noteStyleVars(page)}">${cover ? inner : `<div class="cv-note-fit">${inner}</div>`}</div>`;
 }
