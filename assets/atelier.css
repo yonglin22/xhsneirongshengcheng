@@ -273,6 +273,47 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-home{ height:4cqw; display:flex; align-items:center; justify-content:center; }
 .cv-note.is-memo .nt-home::after{ content:""; width:33cqw; height:1.1cqw; border-radius:1cqw; background:#000; }
 
+/* ===== 自有封面模板库（CSS 排版渲染，文字精准、html2canvas 可导出；填 cover_lines）===== */
+.cv-ctpl{ position:absolute; inset:0; overflow:hidden; display:flex; flex-direction:column; font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;
+  --c-bg:#fff; --c-ink:#16181d; --c-accent:#ff2442; background:var(--c-bg); }
+.cv-ctpl .ct-t{ font-weight:900; color:var(--c-ink); line-height:1.18; }
+.cv-ctpl .ct-s{ color:var(--c-ink); opacity:.62; line-height:1.5; }
+.cv-ctpl em{ font-style:normal; color:var(--c-accent); }
+/* 1) 大字冲击 bold：超大黑体居中 + 关键词色块 */
+.cv-ctpl.ctpl-bold{ justify-content:center; align-items:flex-start; padding:11cqw 9cqw; }
+.cv-ctpl.ctpl-bold .ct-t{ font-size:14cqw; letter-spacing:-.02em; }
+.cv-ctpl.ctpl-bold .ct-t em{ color:#fff; background:var(--c-accent); padding:0 1.5cqw; border-radius:1.5cqw; -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+.cv-ctpl.ctpl-bold .ct-s{ font-size:4.6cqw; margin-top:5cqw; font-weight:600; }
+.cv-ctpl.ctpl-bold::after{ content:""; position:absolute; left:9cqw; bottom:9cqw; width:16cqw; height:1.6cqw; background:var(--c-accent); border-radius:2cqw; }
+/* 2) 杂志风 mag：衬线大标题 + 顶部栏目线 + 底部期号 */
+.cv-ctpl.ctpl-mag{ padding:9cqw 8cqw; justify-content:center; font-family:"Songti SC","Noto Serif SC",serif; }
+.cv-ctpl.ctpl-mag .ct-kicker{ position:absolute; top:8cqw; left:8cqw; right:8cqw; display:flex; justify-content:space-between; align-items:center; font-size:3.2cqw; letter-spacing:.2em; color:var(--c-accent); font-weight:700; border-bottom:.4cqw solid var(--c-ink); padding-bottom:2cqw; font-family:-apple-system,sans-serif; }
+.cv-ctpl.ctpl-mag .ct-t{ font-size:12cqw; font-weight:800; }
+.cv-ctpl.ctpl-mag .ct-s{ font-size:4.2cqw; margin-top:4cqw; font-family:-apple-system,sans-serif; }
+.cv-ctpl.ctpl-mag .ct-foot{ position:absolute; bottom:8cqw; left:8cqw; font-size:3cqw; color:var(--c-ink); opacity:.5; letter-spacing:.1em; font-family:-apple-system,sans-serif; }
+/* 3) 色块 block：左上大色块压标题 */
+.cv-ctpl.ctpl-block{ padding:0; }
+.cv-ctpl.ctpl-block .ct-block{ background:var(--c-accent); color:#fff; padding:10cqw 8cqw 8cqw; }
+.cv-ctpl.ctpl-block .ct-t{ color:#fff; font-size:12cqw; }
+.cv-ctpl.ctpl-block .ct-s{ color:var(--c-ink); opacity:.75; font-size:4.4cqw; padding:6cqw 8cqw; font-weight:600; }
+/* 4) 手账胶带 tape：米纸 + 胶带 + 手写感 */
+.cv-ctpl.ctpl-tape{ background:#fbf7ee; justify-content:center; padding:12cqw 9cqw; }
+.cv-ctpl.ctpl-tape::before{ content:""; position:absolute; top:7cqw; left:50%; transform:translateX(-50%) rotate(-3deg); width:34cqw; height:7cqw; background:rgba(255,210,90,.55); }
+.cv-ctpl.ctpl-tape .ct-t{ font-size:12.5cqw; }
+.cv-ctpl.ctpl-tape .ct-t em{ text-decoration:underline; text-decoration-color:var(--c-accent); text-decoration-thickness:1.2cqw; text-underline-offset:1.5cqw; }
+.cv-ctpl.ctpl-tape .ct-s{ font-size:4.4cqw; margin-top:4cqw; }
+/* 5) 上图下字 split：上半图位(渐变/上传图)，下半白底大标题 */
+.cv-ctpl.ctpl-split{ padding:0; }
+.cv-ctpl.ctpl-split .ct-img{ height:52%; background:linear-gradient(135deg,var(--c-accent),#ffffff); background-size:cover; background-position:center; }
+.cv-ctpl.ctpl-split .ct-cap{ flex:1; padding:7cqw 8cqw; display:flex; flex-direction:column; justify-content:center; }
+.cv-ctpl.ctpl-split .ct-t{ font-size:11cqw; }
+.cv-ctpl.ctpl-split .ct-s{ font-size:4.2cqw; margin-top:3cqw; }
+/* 6) 金句 quote：大引号居中 */
+.cv-ctpl.ctpl-quote{ justify-content:center; align-items:center; text-align:center; padding:12cqw 10cqw; }
+.cv-ctpl.ctpl-quote::before{ content:"\201C"; position:absolute; top:6cqw; left:9cqw; font-size:26cqw; color:var(--c-accent); opacity:.25; font-family:Georgia,serif; line-height:1; }
+.cv-ctpl.ctpl-quote .ct-t{ font-size:10.5cqw; line-height:1.32; }
+.cv-ctpl.ctpl-quote .ct-s{ font-size:4cqw; margin-top:5cqw; }
+
 /* 健康状态点 */
 .dot{ width:7px; height:7px; border-radius:999px; background:#c9ccd1; display:inline-block; }
 .dot.ok{ background:#00c25e; } .dot.err{ background:var(--cinnabar); }

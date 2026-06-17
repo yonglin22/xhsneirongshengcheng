@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=33" />
+<link rel="stylesheet" href="/assets/atelier.css?v=34" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -447,6 +447,13 @@ function outputHTML(st) {
         <div class="text-[11px] text-[var(--ink-soft)] pt-1">视觉建议</div>
         <textarea id="cvVisual" class="field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" rows="2">${(v&&v.visual)||''}</textarea>
       </div>
+      <div class="mt-3">
+        <div class="text-[11px] text-[var(--ink-soft)] mb-1.5">🎨 封面模板（套用你的封面文案，文字精准·秒出·可导出）</div>
+        <div class="flex flex-wrap gap-2">
+          ${COVER_TPLS.map(([id,name])=>`<button class="cv-tpl-pick" data-tpl="${id}" style="border:1px solid var(--line);border-radius:9px;padding:6px 12px;font-size:12px;cursor:pointer;background:${((state.coverImages||[])[0]==='ctpl://'+id)?'var(--cinnabar)':'#fff'};color:${((state.coverImages||[])[0]==='ctpl://'+id)?'#fff':'var(--ink)'}">${name}</button>`).join('')}
+          <button class="cv-tpl-pick" data-tpl="__none" style="border:1px dashed var(--line);border-radius:9px;padding:6px 12px;font-size:12px;cursor:pointer;background:#fff;color:var(--ink-soft)">清除模板</button>
+        </div>
+      </div>
       <div class="mt-3 flex items-center gap-2.5 flex-wrap">
         <button id="genNote" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">📝 生成长文笔记图</button>
         <button id="upImg" class="btn-go rounded-xl px-4 py-2.5 text-[13px]">📎 上传真实图（实拍最佳）</button>
@@ -502,7 +509,7 @@ function renderCoverImages() {
   const caps = state.coverCaptions || [];
   box.innerHTML = '<div class="flex flex-wrap gap-3 items-start">' + imgs.map((u, i) => `
     <div style="position:relative">
-      <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : (caps[i] && caps[i].raw) ? `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>` : `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
+      <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') || (u || '').startsWith('ctpl://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('ctpl://') ? coverTemplateHTML(u.slice(7)) : (u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : (caps[i] && caps[i].raw) ? `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>` : `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
       <span class="ci-del" data-i="${i}" style="position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">✕</span>
       <div class="mt-1 flex flex-col items-center gap-1" style="width:156px">
         <span class="text-[10px] text-[var(--ink-soft)]">${i === 0 ? '封面' : '配图 ' + i}</span>
@@ -1066,6 +1073,24 @@ function splitHeavyPage(page) {
   const p2 = Object.assign({}, page, { blocks: rest.slice(cut) });
   return splitHeavyPage(p1).concat(splitHeavyPage(p2)); // 递归：还重就继续拆
 }
+// 自有封面模板：把封面文案(cover_lines)填进 CSS 版式，文字精准、可导出
+const COVER_TPLS = [['bold', '大字冲击'], ['mag', '杂志风'], ['block', '色块'], ['tape', '手账胶带'], ['split', '上图下字'], ['quote', '金句']];
+function autoEm(s) { return String(s || '').replace(/==(.+?)==/g, '<em>$1</em>').replace(/(?<!<em>)(\d+[%＋+分天]?|「[^」]+」)/g, '<em>$1</em>'); }
+function coverTemplateHTML(id, lines, opt) {
+  opt = opt || {}; lines = (lines || (state.cover && state.cover.cover_lines) || []).filter(Boolean);
+  const title = autoEm(lines[0] || state.topic || ''); const sub = (lines.slice(1).join(' ') || '').replace(/==(.+?)==/g, '$1');
+  const acc = opt.accent || (state.cover && state.cover.accent) || '#ff2442';
+  const bg = opt.bg || (state.cover && state.cover.bg) || '#ffffff';
+  const ink = opt.ink || '#16181d';
+  const vars = `--c-bg:${bg};--c-ink:${ink};--c-accent:${acc}`;
+  const tt = `<div class="ct-t">${title}</div>`, ss = sub ? `<div class="ct-s">${sub}</div>` : '';
+  let inner;
+  if (id === 'mag') inner = `<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
+  else if (id === 'block') inner = `<div class="ct-block">${tt}</div>${ss}`;
+  else if (id === 'split') { const im = opt.img || (state.cover && state.cover.img); inner = `<div class="ct-img" style="${im ? `background-image:url('${imgSrc(im)}')` : ''}"></div><div class="ct-cap">${tt}${ss}</div>`; }
+  else inner = `${tt}${ss}`;
+  return `<div class="cv-ctpl ctpl-${id}" style="${vars}">${inner}</div>`;
+}
 function noteCardHTML(page) {
   const cover = isCoverPage(page);
   const memo = !!(page && page.memo);
@@ -1465,6 +1490,17 @@ function renderPanel() {
   $('#genGzhCover')?.addEventListener('click', genGzhCover);
   $('#upImg')?.addEventListener('click', () => $('#coverFile')?.click());
   $('#coverFile')?.addEventListener('change', onCoverUpload);
+  $$('.cv-tpl-pick').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.tpl;
+    state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
+    if (id === '__none') { if ((state.coverImages[0] || '').startsWith('ctpl://')) { state.coverImages.shift(); } }
+    else {
+      if (!(state.cover && (state.cover.cover_lines || []).filter(Boolean).length) && !state.topic) { const s = $('#imgStatus'); if (s) { s.textContent = '先在上一步生成封面文案（或填选题）再套模板'; s.style.color = 'var(--cinnabar-deep)'; } return; }
+      if ((state.coverImages[0] || '').startsWith('ctpl://')) state.coverImages[0] = 'ctpl://' + id;
+      else state.coverImages.unshift('ctpl://' + id);
+    }
+    state.coverImage = state.coverImages[0] || ''; persist(); renderPanel();
+  }));
   if (st.key === 'cover') { if (isGzh()) renderGzhCover(); else renderCoverImages(); }
   if (st.input === 'ref') {
     renderRefImages();
