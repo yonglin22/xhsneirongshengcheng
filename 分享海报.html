@@ -117,7 +117,12 @@ function buildQR(){
     ok = !!box.querySelector('canvas');
   } catch (e) {}
   if (ok) {
-    box.querySelectorAll('img').forEach(im => im.remove()); // 本地 canvas 已出码 → 移除 qrcodejs 自带备用 img，避免双码叠加把框撑高
+    box.querySelectorAll('img').forEach(im => im.remove()); // 移除 qrcodejs 自带备用 img，避免双码叠加
+    // ★ 把二维码 canvas 转成 img(dataURL)：html2canvas 截 canvas 经常空白，截 img 必出
+    try {
+      const cv = box.querySelector('canvas');
+      if (cv) { const im = document.createElement('img'); im.src = cv.toDataURL('image/png'); im.style.cssText = 'width:64px;height:64px;display:block'; im.alt = '二维码'; box.innerHTML = ''; box.appendChild(im); }
+    } catch (e) {}
   } else {
     box.innerHTML = ''; // 本地库不可用才回退外部（注意：api.qrserver.com 国内可能打不开）
     const img = document.createElement('img'); img.crossOrigin = 'anonymous'; img.alt = '二维码';
