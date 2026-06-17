@@ -189,18 +189,25 @@ window.callClaude = async function ({ system, prompt, model, max_tokens = 2000, 
     try { window.creditModal(cost, window.__balance); } catch {}
     throw new Error('积分不足：本次约需 ' + cost + ' 积分，当前余额 ' + window.__balance + '。请先充值后再生成。');
   }
-  const res = await fetch('/api/claude', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: model || localStorage.getItem('ag_model') || 'claude-opus-4-8',
-      max_tokens,
-      system: system || PERSONA,
-      messages: [{ role: 'user', content: prompt }],
-      json,
-      action: action || 'text',
-    }),
-  });
+  let res;
+  try {
+    res = await fetch('/api/claude', {
+      method: 'POST',
+      signal: AbortSignal.timeout(90000), // 90s 超时，避免上游卡住时"一直加载不出来"
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: model || localStorage.getItem('ag_model') || 'claude-opus-4-8',
+        max_tokens,
+        system: system || PERSONA,
+        messages: [{ role: 'user', content: prompt }],
+        json,
+        action: action || 'text',
+      }),
+    });
+  } catch (e) {
+    if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) throw new Error('生成超时（90 秒无响应），请重试');
+    throw new Error('连不上服务，请重试');
+  }
   const text = await res.text();
   if (!res.ok) {
     let parsed = null; try { parsed = JSON.parse(text); } catch {}
