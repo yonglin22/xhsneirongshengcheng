@@ -27,6 +27,7 @@ async function klingGenerate(prompt, aspect) {
   if (!process.env.KLING_ACCESS_KEY || !process.env.KLING_SECRET_KEY) throw new Error('未配置 KLING_ACCESS_KEY/SECRET_KEY');
   const base = (process.env.KLING_BASE_URL || 'https://api-beijing.klingai.com').replace(/\/+$/, '');
   const model = process.env.KLING_MODEL || 'kling-v1';
+  prompt = String(prompt || '').slice(0, 2480); // 可灵 prompt 硬上限 2500 字，截断防 "size must be between 0 and 2500"
   const sub = await fetch(base + '/v1/images/generations', {
     method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + klingToken() },
     body: JSON.stringify({ model_name: model, prompt, n: 1, aspect_ratio: aspect || '3:4' }),
@@ -384,8 +385,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/image' && req.method === 'POST') {
     try {
       const reqBody = JSON.parse((await readBody(req)) || '{}');
-      const { prompt, size } = reqBody;
+      let { prompt, size } = reqBody;
       if (!prompt) return send(res, 400, JSON.stringify({ error: '缺少 prompt' }), { 'content-type': 'application/json' });
+      prompt = String(prompt).slice(0, 2400); // 统一上限：图像提示词不必超长，且可灵硬上限 2500，防 "size must be between 0 and 2500"
       // 供应商：前端可按图指定（封面 ark、内页 kling），否则用 .env 默认
       const provider = (reqBody.provider || process.env.IMAGE_PROVIDER || 'zhipu').toLowerCase();
       let ikey, model;
