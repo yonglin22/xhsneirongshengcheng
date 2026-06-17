@@ -599,7 +599,7 @@ function noteBlock(b){ if(!b)return''; const t=b.t||'p';
   return `<p class="nt-p">${mark(b.text||'')}</p>`; }
 function hexA(h,a){ const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim()); if(!m)return 'rgba(255,150,60,'+a+')'; const n=parseInt(m[1],16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
 function noteStyleVars(page){ const p=page||{}; const memo=!!p.memo;
-  const bg=/^#?[0-9a-f]{6}$/i.test(p.bg||'')?(p.bg[0]==='#'?p.bg:'#'+p.bg):(memo?'#fffdf7':'#ffffff');
+  const bg=/^#?[0-9a-f]{6}$/i.test(p.bg||'')?(p.bg[0]==='#'?p.bg:'#'+p.bg):('#ffffff');
   const acc=/^#?[0-9a-f]{6}$/i.test(p.accent||'')?(p.accent[0]==='#'?p.accent:'#'+p.accent):(memo?'#ffb300':'#ff6a3d');
   const hl=/^#?[0-9a-f]{6}$/i.test(p.hl||'')?(p.hl[0]==='#'?p.hl:'#'+p.hl):(memo?'#ffe14d':'#ff8a3d');
   const dark=!!p.dark, ink=dark?'#ffffff':'#16181d', ink2=dark?'rgba(255,255,255,.88)':'#33373d', meta=dark?'rgba(255,255,255,.62)':'#b6bbc2', tag=dark?'rgba(255,255,255,.78)':'#3a5a8c';
