@@ -136,6 +136,7 @@ if ((process.env.SMS_PROVIDER || '').toLowerCase() === 'aliyun') {
   setTimeout(warm, 2000); const _wt = setInterval(warm, 25000); if (_wt.unref) _wt.unref();
 }
 async function sendSmsAliyun(phone, code) {
+  const _t0 = Date.now();
   const KID = process.env.ALIYUN_ACCESS_KEY_ID, KSEC = process.env.ALIYUN_ACCESS_KEY_SECRET;
   const SIGN = process.env.ALIYUN_SMS_SIGN, TPL = process.env.ALIYUN_SMS_TEMPLATE;
   const paramKey = process.env.ALIYUN_SMS_PARAM_KEY || 'code'; // 模板变量名，默认 ${code}
@@ -159,6 +160,7 @@ async function sendSmsAliyun(phone, code) {
   }
   if (!j) throw new Error('阿里云短信网络失败（重试3次）：' + ((lastErr && lastErr.message) || 'timeout'));
   if (j.Code !== 'OK') throw new Error('阿里云 ' + (j.Code || '') + '：' + (j.Message || '发送失败'));
+  console.log('[SMS] aliyun 提交成功 ' + ((Date.now() - _t0) / 1000).toFixed(2) + 's → ' + phone + ' (BizId:' + (j.BizId || '') + ')');
   return true;
 }
 // 腾讯云短信 SendSms（API v3，TC3-HMAC-SHA256 签名，零依赖）
