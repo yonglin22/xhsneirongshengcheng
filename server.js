@@ -825,10 +825,16 @@ const server = http.createServer(async (req, res) => {
       url = url.replace(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/i, 'https://raw.githubusercontent.com/$1/$2/$3');
       const mRepo = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/?$/i);
       if (mRepo) url = `https://raw.githubusercontent.com/${mRepo[1]}/${mRepo[2]}/HEAD/README.md`;
-      const r = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0', 'accept': 'text/html,text/plain,*/*' } });
+      const r = await fetch(url, { redirect: 'follow', headers: {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'accept': 'text/html,application/xhtml+xml,*/*', 'accept-language': 'zh-CN,zh;q=0.9' } });
       let text = (await r.text()).replace(/\r\n/g, '\n');
       // 微信公众号文章：抽标题 + 正文区 → 纯文本。先删 script/style，再取 rich_media_content（取最靠后的真实容器）到底部标记
       if (/mp\.weixin\.qq\.com/i.test(url)) {
+        // 公众号反爬：返回「环境异常/完成验证」页 → 抓取被拦
+        if (/环境异常|完成验证后即可|访问过于频繁|去验证/.test(text) && !/rich_media_content|js_content/i.test(text)) {
+          return send(res, 200, JSON.stringify({ ok: false, error: '公众号反爬拦截了本次抓取（环境异常验证页）。请在浏览器打开文章、复制正文文字粘贴到对标框。' }), { 'content-type': 'application/json' });
+        }
         const title = ((text.match(/<h1[^>]*rich_media_title[^>]*>([\s\S]*?)<\/h1>/i) || text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || '').replace(/<[^>]+>/g, '').trim();
         const h = text.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
         let region = h;
