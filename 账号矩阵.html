@@ -112,34 +112,48 @@ function bind() {
     btn.disabled = false; btn.textContent = o; load();
   }));
 }
+let _qrTimer = null;
 function openAuthModal(id) {
   const m = document.createElement('div'); m.id = '__authM';
   m.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px';
-  m.innerHTML = `<div class="card" style="width:min(520px,94vw);padding:22px">
-    <div class="font-song" style="font-weight:800;font-size:16px;margin-bottom:4px">🔗 接入小红书登录态</div>
-    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">登录态来自<b>真实手机号绑定的小红书账号</b>。当前最稳的方式：在电脑浏览器登录小红书 → 导出 Cookie 粘进来。（站内扫码登录正在建设中）</div>
-    <label style="font-size:12px;font-weight:600">该账号绑定的手机号</label>
-    <input id="amPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin:5px 0 12px" placeholder="如 138****8888（仅备注，便于识别）" />
-    <label style="font-size:12px;font-weight:600">小红书登录 Cookie</label>
-    <textarea id="amCookie" class="field w-full rounded-lg px-3 py-2 text-[12px]" rows="5" style="margin:5px 0 6px" placeholder="粘贴 www.xiaohongshu.com 的完整 Cookie（含 web_session 等）"></textarea>
-    <details style="font-size:11px;color:var(--ink-soft);margin-bottom:12px"><summary style="cursor:pointer">怎么拿 Cookie？</summary>
-      电脑 Chrome 用手机号登录 www.xiaohongshu.com → F12 打开开发者工具 → Application（应用）→ 左侧 Cookies → 选 xiaohongshu.com → 复制其中 <b>web_session</b> 等全部值；或装「Cookie-Editor」插件一键导出后粘贴。</details>
-    <div id="amStatus" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>
+  m.innerHTML = `<div class="card" style="width:min(460px,94vw);padding:22px;text-align:center">
+    <div class="font-song" style="font-weight:800;font-size:16px;margin-bottom:4px">📱 扫码登录小红书</div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">用<b>手机小红书 App</b>扫码 → 登录态在服务器本地生成（同 IP，不会失效）。<br>cookie 粘贴在机房 IP 多半被判失效，推荐扫码。</div>
+    <div id="amQrBox" style="min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+      <button id="amQrStart" class="btn-go rounded-xl px-6 py-3 text-[14px] font-medium">📷 生成登录二维码</button>
+      <span style="font-size:11px;color:var(--ink-soft)">点击后约 10 秒出码</span>
+    </div>
+    <div id="amStatus" style="font-size:12px;min-height:16px;margin:8px 0"></div>
+    <details style="font-size:11px;color:var(--ink-soft);margin-bottom:10px;text-align:left"><summary style="cursor:pointer">扫不出码？用 Cookie 粘贴（备选）</summary>
+      <textarea id="amCookie" class="field w-full rounded-lg px-3 py-2 text-[12px]" rows="3" style="margin:6px 0" placeholder="粘贴 www.xiaohongshu.com 完整 Cookie（注意：机房 IP 多半会判失效）"></textarea>
+      <button id="amCookieSave" class="btn-ghost rounded-lg px-4 py-1.5 text-[12px]">保存 Cookie</button></details>
     <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button id="amCancel" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">取消</button>
-      <button id="amSave" class="btn-go rounded-lg px-5 py-2 text-[13px] font-medium">保存并标为已登录</button>
+      <button id="amCancel" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">关闭</button>
     </div></div>`;
   document.body.appendChild(m);
-  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
-  m.querySelector('#amCancel').onclick = () => m.remove();
-  m.querySelector('#amSave').onclick = async () => {
-    const phone = m.querySelector('#amPhone').value.trim();
-    const cookie = m.querySelector('#amCookie').value.trim();
-    const st = m.querySelector('#amStatus');
-    if (cookie.length < 20) { st.textContent = '请粘贴有效的 Cookie'; st.style.color = 'var(--cinnabar-deep)'; return; }
-    const auth = JSON.stringify({ phone, cookie, ts: Date.now() });
-    const r = await api('/update', 'POST', { id, patch: { auth_blob: auth, status: 'active', note: phone ? ('📱' + phone) : '' } });
-    if (r && r.ok) { m.remove(); load(); } else { st.textContent = '保存失败'; st.style.color = 'var(--cinnabar-deep)'; }
+  const close = () => { if (_qrTimer) { clearInterval(_qrTimer); _qrTimer = null; } m.remove(); };
+  m.addEventListener('click', e => { if (e.target === m) close(); });
+  m.querySelector('#amCancel').onclick = close;
+  m.querySelector('#amQrStart').onclick = async () => {
+    const box = m.querySelector('#amQrBox'); const st = m.querySelector('#amStatus');
+    box.innerHTML = '<span style="font-size:13px;color:var(--ink-soft)">正在打开小红书登录…（约 10 秒）</span>';
+    const r = await api('/qr-start', 'POST', {});
+    if (!r.ok) { box.innerHTML = `<button id="amQrStart2" class="btn-go rounded-xl px-6 py-3 text-[13px]">重试</button>`; st.textContent = '✗ ' + (r.reason || '出码失败'); st.style.color = 'var(--cinnabar-deep)'; m.querySelector('#amQrStart2').onclick = () => openAuthModal(id) && close(); return; }
+    box.innerHTML = `<img src="${r.qr}" style="width:200px;height:200px;object-fit:contain;border:1px solid var(--line);border-radius:10px"/><span style="font-size:12px;color:var(--ink)">用小红书 App「我」→ 右上角扫一扫</span>`;
+    st.textContent = '等待扫码确认…'; st.style.color = 'var(--ink-soft)';
+    let n = 0;
+    _qrTimer = setInterval(async () => {
+      n++; if (n > 60) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码超时，请重新生成'; st.style.color = 'var(--cinnabar-deep)'; return; }
+      const p = await api('/qr-poll', 'POST', { token: r.token, id });
+      if (p.ok) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '✓ 登录成功！'; st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 800); }
+      else if (p.expired) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码已过期，请重新生成'; st.style.color = 'var(--cinnabar-deep)'; }
+    }, 2500);
+  };
+  m.querySelector('#amCookieSave').onclick = async () => {
+    const cookie = m.querySelector('#amCookie').value.trim(); const st = m.querySelector('#amStatus');
+    if (cookie.length < 20) { st.textContent = '请粘贴有效 Cookie'; st.style.color = 'var(--cinnabar-deep)'; return; }
+    const r = await api('/update', 'POST', { id, patch: { auth_blob: JSON.stringify({ cookie, ts: Date.now() }), status: 'active' } });
+    if (r && r.ok) { close(); load(); }
   };
 }
 $('#addBtn').addEventListener('click', async () => {

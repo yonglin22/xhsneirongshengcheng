@@ -110,4 +110,57 @@ async function publishDraft(cookieStr, content) {
   }
 }
 
-module.exports = { verifyLogin, publishDraft, parseCookie };
+// ===== 扫码登录：在 VPS 本地打开小红书登录页出二维码，手机扫码后取登录态（同 IP，不会失效）=====
+const _qr = new Map(); // token -> { browser, ctx, page, ts }
+function _qrGc() { const now = Date.now(); for (const [k, s] of _qr) { if (now - s.ts > 240000) { try { s.browser.close(); } catch {} _qr.delete(k); } } }
+
+async function startQrLogin() {
+  _qrGc();
+  const b = await launch();
+  try {
+    const ctx = await b.newContext({ userAgent: UA, viewport: { width: 1280, height: 900 }, locale: 'zh-CN' });
+    const p = await ctx.newPage();
+    await p.goto('https://www.xiaohongshu.com/explore', { waitUntil: 'domcontentloaded', timeout: 40000 });
+    await p.waitForTimeout(2600);
+    const bodyTxt = await p.evaluate(() => (document.body && document.body.innerText || '').slice(0, 1200));
+    if (/环境异常|安全验证|滑动验证|拼图验证/.test(bodyTxt)) { await b.close(); return { ok: false, reason: '小红书风控验证页（VPS IP），扫码登录暂不可用，请反馈我配住宅代理' }; }
+    // 触发登录弹窗
+    try { const lb = p.locator('text=登录').first(); if (await lb.count()) { await lb.click({ timeout: 4000 }); await p.waitForTimeout(1600); } } catch {}
+    // 切到扫码登录 tab（默认可能是手机号登录）
+    try { const qt = p.locator('text=扫码登录').first(); if (await qt.count()) { await qt.click({ timeout: 3000 }); await p.waitForTimeout(1200); } } catch {}
+    // 截二维码
+    let qr = '';
+    for (const sel of ['.qrcode-img', '.qrcode img', 'img.qrcode-img', '.css-qr img', '.login-container canvas', '.login-box img[src^="data:"]', 'canvas']) {
+      try { const el = p.locator(sel).first(); if (await el.count()) { const buf = await el.screenshot({ timeout: 4000 }); if (buf && buf.length > 800) { qr = 'data:image/png;base64,' + buf.toString('base64'); break; } } } catch {}
+    }
+    if (!qr) { try { const m = p.locator('[class*=login],[class*=qrcode]').first(); if (await m.count()) { const buf = await m.screenshot({ timeout: 4000 }); qr = 'data:image/png;base64,' + buf.toString('base64'); } } catch {} }
+    if (!qr) { await b.close(); return { ok: false, reason: '没抓到登录二维码（小红书改版或风控），可暂用 cookie 粘贴' }; }
+    const token = 'qr' + Date.now() + Math.random().toString(36).slice(2, 7);
+    _qr.set(token, { browser: b, ctx, page: p, ts: Date.now() });
+    return { ok: true, token, qr };
+  } catch (e) {
+    try { await b.close(); } catch {}
+    return { ok: false, reason: '扫码登录启动失败：' + (e.message || String(e)).slice(0, 140) };
+  }
+}
+
+async function pollQrLogin(token) {
+  const s = _qr.get(token);
+  if (!s) return { ok: false, expired: true, reason: '二维码会话已过期，请重新获取' };
+  try {
+    const cks = await s.ctx.cookies('https://www.xiaohongshu.com');
+    const web = cks.find(c => c.name === 'web_session' && c.value && c.value.length >= 20);
+    // 登录弹窗是否已消失（扫码确认后弹窗关闭）
+    let modalGone = true;
+    try { const m = s.page.locator('text=扫码登录'); modalGone = (await m.count()) === 0; } catch {}
+    if (web && modalGone) {
+      const cookieStr = cks.map(c => c.name + '=' + c.value).join('; ');
+      try { await s.browser.close(); } catch {}
+      _qr.delete(token);
+      return { ok: true, cookie: cookieStr };
+    }
+    return { ok: false, pending: true };
+  } catch (e) { return { ok: false, pending: true }; }
+}
+
+module.exports = { verifyLogin, publishDraft, parseCookie, startQrLogin, pollQrLogin };
