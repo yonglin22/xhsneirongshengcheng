@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>一键发布 · 获客 Agent · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=38" />
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <a href="/" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 返回工作台</a>
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02;letter-spacing:-.02em">🚀 一键<span class="italic" style="color:var(--cinnabar)">发布</span></h1>
+    <p class="mt-2 text-[13.5px] text-[var(--ink-soft)] max-w-2xl">选一篇成稿 → 选矩阵里的小红书账号（需已接入登录态）→ 一键推到对应账号<b>草稿箱</b>。终审与「发布」请在小红书 App 内完成（合规）。</p>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-5">
+    <!-- 选成稿 -->
+    <div class="card p-4">
+      <div class="font-song font-bold text-[15px] mb-3">① 选成稿</div>
+      <div id="works" class="space-y-2" style="max-height:340px;overflow:auto"></div>
+    </div>
+    <!-- 选账号 -->
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-3"><div class="font-song font-bold text-[15px]">② 选小红书账号（可多选）</div><a href="/账号矩阵.html" class="text-[12px]" style="color:var(--cinnabar)">管理矩阵 →</a></div>
+      <div id="accs" class="space-y-2" style="max-height:340px;overflow:auto"></div>
+    </div>
+  </div>
+
+  <div class="card p-4 mt-5">
+    <div class="flex items-center gap-3 flex-wrap">
+      <button id="pubBtn" class="btn-go rounded-xl px-6 py-3 text-[14px] font-medium">🚀 发布到所选账号草稿箱</button>
+      <span id="pubStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
+    </div>
+    <div id="pubLog" class="mt-3 space-y-1.5"></div>
+    <div class="text-[11px] text-[var(--ink-soft)] mt-3 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
+      ⚠️ 小红书图文草稿需<b>至少 1 张图片</b>。长图笔记卡（CSS）需先在「成稿预览」导出 PNG；含 AI 封面 / 实拍上传图的成稿可直接发。发布为<b>实验功能</b>，依赖账号登录态有效，首次请小批量验证。
+    </div>
+  </div>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=37"></script>
+<script>
+let WORK = null, sel = new Set();
+function fmtD(ts){ try{ const d=new Date(ts); return (d.getMonth()+1)+'/'+d.getDate(); }catch{ return ''; } }
+async function loadWorks(){
+  const j = await (await fetch('/api/history')).json();
+  const list = (j&&j.list)||[];
+  $('#works').innerHTML = list.length ? list.map(w=>`
+    <label class="flex items-center gap-2.5" style="border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer" data-id="${w.id}">
+      <input type="radio" name="wk" value="${w.id}" style="width:15px;height:15px"/>
+      <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(w.topic||'（未命名）').replace(/</g,'&lt;')}</span>
+      <span style="font-size:10px;color:#fff;background:${w.platform==='gzh'?'#07c160':'#ff2442'};border-radius:6px;padding:1px 6px">${w.platform==='gzh'?'公众号':'小红书'}</span>
+      <span style="font-size:11px;color:var(--ink-soft)">${fmtD(w.ts)}</span>
+    </label>`).join('') : '<div class="text-[13px] text-[var(--ink-soft)] text-center py-6">还没有成稿，先去创作流水线生成。</div>';
+  $$('#works input[name=wk]').forEach(r=>r.addEventListener('change', async e=>{
+    const id=e.target.value; $('#pubStatus').textContent='读取成稿…';
+    const d=await (await fetch('/api/history/get?id='+encodeURIComponent(id))).json();
+    const data=(d&&d.data)||d||{};
+    const imgs=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(u=>typeof u==='string'&&/^https?:\/\//.test(u));
+    WORK={ id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), images:imgs };
+    $('#pubStatus').textContent = `✓ 已选「${(WORK.title||'').slice(0,16)}」· 可上传图片 ${imgs.length} 张` + (imgs.length?'':'（⚠ 无 http 图片，长图笔记卡请先去成稿预览导出 PNG）');
+    $('#pubStatus').style.color = imgs.length? '#00a152':'var(--cinnabar-deep)';
+  }));
+}
+async function loadAccs(){
+  const j = await (await fetch('/api/accounts')).json();
+  const list = ((j&&j.list)||[]).filter(a=>a.platform==='xhs');
+  $('#accs').innerHTML = list.length ? list.map(a=>{
+    const ready = a.status==='active' && a.has_auth;
+    return `<label class="flex items-center gap-2.5" style="border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:${ready?'pointer':'not-allowed'};opacity:${ready?1:.55}" data-id="${a.id}">
+      <input type="checkbox" class="acc-ck" value="${a.id}" ${ready?'':'disabled'} style="width:15px;height:15px"/>
+      <span style="flex:1;font-size:13px;font-weight:600">${a.nickname||'(未命名)'}</span>
+      <span style="font-size:11px;color:${ready?'#00a152':'var(--ink-soft)'}">${ready?'已登录':'未接入/失效'}</span>
+    </label>`;
+  }).join('') : '<div class="text-[13px] text-[var(--ink-soft)] text-center py-6">矩阵里还没有小红书账号，<a href="/账号矩阵.html" style="color:var(--cinnabar)">去添加并接入登录态 →</a></div>';
+  $$('#accs .acc-ck').forEach(c=>c.addEventListener('change', e=>{ const id=+e.target.value; if(e.target.checked) sel.add(id); else sel.delete(id); }));
+}
+$('#pubBtn').addEventListener('click', async ()=>{
+  if(!WORK){ $('#pubStatus').textContent='请先选一篇成稿'; $('#pubStatus').style.color='var(--cinnabar-deep)'; return; }
+  if(!WORK.images.length){ $('#pubStatus').textContent='这篇没有可上传的图片，无法发小红书图文'; $('#pubStatus').style.color='var(--cinnabar-deep)'; return; }
+  if(!sel.size){ $('#pubStatus').textContent='请至少选一个已登录的小红书账号'; $('#pubStatus').style.color='var(--cinnabar-deep)'; return; }
+  const btn=$('#pubBtn'); btn.disabled=true; const o=btn.textContent; btn.textContent='发布中…';
+  $('#pubLog').innerHTML=''; $('#pubStatus').textContent='正在逐个账号发布（每个约 30~60 秒）…'; $('#pubStatus').style.color='var(--ink-soft)';
+  for(const id of sel){
+    const row=document.createElement('div'); row.style.cssText='font-size:12.5px'; row.textContent='账号 '+id+'：发布中…'; $('#pubLog').appendChild(row);
+    try{
+      const r=await (await fetch('/api/accounts/publish',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id,content:WORK})})).json();
+      row.textContent='账号 '+id+'：'+(r.ok?('✓ '+(r.msg||'已存草稿')):('✗ '+(r.msg||'失败')));
+      row.style.color=r.ok?'#00a152':'var(--cinnabar-deep)';
+    }catch(e){ row.textContent='账号 '+id+'：✗ 请求失败'; row.style.color='var(--cinnabar-deep)'; }
+  }
+  $('#pubStatus').textContent='✓ 发布流程结束，去小红书 App「草稿箱」确认终审发布'; $('#pubStatus').style.color='#00a152';
+  btn.disabled=false; btn.textContent=o;
+});
+loadWorks(); loadAccs();
+</script>
+</body>
+</html>

@@ -1299,13 +1299,17 @@ async function genGzhCover() {
   const prompt = `${aStyle ? aStyle + '，' : ''}${visual}。微信公众号横版首图（2.35:1 宽幅），干净有设计感、主体居中、左右适当留白，真实质感、高级感、电影级柔光、4K 超清；画面不要出现任何文字。${IMG_NEG}`;
   if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
   if (stx) { stx.textContent = '正在生成横版首图…（约 30 秒）'; stx.style.color = 'var(--ink-soft)'; }
-  try {
+  // 出图：失败自动重试 1 次（ark 偶发网络 fetch failed / 限流）
+  async function once() {
     const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'ark', prompt, size: '2960x1260' }) });
-    const tx = await r.text(); if (!r.ok) { throw new Error(errMsg(tx)); }
-    let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {} if (!u) throw new Error('上游无图');
+    const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
+    let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {} if (!u) throw new Error('上游无图'); return u;
+  }
+  try {
+    let u; try { u = await once(); } catch (e1) { if (stx) stx.textContent = '出图失败，重试中…'; await new Promise(r => setTimeout(r, 1200)); u = await once(); }
     state.coverImages = [u]; state.coverImage = u; state.coverCaptions = [{ theme: 'photo', raw: true }]; persist(); renderGzhCover();
     if (stx) { stx.textContent = '✓ 首图已生成'; stx.style.color = '#00a152'; }
-  } catch (e) { if (stx) { stx.textContent = '生成失败：' + (e && e.message || e); stx.style.color = 'var(--cinnabar-deep)'; } }
+  } catch (e) { if (stx) { stx.textContent = '生成失败：' + (e && e.message || e) + '（可再点一次）'; stx.style.color = 'var(--cinnabar-deep)'; } }
   finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
 }
 async function onCoverUpload(e) {

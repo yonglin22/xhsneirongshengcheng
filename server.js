@@ -1006,6 +1006,19 @@ const server = http.createServer(async (req, res) => {
       billing.accountUpdate(uid, id, { status: r.ok ? 'active' : 'expired', health: r.ok ? ('✓ ' + (r.nickname || '已登录')) : (r.reason || '失效') });
       return sendJSON(res, 200, r);
     }
+    // 一键发布到小红书草稿箱（Playwright 驱动创作中心）
+    if (pathname === '/api/accounts/publish' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const { id, content } = JSON.parse((await readBody(req)) || '{}');
+      const rec = id && billing.accountAuthBlob(uid, id);
+      if (!rec) return sendJSON(res, 404, { error: '账号不存在' });
+      if (rec.platform !== 'xhs') return sendJSON(res, 200, { ok: false, msg: '目前仅支持小红书账号发布' });
+      let cookie = ''; try { const j = JSON.parse(rec.auth_blob || '{}'); cookie = j.cookie || ''; } catch { cookie = rec.auth_blob || ''; }
+      if (!cookie) return sendJSON(res, 200, { ok: false, msg: '该账号未接入登录态' });
+      let bot; try { bot = require('./xhs-bot'); } catch (e) { return sendJSON(res, 200, { ok: false, msg: '服务端未装 Playwright' }); }
+      const r = await bot.publishDraft(cookie, content || {});
+      return sendJSON(res, 200, r);
+    }
 
     // 创作流水线历史 / 作品库（按账号存，跨设备）
     if (pathname === '/api/history' && req.method === 'GET') {

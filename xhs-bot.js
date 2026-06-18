@@ -50,4 +50,64 @@ async function verifyLogin(cookieStr) {
   } finally { try { if (b) await b.close(); } catch {} }
 }
 
-module.exports = { verifyLogin, parseCookie };
+// 下载图片到临时文件（小红书上传需本地文件）
+async function dlImages(images) {
+  const fs = require('fs'); const os = require('os'); const path = require('path');
+  const out = [];
+  for (let i = 0; i < Math.min((images || []).length, 9); i++) {
+    const u = images[i]; if (!u || !/^https?:\/\//.test(u)) continue;
+    try {
+      const r = await fetch(u, { signal: AbortSignal.timeout(20000), headers: { 'user-agent': UA, referer: 'https://www.xiaohongshu.com/' } });
+      if (!r.ok) continue;
+      const buf = Buffer.from(await r.arrayBuffer());
+      const ext = (r.headers.get('content-type') || '').includes('png') ? 'png' : 'jpg';
+      const fp = path.join(os.tmpdir(), 'xhs_' + Date.now() + '_' + i + '.' + ext);
+      fs.writeFileSync(fp, buf); out.push(fp);
+    } catch {}
+  }
+  return out;
+}
+
+// 发布到草稿箱（图文）：driver 创作中心。best-effort，选择器随小红书改版需迭代。
+async function publishDraft(cookieStr, content) {
+  const cookies = parseCookie(cookieStr);
+  if (!cookies.length) return { ok: false, msg: 'cookie 无效' };
+  const { title = '', body = '', images = [] } = content || {};
+  const files = await dlImages(images);
+  if (!files.length) return { ok: false, msg: '没有可上传的图片（小红书图文至少 1 张）。请先在成稿里出图/上传真实图。' };
+  let b;
+  try {
+    b = await launch();
+    const ctx = await b.newContext({ userAgent: UA, viewport: { width: 1440, height: 900 }, locale: 'zh-CN' });
+    await ctx.addCookies(cookies);
+    const p = await ctx.newPage();
+    await p.goto('https://creator.xiaohongshu.com/publish/publish?source=official', { waitUntil: 'domcontentloaded', timeout: 40000 });
+    await p.waitForTimeout(3500);
+    if (/\/login/i.test(p.url())) { return { ok: false, msg: '登录态失效，请重新接入 cookie' }; }
+    // 切到「上传图文」标签
+    try { const tab = p.locator('text=上传图文').first(); if (await tab.count()) { await tab.click({ timeout: 4000 }); await p.waitForTimeout(1200); } } catch {}
+    // 上传图片
+    const fileInput = p.locator('input[type=file]').first();
+    await fileInput.setInputFiles(files, { timeout: 15000 });
+    await p.waitForTimeout(6000); // 等上传
+    // 填标题
+    try { const ti = p.locator('input[placeholder*="标题"]').first(); if (await ti.count()) { await ti.fill(title.slice(0, 20)); } } catch {}
+    // 填正文（contenteditable）
+    try { const ed = p.locator('[contenteditable="true"]').first(); if (await ed.count()) { await ed.click(); await p.keyboard.type(String(body).slice(0, 980)); } } catch {}
+    await p.waitForTimeout(1500);
+    // 存草稿：「暂存离开」/「存草稿」
+    let saved = false;
+    for (const sel of ['text=暂存离开', 'text=存草稿', 'text=保存草稿']) {
+      try { const btn = p.locator(sel).first(); if (await btn.count()) { await btn.click({ timeout: 4000 }); saved = true; break; } } catch {}
+    }
+    await p.waitForTimeout(2500);
+    return saved ? { ok: true, msg: '已尝试存入草稿箱，请到小红书 App / 创作中心「草稿箱」确认' } : { ok: false, msg: '已填好内容但没找到「暂存离开/存草稿」按钮（小红书改版）——请到创作中心手动存，或反馈我调选择器' };
+  } catch (e) {
+    return { ok: false, msg: '发布失败：' + (e.message || String(e)).slice(0, 160) };
+  } finally {
+    try { if (b) await b.close(); } catch {}
+    try { const fs = require('fs'); files.forEach(f => { try { fs.unlinkSync(f); } catch {} }); } catch {}
+  }
+}
+
+module.exports = { verifyLogin, publishDraft, parseCookie };
