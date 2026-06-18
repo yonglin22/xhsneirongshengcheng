@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=39" />
+<link rel="stylesheet" href="/assets/atelier.css?v=40" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -1080,7 +1080,7 @@ function splitHeavyPage(page) {
   return splitHeavyPage(p1).concat(splitHeavyPage(p2)); // 递归：还重就继续拆
 }
 // 自有封面模板：把封面文案(cover_lines)填进 CSS 版式，文字精准、可导出
-const COVER_TPLS = [['bold', '大字冲击'], ['memo', '备忘录'], ['mag', '杂志风'], ['block', '色块'], ['tape', '手账胶带'], ['split', '上图下字'], ['quote', '金句']];
+const COVER_TPLS = [['bold', '大字冲击'], ['memo', '备忘录'], ['mag', '杂志风'], ['block', '色块'], ['tape', '手账胶带'], ['split', '上图下字'], ['quote', '金句'], ['grid', '网格杂志'], ['clash', '撞色'], ['glow', '弥散渐变']];
 // 调整提示词 → {位置 pos, 对齐 align, 字号 size, 背景 bg(6位hex无#)}
 const TPL_COLORS = [[/米白|奶油|米色/,'fffdf5'],[/(浅|淡)?青|青色|cyan|蓝绿/,'e2f4f3'],[/(浅|淡)?黄|鹅黄/,'fff8d6'],[/(浅|淡)?灰/,'f2f2f4'],[/(浅|淡)?蓝/,'eaf1fb'],[/(浅|淡)?粉/,'fdeef0'],[/(浅|淡)?绿|薄荷/,'ebf6ee'],[/(浅|淡)?紫/,'f1ecfb'],[/(浅|淡)?橙|杏色|米黄/,'fdeede'],[/黑底|深色|暗底|墨黑/,'1a1a2e'],[/纯白|白底/,'ffffff']];
 function parseTplAdj(s) { s = String(s || ''); const a = { pos: '', align: '', size: '', bg: '' };
@@ -1126,6 +1126,8 @@ function coverTemplateHTML(spec, lines, opt) {
   else if (id === 'mag') inner = `<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
   else if (id === 'block') inner = `<div class="ct-block">${tt}</div>${ss}`;
   else if (id === 'split') { const im = opt.img || (state.cover && state.cover.img); inner = `<div class="ct-img" style="${im ? `background-image:url('${imgSrc(im)}')` : ''}"></div><div class="ct-cap">${tt}${ss}</div>`; }
+  else if (id === 'grid') inner = `<div class="ct-kicker"><span>VERTICAL</span><span>NO.01</span></div>${tt}${ss}`;
+  else if (id === 'clash') inner = `<div class="ct-top">${tt}</div>${ss}`;
   else inner = `${tt}${ss}`;
   return `<div class="cv-ctpl ctpl-${id} ${adj}" style="${vars}">${inner}</div>`;
 }

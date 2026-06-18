@@ -321,6 +321,24 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-ctpl.ctpl-quote::before{ content:"\201C"; position:absolute; top:6cqw; left:9cqw; font-size:26cqw; color:var(--c-accent); opacity:.25; font-family:Georgia,serif; line-height:1; }
 .cv-ctpl.ctpl-quote .ct-t{ font-size:10.5cqw; line-height:1.32; }
 .cv-ctpl.ctpl-quote .ct-s{ font-size:4cqw; margin-top:5cqw; }
+/* 8) 网格杂志 grid：细网格底 + 主色竖条标题 + 栏目期号 */
+.cv-ctpl.ctpl-grid{ justify-content:center; padding:11cqw 8cqw; background:var(--c-bg,#fff);
+  background-image:linear-gradient(rgba(0,0,0,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.045) 1px,transparent 1px); background-size:11cqw 11cqw; }
+.cv-ctpl.ctpl-grid .ct-kicker{ position:absolute; top:8cqw; left:8cqw; right:8cqw; display:flex; justify-content:space-between; font-size:3cqw; letter-spacing:.18em; color:var(--c-accent); font-weight:800; }
+.cv-ctpl.ctpl-grid .ct-t{ font-size:12cqw; border-left:2.4cqw solid var(--c-accent); padding-left:4.5cqw; }
+.cv-ctpl.ctpl-grid .ct-s{ font-size:4.4cqw; margin-top:5cqw; padding-left:4.5cqw; }
+/* 9) 撞色 clash：上半主色块压大标题，下半白底副标题 */
+.cv-ctpl.ctpl-clash{ padding:0; }
+.cv-ctpl.ctpl-clash .ct-top{ background:var(--c-accent); min-height:55%; padding:10cqw 8cqw 8cqw; display:flex; align-items:flex-end; }
+.cv-ctpl.ctpl-clash .ct-top .ct-t{ color:#fff; font-size:13.5cqw; letter-spacing:-.01em; }
+.cv-ctpl.ctpl-clash .ct-top .ct-t em{ color:var(--c-accent); background:#fff; padding:0 1.4cqw; border-radius:1.4cqw; -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+.cv-ctpl.ctpl-clash .ct-s{ padding:7cqw 8cqw; font-size:4.8cqw; font-weight:700; color:var(--c-ink); }
+/* 10) 弥散渐变 glow：柔光色斑底 + 居左大标题 */
+.cv-ctpl.ctpl-glow{ justify-content:center; align-items:flex-start; padding:12cqw 9cqw; background:var(--c-bg,#fff); overflow:hidden; }
+.cv-ctpl.ctpl-glow::before{ content:""; position:absolute; width:72cqw; height:72cqw; border-radius:50%; background:var(--c-accent); filter:blur(58px); opacity:.4; top:-22cqw; right:-16cqw; }
+.cv-ctpl.ctpl-glow::after{ content:""; position:absolute; width:62cqw; height:62cqw; border-radius:50%; background:#8a7cff; filter:blur(64px); opacity:.3; bottom:-20cqw; left:-14cqw; }
+.cv-ctpl.ctpl-glow .ct-t{ position:relative; font-size:12.5cqw; }
+.cv-ctpl.ctpl-glow .ct-s{ position:relative; font-size:4.4cqw; margin-top:5cqw; }
 
 /* ===== 顶栏两大下拉：内容生成 Agent / 获客 Agent ===== */
 .ag-dd{ position:relative; display:inline-block; }

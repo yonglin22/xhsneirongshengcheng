@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 <script src="/assets/jszip.min.js?v=1"></script>
-<link rel="stylesheet" href="/assets/atelier.css?v=39" />
+<link rel="stylesheet" href="/assets/atelier.css?v=40" />
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=37"></script>
 <style>
@@ -667,6 +667,8 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
   else if(id==='mag') inner=`<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
   else if(id==='block') inner=`<div class="ct-block">${tt}</div>${ss}`;
   else if(id==='split') inner=`<div class="ct-img"></div><div class="ct-cap">${tt}${ss}</div>`;
+  else if(id==='grid') inner=`<div class="ct-kicker"><span>VERTICAL</span><span>NO.01</span></div>${tt}${ss}`;
+  else if(id==='clash') inner=`<div class="ct-top">${tt}</div>${ss}`;
   else inner=`${tt}${ss}`;
   return `<div class="cv-ctpl ctpl-${id} ${adj}" style="${vars}">${inner}</div>`;
 }
