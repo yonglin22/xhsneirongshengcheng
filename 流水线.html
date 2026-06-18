@@ -456,8 +456,8 @@ function outputHTML(st) {
           <button class="cv-tpl-pick" data-tpl="__none" style="border:1px dashed var(--line);border-radius:9px;padding:6px 12px;font-size:12px;cursor:pointer;background:#fff;color:var(--ink-soft)">清除全部</button>
         </div>
         <div class="mt-2 flex items-center gap-2 flex-wrap">
-          <input id="ctplAdj" class="field rounded-lg px-3 py-1.5 text-[12px]" style="flex:1;min-width:220px" placeholder="调整提示：标题居中 / 字号大 / 靠下 / 左对齐…" value="${esc((state.cover&&state.cover.tplAdjText)||'')}" />
-          <span class="text-[10px] text-[var(--ink-soft)]">位置:靠上/居中/靠下 · 对齐:居中/左 · 字号:大/中/小</span>
+          <input id="ctplAdj" class="field rounded-lg px-3 py-1.5 text-[12px]" style="flex:1;min-width:240px" placeholder="调整提示：背景浅蓝 / 标题居中 / 字号大 / 靠下…（可组合）" value="${esc((state.cover&&state.cover.tplAdjText)||'')}" />
+          <span class="text-[10px] text-[var(--ink-soft)]">背景:浅蓝/浅黄/米白/深色/#色值 · 位置:靠上/居中/靠下 · 对齐:居中/左 · 字号:大/中/小</span>
         </div>
       </div>
       <div class="mt-3 flex items-center gap-2.5 flex-wrap">
@@ -1081,13 +1081,15 @@ function splitHeavyPage(page) {
 }
 // 自有封面模板：把封面文案(cover_lines)填进 CSS 版式，文字精准、可导出
 const COVER_TPLS = [['bold', '大字冲击'], ['memo', '备忘录'], ['mag', '杂志风'], ['block', '色块'], ['tape', '手账胶带'], ['split', '上图下字'], ['quote', '金句']];
-// 调整提示词 → {位置 pos, 对齐 align, 字号 size}
-function parseTplAdj(s) { s = String(s || ''); const a = { pos: '', align: '', size: '' };
+// 调整提示词 → {位置 pos, 对齐 align, 字号 size, 背景 bg(6位hex无#)}
+const TPL_COLORS = [[/米白|奶油|米色/,'fffdf5'],[/(浅|淡)?青|青色|cyan|蓝绿/,'e2f4f3'],[/(浅|淡)?黄|鹅黄/,'fff8d6'],[/(浅|淡)?灰/,'f2f2f4'],[/(浅|淡)?蓝/,'eaf1fb'],[/(浅|淡)?粉/,'fdeef0'],[/(浅|淡)?绿|薄荷/,'ebf6ee'],[/(浅|淡)?紫/,'f1ecfb'],[/(浅|淡)?橙|杏色|米黄/,'fdeede'],[/黑底|深色|暗底|墨黑/,'1a1a2e'],[/纯白|白底/,'ffffff']];
+function parseTplAdj(s) { s = String(s || ''); const a = { pos: '', align: '', size: '', bg: '' };
   if (/靠上|顶部|上方/.test(s)) a.pos = 'top'; else if (/靠下|底部|下方/.test(s)) a.pos = 'bottom'; else if (/垂直居中|位置居中|正中/.test(s)) a.pos = 'center';
   if (/居中|中对齐|水平居中/.test(s)) a.align = 'ct'; else if (/左对齐|靠左/.test(s)) a.align = 'left';
   if (/大字|字大|字号大|放大|大一?点/.test(s)) a.size = 'lg'; else if (/小字|字小|字号小|缩小|小一?点/.test(s)) a.size = 'sm'; else if (/标准|中等|字号中/.test(s)) a.size = 'md';
+  const m = s.match(/#([0-9a-fA-F]{6})/); if (m) a.bg = m[1].toLowerCase(); else { for (const [re, hex] of TPL_COLORS) if (re.test(s)) { a.bg = hex; break; } }
   return a; }
-function ctplSuffix() { const a = parseTplAdj((state.cover && state.cover.tplAdjText) || ''); return (a.pos || a.align || a.size) ? `|${a.pos}|${a.align}|${a.size}` : ''; }
+function ctplSuffix() { const a = parseTplAdj((state.cover && state.cover.tplAdjText) || ''); return (a.pos || a.align || a.size || a.bg) ? `|${a.pos}|${a.align}|${a.size}|${a.bg}` : ''; }
 function rewriteCtplMarkers() { const suf = ctplSuffix(); state.coverImages = (state.coverImages || []).map(u => (u || '').startsWith('ctpl://') ? ('ctpl://' + u.slice(7).split('|')[0] + suf) : u); state.coverImage = state.coverImages[0] || state.coverImage; }
 function autoEm(s) { return String(s || '').replace(/==(.+?)==/g, '<em>$1</em>').replace(/(?<!<em>)(\d+[%＋+分天]?|「[^」]+」)/g, '<em>$1</em>'); }
 function coverTemplateHTML(spec, lines, opt) {
@@ -1096,8 +1098,10 @@ function coverTemplateHTML(spec, lines, opt) {
   lines = (lines || (state.cover && state.cover.cover_lines) || []).filter(Boolean);
   const title = autoEm(lines[0] || state.topic || ''); const sub = (lines.slice(1).join(' ') || '').replace(/==(.+?)==/g, '$1');
   const acc = opt.accent || (state.cover && state.cover.accent) || '#ff2442';
-  const bg = opt.bg || (state.cover && state.cover.bg) || '#ffffff';
-  const ink = opt.ink || '#16181d';
+  const adjBg = (parts[4] && /^[0-9a-f]{6}$/i.test(parts[4])) ? ('#' + parts[4]) : '';
+  const bg = adjBg || opt.bg || (state.cover && state.cover.bg) || '#ffffff';
+  const isDark = (h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) < 110; })(bg);
+  const ink = opt.ink || (isDark ? '#ffffff' : '#16181d');
   const vars = `--c-bg:${bg};--c-ink:${ink};--c-accent:${acc}`;
   const tt = `<div class="ct-t">${title}</div>`, ss = sub ? `<div class="ct-s">${sub}</div>` : '';
   let inner;

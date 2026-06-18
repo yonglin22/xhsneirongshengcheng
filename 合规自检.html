@@ -134,7 +134,11 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
   const adj=[parts[1]?'adj-'+parts[1]:'',parts[2]?'adj-'+parts[2]:'',parts[3]?'tsz-'+parts[3]:''].filter(Boolean).join(' ');
   lines=(lines||[]).filter(Boolean);
   const title=autoEm(lines[0]||''); const sub=(lines.slice(1).join(' ')||'').replace(/==(.+?)==/g,'$1');
-  const acc=opt.accent||'#ff2442', bg=opt.bg||'#ffffff', ink=opt.ink||'#16181d';
+  const acc=opt.accent||'#ff2442';
+  const adjBg=(parts[4]&&/^[0-9a-f]{6}$/i.test(parts[4]))?('#'+parts[4]):'';
+  const bg=adjBg||opt.bg||'#ffffff';
+  const isDark=(h=>{const m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return false;const n=parseInt(m[1],16);return (0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))<110;})(bg);
+  const ink=opt.ink||(isDark?'#ffffff':'#16181d');
   const vars=`--c-bg:${bg};--c-ink:${ink};--c-accent:${acc}`;
   const tt=`<div class="ct-t">${title}</div>`, ss=sub?`<div class="ct-s">${sub}</div>`:'';
   let inner;
