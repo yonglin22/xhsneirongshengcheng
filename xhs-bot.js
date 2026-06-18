@@ -124,16 +124,16 @@ async function startQrLogin() {
     await p.waitForTimeout(2600);
     const bodyTxt = await p.evaluate(() => (document.body && document.body.innerText || '').slice(0, 1200));
     if (/环境异常|安全验证|滑动验证|拼图验证/.test(bodyTxt)) { await b.close(); return { ok: false, reason: '小红书风控验证页（VPS IP），扫码登录暂不可用，请反馈我配住宅代理' }; }
-    // 触发登录弹窗
-    try { const lb = p.locator('text=登录').first(); if (await lb.count()) { await lb.click({ timeout: 4000 }); await p.waitForTimeout(1600); } } catch {}
-    // 切到扫码登录 tab（默认可能是手机号登录）
-    try { const qt = p.locator('text=扫码登录').first(); if (await qt.count()) { await qt.click({ timeout: 3000 }); await p.waitForTimeout(1200); } } catch {}
-    // 截二维码
+    // 触发登录弹窗（点右上「登录」）
+    try { const lb = p.locator('text=登录').first(); if (await lb.count()) { await lb.click({ timeout: 4000 }); await p.waitForTimeout(2000); } } catch {}
+    // 二维码 = <img class="qrcode-img" src="data:..."> → 直接读 data URL 最准
     let qr = '';
-    for (const sel of ['.qrcode-img', '.qrcode img', 'img.qrcode-img', '.css-qr img', '.login-container canvas', '.login-box img[src^="data:"]', 'canvas']) {
-      try { const el = p.locator(sel).first(); if (await el.count()) { const buf = await el.screenshot({ timeout: 4000 }); if (buf && buf.length > 800) { qr = 'data:image/png;base64,' + buf.toString('base64'); break; } } } catch {}
+    try { const el = p.locator('img.qrcode-img').first(); await el.waitFor({ state: 'visible', timeout: 9000 }); const src = await el.getAttribute('src'); if (src && src.startsWith('data:')) qr = src; } catch {}
+    if (!qr) { // 兜底：截 .qrcode 容器
+      for (const sel of ['.qrcode img', '.qrcode', 'img.qrcode-img']) {
+        try { const el = p.locator(sel).first(); if (await el.count()) { const buf = await el.screenshot({ timeout: 4000 }); if (buf && buf.length > 800) { qr = 'data:image/png;base64,' + buf.toString('base64'); break; } } } catch {}
+      }
     }
-    if (!qr) { try { const m = p.locator('[class*=login],[class*=qrcode]').first(); if (await m.count()) { const buf = await m.screenshot({ timeout: 4000 }); qr = 'data:image/png;base64,' + buf.toString('base64'); } } catch {} }
     if (!qr) { await b.close(); return { ok: false, reason: '没抓到登录二维码（小红书改版或风控），可暂用 cookie 粘贴' }; }
     const token = 'qr' + Date.now() + Math.random().toString(36).slice(2, 7);
     _qr.set(token, { browser: b, ctx, page: p, ts: Date.now() });
