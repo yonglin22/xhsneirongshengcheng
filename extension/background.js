@@ -1,0 +1,17 @@
+// 后台中转：朱砂页面 → 小红书创作页
+let pending = null; // { title, body, images }
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === 'publish') {
+    pending = msg.payload || null;
+    chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/publish/publish?source=official', active: true });
+    sendResponse({ ok: true, msg: '已打开小红书创作页，正在自动填充…完成后请在该页确认存草稿' });
+    return true;
+  }
+  if (msg && msg.type === 'getPayload') {
+    sendResponse({ payload: pending });
+    pending = null; // 取走即清，避免误填
+    return true;
+  }
+  if (msg && msg.type === 'ping') { sendResponse({ ok: true }); return true; }
+});

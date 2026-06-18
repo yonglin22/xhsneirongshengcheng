@@ -33,10 +33,13 @@
 
   <div class="card p-4 mt-5">
     <div class="flex items-center gap-3 flex-wrap">
-      <button id="pubBtn" class="btn-go rounded-xl px-6 py-3 text-[14px] font-medium">🚀 发布到所选账号草稿箱</button>
+      <button id="extPubBtn" class="rounded-xl px-6 py-3 text-[14px] font-medium" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🧩 用插件发布到草稿箱（推荐·零风控）</button>
+      <button id="pubBtn" class="btn-ghost rounded-xl px-5 py-3 text-[13px]">服务器直发（实验·需代理）</button>
       <span id="pubStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
     </div>
+    <div id="extHint" class="mt-2 text-[12px]" style="display:none"></div>
     <div id="pubLog" class="mt-3 space-y-1.5"></div>
+    <div id="renderHost" style="position:fixed;left:-99999px;top:0"></div>
     <div class="text-[11px] text-[var(--ink-soft)] mt-3 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
       ⚠️ 小红书图文草稿需<b>至少 1 张图片</b>。长图笔记卡（CSS）需先在「成稿预览」导出 PNG；含 AI 封面 / 实拍上传图的成稿可直接发。发布为<b>实验功能</b>，依赖账号登录态有效，首次请小批量验证。
     </div>
@@ -48,6 +51,90 @@
 <script>
 let WORK = null, sel = new Set();
 function fmtD(ts){ try{ const d=new Date(ts); return (d.getMonth()+1)+'/'+d.getDate(); }catch{ return ''; } }
+if(typeof window.mark!=='function') window.mark=s=>String(s||'').replace(/==(.+?)==/g,'$1');
+// ===== 卡片渲染器（与成稿预览一致，用于把 note:// / ctpl:// CSS 卡转 PNG）=====
+function hexA(h,a){ const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim()); if(!m)return 'rgba(255,150,60,'+a+')'; const n=parseInt(m[1],16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+function noteStyleVars(page){ const p=page||{}; const memo=!!p.memo;
+  const bg=/^#?[0-9a-f]{6}$/i.test(p.bg||'')?(p.bg[0]==='#'?p.bg:'#'+p.bg):('#ffffff');
+  const acc=/^#?[0-9a-f]{6}$/i.test(p.accent||'')?(p.accent[0]==='#'?p.accent:'#'+p.accent):(memo?'#ffb300':'#ff6a3d');
+  const hl=/^#?[0-9a-f]{6}$/i.test(p.hl||'')?(p.hl[0]==='#'?p.hl:'#'+p.hl):(memo?'#ffe14d':'#ff8a3d');
+  const dark=!!p.dark, ink=dark?'#ffffff':'#16181d', ink2=dark?'rgba(255,255,255,.88)':'#33373d', meta=dark?'rgba(255,255,255,.62)':'#b6bbc2', tag=dark?'rgba(255,255,255,.78)':'#3a5a8c';
+  return `--nt-bg:${bg};--nt-ink:${ink};--nt-ink2:${ink2};--nt-meta:${meta};--nt-tag:${tag};--nt-accent:${acc};--nt-hl:${hexA(hl,.42)};--nt-hl-line:${hl}`; }
+function noteBlock(b){ if(!b)return''; const t=b.t||'p';
+  if(t==='title')return `<div class="nt-h1">${mark(b.text||'')}</div>`;
+  if(t==='meta')return `<div class="nt-meta">${mark(b.text||'')}</div>`;
+  if(t==='sec')return `<div class="nt-sec"><span class="nt-dot"></span>${mark(b.text||'')}</div>`;
+  if(t==='sub')return `<div class="nt-sub">${mark(b.text||'')}</div>`;
+  if(t==='ol')return `<ul class="nt-ol">${(b.items||[]).map((x,k)=>`<li><svg class="nt-num" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#ff6a3d"/><text x="11" y="11.5" fill="#ffffff" font-size="12.5" font-weight="800" text-anchor="middle" dominant-baseline="central">${k+1}</text></svg><span class="nt-tx">${mark(String(x))}</span></li>`).join('')}</ul>`;
+  if(t==='tags')return '';
+  return `<p class="nt-p">${mark(b.text||'')}</p>`; }
+function isCoverPage(page){ const b=(page&&page.blocks)||[]; return b.length&&b[0].t==='title'&&b.every(x=>['title','meta','tags'].includes(x.t)); }
+function memoDateStr(){ const d=new Date(),h=d.getHours(),ap=h<12?'上午':'下午',h12=h%12||12; return `${d.getMonth()+1}月${d.getDate()}日 ${ap}${h12}:${String(d.getMinutes()).padStart(2,'0')}`; }
+const MEMO_STATUS='<div class="nt-ios-status"><span class="nt-clock">9:41</span><span class="nt-stat-r"><svg class="nt-si" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg class="nt-bat" viewBox="0 0 28 13"><rect x=".6" y=".6" width="22.8" height="11.8" rx="3.4" fill="none" stroke="currentColor" stroke-opacity=".4" stroke-width="1.1"/><rect x="2.2" y="2.2" width="16" height="8.6" rx="1.8"/></svg></span></div>';
+const MEMO_NAV='<div class="nt-ios-nav"><span class="nt-nav-back">&lsaquo; 备忘录</span><span class="nt-nav-r"></span></div>';
+const MEMO_TOOLS='<div class="nt-ios-tools"></div>';
+const MEMO_BOTTOM='<div class="nt-ios-bottom">'+MEMO_TOOLS+'<div class="nt-home"></div></div>';
+function autoEm(s){ return String(s||'').replace(/==(.+?)==/g,'<em>$1</em>').replace(/(?<!<em>)(\d+[%＋+分天]?|「[^」]+」)/g,'<em>$1</em>'); }
+function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(spec||'').split('|'); const id=parts[0];
+  const adj=[parts[1]?'adj-'+parts[1]:'',parts[2]?'adj-'+parts[2]:'',parts[3]?'tsz-'+parts[3]:''].filter(Boolean).join(' ');
+  lines=(lines||[]).filter(Boolean);
+  const title=autoEm(lines[0]||''); const sub=(lines.slice(1).join(' ')||'').replace(/==(.+?)==/g,'$1');
+  const acc=((parts[5]&&/^[0-9a-f]{6}$/i.test(parts[5]))?('#'+parts[5]):'')||'#ff2442';
+  const adjBg=(parts[4]&&/^[0-9a-f]{6}$/i.test(parts[4]))?('#'+parts[4]):'';
+  const bg=adjBg||'#ffffff';
+  const isDark=(h=>{const m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return false;const n=parseInt(m[1],16);return (0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))<110;})(bg);
+  const ink=isDark?'#ffffff':'#16181d';
+  const vars=`--c-bg:${bg};--c-ink:${ink};--c-accent:${acc}`;
+  const tt=`<div class="ct-t">${title}</div>`, ss=sub?`<div class="ct-s">${sub}</div>`:'';
+  let inner;
+  if(id==='memo') inner=`<div class="ct-memobar"><span class="l">&lsaquo; 备忘录</span><span class="c">${memoDateStr()}</span><span class="l">完成</span></div>${tt}${ss}`;
+  else if(id==='mag') inner=`<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
+  else if(id==='block') inner=`<div class="ct-block">${tt}</div>${ss}`;
+  else if(id==='split') inner=`<div class="ct-img"></div><div class="ct-cap">${tt}${ss}</div>`;
+  else inner=`${tt}${ss}`;
+  return `<div class="cv-ctpl ctpl-${id} ${adj}" style="${vars}">${inner}</div>`;
+}
+function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&page.memo); const inner=((page&&page.blocks)||[]).map(noteBlock).join(''); if(memo){ const nav=MEMO_NAV.replace('<span class="nt-nav-r"></span>', `<span class="nt-nav-date">${memoDateStr()}</span><span class="nt-nav-r"></span>`); const top='<div class="nt-ios-top">'+MEMO_STATUS+nav+'</div>'; return `<div class="cv-note is-memo" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`; } return `<div class="cv-note${cover?' is-cover':''}" style="${noteStyleVars(page)}">${cover?inner:`<div class="cv-note-fit">${inner}</div>`}</div>`; }
+function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fit) return; fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; if(need>avail+1&&avail>0){ const s=Math.max(0.45, avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } }
+// note:// / ctpl:// → PNG（html2canvas）；http → 原样
+async function renderCardsToPng(coverImages, notePages, coverLines){
+  const host=$('#renderHost'); const out=[];
+  for(const u of (coverImages||[])){
+    if(/^https?:\/\//.test(u)){ out.push(u); continue; }
+    let html='';
+    if((u||'').startsWith('note://')) html=noteCardHTML((notePages||[])[+u.slice(7)]);
+    else if((u||'').startsWith('ctpl://')) html=coverTemplateHTML(u.slice(7), coverLines);
+    else continue;
+    host.innerHTML='<div class="cv-frame" style="width:540px;height:720px">'+html+'</div>';
+    const noteEl=host.querySelector('.cv-note:not(.is-cover)'); if(noteEl) fitNote(noteEl);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
+    const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:540,height:720});
+    out.push(cv.toDataURL('image/jpeg',0.92));
+  }
+  host.innerHTML='';
+  return out;
+}
+// 插件检测
+let EXT_READY=false;
+window.addEventListener('message', e=>{ if(e.source===window && e.data && e.data.__zhusha_ext==='ready'){ EXT_READY=true; const h=$('#extHint'); if(h){ h.style.display='block'; h.style.color='#00a152'; h.textContent='✓ 检测到发布插件（v'+(e.data.v||'')+'）'; } } });
+window.postMessage({ type:'ZHUSHA_EXT_PING' }, '*');
+setTimeout(()=>{ if(!EXT_READY){ const h=$('#extHint'); if(h){ h.style.display='block'; h.style.color='var(--ink-soft)'; h.innerHTML='⚠ 未检测到发布插件。请先安装：Chrome → chrome://extensions → 开发者模式 → 加载已解压扩展（extension 文件夹）。装好刷新本页。'; } } }, 1500);
+$('#extPubBtn').addEventListener('click', async ()=>{
+  if(!WORK){ $('#pubStatus').textContent='请先选一篇成稿'; $('#pubStatus').style.color='var(--cinnabar-deep)'; return; }
+  if(!EXT_READY){ $('#pubStatus').textContent='没装发布插件，见下方安装说明'; $('#pubStatus').style.color='var(--cinnabar-deep)'; return; }
+  const btn=$('#extPubBtn'); btn.disabled=true; const o=btn.textContent; btn.textContent='转图中…';
+  $('#pubStatus').textContent='正在把封面/卡片转成图片…'; $('#pubStatus').style.color='var(--ink-soft)';
+  try{
+    const images=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines);
+    if(!images.length){ $('#pubStatus').textContent='这篇没有可发布的图片'; $('#pubStatus').style.color='var(--cinnabar-deep)'; btn.disabled=false; btn.textContent=o; return; }
+    btn.textContent='发送给插件…';
+    window.postMessage({ type:'ZHUSHA_PUBLISH', payload:{ title:WORK.title, body:WORK.body, images } }, '*');
+    $('#pubStatus').textContent='✓ 已发给插件，正在打开小红书创作页自动填充（用你当前登录的小红书账号）…'; $('#pubStatus').style.color='#00a152';
+  }catch(e){ $('#pubStatus').textContent='转图失败：'+(e.message||e); $('#pubStatus').style.color='var(--cinnabar-deep)'; }
+  btn.disabled=false; btn.textContent=o;
+});
+window.addEventListener('message', e=>{ if(e.source===window && e.data && e.data.type==='ZHUSHA_PUBLISH_ACK'){ $('#pubStatus').textContent=(e.data.ok?'✓ ':'✗ ')+(e.data.msg||''); $('#pubStatus').style.color=e.data.ok?'#00a152':'var(--cinnabar-deep)'; } });
 async function loadWorks(){
   const j = await (await fetch('/api/history')).json();
   const list = ((j&&j.list)||[]).filter(w=>w.platform!=='gzh'); // 发布到小红书草稿箱，仅列小红书成稿
@@ -62,10 +149,11 @@ async function loadWorks(){
     const id=e.target.value; $('#pubStatus').textContent='读取成稿…';
     const d=await (await fetch('/api/history/get?id='+encodeURIComponent(id))).json();
     const data=(d&&d.data)||d||{};
-    const imgs=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(u=>typeof u==='string'&&/^https?:\/\//.test(u));
-    WORK={ id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), images:imgs };
-    $('#pubStatus').textContent = `✓ 已选「${(WORK.title||'').slice(0,16)}」· 可上传图片 ${imgs.length} 张` + (imgs.length?'':'（⚠ 无 http 图片，长图笔记卡请先去成稿预览导出 PNG）');
-    $('#pubStatus').style.color = imgs.length? '#00a152':'var(--cinnabar-deep)';
+    const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
+    WORK={ id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[] };
+    const n=raw.filter(u=>/^https?:\/\//.test(u)||/^(note|ctpl):\/\//.test(u)).length;
+    $('#pubStatus').textContent = `✓ 已选「${(WORK.title||'').slice(0,16)}」· 共 ${n} 张图（CSS 卡发布时自动转 PNG）`;
+    $('#pubStatus').style.color = n? '#00a152':'var(--cinnabar-deep)';
   }));
 }
 async function loadAccs(){

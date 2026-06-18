@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "朱砂操盘台 · 小红书发布助手",
+  "version": "0.1.0",
+  "description": "把朱砂操盘台的成稿一键存入小红书草稿箱（在你本机浏览器、用你已登录的小红书，零风控）。",
+  "permissions": ["tabs", "storage", "scripting"],
+  "host_permissions": [
+    "https://yonglin.chat/*",
+    "http://yonglin.chat/*",
+    "https://*.xiaohongshu.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    { "matches": ["https://yonglin.chat/*", "http://yonglin.chat/*"], "js": ["bridge.js"], "run_at": "document_idle" },
+    { "matches": ["https://creator.xiaohongshu.com/*"], "js": ["xhs.js"], "run_at": "document_idle" }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "朱砂 · 小红书发布助手" }
+}
