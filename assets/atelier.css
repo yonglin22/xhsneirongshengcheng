@@ -297,7 +297,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-ctpl.ctpl-block .ct-t{ color:#fff; font-size:12cqw; }
 .cv-ctpl.ctpl-block .ct-s{ color:var(--c-ink); opacity:.75; font-size:4.4cqw; padding:6cqw 8cqw; font-weight:600; }
 /* 4) 手账胶带 tape：米纸 + 胶带 + 手写感 */
-.cv-ctpl.ctpl-tape{ background:#fbf7ee; justify-content:center; padding:12cqw 9cqw; }
+.cv-ctpl.ctpl-tape{ background:var(--c-bg,#fbf7ee); justify-content:center; padding:12cqw 9cqw; }
 .cv-ctpl.ctpl-tape::before{ content:""; position:absolute; top:7cqw; left:50%; transform:translateX(-50%) rotate(-3deg); width:34cqw; height:7cqw; background:rgba(255,210,90,.55); }
 .cv-ctpl.ctpl-tape .ct-t{ font-size:12.5cqw; }
 .cv-ctpl.ctpl-tape .ct-t em{ text-decoration:underline; text-decoration-color:var(--c-accent); text-decoration-thickness:1.2cqw; text-underline-offset:1.5cqw; }
@@ -309,7 +309,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-ctpl.ctpl-split .ct-t{ font-size:11cqw; }
 .cv-ctpl.ctpl-split .ct-s{ font-size:4.2cqw; margin-top:3cqw; }
 /* 7) 备忘录 memo：iPhone 备忘录风封面（顶部备忘录栏 + 大标题 + 黄荧光） */
-.cv-ctpl.ctpl-memo{ background:#fff; padding:14cqw 7cqw 0; font-family:-apple-system,"SF Pro Text","PingFang SC",sans-serif; }
+.cv-ctpl.ctpl-memo{ background:var(--c-bg,#fff); padding:14cqw 7cqw 0; font-family:-apple-system,"SF Pro Text","PingFang SC",sans-serif; }
 .cv-ctpl.ctpl-memo .ct-memobar{ position:absolute; top:0; left:0; right:0; height:9.5cqw; display:flex; align-items:center; justify-content:space-between; padding:0 5cqw; border-bottom:.3cqw solid rgba(0,0,0,.08); }
 .cv-ctpl.ctpl-memo .ct-memobar .l{ color:#e8a400; font-size:4cqw; font-weight:500; }
 .cv-ctpl.ctpl-memo .ct-memobar .c{ color:#8a8a90; font-size:3cqw; font-weight:600; letter-spacing:.02em; }
