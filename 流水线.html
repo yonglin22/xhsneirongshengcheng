@@ -1089,7 +1089,23 @@ function parseTplAdj(s) { s = String(s || ''); const a = { pos: '', align: '', s
   if (/大字|字大|字号大|放大|大一?点/.test(s)) a.size = 'lg'; else if (/小字|字小|字号小|缩小|小一?点/.test(s)) a.size = 'sm'; else if (/标准|中等|字号中/.test(s)) a.size = 'md';
   const m = s.match(/#([0-9a-fA-F]{6})/); if (m) a.bg = m[1].toLowerCase(); else { for (const [re, hex] of TPL_COLORS) if (re.test(s)) { a.bg = hex; break; } }
   return a; }
-function ctplSuffix() { const a = parseTplAdj((state.cover && state.cover.tplAdjText) || ''); return (a.pos || a.align || a.size || a.bg) ? `|${a.pos}|${a.align}|${a.size}|${a.bg}` : ''; }
+// 从智能体「配图视觉风格 + 风格库提炼文字」抓取封面设计色（主色/背景），让封面自动贴合本账号风格
+function agentCoverDesign() {
+  const txt = ((typeof agentImgStyle === 'function' ? agentImgStyle() : '') + ' ' + ((typeof agentStyleRefPrompts === 'function' ? agentStyleRefPrompts() : []).join(' '))).trim();
+  const d = { accent: '', bg: '' };
+  if (!txt) return d;
+  for (const [re, hex] of TPL_COLORS) if (/背景|底色|底图|纸面/.test(txt) && re.test(txt)) { d.bg = hex; break; }
+  const accMap = [[/朱砂|品牌红|红色|红框|大红/, 'ff2442'], [/(亮|橙)橙|橙色|橘/, 'ff8a00'], [/蓝色|克莱因蓝|宝蓝/, '3a6ff0'], [/绿色|墨绿|森系/, '00a152'], [/紫色|香芋紫/, '7c5cff'], [/黄色高亮|明黄|姜黄/, 'ffb300'], [/粉色|玫红/, 'ff5b8a'], [/黑色|墨黑|高级黑/, '16181d']];
+  for (const [re, hex] of accMap) if (re.test(txt)) { d.accent = hex; break; }
+  return d;
+}
+function ctplSuffix() {
+  const a = parseTplAdj((state.cover && state.cover.tplAdjText) || '');
+  const ad = agentCoverDesign();
+  const bg = a.bg || ad.bg || '';        // 手填优先，其次风格库抓取
+  const acc = ad.accent || '';            // 主色来自风格库
+  return (a.pos || a.align || a.size || bg || acc) ? `|${a.pos}|${a.align}|${a.size}|${bg}|${acc}` : '';
+}
 function rewriteCtplMarkers() { const suf = ctplSuffix(); state.coverImages = (state.coverImages || []).map(u => (u || '').startsWith('ctpl://') ? ('ctpl://' + u.slice(7).split('|')[0] + suf) : u); state.coverImage = state.coverImages[0] || state.coverImage; }
 function autoEm(s) { return String(s || '').replace(/==(.+?)==/g, '<em>$1</em>').replace(/(?<!<em>)(\d+[%＋+分天]?|「[^」]+」)/g, '<em>$1</em>'); }
 function coverTemplateHTML(spec, lines, opt) {
@@ -1097,7 +1113,8 @@ function coverTemplateHTML(spec, lines, opt) {
   const adj = [parts[1] ? 'adj-' + parts[1] : '', parts[2] ? 'adj-' + parts[2] : '', parts[3] ? 'tsz-' + parts[3] : ''].filter(Boolean).join(' ');
   lines = (lines || (state.cover && state.cover.cover_lines) || []).filter(Boolean);
   const title = autoEm(lines[0] || state.topic || ''); const sub = (lines.slice(1).join(' ') || '').replace(/==(.+?)==/g, '$1');
-  const acc = opt.accent || (state.cover && state.cover.accent) || '#ff2442';
+  const adjAcc = (parts[5] && /^[0-9a-f]{6}$/i.test(parts[5])) ? ('#' + parts[5]) : '';
+  const acc = adjAcc || opt.accent || (state.cover && state.cover.accent) || '#ff2442';
   const adjBg = (parts[4] && /^[0-9a-f]{6}$/i.test(parts[4])) ? ('#' + parts[4]) : '';
   const bg = adjBg || opt.bg || (state.cover && state.cover.bg) || '#ffffff';
   const isDark = (h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) < 110; })(bg);
