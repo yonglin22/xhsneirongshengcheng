@@ -54,6 +54,7 @@
       <div class="border-t hairline mt-2.5 pt-2.5 px-1.5 pb-1 space-y-1.5">
         <a id="toPreview" href="/成稿预览.html" class="btn-go rounded-lg w-full block text-center py-2.5 text-[13px] font-medium">去成稿预览 →</a>
         <a id="toCompliance" href="/合规自检.html" class="btn-ghost rounded-lg w-full block text-center py-2.5 text-[13px]">去合规自检 →</a>
+        <a id="toPublish" href="/一键发布.html" class="rounded-lg w-full block text-center py-2.5 text-[13px] font-medium" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🚀 一键发布 →</a>
       </div>
     </aside>
 
@@ -257,6 +258,7 @@ $('#model').addEventListener('change', e => localStorage.setItem('ag_model', e.t
 $('#resetBtn').addEventListener('click', () => { if (confirm('清空本篇？当前进度已自动存入「历史记录」，可随时找回。')) { state = { topic:'', ref:'', _runId: newRunId() }; Draft.clear(); Draft.save(state); $('#topic').value=''; cur=0; renderRail(); renderPanel(); } });
 // 跳成稿预览 / 合规自检前，把当前篇存进草稿 → 目标页自动导入这篇（无需手动筛选）
 $('#toPreview')?.addEventListener('click', () => Draft.save(state));
+$('#toPublish')?.addEventListener('click', () => Draft.save(state));
 $('#toCompliance')?.addEventListener('click', () => Draft.save(state));
 
 // ===== 创作流水线 · 历史记录（每篇自动存档，可重开/删除）=====

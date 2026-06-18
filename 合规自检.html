@@ -28,6 +28,13 @@
         <h2 class="font-song font-bold text-[15px]">待检内容</h2>
         <button id="importBtn" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">从流水线导入</button>
       </div>
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] text-[var(--ink-soft)]">按平台规则检</span>
+        <div id="cpfTabs" class="inline-flex rounded-lg overflow-hidden" style="border:1px solid var(--line)">
+          <button class="cpf-tab" data-pf="xhs" style="padding:5px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer">📕 小红书</button>
+          <button class="cpf-tab" data-pf="gzh" style="padding:5px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;border-left:1px solid var(--line)">📰 公众号</button>
+        </div>
+      </div>
       <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">标题</label>
         <input id="cTitle" class="field w-full rounded-lg px-3 py-2 text-[13.5px]" placeholder="标题" /></div>
       <div><label class="block text-[12px] text-[var(--ink-soft)] mb-1">封面文案</label>
@@ -361,8 +368,13 @@ async function regenS8Images(btn) {
 }
 
 // 真正导入一篇成稿到待检框
+let cPlatform = 'xhs';
+function renderCpf() { document.querySelectorAll('#cpfTabs .cpf-tab').forEach(b => { const on = b.dataset.pf === cPlatform; b.style.background = on ? 'var(--cinnabar)' : '#fff'; b.style.color = on ? '#fff' : 'var(--ink-soft)'; }); }
+document.querySelectorAll('#cpfTabs .cpf-tab').forEach(b => b.addEventListener('click', () => { cPlatform = b.dataset.pf; renderCpf(); }));
+renderCpf();
 function importDraftData(d) {
   if (!d || (!d.body && !d.best && !d.title)) { setStatus('这篇还没有成稿内容', 'err'); return; }
+  cPlatform = (d.platform === 'gzh') ? 'gzh' : 'xhs'; renderCpf();
   $('#cTitle').value = d.best || d.title || '';
   $('#cCover').value = (d.cover?.cover_lines || d.cover_lines || []).join(' / ');
   $('#cBody').value  = Array.isArray(d.body) ? d.body.join('\n') : (d.body || '');
@@ -544,15 +556,19 @@ $('#checkBtn').addEventListener('click', async () => {
   const title = $('#cTitle').value.trim(), cover = $('#cCover').value.trim(), body = $('#cBody').value.trim(), tags = $('#cTags').value.trim();
   if (!body && !title) { setStatus('至少填标题或正文', 'err'); return; }
   const tk = getTrack();
-  const prompt = `对下面这篇${tk.domain}小红书笔记做发布前合规自检，逐项找风险并给修改建议；无风险则 risks 为空数组。
+  const isGzhChk = cPlatform === 'gzh';
+  const dims = isGzhChk
+    ? `检查维度（==微信公众号 / 微信公众平台运营规范 + 广告法==）：①违禁/绝对化用词（广告法：最/第一/唯一/国家级/100%/根治等）②虚假宣传 / 夸大功效 / 效果或结果保证（${tk.compliance}）③**诱导分享/诱导关注/诱导点赞在看**（如"分享到朋友圈才看得到""点在看再走""集赞"——微信明令禁止的诱导行为）④**诱导加私人微信 / 私信发资料 / 导流到个人号或外部**（"加我微信""评论区扣XX我私发"风险高）⑤医疗/金融/教育培训等资质与承诺（升学/收益保证）⑥政治敏感 / 低俗 / 标题党 ⑦${tk.hardInfo}等未核实硬信息（应改写为稳妥表述）⑧他人隐私 / 侵权 / 洗稿。注意：公众号正文可含「阅读原文」等微信生态内链接，不算站外导流；重点查诱导互动与导流到个人号。`
+    : `检查维度（==小红书平台规则==）：①违禁词/绝对化用词（最/第一/唯一/100%/永久/根治等）②效果或结果保证（${tk.compliance}）③站外导流痕迹（微信/电话/二维码/加V/私信发资料/留联系方式）④${tk.hardInfo}等未核实硬信息（应标「需核实」）⑤他人个人信息 ⑥软广/硬广未报备、第三方平台引流。`;
+  const platName = isGzhChk ? '微信公众号文章' : '小红书笔记';
+  const prompt = `对下面这篇${tk.domain}「${platName}」做发布前合规自检，==严格按该平台的规则==逐项找风险并给修改建议；无风险则 risks 为空数组。
 【本赛道合规红线】${tk.compliance}
 【标题】${title}
-【封面文案】${cover}
+【封面/首图文案】${cover}
 【正文】${body}
-【标签】${tags}
-检查维度：①违禁词/绝对化用词（最/第一/唯一/100%/永久/根治等）②效果或结果保证（${tk.compliance}）③站外导流痕迹（微信/电话/二维码/加V/私信发资料）④${tk.hardInfo}等未核实硬信息（应标「需核实」）⑤他人个人信息。
+${isGzhChk ? '' : '【标签】' + tags + '\n'}${dims}
 ★ rewrite 是「可直接发布的终稿」：自然通顺、合规，且**不得出现「需核实 / 需要核实 / 待核实」等任何提示字眼**——把不确定的硬信息改写成稳妥通用的表述或去掉，让读者读到干净成品。
-只输出 JSON：{"verdict":"一句话总体结论","risks":[{"level":"high|mid|low","category":"风险类别","where":"出现在标题/正文/标签的哪处","issue":"问题描述","fix":"具体改法"}],"rewrite":{"title":"改后标题","cover_lines":["改后封面行1","行2"],"body":["改后正文段1","段2"],"tags":["#改后标签"]}}
+只输出 JSON：{"verdict":"一句话总体结论","risks":[{"level":"high|mid|low","category":"风险类别","where":"出现在标题/正文/标签的哪处","issue":"问题描述","fix":"具体改法"}],"rewrite":{"title":"改后标题","cover_lines":["改后封面行1","行2"],"body":["改后正文段1","段2"],"tags":${isGzhChk ? '[]' : '["#改后标签"]'}}}
 即使整体无风险也要给出 rewrite（与原文一致即可），方便一键去成稿预览。`;
   busy(true); setStatus('正在自检…');
   try {

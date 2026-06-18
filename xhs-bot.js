@@ -148,18 +148,27 @@ async function pollQrLogin(token) {
   const s = _qr.get(token);
   if (!s) return { ok: false, expired: true, reason: '二维码会话已过期，请重新获取' };
   try {
-    const cks = await s.ctx.cookies('https://www.xiaohongshu.com');
-    const web = cks.find(c => c.name === 'web_session' && c.value && c.value.length >= 20);
-    // 登录弹窗是否已消失（扫码确认后弹窗关闭）
-    let modalGone = true;
-    try { const m = s.page.locator('text=扫码登录'); modalGone = (await m.count()) === 0; } catch {}
-    if (web && modalGone) {
-      const cookieStr = cks.map(c => c.name + '=' + c.value).join('; ');
-      try { await s.browser.close(); } catch {}
-      _qr.delete(token);
-      return { ok: true, cookie: cookieStr };
+    const p = s.page;
+    // 二维码还在 = 还没扫/确认
+    const qrGone = (await p.locator('img.qrcode-img').count()) === 0;
+    if (!qrGone) return { ok: false, pending: true };
+    // 二维码消失 → 已扫码确认。导航到创作中心确认真登录，并让 SSO 写入 creator 可用 cookie
+    if (!s.checking) {
+      s.checking = true;
+      try {
+        await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await p.waitForTimeout(2800);
+      } catch {}
+      s.checking = false;
     }
-    return { ok: false, pending: true };
+    if (/\/login/i.test(p.url())) return { ok: false, pending: true }; // 还在登录页 = 还没真登录
+    const cks = await s.ctx.cookies();
+    const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
+    if (!xhs.length) return { ok: false, pending: true };
+    const cookieStr = xhs.map(c => c.name + '=' + c.value).join('; ');
+    try { await s.browser.close(); } catch {}
+    _qr.delete(token);
+    return { ok: true, cookie: cookieStr };
   } catch (e) { return { ok: false, pending: true }; }
 }
 
