@@ -55,12 +55,18 @@ async function dlImages(images) {
   const fs = require('fs'); const os = require('os'); const path = require('path');
   const out = [];
   for (let i = 0; i < Math.min((images || []).length, 9); i++) {
-    const u = images[i]; if (!u || !/^https?:\/\//.test(u)) continue;
+    const u = images[i]; if (!u) continue;
     try {
-      const r = await fetch(u, { signal: AbortSignal.timeout(20000), headers: { 'user-agent': UA, referer: 'https://www.xiaohongshu.com/' } });
-      if (!r.ok) continue;
-      const buf = Buffer.from(await r.arrayBuffer());
-      const ext = (r.headers.get('content-type') || '').includes('png') ? 'png' : 'jpg';
+      let buf, ext = 'png';
+      if (/^data:image\//i.test(u)) { // 前端 html2canvas 渲染的 PNG（CSS 卡转图）
+        const m = u.match(/^data:image\/(\w+);base64,(.*)$/i); if (!m) continue;
+        ext = m[1] === 'jpeg' ? 'jpg' : m[1]; buf = Buffer.from(m[2], 'base64');
+      } else if (/^https?:\/\//.test(u)) {
+        const r = await fetch(u, { signal: AbortSignal.timeout(20000), headers: { 'user-agent': UA, referer: 'https://www.xiaohongshu.com/' } });
+        if (!r.ok) continue;
+        buf = Buffer.from(await r.arrayBuffer());
+        ext = (r.headers.get('content-type') || '').includes('png') ? 'png' : 'jpg';
+      } else continue;
       const fp = path.join(os.tmpdir(), 'xhs_' + Date.now() + '_' + i + '.' + ext);
       fs.writeFileSync(fp, buf); out.push(fp);
     } catch {}
