@@ -28,6 +28,64 @@
   function doLike() { const el = document.querySelector('.like-wrapper, .like-active, [class*="like"] svg, .interact-container .like'); if (el) { (el.closest('[class*=like]') || el).click(); return true; } return clickByText(['赞']); }
   function doFav() { const el = document.querySelector('.collect-wrapper, [class*="collect"] svg, .interact-container .collect'); if (el) { (el.closest('[class*=collect]') || el).click(); return true; } return clickByText(['收藏']); }
 
+  // ===== 截流：收集评论 + AI 引流回复（评论区自动回复，有上限+验证即停）=====
+  // 选择器为最佳猜测（平台改版会变，需现场校准），与既有点赞/收藏逻辑同一容错风格。
+  function noteContext() {
+    const title = (document.querySelector('#detail-title, .note-content .title, [class*="title"]') || {}).textContent || '';
+    const desc = (document.querySelector('#detail-desc, .note-content .desc, [class*="desc"]') || {}).textContent || '';
+    return (title + '\n' + desc).trim().slice(0, 600);
+  }
+  function collectComments(max) {
+    const nodes = [...document.querySelectorAll('[class*="comment-item"], [class*="parent-comment"]')].slice(0, max || 8);
+    return nodes.map(n => {
+      const user = (n.querySelector('[class*="name"], [class*="nickname"]') || {}).textContent || '';
+      const text = (n.querySelector('[class*="content"], [class*="note-text"]') || {}).textContent || '';
+      const link = (n.querySelector('a[href*="/user/profile/"]') || {}).href || '';
+      return { user: user.trim(), text: text.trim(), link };
+    }).filter(c => c.text);
+  }
+  async function aiText(system, prompt) {
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'aiReply', system, prompt }, resp => {
+        resolve(resp && resp.ok ? resp.text : '');
+      });
+    });
+  }
+  function findCommentInput() { return document.querySelector('[class*="comment"] textarea, [class*="comment-box"] [contenteditable="true"], #content-textarea'); }
+  async function postCommentReply(text) {
+    const box = findCommentInput(); if (!box || !text) return false;
+    box.focus();
+    if (box.tagName === 'TEXTAREA') { box.value = text; box.dispatchEvent(new Event('input', { bubbles: true })); }
+    else { box.textContent = text; box.dispatchEvent(new InputEvent('input', { bubbles: true })); }
+    await sleep(rnd(500, 1000));
+    return clickByText(['发送', '发布']);
+  }
+  // 截流执行：评论区抓评论 → AI（按人设+笔记上下文+该评论）生成自然引流回复，命中上限就发；
+  // 私信只生成草稿存库，由人在 popup 里人工确认发送——不自动私信，规避高风险灰色操作。
+  async function runIntercept(plan, ui) {
+    const ic = ((plan.config || {}).intercept) || {};
+    const persona = (plan.config && plan.config.persona) || '你是资深小红书内容操盘手，第一人称真人感、绝不AI腔；自然、不硬广、不站外导流。';
+    if (!ic.collect && !ic.reply && !ic.dm) return;
+    await sleep(rnd(1500, 2500));
+    const ctx = noteContext();
+    const comments = collectComments(10);
+    if (!comments.length) return;
+    let replied = 0, queued = 0;
+    for (const c of comments) {
+      if (stopFlag || riskHit()) { ui.say('⚠ 触发验证，截流已停止'); break; }
+      if (ic.reply > 0 && replied < ic.reply) {
+        const draft = await aiText(persona, `笔记内容：${ctx}\n\n这位用户的评论：「${c.text}」\n请生成一条自然、不硬广、不站外导流的引流回复（≤40字，像真人随手回复，不要出现"AI"字样）。`);
+        if (draft && await postCommentReply(draft)) { replied++; ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
+      }
+      if (ic.dm > 0 && queued < ic.dm) {
+        const draft = await aiText(persona, `这位潜在客户的评论：「${c.text}」\n请生成一条自然、不硬广的私信开场话术（≤50字），用于后续人工确认发送。`);
+        if (draft) { chrome.runtime.sendMessage({ type: 'queueDM', item: { user: c.user, link: c.link, comment: c.text, draft, note: location.href } }); queued++; }
+      }
+      await sleep(rnd(1200, 2200));
+    }
+    if (replied || queued) ui.say(`截流：回复${replied}条 · 私信草稿待人工确认${queued}条`);
+  }
+
   async function runPlan(plan) {
     const ui = overlay();
     const cfg = (plan && plan.config) || {};
@@ -58,8 +116,9 @@
         if (chance(nz.love != null ? nz.love : 70)) {
           if (chance(nz.like || 0) && doLike()) { liked++; await sleep(rnd(800, 1600)); }
           if (chance(nz.fav || 0) && doFav()) { faved++; await sleep(rnd(800, 1600)); }
-          // 关注/评论/截流：风险较高，本阶段暂不自动执行
         }
+        // 截流计划：评论区抓取 + AI 引流回复（自动，有上限）；私信只生成草稿，存库待人工确认发送
+        if (/_intercept$/.test(plan.ptype || '') && !stopFlag) { try { await runIntercept(plan, ui); } catch (e) { ui.say('截流出错：' + (e.message || e)); } }
         history.back(); await sleep(rnd(2500, 4500));
       }
       ui.say(stopFlag ? `已停止 · 浏览${opened} 赞${liked} 藏${faved}` : `✓ 完成：浏览 ${opened} 篇 · 点赞 ${liked} · 收藏 ${faved}`);

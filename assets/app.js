@@ -455,10 +455,13 @@ window.refreshTopNav = async function () {
            <a id="agLogout" style="color:var(--cinnabar-deep)">🚪 退出登录</a>
          </div>
        </div>`;
-    // 设置下拉：点击开合 + 外部点击关闭
+    // 设置下拉：点击开合 + 外部点击关闭（监听绑一次到 document，避免 refreshTopNav 重复调用时叠加重复监听器）
     const drop = document.getElementById('agSetDrop');
     document.getElementById('agSetBtn')?.addEventListener('click', e => { e.stopPropagation(); drop?.classList.toggle('open'); });
-    document.addEventListener('click', e => { if (drop && !e.target.closest('#agSetDrop')) drop.classList.remove('open'); });
+    if (!window.__setDropCloseBound) {
+      window.__setDropCloseBound = 1;
+      document.addEventListener('click', e => { const d = document.getElementById('agSetDrop'); if (d && !e.target.closest('#agSetDrop')) d.classList.remove('open'); });
+    }
     // 主题切换（菜单内，带文字标签，不复用 .theme-toggle 以免标签被覆盖）
     document.getElementById('agThemeItem')?.addEventListener('click', () => {
       const root = document.documentElement;

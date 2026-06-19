@@ -394,10 +394,9 @@ body.ag-shelled{ padding-left:var(--side-w); transition:padding-left .25s ease; 
 body.ag-shelled > header{ display:none !important; }            /* 隐藏各页旧顶栏 */
 
 /* —— 左侧边栏（浅色渐变毛玻璃）—— */
-.ag-side{ position:fixed; left:0; top:0; bottom:0; width:var(--side-w); z-index:95;
+.ag-side{ position:fixed; left:0; top:0; bottom:0; width:var(--side-w); z-index:95; contain:strict; will-change:transform;
   display:flex; flex-direction:column; padding:16px 13px 14px;
-  background:linear-gradient(176deg, rgba(255,226,231,.92) 0%, rgba(255,243,245,.8) 48%, rgba(255,255,255,.74) 100%);
-  backdrop-filter:blur(16px) saturate(1.5); -webkit-backdrop-filter:blur(16px) saturate(1.5);
+  background:linear-gradient(176deg, rgba(255,230,234,.97) 0%, rgba(255,245,247,.95) 48%, rgba(255,255,255,.96) 100%);
   color:var(--ink); border-right:1px solid rgba(255,36,66,.12);
   box-shadow:4px 0 30px -22px rgba(225,15,41,.35); transition:transform .25s ease; }
 html[data-theme="dark"] .ag-side{ background:linear-gradient(176deg, rgba(48,22,28,.9) 0%, rgba(26,22,24,.82) 60%, rgba(20,20,20,.78) 100%); border-right-color:#2c2c2e; }
@@ -450,7 +449,7 @@ body.ag-shelled #trackSection{ display:none !important; }
 
 /* —— 顶部操作栏 —— */
 .ag-top{ position:sticky; top:0; z-index:80; height:58px; display:flex; align-items:center; justify-content:space-between;
-  gap:14px; padding:0 26px; background:color-mix(in srgb,var(--paper) 86%, transparent); backdrop-filter:saturate(1.4) blur(8px);
+  gap:14px; padding:0 26px; background:color-mix(in srgb,var(--paper) 96%, transparent); contain:layout style;
   border-bottom:1px solid var(--line); }
 .ag-top-l{ display:flex; align-items:center; gap:12px; min-width:0; }
 .ag-title{ font-weight:700; font-size:16px; letter-spacing:.3px; white-space:nowrap; }
