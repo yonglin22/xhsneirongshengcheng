@@ -18,23 +18,15 @@
     <p class="mt-2 text-[13.5px] text-[var(--ink-soft)] max-w-2xl">选一篇成稿 → 选矩阵里的小红书账号（需已接入登录态）→ 一键推到对应账号<b>草稿箱</b>。终审与「发布」请在小红书 App 内完成（合规）。</p>
   </div>
 
-  <div class="grid lg:grid-cols-2 gap-5">
-    <!-- 选成稿 -->
-    <div class="card p-4">
-      <div class="font-song font-bold text-[15px] mb-3">① 选成稿</div>
-      <div id="works" class="space-y-2" style="max-height:340px;overflow:auto"></div>
-    </div>
-    <!-- 选账号 -->
-    <div class="card p-4">
-      <div class="flex items-center justify-between mb-3"><div class="font-song font-bold text-[15px]">② 选小红书账号（可多选）</div><a href="/账号矩阵.html" class="text-[12px]" style="color:var(--cinnabar)">管理矩阵 →</a></div>
-      <div id="accs" class="space-y-2" style="max-height:340px;overflow:auto"></div>
-    </div>
+  <div class="card p-4">
+    <div class="font-song font-bold text-[15px] mb-1">选成稿</div>
+    <div class="text-[11px] text-[var(--ink-soft)] mb-3">插件会发到你<b>浏览器当前登录的小红书账号</b>（要发哪个号就先在浏览器登哪个；多号在浏览器里切换登录即可）。</div>
+    <div id="works" class="space-y-2" style="max-height:380px;overflow:auto"></div>
   </div>
 
   <div class="card p-4 mt-5">
     <div class="flex items-center gap-3 flex-wrap">
-      <button id="extPubBtn" class="rounded-xl px-6 py-3 text-[14px] font-medium" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🧩 用插件发布到草稿箱（推荐·零风控）</button>
-      <button id="pubBtn" class="btn-ghost rounded-xl px-5 py-3 text-[13px]">服务器直发（实验·需代理）</button>
+      <button id="extPubBtn" class="rounded-xl px-6 py-3 text-[14px] font-medium" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🧩 用插件发布到草稿箱（零风控）</button>
       <span id="pubStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
     </div>
     <div id="extHint" class="mt-2 text-[12px]" style="display:none"></div>
@@ -158,37 +150,7 @@ async function loadWorks(){
     $('#pubStatus').style.color = n? '#00a152':'var(--cinnabar-deep)';
   }));
 }
-async function loadAccs(){
-  const j = await (await fetch('/api/accounts')).json();
-  const list = ((j&&j.list)||[]).filter(a=>a.platform==='xhs');
-  $('#accs').innerHTML = list.length ? list.map(a=>{
-    const ready = a.status==='active' && a.has_auth;
-    return `<label class="flex items-center gap-2.5" style="border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:${ready?'pointer':'not-allowed'};opacity:${ready?1:.55}" data-id="${a.id}">
-      <input type="checkbox" class="acc-ck" value="${a.id}" ${ready?'':'disabled'} style="width:15px;height:15px"/>
-      <span style="flex:1;font-size:13px;font-weight:600">${a.nickname||'(未命名)'}</span>
-      <span style="font-size:11px;color:${ready?'#00a152':'var(--ink-soft)'}">${ready?'已登录':'未接入/失效'}</span>
-    </label>`;
-  }).join('') : '<div class="text-[13px] text-[var(--ink-soft)] text-center py-6">矩阵里还没有小红书账号，<a href="/账号矩阵.html" style="color:var(--cinnabar)">去添加并接入登录态 →</a></div>';
-  $$('#accs .acc-ck').forEach(c=>c.addEventListener('change', e=>{ const id=+e.target.value; if(e.target.checked) sel.add(id); else sel.delete(id); }));
-}
-$('#pubBtn').addEventListener('click', async ()=>{
-  if(!WORK){ $('#pubStatus').textContent='请先选一篇成稿'; $('#pubStatus').style.color='var(--cinnabar-deep)'; return; }
-  if(!WORK.images.length){ $('#pubStatus').textContent='这篇没有可上传的图片，无法发小红书图文'; $('#pubStatus').style.color='var(--cinnabar-deep)'; return; }
-  if(!sel.size){ $('#pubStatus').textContent='请至少选一个已登录的小红书账号'; $('#pubStatus').style.color='var(--cinnabar-deep)'; return; }
-  const btn=$('#pubBtn'); btn.disabled=true; const o=btn.textContent; btn.textContent='发布中…';
-  $('#pubLog').innerHTML=''; $('#pubStatus').textContent='正在逐个账号发布（每个约 30~60 秒）…'; $('#pubStatus').style.color='var(--ink-soft)';
-  for(const id of sel){
-    const row=document.createElement('div'); row.style.cssText='font-size:12.5px'; row.textContent='账号 '+id+'：发布中…'; $('#pubLog').appendChild(row);
-    try{
-      const r=await (await fetch('/api/accounts/publish',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id,content:WORK})})).json();
-      row.textContent='账号 '+id+'：'+(r.ok?('✓ '+(r.msg||'已存草稿')):('✗ '+(r.msg||'失败')));
-      row.style.color=r.ok?'#00a152':'var(--cinnabar-deep)';
-    }catch(e){ row.textContent='账号 '+id+'：✗ 请求失败'; row.style.color='var(--cinnabar-deep)'; }
-  }
-  $('#pubStatus').textContent='✓ 发布流程结束，去小红书 App「草稿箱」确认终审发布'; $('#pubStatus').style.color='#00a152';
-  btn.disabled=false; btn.textContent=o;
-});
-loadWorks(); loadAccs();
+loadWorks();
 </script>
 </body>
 </html>

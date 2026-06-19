@@ -8,10 +8,10 @@
     const els = [...document.querySelectorAll('button,div,span,a,[role=button]')];
     for (const t of arr) {
       const el = els.find(e => {
-        const tx = (e.textContent || '').trim();
-        return tx === t || (tx.length <= t.length + 4 && tx.includes(t));
+        const tx = (e.textContent || '').replace(/\s+/g, ''); // 去所有空白，防"暂 存 离 开"
+        return tx && tx.length <= t.length + 4 && tx.includes(t) && (e.offsetParent !== null || e.getClientRects().length);
       });
-      if (el) { el.click(); return true; }
+      if (el) { (el.closest('button,[role=button]') || el).click(); return true; }
     }
     return false;
   }
@@ -69,7 +69,7 @@
       // 存草稿：底部「暂存离开」常渲染较晚 → 轮询等它出现再点（最多 ~14 秒）
       say('内容已填好，正在找「暂存离开」…');
       let saved = false;
-      for (let i = 0; i < 14 && !saved; i++) {
+      for (let i = 0; i < 22 && !saved; i++) {
         saved = clickByText(['暂存离开', '暂存', '存草稿', '保存草稿', '存为草稿', '草稿']);
         if (!saved) await sleep(1000);
       }
