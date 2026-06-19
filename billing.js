@@ -113,6 +113,12 @@ function accountAdd(uid, a){ const now=Date.now(); const r=db.prepare('INSERT IN
 function accountUpdate(uid, id, p){ const cur=db.prepare('SELECT * FROM social_accounts WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; const f=(k,max)=>{ let v=p[k]!==undefined?p[k]:cur[k]; if(typeof v==='string'&&max) v=v.slice(0,max); return v; }; db.prepare('UPDATE social_accounts SET nickname=?,grp=?,status=?,auth_blob=?,note=?,health=?,updated_at=? WHERE id=? AND user_id=?').run(f('nickname',60),f('grp',40),f('status'),f('auth_blob'),f('note',200),f('health'),Date.now(),id,uid); return true; }
 function accountRemove(uid, id){ db.prepare('DELETE FROM social_accounts WHERE id=? AND user_id=?').run(id,uid); return true; }
 function accountAuthBlob(uid, id){ const r=db.prepare('SELECT auth_blob,platform,nickname FROM social_accounts WHERE id=? AND user_id=?').get(id,uid); return r||null; } // 服务端取登录态(敏感,仅本人)
+// 获客 Agent · 养号/截流计划
+try { db.exec("CREATE TABLE IF NOT EXISTS growth_plans(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, ptype TEXT, platform TEXT, config TEXT, status TEXT DEFAULT 'draft', created_at INTEGER, updated_at INTEGER)"); } catch {}
+function plansList(uid){ return db.prepare('SELECT id,name,ptype,platform,config,status,created_at,updated_at FROM growth_plans WHERE user_id=? ORDER BY id DESC').all(uid).map(r=>{ let c={}; try{c=JSON.parse(r.config||'{}');}catch{} return {...r, config:c}; }); }
+function planAdd(uid, p){ const now=Date.now(); const r=db.prepare('INSERT INTO growth_plans(user_id,name,ptype,platform,config,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').run(uid, String(p.name||'').slice(0,80), p.ptype||'', p.platform||'xhs', JSON.stringify(p.config||{}), p.status||'draft', now, now); return r.lastInsertRowid; }
+function planUpdate(uid, id, p){ const cur=db.prepare('SELECT * FROM growth_plans WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; db.prepare('UPDATE growth_plans SET name=?,ptype=?,platform=?,config=?,status=?,updated_at=? WHERE id=? AND user_id=?').run(p.name!==undefined?String(p.name).slice(0,80):cur.name, p.ptype||cur.ptype, p.platform||cur.platform, p.config!==undefined?JSON.stringify(p.config):cur.config, p.status||cur.status, Date.now(), id, uid); return true; }
+function planRemove(uid, id){ db.prepare('DELETE FROM growth_plans WHERE id=? AND user_id=?').run(id,uid); return true; }
 
 function txn(fn) { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; } }
 
@@ -516,6 +522,7 @@ module.exports = {
   partnerMemberOrders, partnerTransfer, hasPaidPack,
   qaLogAdd, qaLogList, qaTopQuestions, qaStats,
   accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob,
+  plansList, planAdd, planUpdate, planRemove,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
 };
 

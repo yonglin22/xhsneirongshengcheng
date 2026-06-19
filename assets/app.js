@@ -368,8 +368,8 @@ window.buildMyAgentNav = function () {
       <button class="ag-dd-btn" type="button">🎯 获客 Agent <i>▾</i></button>
       <div class="ag-dd-menu">
         <a href="/账号矩阵.html" class="ag-dd-item">🗂 账号矩阵</a>
-        <span class="ag-dd-item disabled" title="建设中">🌱 养号 <i class="soon">即将上线</i></span>
-        <span class="ag-dd-item disabled" title="建设中">🚀 一键发布 <i class="soon">即将上线</i></span>
+        <a href="/获客计划.html" class="ag-dd-item">🌱 养号 / 截流计划</a>
+        <a href="/一键发布.html" class="ag-dd-item">🚀 一键发布</a>
       </div>
     </div>`;
   el.querySelectorAll('.ag-dd-btn').forEach(b => b.addEventListener('click', e => {

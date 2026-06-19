@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>获客计划 · 养号/截流 · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=40" />
+<style>
+  .gp-sec{ border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-top:12px; background:var(--paper-2); }
+  .gp-sec h3{ font-size:13.5px; font-weight:700; margin-bottom:10px; }
+  .gp-row{ display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:13px; flex-wrap:wrap; }
+  .gp-row label{ min-width:74px; color:var(--ink-soft); }
+  .gp-row .pct{ width:64px; }
+  .gp-hint{ font-size:11px; color:var(--ink-soft); }
+  .field{ border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:13px; background:#fff; }
+  .seg{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button{ border:none; background:#fff; padding:5px 12px; font-size:12px; cursor:pointer; border-left:1px solid var(--line); }
+  .seg button:first-child{ border-left:none; }
+  .seg button.on{ background:var(--cinnabar); color:#fff; }
+  .kw-chip{ display:inline-flex; align-items:center; gap:5px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 10px; font-size:12px; margin:3px 4px 0 0; }
+  .kw-chip b{ cursor:pointer; color:var(--ink-soft); }
+  .sw{ position:relative; width:38px; height:22px; background:#ccc; border-radius:999px; cursor:pointer; transition:.2s; }
+  .sw.on{ background:#00a152; } .sw::after{ content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; background:#fff; border-radius:50%; transition:.2s; }
+  .sw.on::after{ left:18px; }
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <a href="/账号矩阵.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 账号矩阵</a>
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">获客<span class="italic" style="color:var(--cinnabar)">计划</span></h1>
+    <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-2xl">配置养号 / 截流获客 / 口令刷量计划。保存后由<b>浏览器插件</b>按计划在你登录的小红书里执行（保守拟真、有上限、出验证即停）。</p>
+  </div>
+
+  <!-- 新建/编辑 计划 -->
+  <div class="card p-5 mb-5">
+    <div class="font-song font-bold text-[15px] mb-3">＋ 新建计划</div>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <div><div class="gp-hint mb-1">* 计划名称</div><input id="pName" class="field w-full" placeholder="如：母婴号-6月起号养号" /></div>
+      <div><div class="gp-hint mb-1">计划描述（可选）</div><input id="pDesc" class="field w-full" placeholder="备注用途" /></div>
+      <div><div class="gp-hint mb-1">* 目标平台</div><select id="pPlatform" class="field w-full"><option value="xhs">📕 小红书</option></select></div>
+      <div><div class="gp-hint mb-1">* 计划类型</div>
+        <select id="pType" class="field w-full">
+          <option value="link">口令链接刷量</option>
+          <option value="home_nurture">首页(发现页)·起号养号</option>
+          <option value="home_intercept">首页(发现页)·截流获客</option>
+          <option value="search_nurture">搜索页·起号养号</option>
+          <option value="search_intercept">搜索页·截流获客</option>
+        </select></div>
+    </div>
+
+    <!-- 口令链接 -->
+    <div class="gp-sec" data-show="link">
+      <h3>口令链接</h3>
+      <input id="pLink" class="field w-full" placeholder="粘贴小红书口令 / 笔记链接" />
+      <div class="gp-row mt-2"><label>点赞</label><input id="lkLike" class="field pct" type="number" value="100" /><span class="gp-hint">% · 对该链接笔记点赞概率</span></div>
+      <div class="gp-row"><label>收藏</label><input id="lkFav" class="field pct" type="number" value="100" /><span class="gp-hint">%</span></div>
+      <div class="gp-row"><label>关注博主</label><input id="lkFollow" class="field pct" type="number" value="100" /><span class="gp-hint">%</span></div>
+      <div class="gp-row"><label>评论</label><input id="lkComment" class="field pct" type="number" value="100" /><span class="gp-hint">%</span></div>
+    </div>
+
+    <!-- 关键词 -->
+    <div class="gp-sec" data-show="kw">
+      <h3>* 关键词（命中其一即纳入目标）</h3>
+      <div class="flex gap-2"><input id="kwInput" class="field flex-1" placeholder="输入关键词回车添加，如 母婴/辅食/育儿" /><button id="kwAdd" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">添加</button></div>
+      <div id="kwList" class="mt-1"></div>
+    </div>
+
+    <!-- 搜索筛选 -->
+    <div class="gp-sec" data-show="search">
+      <h3>* 筛选条件</h3>
+      <div class="gp-row"><label>排序</label><span class="seg" data-seg="sort"><button data-v="general" class="on">综合</button><button data-v="latest">最新</button><button data-v="like">最多点赞</button></span></div>
+      <div class="gp-row"><label>内容类型</label><span class="seg" data-seg="ctype"><button data-v="all" class="on">不限</button><button data-v="note">图文</button><button data-v="video">视频</button></span></div>
+      <div class="gp-row"><label>发布时间</label><span class="seg" data-seg="ptime"><button data-v="all" class="on">不限</button><button data-v="d1">一天内</button><button data-v="w1">一周内</button><button data-v="m6">半年内</button></span></div>
+      <div class="gp-row"><label>搜索范围</label><span class="seg" data-seg="scope"><button data-v="all" class="on">不限</button><button data-v="viewed">已看过</button><button data-v="unviewed">未看过</button></span></div>
+    </div>
+
+    <!-- 养号配置 -->
+    <div class="gp-sec" data-show="nurture">
+      <h3>养号配置（对命中笔记按概率拟真互动）</h3>
+      <div class="gp-row"><label>* 好感率</label><input id="nzLove" class="field pct" type="number" value="70" /><span class="gp-hint">% · 命中后真正互动的比例（越低越克制越安全）</span></div>
+      <div class="gp-row"><label>* 点赞</label><input id="nzLike" class="field pct" type="number" value="80" /><span class="gp-hint">% · 互动笔记里点赞的比例</span></div>
+      <div class="gp-row"><label>* 收藏</label><input id="nzFav" class="field pct" type="number" value="30" /><span class="gp-hint">%</span></div>
+      <div class="gp-row"><label>* 关注博主</label><input id="nzFollow" class="field pct" type="number" value="30" /><span class="gp-hint">%</span></div>
+      <div class="gp-row"><label>* 评论</label><input id="nzComment" class="field pct" type="number" value="20" /><span class="gp-hint">%</span></div>
+      <div class="gp-row"><label>评论来源</label><span class="seg" data-seg="csrc"><button data-v="lib" class="on">评论库</button><button data-v="preset">预设回复</button></span></div>
+      <div class="gp-row"><label>每日上限</label><input id="nzDaily" class="field pct" type="number" value="20" /><span class="gp-hint">篇 · 单账号每日处理上限（安全护栏）</span></div>
+    </div>
+
+    <!-- 截流配置 -->
+    <div class="gp-sec" data-show="intercept">
+      <h3>截流配置 <span class="gp-hint">（截流=去对标笔记评论区/私信触达潜在客户，风险较高，请保守）</span></h3>
+      <div class="gp-row"><label>收集评论</label><span id="icCollect" class="sw"></span><span class="gp-hint">收集对标笔记评论区用户（潜在客户）</span></div>
+      <div class="gp-row"><label>引流回复</label><input id="icReply" class="field pct" type="number" value="0" /><span class="gp-hint">次/笔记 · 在评论区回复（0=不做）</span></div>
+      <div class="gp-row"><label>截流私信</label><input id="icDm" class="field pct" type="number" value="0" /><span class="gp-hint">次/天 · 给评论用户发私信（0=不做，最易被封慎用）</span></div>
+      <div class="gp-row"><label>话术来源</label><span class="seg" data-seg="isrc"><button data-v="preset" class="on">预设话术</button><button data-v="lib">话术库</button></span></div>
+    </div>
+
+    <div class="mt-4 flex items-center gap-3">
+      <button id="saveBtn" class="btn-go rounded-xl px-6 py-2.5 text-[13px] font-medium">保存计划</button>
+      <button id="resetBtn" class="btn-ghost rounded-lg px-4 py-2.5 text-[13px]">清空</button>
+      <span id="saveStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
+    </div>
+    <div class="gp-hint mt-3" style="background:#fff;border-radius:8px;padding:8px 11px">⚠️ 截流（自动评论/私信）是高风险灰色操作，平台严打、可能封号。建议默认 0、先只做养号；真要用务必极低频。执行由插件后续上线。</div>
+  </div>
+
+  <div id="list" class="space-y-3"></div>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=38"></script>
+<script>
+let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'lib', isrc:'preset' }, collectOn=false;
+const TYPE_NAME={ link:'口令刷量', home_nurture:'首页养号', home_intercept:'首页截流', search_nurture:'搜索养号', search_intercept:'搜索截流' };
+async function api(path, method, body){ const r=await fetch('/api/growth-plans'+path,{method:method||'GET',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined}); return r.json(); }
+function showSections(){
+  const t=$('#pType').value;
+  const vis={ link:t==='link', kw:/^(home|search)_/.test(t), search:/^search_/.test(t), nurture:/_(nurture|intercept)$/.test(t), intercept:/_intercept$/.test(t) };
+  $$('[data-show]').forEach(el=>{ el.style.display = vis[el.dataset.show]?'':'none'; });
+}
+$('#pType').addEventListener('change', showSections);
+// 关键词
+function renderKw(){ $('#kwList').innerHTML=kws.map((k,i)=>`<span class="kw-chip">${k}<b data-i="${i}">✕</b></span>`).join(''); $$('#kwList b').forEach(b=>b.onclick=()=>{ kws.splice(+b.dataset.i,1); renderKw(); }); }
+function addKw(){ const v=$('#kwInput').value.trim(); if(v&&!kws.includes(v)){ kws.push(v); $('#kwInput').value=''; renderKw(); } }
+$('#kwAdd').addEventListener('click', addKw);
+$('#kwInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addKw(); } });
+// 分段选择
+$$('.seg').forEach(seg=>{ seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); segs[seg.dataset.seg]=b.dataset.v; })); });
+$('#icCollect').addEventListener('click', e=>{ collectOn=!collectOn; e.target.classList.toggle('on',collectOn); });
+function num(id){ return Math.max(0,Math.min(100, parseInt($('#'+id).value)||0)); }
+function collect(){
+  const t=$('#pType').value;
+  return { name:$('#pName').value.trim(), platform:$('#pPlatform').value, ptype:t, config:{
+    desc:$('#pDesc').value.trim(),
+    link:$('#pLink').value.trim(),
+    linkActs:{ like:num('lkLike'), fav:num('lkFav'), follow:num('lkFollow'), comment:num('lkComment') },
+    keywords:kws.slice(),
+    filter:{ sort:segs.sort, ctype:segs.ctype, ptime:segs.ptime, scope:segs.scope },
+    nurture:{ love:num('nzLove'), like:num('nzLike'), fav:num('nzFav'), follow:num('nzFollow'), comment:num('nzComment'), csrc:segs.csrc, daily:parseInt($('#nzDaily').value)||20 },
+    intercept:{ collect:collectOn, reply:parseInt($('#icReply').value)||0, dm:parseInt($('#icDm').value)||0, isrc:segs.isrc }
+  }};
+}
+$('#saveBtn').addEventListener('click', async ()=>{
+  const p=collect(); if(!p.name){ $('#saveStatus').textContent='请填计划名称'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
+  if(/^(home|search)_/.test(p.ptype) && !kws.length){ $('#saveStatus').textContent='请至少加 1 个关键词'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
+  if(editId) p.id=editId;
+  const r=await api('','POST',p);
+  if(r&&r.ok){ $('#saveStatus').textContent='✓ 已保存'; $('#saveStatus').style.color='#00a152'; reset(); load(); }
+});
+function reset(){ editId=null; kws=[]; collectOn=false; $('#icCollect').classList.remove('on'); ['pName','pDesc','pLink'].forEach(i=>$('#'+i).value=''); renderKw(); $('#saveBtn').textContent='保存计划'; }
+$('#resetBtn').addEventListener('click', reset);
+async function load(){
+  const j=await api(''); const list=(j&&j.list)||[];
+  $('#list').innerHTML = list.length ? list.map(p=>`
+    <div class="card p-4 flex items-center gap-3 flex-wrap" data-id="${p.id}">
+      <span style="font-size:11px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:2px 8px">${TYPE_NAME[p.ptype]||p.ptype}</span>
+      <span style="font-size:14px;font-weight:700;flex:1;min-width:140px">${(p.name||'').replace(/</g,'&lt;')}</span>
+      <span class="text-[11px] text-[var(--ink-soft)]">${(p.config&&p.config.keywords||[]).slice(0,3).join('、')||(p.config&&p.config.link?'口令链接':'')}</span>
+      <span class="text-[11px] text-[var(--ink-soft)]">${p.status==='draft'?'草稿':p.status}</span>
+      <button class="pl-del btn-ghost rounded-md px-2.5 py-1 text-[11px]">删除</button>
+    </div>`).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有计划，上面新建一个。</div>';
+  $$('.pl-del').forEach(b=>b.addEventListener('click', async e=>{ const id=+e.target.closest('[data-id]').dataset.id; if(!confirm('删除这个计划？'))return; await api('/delete','POST',{id}); load(); }));
+}
+showSections(); renderKw(); load();
+</script>
+</body>
+</html>
