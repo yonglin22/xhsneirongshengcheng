@@ -1074,6 +1074,10 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/history/get' && req.method === 'GET') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       const data = billing.historyGet(uid, url.searchParams.get('id') || '');
+      // light=1：发布场景只需正文/标题/封面，剥离对标图等大字段(base64)，传输更快
+      if (data && url.searchParams.get('light') === '1') {
+        ['refImages', 'refVisions', 'refVision', 'ref'].forEach(k => { try { delete data[k]; } catch {} });
+      }
       return sendJSON(res, 200, { ok: !!data, data });
     }
     if (pathname === '/api/history' && req.method === 'POST') {

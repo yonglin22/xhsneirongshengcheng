@@ -140,14 +140,18 @@ async function loadWorks(){
       <span style="font-size:11px;color:var(--ink-soft)">${fmtD(w.ts)}</span>
     </label>`).join('') : '<div class="text-[13px] text-[var(--ink-soft)] text-center py-6">还没有成稿，先去创作流水线生成。</div>';
   $$('#works input[name=wk]').forEach(r=>r.addEventListener('change', async e=>{
-    const id=e.target.value; $('#pubStatus').textContent='读取成稿…';
-    const d=await (await fetch('/api/history/get?id='+encodeURIComponent(id))).json();
-    const data=(d&&d.data)||d||{};
-    const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
-    WORK={ id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[] };
-    const n=raw.filter(u=>/^https?:\/\//.test(u)||/^(note|ctpl):\/\//.test(u)).length;
-    $('#pubStatus').textContent = `✓ 已选「${(WORK.title||'').slice(0,16)}」· 共 ${n} 张图（CSS 卡发布时自动转 PNG）`;
-    $('#pubStatus').style.color = n? '#00a152':'var(--cinnabar-deep)';
+    const id=e.target.value; WORK=null; $('#pubStatus').textContent='读取成稿…'; $('#pubStatus').style.color='var(--ink-soft)';
+    const t0=Date.now(); const tk=setInterval(()=>{ if(!WORK) $('#pubStatus').textContent='读取成稿…（'+Math.round((Date.now()-t0)/1000)+'s，数据较大请稍候）'; },1500);
+    try{
+      const resp=await fetch('/api/history/get?light=1&id='+encodeURIComponent(id),{ signal:AbortSignal.timeout(30000) });
+      const d=await resp.json(); clearInterval(tk);
+      const data=(d&&d.data)||d||{};
+      const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
+      WORK={ id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[] };
+      const n=raw.filter(u=>/^https?:\/\//.test(u)||/^(note|ctpl):\/\//.test(u)).length;
+      $('#pubStatus').textContent = `✓ 已选「${(WORK.title||'').slice(0,16)}」· 共 ${n} 张图（CSS 卡发布时自动转 PNG）`;
+      $('#pubStatus').style.color = n? '#00a152':'var(--cinnabar-deep)';
+    }catch(err){ clearInterval(tk); $('#pubStatus').textContent='读取成稿失败：'+((err&&err.name==='TimeoutError')?'超时（数据过大），请重试或换一篇':(err.message||err)); $('#pubStatus').style.color='var(--cinnabar-deep)'; }
   }));
 }
 loadWorks();
