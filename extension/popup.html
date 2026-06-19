@@ -19,6 +19,16 @@
       <li>会自动打开创作页填好内容 → 你确认「存草稿」</li>
     </ol>
     <div style="margin-top:8px;color:#999;font-size:11px">用你已登录的小红书操作，和手动发一样，不触发风控。</div>
+    <hr style="border:none;border-top:1px solid #eee;margin:12px 0" />
+    <div style="font-weight:700;font-size:13px;margin-bottom:4px">🌱 养号</div>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">在你登录的小红书里慢刷+停留+进笔记看，保守拟真、有上限、出验证即停。</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;font-size:12px">
+      浏览 <input id="nzNotes" type="number" value="6" min="2" max="15" style="width:46px;padding:3px 6px;border:1px solid #ddd;border-radius:6px" /> 篇 ·
+      <input id="nzMin" type="number" value="8" min="3" max="30" style="width:46px;padding:3px 6px;border:1px solid #ddd;border-radius:6px" /> 分钟
+    </div>
+    <button id="nzBtn" style="width:100%;background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer">🌱 开始今日养号</button>
+    <div id="nzMsg" style="font-size:11px;color:#00a152;margin-top:6px"></div>
   </div>
+  <script src="popup.js"></script>
 </body>
 </html>

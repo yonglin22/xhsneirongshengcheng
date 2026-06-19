@@ -66,10 +66,19 @@
       const ed = document.querySelector('[contenteditable="true"]');
       if (ed) { ed.focus(); document.execCommand('insertText', false, (payload.body || '').slice(0, 980)); }
       await sleep(1500);
-      // 存草稿
-      const saved = clickByText(['暂存离开', '存草稿', '保存草稿']);
-      say(saved ? '✓ 已点存草稿，请在「草稿箱」确认终审发布' : '内容已填好，请手动点「暂存离开/存草稿」');
-      setTimeout(() => status.remove(), 9000);
+      // 存草稿（放宽匹配）
+      const saved = clickByText(['暂存离开', '暂存', '存草稿', '保存草稿', '存为草稿', '保存为草稿', '草稿']);
+      if (saved) { say('✓ 已点存草稿，请到「草稿箱」确认'); }
+      else {
+        // 没找到 → 列出页面上所有按钮文字，便于校准
+        const btns = [...document.querySelectorAll('button,[role=button],.btn,div,span')]
+          .map(e => (e.textContent || '').trim())
+          .filter(t => t && t.length >= 2 && t.length <= 8 && /[一-龥]/.test(t) && /存|草稿|发布|保存|离开|确定|完成/.test(t));
+        const uniq = [...new Set(btns)].slice(0, 12);
+        say('内容已填好，但没找到「存草稿」按钮，请手动点。检测到的按钮：' + (uniq.join(' / ') || '无') + '（把这行截图发开发者校准）');
+        console.log('[朱砂助手] 候选按钮文字：', uniq);
+      }
+      setTimeout(() => status.remove(), 16000);
     } catch (e) {
       say('出错：' + (e.message || e) + '（可手动完成）');
       setTimeout(() => status.remove(), 12000);

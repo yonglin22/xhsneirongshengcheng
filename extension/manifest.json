@@ -12,7 +12,8 @@
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     { "matches": ["https://yonglin.chat/*", "http://yonglin.chat/*"], "js": ["bridge.js"], "run_at": "document_idle" },
-    { "matches": ["https://creator.xiaohongshu.com/*"], "js": ["xhs.js"], "run_at": "document_idle" }
+    { "matches": ["https://creator.xiaohongshu.com/*"], "js": ["xhs.js"], "run_at": "document_idle" },
+    { "matches": ["https://www.xiaohongshu.com/*"], "js": ["nurture.js"], "run_at": "document_idle" }
   ],
   "action": { "default_popup": "popup.html", "default_title": "朱砂 · 小红书发布助手" }
 }
