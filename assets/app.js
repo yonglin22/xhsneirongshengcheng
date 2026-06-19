@@ -23,14 +23,18 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
     const params = new URLSearchParams(location.search);
     const isPublic = path === '/登录.html' || file === '登录.html' || file === '管理.html' || params.get('embed') === '1';
     if (isPublic) return;
-    const goLogin = () => location.replace('/登录.html?next=' + encodeURIComponent(location.pathname + location.search));
-    const de = document.documentElement; de.style.visibility = 'hidden';
+    const goLogin = () => { try { sessionStorage.removeItem('zs_auth_ok'); } catch {} location.replace('/登录.html?next=' + encodeURIComponent(location.pathname + location.search)); };
+    const de = document.documentElement;
+    // 本会话已确认登录 → 立即显示页面，不再为 /api/auth/me 白屏等待（切页瞬开）；后台静默校验
+    let cached = false; try { cached = sessionStorage.getItem('zs_auth_ok') === '1'; } catch {}
+    if (!cached) de.style.visibility = 'hidden';
     const reveal = () => { de.style.visibility = ''; };
     const safety = setTimeout(reveal, 4000); // 兜底：异常时不至于白屏
     fetch('/api/auth/me').then(r => r.json()).then(j => {
       clearTimeout(safety);
-      if (j && j.ok) reveal(); else goLogin();
-    }).catch(() => { clearTimeout(safety); goLogin(); });
+      if (j && j.ok) { try { sessionStorage.setItem('zs_auth_ok', '1'); } catch {} reveal(); }
+      else goLogin(); // 后台校验失败（含已缓存场景）→ 跳登录
+    }).catch(() => { clearTimeout(safety); if (cached) reveal(); else goLogin(); }); // 缓存态下网络抖动不误踢
   } catch (e) {}
 })();
 

@@ -1314,7 +1314,11 @@ const server = http.createServer(async (req, res) => {
   }
   fs.readFile(filePath, (err, data) => {
     if (err) return send(res, 404, '404 Not Found: ' + rel);
-    send(res, 200, data, { 'content-type': MIME[path.extname(filePath)] || 'application/octet-stream' });
+    const ext = path.extname(filePath);
+    // 静态资源（css/js/字体/图片/svg）带 ?v= 做缓存失效 → 长缓存，避免每次切页重下；HTML 不缓存保证即时更新
+    const cacheable = ['.css', '.js', '.woff2', '.png', '.jpg', '.svg', '.ico'].includes(ext);
+    const cc = cacheable ? 'public, max-age=86400' : 'no-store';
+    send(res, 200, data, { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': cc });
   });
  } catch (err) {
    // 任何未捕获异常（如畸形 JSON body）都返回 500，绝不让进程崩溃
