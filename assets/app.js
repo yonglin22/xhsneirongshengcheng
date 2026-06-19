@@ -2,6 +2,19 @@
 window.$  = (s, r = document) => r.querySelector(s);
 window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
 
+/* 自清理：早期/旧服务器可能残留的 Service Worker 会拦截请求长期返回旧版页面，
+   且拖慢每次点击的响应（fetch 都要先过一遍 SW），这里强制注销+清空缓存。 */
+(function () {
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
+    }
+  } catch (e) {}
+})();
+
 /* ===== 移动端守卫：核心创作页（大屏工具）在手机/微信内置浏览器上 → 引导去电脑端 =====
    轻页（账户/充值/邀请有礼/帮助/登录/落地）仍可手机使用。*/
 (function () {
