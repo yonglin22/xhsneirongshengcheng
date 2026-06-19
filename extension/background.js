@@ -34,4 +34,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg && msg.type === 'ping') { sendResponse({ ok: true }); return true; }
+  // AI 引流回复/私信话术生成：转发到朱砂服务端 /api/claude（带上用户在 yonglin.chat 的登录 cookie 计费）
+  if (msg && msg.type === 'aiReply') {
+    (async () => {
+      try {
+        const r = await fetch('https://yonglin.chat/api/claude', {
+          method: 'POST', credentials: 'include',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 300, system: msg.system || '', messages: [{ role: 'user', content: msg.prompt || '' }], action: 'growth_reply' }),
+        });
+        const j = await r.json().catch(() => null);
+        if (!r.ok) { sendResponse({ ok: false, error: (j && (j.error?.message || j.error)) || ('HTTP ' + r.status) }); return; }
+        const text = ((j && j.content) || []).map(b => b.text || '').join('').trim();
+        sendResponse({ ok: true, text });
+      } catch (e) { sendResponse({ ok: false, error: e.message || String(e) }); }
+    })();
+    return true;
+  }
+  // 待发私信草稿入库（人工确认发送，不自动发，降低高风险灰色操作的封号风险）
+  if (msg && msg.type === 'queueDM') {
+    chrome.storage.local.get(['zsPendingDM'], st => {
+      const list = (st.zsPendingDM || []).concat([{ ...msg.item, ts: Date.now() }]).slice(-200);
+      chrome.storage.local.set({ zsPendingDM: list }, () => sendResponse({ ok: true }));
+    });
+    return true;
+  }
 });
