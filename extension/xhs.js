@@ -66,9 +66,14 @@
       const ed = document.querySelector('[contenteditable="true"]');
       if (ed) { ed.focus(); document.execCommand('insertText', false, (payload.body || '').slice(0, 980)); }
       await sleep(1500);
-      // 存草稿（放宽匹配）
-      const saved = clickByText(['暂存离开', '暂存', '存草稿', '保存草稿', '存为草稿', '保存为草稿', '草稿']);
-      if (saved) { say('✓ 已点存草稿，请到「草稿箱」确认'); }
+      // 存草稿：底部「暂存离开」常渲染较晚 → 轮询等它出现再点（最多 ~14 秒）
+      say('内容已填好，正在找「暂存离开」…');
+      let saved = false;
+      for (let i = 0; i < 14 && !saved; i++) {
+        saved = clickByText(['暂存离开', '暂存', '存草稿', '保存草稿', '存为草稿', '草稿']);
+        if (!saved) await sleep(1000);
+      }
+      if (saved) { say('✓ 已点「暂存离开」存入草稿箱，去小红书 App / 创作中心「草稿箱」确认'); }
       else {
         // 没找到 → 列出页面上所有按钮文字，便于校准
         const btns = [...document.querySelectorAll('button,[role=button],.btn,div,span')]
