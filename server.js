@@ -9,6 +9,7 @@
 
 const http = require('http');
 const fs = require('fs');
+const fsp = fs.promises;
 const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
@@ -360,6 +361,25 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/health') {
     return send(res, 200, JSON.stringify({ ok: true, keyPresent: !!API_KEY, imagePresent: !!process.env.ZHIPU_API_KEY, version: API_VERSION, billing: BILLING_ENABLED, baseUrl: process.env.PUBLIC_BASE_URL || '', icp: process.env.ICP_BEIAN || '', police: process.env.POLICE_BEIAN || '' }),
       { 'content-type': 'application/json' });
+  }
+
+  // ---- 临时诊断：核对磁盘上实际文件内容与部署提交，排查"部署成功但内容未更新"问题 ----
+  if (pathname === '/api/_debug-deploy') {
+    try {
+      const fp = path.join(__dirname, '获客计划.html');
+      const html = await fsp.readFile(fp, 'utf8');
+      const appJsVer = (html.match(/app\.js\?v=(\d+)/) || [])[1] || null;
+      const cssVer = (html.match(/atelier\.css\?v=(\d+)/) || [])[1] || null;
+      const hasInterceptRegex = /_\(nurture\|intercept\)\$/.test(html);
+      return sendJSON(res, 200, {
+        ok: true,
+        commit: process.env.RENDER_GIT_COMMIT || null,
+        fileMtime: (await fsp.stat(fp)).mtime,
+        appJsVer, cssVer, hasInterceptRegex,
+      });
+    } catch (e) {
+      return sendJSON(res, 500, { ok: false, error: String(e) });
+    }
   }
 
   // ---- 帮助/规则知识库（公开读；后台维护后这里返回最新，前端无覆盖则用静态 help-kb.js）----
