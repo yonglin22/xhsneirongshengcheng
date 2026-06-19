@@ -86,7 +86,8 @@
       <div class="gp-row"><label>* 收藏</label><input id="nzFav" class="field pct" type="number" value="30" /><span class="gp-hint">%</span></div>
       <div class="gp-row"><label>* 关注博主</label><input id="nzFollow" class="field pct" type="number" value="30" /><span class="gp-hint">%</span></div>
       <div class="gp-row"><label>* 评论</label><input id="nzComment" class="field pct" type="number" value="20" /><span class="gp-hint">%</span></div>
-      <div class="gp-row"><label>评论来源</label><span class="seg" data-seg="csrc"><button data-v="lib" class="on">评论库</button><button data-v="preset">预设回复</button></span></div>
+      <div class="gp-row"><label>评论来源</label><span class="seg" data-seg="csrc"><button data-v="ai" class="on">🤖 AI 智能</button><button data-v="lib">评论库</button><button data-v="preset">预设回复</button></span></div>
+      <div class="gp-row"><span class="gp-hint" style="margin-left:84px">🤖 AI 智能＝按<b>当前智能体人设 + 笔记/评论上下文</b>实时生成回复，更自然、不易被判垃圾</span></div>
       <div class="gp-row"><label>每日上限</label><input id="nzDaily" class="field pct" type="number" value="20" /><span class="gp-hint">篇 · 单账号每日处理上限（安全护栏）</span></div>
     </div>
 
@@ -96,7 +97,8 @@
       <div class="gp-row"><label>收集评论</label><span id="icCollect" class="sw"></span><span class="gp-hint">收集对标笔记评论区用户（潜在客户）</span></div>
       <div class="gp-row"><label>引流回复</label><input id="icReply" class="field pct" type="number" value="0" /><span class="gp-hint">次/笔记 · 在评论区回复（0=不做）</span></div>
       <div class="gp-row"><label>截流私信</label><input id="icDm" class="field pct" type="number" value="0" /><span class="gp-hint">次/天 · 给评论用户发私信（0=不做，最易被封慎用）</span></div>
-      <div class="gp-row"><label>话术来源</label><span class="seg" data-seg="isrc"><button data-v="preset" class="on">预设话术</button><button data-v="lib">话术库</button></span></div>
+      <div class="gp-row"><label>话术来源</label><span class="seg" data-seg="isrc"><button data-v="ai" class="on">🤖 AI 智能</button><button data-v="preset">预设话术</button><button data-v="lib">话术库</button></span></div>
+      <div class="gp-row"><span class="gp-hint" style="margin-left:84px">🤖 AI 智能＝按智能体人设 + 对标笔记/该用户评论上下文，生成自然的引流回复/私信话术（合规、不硬广）</span></div>
     </div>
 
     <div class="mt-4 flex items-center gap-3">
@@ -113,7 +115,7 @@
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=38"></script>
 <script>
-let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'lib', isrc:'preset' }, collectOn=false;
+let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'ai', isrc:'ai' }, collectOn=false;
 const TYPE_NAME={ link:'口令刷量', home_nurture:'首页养号', home_intercept:'首页截流', search_nurture:'搜索养号', search_intercept:'搜索截流' };
 async function api(path, method, body){ const r=await fetch('/api/growth-plans'+path,{method:method||'GET',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined}); return r.json(); }
 function showSections(){
