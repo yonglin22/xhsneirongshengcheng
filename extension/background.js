@@ -20,5 +20,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
     return true;
   }
+  if (msg && msg.type === 'nurturePlan') {
+    const plan = msg.plan || {};
+    const isSearch = /^search_/.test(plan.ptype || '');
+    const kw = ((plan.config || {}).keywords || [])[0] || '';
+    const url = (isSearch && kw)
+      ? ('https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(kw))
+      : 'https://www.xiaohongshu.com/explore';
+    chrome.storage.local.set({ nurturePlan: plan }, () => {
+      chrome.tabs.create({ url, active: true });
+      sendResponse({ ok: true, msg: '已打开小红书，开始执行养号计划' });
+    });
+    return true;
+  }
   if (msg && msg.type === 'ping') { sendResponse({ ok: true }); return true; }
 });

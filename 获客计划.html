@@ -154,17 +154,90 @@ $('#saveBtn').addEventListener('click', async ()=>{
 });
 function reset(){ editId=null; kws=[]; collectOn=false; $('#icCollect').classList.remove('on'); ['pName','pDesc','pLink'].forEach(i=>$('#'+i).value=''); renderKw(); $('#saveBtn').textContent='保存计划'; }
 $('#resetBtn').addEventListener('click', reset);
+let PLANS=[];
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 async function load(){
-  const j=await api(''); const list=(j&&j.list)||[];
-  $('#list').innerHTML = list.length ? list.map(p=>`
+  const j=await api(''); PLANS=(j&&j.list)||[];
+  $('#list').innerHTML = PLANS.length ? PLANS.map(p=>`
     <div class="card p-4 flex items-center gap-3 flex-wrap" data-id="${p.id}">
       <span style="font-size:11px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:2px 8px">${TYPE_NAME[p.ptype]||p.ptype}</span>
-      <span style="font-size:14px;font-weight:700;flex:1;min-width:140px">${(p.name||'').replace(/</g,'&lt;')}</span>
+      <span style="font-size:14px;font-weight:700;flex:1;min-width:140px">${esc(p.name)}</span>
       <span class="text-[11px] text-[var(--ink-soft)]">${(p.config&&p.config.keywords||[]).slice(0,3).join('、')||(p.config&&p.config.link?'口令链接':'')}</span>
-      <span class="text-[11px] text-[var(--ink-soft)]">${p.status==='draft'?'草稿':p.status}</span>
+      <span class="text-[11px] text-[var(--ink-soft)]">${p.status==='draft'?'草稿':esc(p.status)}</span>
+      ${/_(nurture)$/.test(p.ptype)?`<button class="pl-run btn-ghost rounded-md px-2.5 py-1 text-[11px]" style="border-color:var(--cinnabar);color:var(--cinnabar)">▶ 执行</button>`:''}
+      <button class="pl-view btn-ghost rounded-md px-2.5 py-1 text-[11px]">👁 查看</button>
+      <button class="pl-edit btn-ghost rounded-md px-2.5 py-1 text-[11px]">编辑</button>
       <button class="pl-del btn-ghost rounded-md px-2.5 py-1 text-[11px]">删除</button>
     </div>`).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有计划，上面新建一个。</div>';
-  $$('.pl-del').forEach(b=>b.addEventListener('click', async e=>{ const id=+e.target.closest('[data-id]').dataset.id; if(!confirm('删除这个计划？'))return; await api('/delete','POST',{id}); load(); }));
+}
+// 事件委托：删除/查看/编辑/执行 都挂在 #list 上，重渲染也不丢
+$('#list').addEventListener('click', async e=>{
+  const card=e.target.closest('[data-id]'); if(!card) return;
+  const id=+card.dataset.id; const p=PLANS.find(x=>x.id===id); if(!p) return;
+  if(e.target.closest('.pl-del')){ if(!confirm('删除这个计划？'))return; const r=await api('/delete','POST',{id}); if(r&&r.ok) load(); else alert('删除失败，请重试'); return; }
+  if(e.target.closest('.pl-view')){ showPreview(p); return; }
+  if(e.target.closest('.pl-edit')){ loadIntoForm(p); return; }
+  if(e.target.closest('.pl-run')){ runPlan(p); return; }
+});
+// 预览弹窗
+function showPreview(p){
+  const c=p.config||{}; const nz=c.nurture||{}; const ic=c.intercept||{}; const f=c.filter||{};
+  const row=(k,v)=> v?`<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #f0eae0"><span style="color:var(--ink-soft);min-width:84px">${k}</span><span style="font-weight:600">${esc(v)}</span></div>`:'';
+  const SRC={ai:'AI智能',lib:'话术库',preset:'预设'};
+  let html=row('计划类型',TYPE_NAME[p.ptype]||p.ptype)+row('平台',p.platform==='gzh'?'公众号':'小红书')+row('备注',c.desc)+row('口令链接',c.link)+row('关键词',(c.keywords||[]).join('、'));
+  if(/_(nurture|intercept)$/.test(p.ptype)) html+=row('养号·好感率',(nz.love||0)+'%')+row('点赞/收藏/关注/评论',`${nz.like||0}% / ${nz.fav||0}% / ${nz.follow||0}% / ${nz.comment||0}%`)+row('评论来源',SRC[nz.csrc]||nz.csrc)+row('每日上限',(nz.daily||0)+' 篇');
+  if(/_intercept$/.test(p.ptype)) html+=row('收集评论',ic.collect?'开':'关')+row('引流回复/截流私信',`${ic.reply||0} / ${ic.dm||0} 条·天`)+row('话术来源',SRC[ic.isrc]||ic.isrc);
+  if(/^search_/.test(p.ptype)) html+=row('排序/类型/时间/范围',`${f.sort||'-'} / ${f.ctype||'-'} / ${f.ptime||'-'} / ${f.scope||'-'}`);
+  modal(esc(p.name),html);
+}
+function modal(title,bodyHtml,footHtml){
+  let m=$('#plModal'); if(m) m.remove();
+  m=document.createElement('div'); m.id='plModal';
+  m.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(20,16,14,.45);display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML=`<div class="card" style="max-width:520px;width:100%;max-height:82vh;overflow:auto;padding:22px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:16px">${title}</b><span id="plClose" style="cursor:pointer;font-size:20px;color:var(--ink-soft)">✕</span></div>
+    <div style="font-size:13px;line-height:1.6">${bodyHtml}</div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">${footHtml||''}</div>
+  </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click',e=>{ if(e.target===m||e.target.id==='plClose') m.remove(); });
+}
+// 编辑：把计划读回表单
+function loadIntoForm(p){
+  const c=p.config||{}; const nz=c.nurture||{}; const ic=c.intercept||{}; const f=c.filter||{}; const la=c.linkActs||{};
+  editId=p.id; $('#pType').value=p.ptype; $('#pPlatform').value=p.platform||'xhs';
+  $('#pName').value=p.name||''; $('#pDesc').value=c.desc||''; $('#pLink').value=c.link||'';
+  kws=(c.keywords||[]).slice(); renderKw();
+  const set=(id,v)=>{ const el=$('#'+id); if(el) el.value=(v==null?'':v); };
+  set('lkLike',la.like);set('lkFav',la.fav);set('lkFollow',la.follow);set('lkComment',la.comment);
+  set('nzLove',nz.love);set('nzLike',nz.like);set('nzFav',nz.fav);set('nzFollow',nz.follow);set('nzComment',nz.comment);set('nzDaily',nz.daily);
+  set('icReply',ic.reply);set('icDm',ic.dm);
+  collectOn=!!ic.collect; $('#icCollect').classList.toggle('on',collectOn);
+  segs.sort=f.sort||'general';segs.ctype=f.ctype||'all';segs.ptime=f.ptime||'all';segs.scope=f.scope||'all';segs.csrc=nz.csrc||'ai';segs.isrc=ic.isrc||'ai';
+  $$('.seg').forEach(seg=>{ const v=segs[seg.dataset.seg]; seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); });
+  showSections(); $('#saveBtn').textContent='更新计划';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+// ▶ 执行：把养号计划下发给浏览器插件（在你已登录的小红书里跑）
+let EXT_READY=false;
+window.addEventListener('message',e=>{ if(e.source===window && e.data && e.data.__zhusha_ext==='ready') EXT_READY=true; });
+function runPlan(p){
+  const mins=Math.max(5,Math.min(40,Math.round((((p.config||{}).nurture||{}).daily||8)*1.5)));
+  const payload={ ptype:p.ptype, config:p.config||{}, _minutes:mins };
+  const SRC={ai:'AI智能',lib:'话术库',preset:'预设'};
+  const nz=(p.config||{}).nurture||{};
+  modal('▶ 执行养号 · '+esc(p.name),
+    `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px;color:#9a3412">将在你<b>已登录的小红书网页</b>里按计划自动浏览/停留，并按概率点赞收藏（${/^search_/.test(p.ptype)?'搜索「'+esc((p.config.keywords||[])[0]||'')+'」':'刷首页'}，约 ${payload._minutes} 分钟，浏览上限 ${nz.daily||8} 篇）。<br>关注/评论/截流本阶段暂不自动执行（高风险）。出现验证码会自动停止。</div>
+     <div style="margin-top:10px;font-size:12px;color:var(--ink-soft)">需先安装并启用「朱砂助手」浏览器插件，且已登录小红书。插件状态：<b id="extStat">${EXT_READY?'✅ 已连接':'⏳ 检测中…'}</b></div>`,
+    `<button id="plCancel" class="btn-ghost rounded-md px-3 py-1.5 text-[12px]">取消</button><button id="plGo" class="rounded-md px-3 py-1.5 text-[12px]" style="background:var(--cinnabar);color:#fff;border:none">开始执行</button>`);
+  setTimeout(()=>{ const s=$('#extStat'); if(s) s.textContent=EXT_READY?'✅ 已连接':'❌ 未检测到（请确认已安装并启用插件）'; },1200);
+  $('#plCancel')?.addEventListener('click',()=>$('#plModal')?.remove());
+  $('#plGo')?.addEventListener('click',()=>{
+    if(!EXT_READY){ alert('未检测到「朱砂助手」插件，请先安装并启用（chrome://extensions），刷新本页后重试。'); return; }
+    window.postMessage({ type:'ZHUSHA_NURTURE_PLAN', plan:payload },'*');
+    $('#plModal')?.remove();
+    alert('已下发养号任务，插件将打开小红书自动执行，右下角有进度条，可随时点「停止」。');
+  });
 }
 showSections(); renderKw(); load();
 </script>

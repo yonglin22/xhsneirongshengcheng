@@ -14,5 +14,11 @@
         window.postMessage({ type: 'ZHUSHA_PUBLISH_ACK', ok: !!(resp && resp.ok), msg: (resp && resp.msg) || (chrome.runtime.lastError ? chrome.runtime.lastError.message : '') }, '*');
       });
     }
+    if (e.data.type === 'ZHUSHA_NURTURE_PLAN') {
+      const plan = e.data.plan || {};
+      chrome.runtime.sendMessage({ type: 'nurturePlan', plan }, (resp) => {
+        window.postMessage({ type: 'ZHUSHA_NURTURE_ACK', ok: !!(resp && resp.ok), msg: (resp && resp.msg) || '' }, '*');
+      });
+    }
   });
 })();

@@ -3,17 +3,53 @@
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const log = (...a) => console.log('[朱砂助手]', ...a);
 
-  function clickByText(texts) {
-    const arr = Array.isArray(texts) ? texts : [texts];
-    const els = [...document.querySelectorAll('button,div,span,a,[role=button]')];
-    for (const t of arr) {
-      const el = els.find(e => {
-        const tx = (e.textContent || '').replace(/\s+/g, ''); // 去所有空白，防"暂 存 离 开"
-        return tx && tx.length <= t.length + 4 && tx.includes(t) && (e.offsetParent !== null || e.getClientRects().length);
-      });
-      if (el) { (el.closest('button,[role=button]') || el).click(); return true; }
+  const norm = (s) => (s || '').replace(/\s+/g, '');
+  function visible(e) { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2; }
+  // RPA 真点击：派发完整指针+鼠标事件序列（React/小红书按钮普通 .click() 常失效）
+  function realClick(el) {
+    const r = el.getBoundingClientRect();
+    const o = { bubbles: true, cancelable: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0 };
+    try { el.scrollIntoView({ block: 'center' }); } catch {}
+    ['pointerover', 'pointerenter', 'mouseover', 'pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(t => {
+      try { el.dispatchEvent(t.startsWith('pointer') ? new PointerEvent(t, o) : new MouseEvent(t, o)); } catch { try { el.dispatchEvent(new MouseEvent(t.replace('pointer', 'mouse'), o)); } catch {} }
+    });
+  }
+  // 在全页面找按钮：先精确等于，再包含；可见优先。labels 顺序=优先级
+  function findBtn(labels) {
+    const els = [...document.querySelectorAll('button,[role=button],a,div,span')];
+    for (const lab of labels) {
+      let el = els.find(e => norm(e.textContent) === lab && visible(e));
+      if (!el) el = els.find(e => { const tx = norm(e.textContent); return tx && tx.length <= lab.length + 4 && tx.includes(lab) && visible(e); });
+      if (el) return el.closest('button,[role=button]') || el;
     }
+    return null;
+  }
+  function clickByText(texts) {
+    const el = findBtn(Array.isArray(texts) ? texts : [texts]);
+    if (el) { realClick(el); return true; }
     return false;
+  }
+  // 持续监视直到出现目标按钮（RPA 等待），最长 timeoutMs；出现即真点击
+  function waitAndClick(labels, timeoutMs, onProgress) {
+    return new Promise((resolve) => {
+      const t0 = Date.now();
+      let done = false;
+      const finish = (ok) => { if (done) return; done = true; try { obs.disconnect(); } catch {} clearInterval(iv); resolve(ok); };
+      const tryOnce = () => {
+        const el = findBtn(labels);
+        if (el) { realClick(el); setTimeout(() => realClick(el), 250); finish(true); return true; }
+        return false;
+      };
+      const obs = new MutationObserver(() => tryOnce());
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+      const iv = setInterval(() => {
+        if (tryOnce()) return;
+        const s = Math.round((Date.now() - t0) / 1000);
+        if (onProgress) onProgress(s);
+        if (Date.now() - t0 > timeoutMs) finish(false);
+      }, 700);
+      tryOnce();
+    });
   }
   function setNativeValue(el, val) {
     const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -66,24 +102,28 @@
       const ed = document.querySelector('[contenteditable="true"]');
       if (ed) { ed.focus(); document.execCommand('insertText', false, (payload.body || '').slice(0, 980)); }
       await sleep(1500);
-      // 存草稿：底部「暂存离开」常渲染较晚 → 轮询等它出现再点（最多 ~14 秒）
-      say('内容已填好，正在找「暂存离开」…');
-      let saved = false;
-      for (let i = 0; i < 22 && !saved; i++) {
-        saved = clickByText(['暂存离开', '暂存', '存草稿', '保存草稿', '存为草稿', '草稿']);
-        if (!saved) await sleep(1000);
+      // 等图片上传完成：底部操作栏（暂存离开/发布）通常在图片处理完后才出现
+      say('等待图片上传完成…');
+      for (let i = 0; i < 40; i++) {
+        const t = document.body.innerText || '';
+        const uploading = /上传中|处理中|\d+%/.test(t);
+        if (!uploading && (findBtn(['暂存离开', '暂存', '存草稿']) || findBtn(['发布']))) break;
+        await sleep(1000);
       }
-      if (saved) { say('✓ 已点「暂存离开」存入草稿箱，去小红书 App / 创作中心「草稿箱」确认'); }
-      else {
-        // 没找到 → 列出页面上所有按钮文字，便于校准
-        const btns = [...document.querySelectorAll('button,[role=button],.btn,div,span')]
+      // 存草稿：RPA 持续监视，最长 90 秒，出现「暂存离开」立即真点击；绝不点「发布」
+      say('正在自动识别「暂存离开」（最长90秒）…');
+      const saved = await waitAndClick(['暂存离开', '存草稿', '保存草稿', '存为草稿', '暂存'], 90000, (s) => say('正在自动识别「暂存离开」… ' + s + 's'));
+      if (saved) {
+        say('✓ 已点「暂存离开」，存入草稿箱。去小红书 App / 创作中心「草稿箱」确认');
+      } else {
+        const btns = [...document.querySelectorAll('button,[role=button],div,span')]
           .map(e => (e.textContent || '').trim())
           .filter(t => t && t.length >= 2 && t.length <= 8 && /[一-龥]/.test(t) && /存|草稿|发布|保存|离开|确定|完成/.test(t));
         const uniq = [...new Set(btns)].slice(0, 12);
-        say('内容已填好，但没找到「存草稿」按钮，请手动点。检测到的按钮：' + (uniq.join(' / ') || '无') + '（把这行截图发开发者校准）');
+        say('⚠ 90秒内仍未出现「暂存离开」，请手动点一下。检测到：' + (uniq.join(' / ') || '无'));
         console.log('[朱砂助手] 候选按钮文字：', uniq);
       }
-      setTimeout(() => status.remove(), 16000);
+      setTimeout(() => status.remove(), 18000);
     } catch (e) {
       say('出错：' + (e.message || e) + '（可手动完成）');
       setTimeout(() => status.remove(), 12000);
