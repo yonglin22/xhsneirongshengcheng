@@ -224,7 +224,16 @@ const MIME = {
   '.ico': 'image/x-icon', '.woff2': 'font/woff2',
 };
 
-function send(res, code, body, headers = {}) {
+const GZIP_TYPES = new Set(['.html', '.css', '.js', '.json', '.svg']);
+function send(res, code, body, headers = {}, req = null) {
+  const ext = headers.__ext; delete headers.__ext;
+  if (req && body && GZIP_TYPES.has(ext) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+    const buf = Buffer.isBuffer(body) ? body : Buffer.from(body);
+    if (buf.length > 512) {
+      res.writeHead(code, { 'cache-control': 'no-store', ...headers, 'content-encoding': 'gzip', 'vary': 'Accept-Encoding' });
+      return res.end(zlib.gzipSync(buf));
+    }
+  }
   res.writeHead(code, { 'cache-control': 'no-store', ...headers });
   res.end(body);
 }
@@ -1338,7 +1347,7 @@ const server = http.createServer(async (req, res) => {
     // 静态资源（css/js/字体/图片/svg）带 ?v= 做缓存失效 → 长缓存，避免每次切页重下；HTML 不缓存保证即时更新
     const cacheable = ['.css', '.js', '.woff2', '.png', '.jpg', '.svg', '.ico'].includes(ext);
     const cc = cacheable ? 'public, max-age=86400' : 'no-store';
-    send(res, 200, data, { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': cc });
+    send(res, 200, data, { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': cc, __ext: ext }, req);
   });
  } catch (err) {
    // 任何未捕获异常（如畸形 JSON body）都返回 500，绝不让进程崩溃
