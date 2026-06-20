@@ -13,13 +13,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     pending = null; // 取走即清，避免误填
     return true;
   }
-  if (msg && msg.type === 'nurture') {
-    chrome.storage.local.set({ nurtureRun: true, nurtureCfg: msg.cfg || { notes: 6, minutes: 8 } }, () => {
-      chrome.tabs.create({ url: 'https://www.xiaohongshu.com/explore', active: true });
-      sendResponse({ ok: true, msg: '已打开小红书，开始养号' });
-    });
-    return true;
-  }
   if (msg && msg.type === 'nurturePlan') {
     const plan = msg.plan || {};
     const isSearch = /^search_/.test(plan.ptype || '');

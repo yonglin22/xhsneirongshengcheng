@@ -1,15 +1,8 @@
-document.getElementById('nzBtn').addEventListener('click', () => {
-  const notes = Math.max(2, Math.min(15, parseInt(document.getElementById('nzNotes').value) || 6));
-  const minutes = Math.max(3, Math.min(30, parseInt(document.getElementById('nzMin').value) || 8));
-  const msg = document.getElementById('nzMsg');
-  msg.textContent = '正在打开小红书…';
-  chrome.runtime.sendMessage({ type: 'nurture', cfg: { notes, minutes } }, (resp) => {
-    msg.textContent = (resp && resp.ok) ? '✓ 已开始，去新开的小红书标签看进度' : '启动失败';
-    setTimeout(() => window.close(), 900);
-  });
-});
-
 // 获客计划：从 yonglin.chat 拉取已保存的养号/截流计划，直接在插件里执行（带完整配置，等同网页端「▶ 执行」）
+document.getElementById('planNew').addEventListener('click', () => {
+  chrome.tabs.create({ url: 'https://yonglin.chat/获客计划.html', active: true });
+  window.close();
+});
 const TYPE_NAME = { home_nurture: '首页养号', home_intercept: '首页截流', search_nurture: '搜索养号', search_intercept: '搜索截流' };
 function escH2(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 async function fetchPlans() {
