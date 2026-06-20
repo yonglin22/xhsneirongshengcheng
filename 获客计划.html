@@ -224,7 +224,9 @@ window.addEventListener('message',e=>{ if(e.source===window && e.data && e.data.
 function runPlan(p){
   const isIntercept=/_intercept$/.test(p.ptype);
   const mins=Math.max(5,Math.min(40,Math.round((((p.config||{}).nurture||{}).daily||8)*1.5)));
-  const payload={ ptype:p.ptype, config:p.config||{}, _minutes:mins };
+  let persona='';
+  try{ const tid=localStorage.getItem('ag_track'); if(tid) persona=(window.getAgentConfig&&window.getAgentConfig(tid).persona)||''; }catch{}
+  const payload={ ptype:p.ptype, config:{ ...(p.config||{}), persona }, _minutes:mins };
   const nz=(p.config||{}).nurture||{};
   const ic=(p.config||{}).intercept||{};
   const warnHtml=isIntercept

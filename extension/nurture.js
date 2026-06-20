@@ -27,6 +27,16 @@
   // 点赞/收藏：小红书笔记详情里图标，选择器多变 → 多策略尝试
   function doLike() { const el = document.querySelector('.like-wrapper, .like-active, [class*="like"] svg, .interact-container .like'); if (el) { (el.closest('[class*=like]') || el).click(); return true; } return clickByText(['赞']); }
   function doFav() { const el = document.querySelector('.collect-wrapper, [class*="collect"] svg, .interact-container .collect'); if (el) { (el.closest('[class*=collect]') || el).click(); return true; } return clickByText(['收藏']); }
+  function doFollow() { const el = document.querySelector('[class*="follow-btn"], [class*="followBtn"]'); if (el) { el.click(); return true; } return clickByText(['关注']); }
+  // 计划页「搜索筛选」最佳猜测：落地搜索结果页后按文案点一次筛选 tab（平台改版需现场校准）
+  function applySearchFilter(f) {
+    if (!f) return;
+    const sortMap = { latest: '最新', like: '最多点赞' };
+    const ctypeMap = { note: '图文', video: '视频' };
+    const ptimeMap = { d1: '一天内', w1: '一周内', m6: '半年内' };
+    const scopeMap = { viewed: '已看过', unviewed: '未看过' };
+    [sortMap[f.sort], ctypeMap[f.ctype], ptimeMap[f.ptime], scopeMap[f.scope]].filter(Boolean).forEach(t => clickByText([t]));
+  }
 
   // ===== 截流：收集评论 + AI 引流回复（评论区自动回复，有上限+验证即停）=====
   // 选择器为最佳猜测（平台改版会变，需现场校准），与既有点赞/收藏逻辑同一容错风格。
@@ -70,20 +80,23 @@
     const ctx = noteContext();
     const comments = collectComments(10);
     if (!comments.length) return;
+    // isrc=预设/话术库 暂未接入素材库，目前只实现 AI 智能来源；非 AI 来源先跳过，避免话术与配置承诺不符
+    const useAi = !ic.isrc || ic.isrc === 'ai';
     let replied = 0, queued = 0;
     for (const c of comments) {
       if (stopFlag || riskHit()) { ui.say('⚠ 触发验证，截流已停止'); break; }
-      if (ic.reply > 0 && replied < ic.reply) {
+      if (useAi && ic.reply > 0 && replied < ic.reply) {
         const draft = await aiText(persona, `笔记内容：${ctx}\n\n这位用户的评论：「${c.text}」\n请生成一条自然、不硬广、不站外导流的引流回复（≤40字，像真人随手回复，不要出现"AI"字样）。`);
         if (draft && await postCommentReply(draft)) { replied++; ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
       }
-      if (ic.dm > 0 && queued < ic.dm) {
+      if (useAi && ic.dm > 0 && queued < ic.dm) {
         const draft = await aiText(persona, `这位潜在客户的评论：「${c.text}」\n请生成一条自然、不硬广的私信开场话术（≤50字），用于后续人工确认发送。`);
         if (draft) { chrome.runtime.sendMessage({ type: 'queueDM', item: { user: c.user, link: c.link, comment: c.text, draft, note: location.href } }); queued++; }
       }
       await sleep(rnd(1200, 2200));
     }
     if (replied || queued) ui.say(`截流：回复${replied}条 · 私信草稿待人工确认${queued}条`);
+    else if (!useAi) ui.say('话术来源暂只支持「AI智能」，预设/话术库尚未接入');
   }
 
   async function runPlan(plan) {
@@ -95,13 +108,16 @@
     const deadline = Date.now() + minutes * 60000;
     const isSearch = /^search_/.test(plan.ptype || '');
     const kw = (cfg.keywords || [])[0] || '';
-    let opened = 0, liked = 0, faved = 0;
+    const persona = cfg.persona || '你是资深小红书内容操盘手，第一人称真人感、绝不AI腔；自然、不硬广、不站外导流。';
+    let opened = 0, liked = 0, faved = 0, followed = 0, commented = 0;
+    let filtered = !(isSearch && cfg.filter);
     try {
       // 定位到目标列表
       if (isSearch && kw) {
         if (!/search_result/.test(location.href)) { location.href = 'https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(kw); return; }
       } else if (!/\/explore/.test(location.href)) { location.href = 'https://www.xiaohongshu.com/explore'; return; }
       await sleep(rnd(2500, 4000));
+      if (!filtered) { applySearchFilter(cfg.filter); filtered = true; await sleep(rnd(1200, 2000)); }
       while (!stopFlag && Date.now() < deadline && opened < cap) {
         if (riskHit()) { ui.say('⚠ 触发验证，已停止'); break; }
         for (let s = 0; s < Math.round(rnd(2, 4)) && !stopFlag; s++) { window.scrollBy({ top: rnd(300, 700), behavior: 'smooth' }); await sleep(rnd(1500, 3200)); }
@@ -112,16 +128,21 @@
         link.click(); await sleep(rnd(6000, 13000));
         for (let s = 0; s < 2 && !stopFlag; s++) { window.scrollBy({ top: rnd(200, 500), behavior: 'smooth' }); await sleep(rnd(1500, 2800)); }
         if (riskHit()) { ui.say('⚠ 触发验证，已停止'); break; }
-        // 好感率 → 是否互动；命中后按 点赞%/收藏% 操作
+        // 好感率 → 是否互动；命中后按 点赞%/收藏%/关注%/评论% 操作
         if (chance(nz.love != null ? nz.love : 70)) {
           if (chance(nz.like || 0) && doLike()) { liked++; await sleep(rnd(800, 1600)); }
           if (chance(nz.fav || 0) && doFav()) { faved++; await sleep(rnd(800, 1600)); }
+          if (chance(nz.follow || 0) && doFollow()) { followed++; await sleep(rnd(800, 1600)); }
+          if (chance(nz.comment || 0) && nz.csrc === 'ai') {
+            const draft = await aiText(persona, `笔记内容：${noteContext()}\n请生成一条自然的真人感评论（≤30字，不硬广，不出现"AI"字样）。`);
+            if (draft && await postCommentReply(draft)) { commented++; await sleep(rnd(2000, 4000)); }
+          }
         }
         // 截流计划：评论区抓取 + AI 引流回复（自动，有上限）；私信只生成草稿，存库待人工确认发送
         if (/_intercept$/.test(plan.ptype || '') && !stopFlag) { try { await runIntercept(plan, ui); } catch (e) { ui.say('截流出错：' + (e.message || e)); } }
         history.back(); await sleep(rnd(2500, 4500));
       }
-      ui.say(stopFlag ? `已停止 · 浏览${opened} 赞${liked} 藏${faved}` : `✓ 完成：浏览 ${opened} 篇 · 点赞 ${liked} · 收藏 ${faved}`);
+      ui.say(stopFlag ? `已停止 · 浏览${opened} 赞${liked} 藏${faved} 关注${followed} 评论${commented}` : `✓ 完成：浏览 ${opened} 篇 · 点赞 ${liked} · 收藏 ${faved} · 关注 ${followed} · 评论 ${commented}`);
     } catch (e) { ui.say('养号出错：' + (e.message || e)); }
     ui.done();
   }
