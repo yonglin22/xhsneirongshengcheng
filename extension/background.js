@@ -34,6 +34,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg && msg.type === 'ping') { sendResponse({ ok: true }); return true; }
+  // 网页端(yonglin.chat)同步过来的当前智能体人设，供插件弹窗直接执行计划时使用
+  if (msg && msg.type === 'syncPersona') {
+    chrome.storage.local.set({ zsPersona: msg.persona || '' });
+    return true;
+  }
   // AI 引流回复/私信话术生成：转发到朱砂服务端 /api/claude（带上用户在 yonglin.chat 的登录 cookie 计费）
   if (msg && msg.type === 'aiReply') {
     (async () => {

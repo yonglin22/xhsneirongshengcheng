@@ -3,7 +3,18 @@
   // 告知页面插件就绪（页面据此显示「插件发布」按钮可用）
   const announce = () => window.postMessage({ __zhusha_ext: 'ready', v: '0.1.0' }, '*');
   announce();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) announce(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { announce(); syncPersona(); } });
+
+  // 同步当前智能体人设到插件本地存储，供插件弹窗里直接执行计划时使用（无需打开网页）
+  function syncPersona() {
+    try {
+      const tid = localStorage.getItem('ag_track');
+      if (!tid) return;
+      const c = JSON.parse(localStorage.getItem('ag_cfg_' + tid) || '{}');
+      if (c.persona) chrome.runtime.sendMessage({ type: 'syncPersona', persona: c.persona, trackId: tid });
+    } catch {}
+  }
+  syncPersona();
 
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data) return;
