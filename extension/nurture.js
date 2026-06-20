@@ -1,5 +1,5 @@
-// 养号执行（计划驱动·保守拟真）：在 www.xiaohongshu.com 按计划 关键词/篇数/好感率/点赞·收藏% 跑
-// 来源：① 获客计划页「▶ 执行」下发的 plan ② popup 简易养号(nurtureCfg)。出验证/异常立即停。
+// 养号执行（计划驱动·保守拟真）：在 www.xiaohongshu.com 按获客计划(网页/插件弹窗下发)的 关键词/篇数/好感率/点赞·收藏·关注·评论% 跑
+// 出验证/异常立即停。
 (function () {
   if (!/^https?:\/\/www\.xiaohongshu\.com/.test(location.href)) return;
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -8,11 +8,9 @@
   const log = (...a) => console.log('[朱砂养号]', ...a);
   let stopFlag = false;
 
-  chrome.storage.local.get(['nurtureRun', 'nurtureCfg', 'nurturePlan'], async (st) => {
+  chrome.storage.local.get(['nurturePlan'], async (st) => {
     if (st.nurturePlan) { chrome.storage.local.set({ nurturePlan: null }); return runPlan(st.nurturePlan); }
-    if (st.nurtureRun) { chrome.storage.local.set({ nurtureRun: false }); return runPlan(toPlan(st.nurtureCfg)); }
   });
-  function toPlan(cfg) { cfg = cfg || {}; return { ptype: 'home_nurture', config: { keywords: [], nurture: { love: 100, like: 60, fav: 0, daily: cfg.notes || 6 } }, _minutes: cfg.minutes || 8 }; }
 
   function overlay() {
     const o = document.createElement('div');
