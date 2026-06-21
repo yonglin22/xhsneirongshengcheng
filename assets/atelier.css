@@ -346,7 +346,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .ag-dd-btn{ display:inline-flex; align-items:center; gap:5px; height:34px; padding:0 13px; border-radius:999px; border:1px solid rgba(255,36,66,.2);
   background:#fff; color:var(--ink); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition:.15s; }
 .ag-dd-btn:hover{ border-color:var(--cinnabar); }
-.ag-dd-btn.on{ background:var(--cinnabar); color:#fff; border-color:transparent; }
+.ag-dd-btn.on{ background:rgba(255,36,66,.08); color:var(--cinnabar-deep); border-color:rgba(255,36,66,.25); }
 .ag-dd-btn i{ font-style:normal; font-size:10px; opacity:.8; }
 .ag-dd-menu{ position:absolute; top:calc(100% + 7px); left:0; min-width:212px; background:#fff; border:1px solid var(--line); border-radius:13px;
   box-shadow:0 18px 50px -18px rgba(0,0,0,.34); padding:6px; z-index:120; display:none; max-height:70vh; overflow:auto; }
