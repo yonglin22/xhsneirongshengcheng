@@ -362,12 +362,12 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .ag-dd-item .soon{ font-style:normal; font-size:10px; color:#fff; background:#c9ccd1; border-radius:6px; padding:1px 6px; }
 .ag-dd-x{ font-size:11px; color:var(--ink-soft); padding:0 4px; border-radius:5px; }
 .ag-dd-x:hover{ background:rgba(0,0,0,.08); color:var(--cinnabar); }
-/* 边栏「获客·账号矩阵」醒目 CTA（金色，区别于红色创作 CTA）*/
-.ag-growth-cta{ display:flex; align-items:center; justify-content:center; gap:7px; margin:9px 4px 0; padding:11px; border-radius:14px;
-  background:linear-gradient(180deg,#ffb02e,#ff8a00); color:#fff; font-weight:700; font-size:13.5px;
-  box-shadow:0 9px 22px -9px rgba(255,138,0,.6); transition:transform .16s cubic-bezier(.34,1.45,.5,1), filter .15s; }
-.ag-growth-cta:hover{ transform:translateY(-2px); filter:brightness(1.04); }
-.ag-growth-cta:active{ transform:translateY(0) scale(.97); }
+/* 边栏「获客·账号矩阵」次要入口（弱化，避免跟「开始创作」抢视觉重点）*/
+.ag-growth-cta{ display:flex; align-items:center; justify-content:center; gap:7px; margin:9px 4px 0; padding:10px;
+  border-radius:14px; background:rgba(255,138,0,.08); color:#c97200; font-weight:600; font-size:13px;
+  border:1px solid rgba(255,138,0,.18); transition:background .15s; }
+.ag-growth-cta:hover{ background:rgba(255,138,0,.14); }
+.ag-growth-cta:active{ background:rgba(255,138,0,.18); }
 
 /* 封面模板·微调（位置/对齐/字号）——叠加在各模板之上 */
 .cv-ctpl.adj-top{ justify-content:flex-start; }
@@ -404,12 +404,12 @@ html[data-theme="dark"] .ag-side{ background:linear-gradient(176deg, rgba(48,22,
 .ag-brand img{ width:34px; height:34px; border-radius:9px; box-shadow:0 4px 12px -5px rgba(225,15,41,.5); }
 .ag-brand .bn{ font-weight:800; font-size:15.5px; letter-spacing:.5px; line-height:1.05; color:var(--ink); }
 .ag-brand .bs{ font-size:9px; letter-spacing:.22em; color:var(--ink-soft); }
-/* 边栏核心 CTA：开始创作（突出核心能力）*/
+/* 边栏唯一核心 CTA：开始创作——全站只留这一个强红色，其余入口都弱化，突出重点 */
 .ag-create{ display:flex; align-items:center; justify-content:center; gap:7px; margin:6px 4px 0; padding:13px;
-  border-radius:14px; background:linear-gradient(180deg,#ff4259,#ff2442); color:#fff; font-weight:700; font-size:14.5px;
-  box-shadow:0 10px 24px -8px rgba(255,36,66,.55); transition:transform .16s cubic-bezier(.34,1.45,.5,1), filter .15s; }
-.ag-create:hover{ transform:translateY(-2px); filter:brightness(1.05); }
-.ag-create:active{ transform:translateY(0) scale(.97); }
+  border-radius:14px; background:var(--cinnabar); color:#fff; font-weight:700; font-size:14.5px;
+  box-shadow:0 2px 6px -2px rgba(255,36,66,.35); transition:transform .14s ease, filter .15s; }
+.ag-create:hover{ transform:translateY(-1px); filter:brightness(.96); }
+.ag-create:active{ transform:translateY(0); filter:brightness(.92); }
 .ag-side-hint{ margin:14px 6px 0; font-size:11.5px; line-height:1.7; color:var(--ink-soft); }
 .ag-grow{ flex:1; }
 .ag-usage{ background:rgba(255,36,66,.07); border:1px solid rgba(255,36,66,.16); border-radius:14px; padding:12px 13px; }
@@ -458,8 +458,9 @@ body.ag-shelled #trackSection{ display:none !important; }
 .ag-tbtn{ display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 15px; border-radius:var(--r-pill); font-size:13px;
   font-weight:500; color:var(--ink); background:var(--paper-2); border:1px solid transparent; cursor:pointer; transition:.15s; white-space:nowrap; }
 .ag-tbtn:hover{ background:var(--line); transform:translateY(-1px); }
-.ag-tbtn.primary{ background:var(--cinnabar); color:#fff; box-shadow:0 6px 16px -6px rgba(255,36,66,.5); }
-.ag-tbtn.primary:hover{ filter:brightness(1.06); background:var(--cinnabar); }
+/* 顶栏「充值」弱化为浅底红字，跟边栏「开始创作」的实心红区分主次，避免一屏多个红块抢视觉 */
+.ag-tbtn.primary{ background:rgba(255,36,66,.08); color:var(--cinnabar-deep); font-weight:600; }
+.ag-tbtn.primary:hover{ background:rgba(255,36,66,.14); }
 .ag-tbtn.acct{ background:rgba(255,36,66,.08); color:var(--cinnabar-deep); font-weight:600; }
 .ag-tbtn.gift{ background:var(--gold-bg); color:var(--gold); font-weight:600; }
 .ag-tbtn.gift:hover{ filter:brightness(.98); background:var(--gold-bg); }
