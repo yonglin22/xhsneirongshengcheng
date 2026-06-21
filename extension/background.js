@@ -70,6 +70,8 @@ function _pageExtract() {
   return { notes: notes.slice(0, 20), needLogin };
 }
 async function xhsSearch(keyword, sort, type) {
+  const L = (...a) => { try { console.log('[朱砂抓取]', ...a); } catch {} };
+  L('收到抓取请求 keyword=', keyword, 'sort=', sort, 'type=', type);
   if (!keyword) return { ok: false, error: '缺少关键词' };
   const url = 'https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(keyword)
     + (type === 'video' ? '&type=video' : type === 'image' ? '&type=image' : '');
@@ -82,16 +84,21 @@ async function xhsSearch(keyword, sort, type) {
     try { const [cur] = await chrome.tabs.query({ active: true, currentWindow: true }); prevActiveTab = cur || null; } catch {}
     const tab = await chrome.tabs.create({ url, active: true });
     tabId = tab.id;
-    await _waitTabComplete(tabId, 20000);
-    let notes = [], needLogin = false;
+    L('已打开搜索标签页 tabId=', tabId, 'url=', url);
+    const loaded = await _waitTabComplete(tabId, 20000);
+    L('标签页加载', loaded ? '完成' : '超时(20s未complete，继续尝试解析)');
+    let notes = [], needLogin = false, lastErr = '';
     for (let i = 0; i < 12; i++) { // SPA 异步出结果，轮询最多 ~14s
       await _sleep(1200);
-      let res; try { res = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: _pageExtract }); } catch (e) { continue; }
+      let res; try { res = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: _pageExtract }); } catch (e) { lastErr = e.message || String(e); L('第', i + 1, '次注入脚本失败：', lastErr); continue; }
       const out = res && res[0] && res[0].result;
+      L('第', i + 1, '次解析：notes=', out ? (out.notes || []).length : 'null', 'needLogin=', out ? out.needLogin : 'null');
       if (out) { if (out.needLogin) needLogin = true; if (out.notes && out.notes.length) { notes = out.notes; break; } }
     }
-    return { ok: notes.length > 0, notes, needLogin };
+    L('抓取结束：共', notes.length, '篇，needLogin=', needLogin, lastErr ? ('，注入错误=' + lastErr) : '');
+    return { ok: notes.length > 0, notes, needLogin, error: notes.length ? '' : (needLogin ? '未登录小红书' : (lastErr ? ('注入脚本被拒：' + lastErr) : '页面已开但没解析到笔记（可能小红书改版/需下拉加载/被风控）')) };
   } catch (e) {
+    L('抓取异常：', e.message || e);
     return { ok: false, error: e.message || String(e) };
   } finally {
     if (tabId != null) { try { await chrome.tabs.remove(tabId); } catch {} }
