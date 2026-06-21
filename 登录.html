@@ -124,9 +124,14 @@ const $ = s => document.querySelector(s);
 (function () { if (localStorage.getItem('ag_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); })();
 
 async function api(path, opts) {
-  const r = await fetch(path, opts);
-  let j = {}; try { j = await r.json(); } catch {}
-  return { status: r.status, ok: r.ok, j };
+  // 加超时 + 兜底：移动网络下 fetch 偶发卡住不返回，没有这层会让按钮永远停在「登录中…」、看起来像登录不了
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(path, { ...opts, signal: ctl.signal });
+    let j = {}; try { j = await r.json(); } catch {}
+    return { status: r.status, ok: r.ok, j };
+  } catch { return { status: 0, ok: false, j: { error: '网络较慢或不稳定，请重试' } }; }
+  finally { clearTimeout(to); }
 }
 
 // 已登录则直接进入目标页（避免重复登录）

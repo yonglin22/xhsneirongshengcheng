@@ -69,9 +69,13 @@ const $ = s => document.querySelector(s);
 // 主题切换：已由全局外壳（app.js）统一处理，此处移除
 
 async function api(path, opts) {
-  const r = await fetch(path, opts);
-  let j = {}; try { j = await r.json(); } catch {}
-  return { status: r.status, ok: r.ok, j };
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(path, { ...opts, signal: ctl.signal });
+    let j = {}; try { j = await r.json(); } catch {}
+    return { status: r.status, ok: r.ok, j };
+  } catch { return { status: 0, ok: false, j: { error: '网络较慢或不稳定，请重试' } }; }
+  finally { clearTimeout(to); }
 }
 const yuan = c => (c / 100).toFixed(2);
 
