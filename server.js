@@ -371,14 +371,56 @@ const server = http.createServer(async (req, res) => {
       const appJsVer = (html.match(/app\.js\?v=(\d+)/) || [])[1] || null;
       const cssVer = (html.match(/atelier\.css\?v=(\d+)/) || [])[1] || null;
       const hasInterceptRegex = /_\(nurture\|intercept\)\$/.test(html);
+      // 抓取链路诊断：用什么方式抓、配没配，便于排查「没抓到」到底是部署没上 还是 VPS 抓取登录态问题
+      const collector = (process.env.COLLECTOR_URL || '').trim();
+      let xhsCliFound = false;
+      try { require('child_process').execFileSync('xhs', ['--version'], { timeout: 4000, stdio: 'ignore' }); xhsCliFound = true; } catch {}
       return sendJSON(res, 200, {
         ok: true,
         commit: process.env.RENDER_GIT_COMMIT || null,
         fileMtime: (await fsp.stat(fp)).mtime,
         appJsVer, cssVer, hasInterceptRegex,
+        scrape: {
+          mode: collector ? 'collector' : (xhsCliFound ? 'local-xhs-cli' : 'none'),
+          collectorConfigured: !!collector,
+          xhsCliFound,
+          xhsCookieConfigured: !!(process.env.XHS_COOKIE || '').trim(),
+          dailyLimit: XHS_DAILY_LIMIT,
+        },
       });
     } catch (e) {
       return sendJSON(res, 500, { ok: false, error: String(e) });
+    }
+  }
+
+  // ---- 临时诊断：真实跑一次抓取，直接看 VPS 抓取登录态是否有效（排查「没抓到」根因）----
+  // 用法：浏览器打开 /api/_debug-scrape?kw=美术考研  （会真实抓一次，约 10~55 秒）
+  if (pathname === '/api/_debug-scrape') {
+    const kw = (url.searchParams.get('kw') || '测试').slice(0, 40);
+    const collector = (process.env.COLLECTOR_URL || '').trim().replace(/\/+$/, '');
+    try {
+      if (collector) {
+        const cr = await fetch(collector + '/collect', {
+          method: 'POST', signal: AbortSignal.timeout(58000),
+          headers: { 'content-type': 'application/json', 'x-collector-token': process.env.COLLECTOR_TOKEN || '' },
+          body: JSON.stringify({ keyword: kw, sort: 'popular', type: 'all', page: 1 }),
+        });
+        const txt = await cr.text();
+        let parsed = null; try { parsed = JSON.parse(txt); } catch {}
+        return sendJSON(res, 200, { ok: true, via: 'collector', httpStatus: cr.status, noteCount: parsed && parsed.notes ? parsed.notes.length : 0, sample: txt.slice(0, 400) });
+      }
+      const { execFile } = require('child_process');
+      const env = { ...process.env, PATH: (process.env.PATH || '') + ':' + (process.env.HOME || '') + '/.local/bin:/usr/local/bin' };
+      const out = await new Promise((resolve) => {
+        execFile('xhs', ['search', kw, '--sort', 'popular', '--type', 'all', '--page', '1', '--json'], { timeout: 55000, maxBuffer: 12 * 1024 * 1024, env }, (err, so, se) => {
+          resolve({ err: err ? (se || err.message || '').toString() : '', so: so || '' });
+        });
+      });
+      let parsed = null; try { parsed = JSON.parse(out.so); } catch {}
+      const items = parsed ? ((parsed.data && parsed.data.items) || parsed.items || []) : [];
+      return sendJSON(res, 200, { ok: true, via: 'local-xhs-cli', noteCount: items.length, errTail: out.err.slice(0, 400), sample: out.so.slice(0, 300) });
+    } catch (e) {
+      return sendJSON(res, 200, { ok: false, via: collector ? 'collector' : 'local-xhs-cli', error: String(e).slice(0, 400) });
     }
   }
 
