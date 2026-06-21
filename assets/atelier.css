@@ -45,7 +45,8 @@ html[data-theme="dark"] body > header{ background:rgba(20,20,20,.82); }
 html[data-theme="dark"] .panel{ background:var(--paper-2); }
 
 /* 小红书红徽标（原朱砂印章位）*/
-.stamp{ background:var(--cinnabar); color:#fff; border-radius:7px; font-weight:600; box-shadow:none; }
+/* 步骤序号标签：只是个标记不是按钮，弱化成浅底红字，别跟真正的 CTA 一样抢眼 */
+.stamp{ background:rgba(255,36,66,.08); color:var(--cinnabar-deep); border-radius:7px; font-weight:600; box-shadow:none; }
 .vlabel{ writing-mode:vertical-rl; text-orientation:upright; letter-spacing:.35em; }
 
 /* 输入：浅灰填充、聚焦变白描红边 */
