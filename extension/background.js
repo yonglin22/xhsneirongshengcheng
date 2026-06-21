@@ -17,16 +17,18 @@ function _waitTabComplete(tabId, timeout) {
 function _pageExtract() {
   const notes = [], seen = new Set();
   try {
-    (function walk(o) {
+    (function walk(o, inheritTok) {
       if (!o || typeof o !== 'object' || notes.length >= 24) return;
-      if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+      // 沿途记住最近见到的 xsec_token：小红书把它放在 feed 条目的不同层级，固定 key 常对不上，往下继承最稳
+      const tok = (typeof o.xsecToken === 'string' && o.xsecToken) || (typeof o.xsec_token === 'string' && o.xsec_token) || inheritTok || '';
+      if (Array.isArray(o)) { for (const x of o) walk(x, tok); return; }
       const nc = o.noteCard || o.note_card;
       if (nc && (o.id || nc.noteId || nc.note_id)) {
         const id = o.id || nc.noteId || nc.note_id;
         if (!seen.has(id)) {
           seen.add(id);
           const ii = nc.interactInfo || nc.interact_info || {}, u = nc.user || {};
-          const token = nc.xsecToken || o.xsecToken || nc.xsec_token || '';
+          const token = nc.xsecToken || nc.xsec_token || o.xsecToken || o.xsec_token || tok || '';
           // 发布时间：搜索页常没有；有才取（毫秒时间戳/字符串），转 YYYY-MM-DD 供前端时间窗筛选/按最新排序，绝不编造
           const ts = nc.time || nc.publishTime || nc.publish_time || o.time || 0;
           let date = '';
@@ -43,8 +45,8 @@ function _pageExtract() {
         }
         return;
       }
-      for (const k in o) walk(o[k]);
-    })(window.__INITIAL_STATE__);
+      for (const k in o) walk(o[k], tok);
+    })(window.__INITIAL_STATE__, '');
   } catch (e) {}
   if (!notes.length) { // 兜底：直接扒 DOM 里的笔记卡片
     try {
