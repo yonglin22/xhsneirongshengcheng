@@ -27,9 +27,15 @@
     }
     if (e.data.type === 'ZHUSHA_XHS_SEARCH') {
       const { keyword, sort, type, reqId } = e.data;
-      chrome.runtime.sendMessage({ type: 'xhsSearch', keyword, sort, type }, (resp) => {
-        window.postMessage({ type: 'ZHUSHA_XHS_SEARCH_ACK', reqId, result: resp || { ok: false, error: chrome.runtime.lastError ? chrome.runtime.lastError.message : '插件无响应' } }, '*');
-      });
+      // 插件被重新加载/更新后，已打开的旧页面里的本脚本连接会失效（Extension context invalidated），
+      // 此时 sendMessage 会直接抛错。必须 try/catch 并回 ACK，否则页面会干等到超时显示「插件无响应」。
+      try {
+        chrome.runtime.sendMessage({ type: 'xhsSearch', keyword, sort, type }, (resp) => {
+          window.postMessage({ type: 'ZHUSHA_XHS_SEARCH_ACK', reqId, result: resp || { ok: false, error: chrome.runtime.lastError ? chrome.runtime.lastError.message : '插件无响应' } }, '*');
+        });
+      } catch (err) {
+        window.postMessage({ type: 'ZHUSHA_XHS_SEARCH_ACK', reqId, result: { ok: false, error: '插件连接已失效（请刷新本页面 F5 后重试）：' + (err && err.message || err) } }, '*');
+      }
     }
     if (e.data.type === 'ZHUSHA_NURTURE_PLAN') {
       const plan = e.data.plan || {};

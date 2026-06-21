@@ -1682,16 +1682,28 @@ async function grabBenchmarkNotes(searches) {
   if (!kws.length) { if (st) st.textContent = '没有可用关键词'; return; }
   const btn = $('#grabBench'); const o = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = '抓取中…'; }
   const seen = new Set(), all = [];
+  // 服务端兜底：装了插件优先用插件（用户自己账号/住宅IP，不限次），但插件一旦没响应/失效/抓0篇，
+  // 自动改用服务端共享账号，绝不把「插件无响应」直接甩给用户、绝不卡死出不来结果。
+  const srvFetch = async (kw) => {
+    try { return await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kw, sort: benchFetchSort, type: benchFetchType }) })).json(); }
+    catch (e) { return { ok: false, error: '服务端抓取失败：' + (e.message || e) }; }
+  };
+  let extBroken = false; // 插件已确认哑了 → 本轮后续直接走服务端，不再每词白等
   for (let i = 0; i < kws.length && all.length < 20; i++) {
     if (st) st.textContent = `正在抓「${kws[i]}」…（已得 ${all.length} 篇，约需 10~30 秒/词，请稍候）`;
     try {
-      let j;
-      if (window.xhsExt && window.xhsExt.available) {
+      let j = null;
+      if (window.xhsExt && window.xhsExt.available && !extBroken) {
         // 装了插件：用用户自己登录的小红书账号在本机抓（不限次、不被机房IP风控）
-        j = await window.xhsExt.search(kws[i], benchFetchSort, benchFetchType);
-        if (j && j.needLogin) { if (st) st.textContent = '⚠ 请先在浏览器里登录小红书，再回来抓（插件用你自己的账号，不限次）'; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
+        try { j = await window.xhsExt.search(kws[i], benchFetchSort, benchFetchType); } catch { j = null; }
+        // 插件用户自己未登录小红书 → 共享账号可能还行，回退服务端；插件无响应/失效/抓0篇 → 同样回退
+        if (!j || j.needLogin || !j.ok || !(j.notes && j.notes.length)) {
+          extBroken = true; // 插件这条路这轮就别再走了
+          if (st) st.textContent = `插件未取到「${kws[i]}」，改用服务器抓…（已得 ${all.length} 篇）`;
+          j = await srvFetch(kws[i]);
+        }
       } else {
-        j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: benchFetchSort, type: benchFetchType }) })).json();
+        j = await srvFetch(kws[i]);
       }
       // 命中每日抓取上限 → 停止并友好提示
       if (j.limited) { if (st) st.textContent = '⚠ ' + j.error; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
