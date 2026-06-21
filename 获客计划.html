@@ -113,11 +113,16 @@
 </main>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=42"></script>
+<script src="/assets/app.js?v=43"></script>
 <script>
 let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'ai', isrc:'ai' }, collectOn=false;
 const TYPE_NAME={ link:'口令刷量', home_nurture:'首页养号', home_intercept:'首页截流', search_nurture:'搜索养号', search_intercept:'搜索截流' };
-async function api(path, method, body){ const r=await fetch('/api/growth-plans'+path,{method:method||'GET',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined}); return r.json(); }
+async function api(path, method, body){
+  const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),15000);
+  try { const r=await fetch('/api/growth-plans'+path,{method:method||'GET',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined,signal:ctl.signal}); return await r.json(); }
+  catch { return { ok:false, error:'网络较慢或不稳定，请重试' }; }
+  finally { clearTimeout(to); }
+}
 function showSections(){
   const t=$('#pType').value;
   const vis={ link:t==='link', kw:/^(home|search)_/.test(t), search:/^search_/.test(t), nurture:/_(nurture|intercept)$/.test(t), intercept:/_intercept$/.test(t) };

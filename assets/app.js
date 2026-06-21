@@ -15,6 +15,20 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
   } catch (e) {}
 })();
 
+/* 全站 fetch 兜底超时：很多页面各自手写 fetch('/api/...') 没加超时，弱网下请求挂住不返回，
+   按钮/页面就会卡死在「加载中」且永不恢复（如手机端登录卡在「登录中…」）。这里统一拦截
+   window.fetch，凡是调用方没自带 signal 的请求，20s 还没结果就主动 abort，让上层 catch/then
+   走到失败分支而不是无限等待。 */
+(function () {
+  const _fetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    if (init && init.signal) return _fetch(input, init); // 调用方已自带 signal，不重复包一层
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 20000);
+    return _fetch(input, { ...(init || {}), signal: ctl.signal }).finally(() => clearTimeout(to));
+  };
+})();
+
 /* 站内导航预热：多页应用每次点链接都是整页重新加载（重下 HTML/CSS/JS），在高延迟网络下
    「返回工作台/账号矩阵」这类跳转会感觉很卡。鼠标悬停/触屏按下时就提前用 <link rel=prefetch>
    把目标页面预取进浏览器缓存，真正点击时往往已经命中缓存，体感秒开。 */
