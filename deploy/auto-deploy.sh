@@ -9,20 +9,25 @@
 # 卸载（恢复手动部署）：
 #   sudo crontab -l | grep -v auto-deploy.sh | sudo crontab -
 
-set -e
-cd /opt/zhusha
+# cron 的 PATH/HOME 很精简，显式补全，否则 git/systemctl 可能找不到、git 也可能没法读用户配置
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+export HOME=/root
+LOG=/var/log/zhusha-deploy.log
+log(){ echo "$(date '+%F %T')  $*" >> "$LOG"; }
 
-# 拉取远端最新游标（不动工作区）
-sudo -u app git fetch origin main -q || exit 0
+cd /opt/zhusha || { log "ERR cd /opt/zhusha 失败"; exit 1; }
 
-LOCAL=$(git rev-parse HEAD)
-REMOTE=$(git rev-parse origin/main)
+# 拉取远端最新游标（不动工作区）；失败要记日志，别再静默吞掉
+if ! sudo -u app git fetch origin main -q 2>>"$LOG"; then log "ERR git fetch 失败"; exit 1; fi
+
+LOCAL=$(sudo -u app git rev-parse HEAD)
+REMOTE=$(sudo -u app git rev-parse origin/main)
 
 # 没有新提交就直接退出，什么都不做（不会无谓重启服务）
 [ "$LOCAL" = "$REMOTE" ] && exit 0
 
 # 有新提交：拉取并重启
-sudo -u app git pull -q origin main
-systemctl restart app
+if ! sudo -u app git pull -q origin main 2>>"$LOG"; then log "ERR git pull 失败"; exit 1; fi
+systemctl restart app 2>>"$LOG" || log "WARN systemctl restart app 失败"
 
-echo "$(date '+%F %T')  deployed ${LOCAL:0:7} -> ${REMOTE:0:7}" >> /var/log/zhusha-deploy.log
+log "deployed ${LOCAL:0:7} -> ${REMOTE:0:7}"

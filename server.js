@@ -1336,9 +1336,11 @@ const server = http.createServer(async (req, res) => {
   fs.readFile(filePath, (err, data) => {
     if (err) return send(res, 404, '404 Not Found: ' + rel);
     const ext = path.extname(filePath);
-    // 静态资源（css/js/字体/图片/svg）带 ?v= 做缓存失效 → 长缓存，避免每次切页重下；HTML 不缓存保证即时更新
+    // 静态资源（css/js/字体/图片/svg）带 ?v= 做缓存失效 → 长缓存，避免每次切页重下；
+    // HTML 用 no-cache（每次回源校验，内容仍即时更新）而不是 no-store——no-store 会禁用浏览器
+    // 前进/后退的 bfcache，导致每次点「返回」都整页重载、切页很卡；no-cache 保留 bfcache，返回秒开。
     const cacheable = ['.css', '.js', '.woff2', '.png', '.jpg', '.svg', '.ico'].includes(ext);
-    const cc = cacheable ? 'public, max-age=86400' : 'no-store';
+    const cc = cacheable ? 'public, max-age=86400' : 'no-cache';
     send(res, 200, data, { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': cc });
   });
  } catch (err) {
