@@ -43,7 +43,7 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
         const reqId = 'xs' + (++this._seq) + '_' + Date.now();
         this._pend[reqId] = resolve;
         window.postMessage({ type: 'ZHUSHA_XHS_SEARCH', keyword, sort, type, reqId }, '*');
-        setTimeout(() => { if (this._pend[reqId]) { const f = this._pend[reqId]; delete this._pend[reqId]; f({ ok: false, error: '插件无响应（请确认已在浏览器登录小红书）' }); } }, 45000);
+        setTimeout(() => { if (this._pend[reqId]) { const f = this._pend[reqId]; delete this._pend[reqId]; f({ ok: false, error: '插件无响应（请确认已在浏览器登录小红书）' }); } }, 70000);
       });
     }
   };

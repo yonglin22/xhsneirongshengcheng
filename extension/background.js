@@ -88,8 +88,10 @@ async function xhsSearch(keyword, sort, type) {
     const loaded = await _waitTabComplete(tabId, 20000);
     L('标签页加载', loaded ? '完成' : '超时(20s未complete，继续尝试解析)');
     let notes = [], needLogin = false, lastErr = '';
-    for (let i = 0; i < 12; i++) { // SPA 异步出结果，轮询最多 ~14s
-      await _sleep(1200);
+    for (let i = 0; i < 18; i++) { // SPA 异步出结果（长尾词更慢），轮询最多 ~27s
+      await _sleep(1500);
+      // 下滑触发懒加载：很多搜索结果是滚动到视口才渲染，不滚就一直 0 篇
+      try { await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: () => { try { window.scrollTo(0, document.body.scrollHeight); } catch {} } }); } catch {}
       let res; try { res = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: _pageExtract }); } catch (e) { lastErr = e.message || String(e); L('第', i + 1, '次注入脚本失败：', lastErr); continue; }
       const out = res && res[0] && res[0].result;
       L('第', i + 1, '次解析：notes=', out ? (out.notes || []).length : 'null', 'needLogin=', out ? out.needLogin : 'null');
