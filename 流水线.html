@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=47" />
+<link rel="stylesheet" href="/assets/atelier.css?v=48" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -721,9 +721,9 @@ function buildImgPrompt(style, scene, theme) {
   const sp = aStyle ? `整体画风：${aStyle}。` : '';
   if (theme === 'poster') {
     // 白底排版图 → 生成一张"精致小红书干货海报底图"：柔和有设计感、不空，但中部留白给叠字
-    return `${sp}一张精致的小红书干货海报「底图」（纯做背景，文字稍后叠加）：${scene || '与主题相关的极简插画风底图'}。要求：柔和马卡龙/莫兰迪配色的渐变或纸张质感打底，四周用与主题相关的极简手绘小元素、色块、虚线框、丝带胶带等做轻装饰，营造杂志/手账排版的设计感；中部与上部留出干净空白区给文字。整体高级、温柔、有呼吸感，不要太满。竖版 3:4。${IMG_NEG}`;
+    return `${sp}一张精致的小红书干货海报「底图」（纯做背景，文字稍后叠加）：${scene || '与主题相关的极简插画风底图'}。设计要求：①配色用同色系渐变或马卡龙/莫兰迪双色搭配（避免超过3个色相），整体明度统一不脏；②四周用与主题相关的极简手绘小元素、几何色块、虚线框、丝带胶带、点阵/网格等做轻装饰，呈现杂志排版/手账拼贴的设计感，但装饰物不要堆在画面正中；③留出清晰的"视觉呼吸区"——中部与上部大面积干净留白给文字，留白占比不少于40%；④画面要有明确的视觉重心（一个装饰元素稍大或位置偏移制造主次），避免元素均匀铺满显得呆板。整体高级、温柔、有呼吸感。竖版 3:4。${IMG_NEG}`;
   }
-  return `${sp}${style ? style + '。' : ''}${scene || ''}。小红书竖版配图，${aStyle ? '按上面画风' : '专业摄影或精致插画'}，小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深虚化背景、细腻材质、4K 超清细节，构图干净留白、主体居中偏上（给顶部叠字留空间），柔和电影级调色；${IMG_NEG}`;
+  return `${sp}${style ? style + '。' : ''}${scene || ''}。小红书竖版配图，${aStyle ? '按上面画风' : '专业摄影或精致插画'}，设计要求：①小红书爆款审美、真实摄影质感、自然柔光、高级感；②浅景深虚化背景、细腻材质、4K 超清细节；③构图用三分法或留白构图，主体居中偏上偏一侧（避免正中死板，给顶部叠字留出至少1/3干净空间）；④色调统一为柔和电影级调色，避免画面里出现多个抢眼色块互相打架；⑤画面要"留白不空"——背景有层次感（虚化的环境元素）但不杂乱。${IMG_NEG}`;
 }
 // 严格对位单张：照搬对标第 i 张的版式/条目数，内容换成我这篇的（解析→改写）
 async function planOneImage(i, refVis, isCover, coverTitle, bodyTxt, t) {
@@ -1087,7 +1087,7 @@ function splitHeavyPage(page) {
   return splitHeavyPage(p1).concat(splitHeavyPage(p2)); // 递归：还重就继续拆
 }
 // 自有封面模板：把封面文案(cover_lines)填进 CSS 版式，文字精准、可导出
-const COVER_TPLS = [['bold', '大字冲击'], ['memo', '备忘录'], ['mag', '杂志风'], ['block', '色块'], ['tape', '手账胶带'], ['split', '上图下字'], ['quote', '金句'], ['grid', '网格杂志'], ['clash', '撞色'], ['glow', '弥散渐变']];
+const COVER_TPLS = [['bold', '大字冲击'], ['memo', '备忘录'], ['mag', '杂志风'], ['block', '色块'], ['tape', '手账胶带'], ['split', '上图下字'], ['quote', '金句'], ['grid', '网格杂志'], ['clash', '撞色'], ['glow', '弥散渐变'], ['frame', '艺术边框'], ['ribbon', '斜角丝带'], ['stamp', '复古印章'], ['ticket', '票根风'], ['neon', '暗夜霓虹'], ['paper', '撕纸层叠']];
 // 调整提示词 → {位置 pos, 对齐 align, 字号 size, 背景 bg(6位hex无#)}
 const TPL_COLORS = [[/米白|奶油|米色/,'fffdf5'],[/(浅|淡)?青|青色|cyan|蓝绿/,'e2f4f3'],[/(浅|淡)?黄|鹅黄/,'fff8d6'],[/(浅|淡)?灰/,'f2f2f4'],[/(浅|淡)?蓝/,'eaf1fb'],[/(浅|淡)?粉/,'fdeef0'],[/(浅|淡)?绿|薄荷/,'ebf6ee'],[/(浅|淡)?紫/,'f1ecfb'],[/(浅|淡)?橙|杏色|米黄/,'fdeede'],[/黑底|深色|暗底|墨黑/,'1a1a2e'],[/纯白|白底/,'ffffff']];
 function parseTplAdj(s) { s = String(s || ''); const a = { pos: '', align: '', size: '', bg: '' };
@@ -1135,6 +1135,12 @@ function coverTemplateHTML(spec, lines, opt) {
   else if (id === 'split') { const im = opt.img || (state.cover && state.cover.img); inner = `<div class="ct-img" style="${im ? `background-image:url('${imgSrc(im)}')` : ''}"></div><div class="ct-cap">${tt}${ss}</div>`; }
   else if (id === 'grid') inner = `<div class="ct-kicker"><span>VERTICAL</span><span>NO.01</span></div>${tt}${ss}`;
   else if (id === 'clash') inner = `<div class="ct-top">${tt}</div>${ss}`;
+  else if (id === 'frame') inner = `<div class="ct-corner tl"></div><div class="ct-corner tr"></div><div class="ct-corner bl"></div><div class="ct-corner br"></div>${tt}${ss}`;
+  else if (id === 'ribbon') inner = `<div class="ct-ribbon">${memoDateStr().split(' ')[0]}</div>${tt}${ss}`;
+  else if (id === 'stamp') inner = `<div class="ct-stamp">精选</div>${tt}${ss}<div class="ct-foot">朱砂·操盘台 · NO.01</div>`;
+  else if (id === 'ticket') inner = `<div class="ct-tkhead"><span>BOARDING</span><span>VIP</span></div>${tt}${ss}<div class="ct-tkhole"></div>`;
+  else if (id === 'neon') inner = `${tt}${ss}`;
+  else if (id === 'paper') inner = `<div class="ct-papertape"></div>${tt}${ss}`;
   else inner = `${tt}${ss}`;
   return `<div class="cv-ctpl ctpl-${id} ${adj}" style="${vars}">${inner}</div>`;
 }
