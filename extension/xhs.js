@@ -84,6 +84,22 @@
     input.files = dt.files;
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
+  function dispatchKey(el, type, key) {
+    el.dispatchEvent(new KeyboardEvent(type, { key, code: key, bubbles: true, cancelable: true }));
+  }
+  // 正文末尾逐个插入「#标签」：小红书编辑器会弹出话题联想下拉，回车选中第一项生成话题 chip；
+  // 没匹配到联想词时回车也会把纯文字提交为话题，不会卡住。
+  async function insertTags(ed, tags) {
+    for (const raw of (tags || [])) {
+      const tag = String(raw || '').trim().replace(/^#/, '');
+      if (!tag) continue;
+      ed.focus();
+      document.execCommand('insertText', false, ' #' + tag);
+      await sleep(900);
+      dispatchKey(ed, 'keydown', 'Enter'); dispatchKey(ed, 'keyup', 'Enter');
+      await sleep(500);
+    }
+  }
 
   async function run(payload) {
     const status = document.createElement('div');
@@ -110,6 +126,12 @@
       const ed = document.querySelector('[contenteditable="true"]');
       if (ed) { ed.focus(); document.execCommand('insertText', false, (payload.body || '').slice(0, 980)); }
       await sleep(1500);
+      // 话题标签：逐个插完正文末尾的 #标签
+      if (ed && payload.tags && payload.tags.length) {
+        say('正在插入话题标签…');
+        await insertTags(ed, payload.tags);
+      }
+      await sleep(500);
       // 等图片上传完成：底部操作栏（暂存离开/发布）通常在图片处理完后才出现
       say('等待图片上传完成…');
       for (let i = 0; i < 40; i++) {

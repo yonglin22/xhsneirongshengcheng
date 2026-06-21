@@ -129,7 +129,7 @@ $('#extPubBtn').addEventListener('click', async ()=>{
     const images=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines);
     if(!images.length){ $('#pubStatus').textContent='这篇没有可发布的图片'; $('#pubStatus').style.color='var(--cinnabar-deep)'; btn.disabled=false; btn.textContent=o; return; }
     btn.textContent='发送给插件…';
-    window.postMessage({ type:'ZHUSHA_PUBLISH', payload:{ title:WORK.title, body:WORK.body, images } }, '*');
+    window.postMessage({ type:'ZHUSHA_PUBLISH', payload:{ title:WORK.title, body:WORK.body, images, tags:WORK.tags||[] } }, '*');
     $('#pubStatus').textContent='✓ 已发给插件，正在打开小红书创作页自动填充（用你当前登录的小红书账号）…'; $('#pubStatus').style.color='#00a152';
   }catch(e){ $('#pubStatus').textContent='转图失败：'+(e.message||e); $('#pubStatus').style.color='var(--cinnabar-deep)'; }
   btn.disabled=false; btn.textContent=o;
@@ -138,7 +138,7 @@ window.addEventListener('message', e=>{ if(e.source===window && e.data && e.data
 // 把一篇成稿数据装进 WORK（草稿/云端历史共用）
 function buildWORK(data, id){
   const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
-  return { id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[] };
+  return { id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[], tags:(data.tags||[]).map(t=>String(t||'').trim().replace(/^#/,'')).filter(Boolean) };
 }
 function loadDraft(){ try{ return JSON.parse(localStorage.getItem('ag_draft')||'{}'); }catch{ return {}; } }
 async function loadWorks(){
