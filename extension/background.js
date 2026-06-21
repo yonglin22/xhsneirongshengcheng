@@ -71,6 +71,23 @@ function _pageExtract() {
       }
     } catch (e) {}
   }
+  // 关键：小红书搜索页的 __INITIAL_STATE__ 常常不含 xsec_token，但页面上每个笔记卡片的 <a href> 里带着真 token。
+  // 这里按笔记 id 从 DOM 链接补 token，并重建带 token 的 link —— 否则点进去会"当前笔记暂时无法浏览"。
+  try {
+    const tokById = {};
+    for (const a of document.querySelectorAll('a[href*="/explore/"],a[href*="/search_result/"],a[href*="/discovery/item/"]')) {
+      const href = a.getAttribute('href') || '';
+      const m = href.match(/\/(?:explore|search_result|discovery\/item)\/([0-9a-zA-Z]+)/); if (!m) continue;
+      const tm = href.match(/xsec_token=([^&"]+)/); if (!tm) continue;
+      if (!tokById[m[1]]) tokById[m[1]] = decodeURIComponent(tm[1]);
+    }
+    for (const n of notes) {
+      if (!n.token && tokById[n.id]) {
+        n.token = tokById[n.id];
+        n.link = 'https://www.xiaohongshu.com/explore/' + n.id + '?xsec_token=' + n.token + '&xsec_source=pc_search';
+      }
+    }
+  } catch (e) {}
   let needLogin = false;
   try { const t = (document.body && document.body.innerText || '').slice(0, 800); if (notes.length === 0 && /(扫码登录|手机号登录|登录后查看|新用户登录|立即登录)/.test(t)) needLogin = true; } catch {}
   return { notes: notes.slice(0, 20), needLogin };
