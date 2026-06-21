@@ -64,8 +64,12 @@ const $ = s => document.querySelector(s);
 function adminToken() { try { return localStorage.getItem('ag_admin_token') || ''; } catch { return ''; } }
 async function aget(path) {
   const h = {}; const t = adminToken(); if (t) h['x-admin-token'] = t;
-  const r = await fetch(path, { headers: h }); let j = {}; try { j = await r.json(); } catch {}
-  return { ok: r.ok, status: r.status, j };
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(path, { headers: h, signal: ctl.signal }); let j = {}; try { j = await r.json(); } catch {}
+    return { ok: r.ok, status: r.status, j };
+  } catch { return { ok: false, status: 0, j: { error: '网络较慢或不稳定，请重试' } }; }
+  finally { clearTimeout(to); }
 }
 function yuan(c) { return ((c || 0) / 100).toFixed(2); }
 function ts(t) { if (!t) return '—'; const d = new Date(t); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
@@ -295,8 +299,12 @@ function rbacRoleRowsHTML() {
 }
 async function apost(path, body) {
   const h = { 'content-type': 'application/json' }; const t = adminToken(); if (t) h['x-admin-token'] = t;
-  const r = await fetch(path, { method: 'POST', headers: h, body: JSON.stringify(body) }); let j = {}; try { j = await r.json(); } catch {}
-  return { ok: r.ok, j };
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(path, { method: 'POST', headers: h, body: JSON.stringify(body), signal: ctl.signal }); let j = {}; try { j = await r.json(); } catch {}
+    return { ok: r.ok, j };
+  } catch { return { ok: false, j: { error: '网络较慢或不稳定，请重试' } }; }
+  finally { clearTimeout(to); }
 }
 // 查看某用户流水明细（弹窗，只读）
 const LED_LABEL = { grant: '🎁 赠送', recharge: '💰 充值', consume: '✂️ 消耗', admin_grant: '🛠 管理员充值', admin_deduct: '🛠 管理员扣减', refund: '↩️ 退回', hold: '🔒 预扣', settle: '✅ 结算', transfer_out: '🤝 转赠成员', transfer_in: '🎁 合伙人转赠' };
