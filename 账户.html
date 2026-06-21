@@ -156,7 +156,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=40"></script>
+<script src="/assets/app.js?v=41"></script>
 <script>
 const $ = s => document.querySelector(s);
 // 主题切换 / 旧 tab 高亮：已由全局外壳（app.js）统一处理，此处移除
@@ -234,7 +234,7 @@ async function refreshMe() {
     $('#loginCard').classList.remove('hidden');
     $('#acctCard').classList.add('hidden');
   }
-  try { if (window.refreshTopNav) await window.refreshTopNav(); } catch {} // 登录/退出后即时更新顶栏，无需刷新整页
+  try { if (window.refreshTopNav) await window.refreshTopNav(true); } catch {} // 登录/退出后即时更新顶栏，无需刷新整页
 }
 
 // ---- 邀请有礼 / 我的团队 ----

@@ -344,7 +344,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=40"></script>
+<script src="/assets/app.js?v=41"></script>
 <script>
 function activeId(){ return localStorage.getItem('ag_track') || TRACK_ORDER[0]; }
 
@@ -550,7 +550,7 @@ async function tplBuy(btn) {
     const j = await (await fetch('/api/template/buy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id }) })).json();
     if (j.ok) {
       _tplOwned[id] = j.runId;
-      try { if (window.refreshTopNav) await window.refreshTopNav(); } catch {}
+      try { if (window.refreshTopNav) await window.refreshTopNav(true); } catch {}
       await loadWorks();
       renderTemplates(window.__curTrackName);
       toast('✓ 已购买，已加入「我的作品」', 'ok');

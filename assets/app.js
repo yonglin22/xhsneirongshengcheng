@@ -15,6 +15,16 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
   } catch (e) {}
 })();
 
+/* 全站共享的 /api/auth/me 请求：同一次页面加载内，登录守卫/顶栏/Cloud 各自都要查登录态，
+   不去重会变成 3 个并发请求打到同一个接口，在高延迟网络下白白多等几百 ms 到几秒。
+   force=true 用于登录/退出/充值后需要拿最新余额的场景。*/
+window.meFetch = function (force) {
+  if (force || !window.__mePromise) {
+    window.__mePromise = fetch('/api/auth/me').then(r => r.json()).catch(() => ({ ok: false }));
+  }
+  return window.__mePromise;
+};
+
 /* ===== 移动端守卫：核心创作页（大屏工具）在手机/微信内置浏览器上 → 引导去电脑端 =====
    轻页（账户/充值/邀请有礼/帮助/登录/落地）仍可手机使用。*/
 (function () {
@@ -43,7 +53,7 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
     if (!cached) de.style.visibility = 'hidden';
     const reveal = () => { de.style.visibility = ''; };
     const safety = setTimeout(reveal, 4000); // 兜底：异常时不至于白屏
-    fetch('/api/auth/me').then(r => r.json()).then(j => {
+    window.meFetch().then(j => {
       clearTimeout(safety);
       if (j && j.ok) { try { sessionStorage.setItem('zs_auth_ok', '1'); } catch {} reveal(); }
       else goLogin(); // 后台校验失败（含已缓存场景）→ 跳登录
@@ -149,7 +159,7 @@ window.agentStyleRefPrompts = () => { const t = getTrack(); if (!t) return []; c
 /* ---- 云端历史/作品库（登录后按账号存，跨设备）。未登录则各页回退 localStorage ---- */
 window.Cloud = {
   _logged: null,
-  async loggedIn() { if (this._logged !== null) return this._logged; try { const j = await (await fetch('/api/auth/me')).json(); this._logged = !!(j && j.ok); } catch { this._logged = false; } return this._logged; },
+  async loggedIn() { if (this._logged !== null) return this._logged; try { const j = await window.meFetch(); this._logged = !!(j && j.ok); } catch { this._logged = false; } return this._logged; },
   async list() { try { const j = await (await fetch('/api/history')).json(); return j.ok ? j.list : []; } catch { return []; } },
   async get(id) { try { const j = await (await fetch('/api/history/get?id=' + encodeURIComponent(id))).json(); return j.ok ? j.data : null; } catch { return null; } },
   async save(rec) { try { await fetch('/api/history', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(rec) }); } catch {} },
@@ -438,11 +448,11 @@ window.doLogout = async function () {
 };
 
 /* 顶栏账户区 + 边栏用量卡（登录/退出/切号/充值后即时重建，无需刷新整页）*/
-window.refreshTopNav = async function () {
+window.refreshTopNav = async function (force) {
   const topR = document.getElementById('agTopR'); const usage = document.getElementById('agUsage');
   if (!topR) return;
   const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  let me = null; try { me = await (await fetch('/api/auth/me')).json(); } catch {}
+  let me = null; try { me = await window.meFetch(force); } catch {}
   // 账号隔离：账号变化 → 清残留赛道选择，并重建边栏导航
   if (typeof syncAccountScope === 'function' && syncAccountScope(me) && typeof buildMyAgentNav === 'function') buildMyAgentNav();
   window.__me = (me && me.ok) ? me : null;

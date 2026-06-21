@@ -63,7 +63,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=40"></script>
+<script src="/assets/app.js?v=41"></script>
 <script>
 const $ = s => document.querySelector(s);
 // 主题切换：已由全局外壳（app.js）统一处理，此处移除
@@ -116,7 +116,7 @@ async function refreshMe() {
   $('#needLogin').classList.toggle('hidden', LOGGED);
   $('#balanceBar').classList.toggle('hidden', !LOGGED);
   if (LOGGED) { $('#balance').textContent = j.balance; $('#balanceCny').textContent = yuan(j.balance); const lv = $('#balanceLevel'); if (lv) lv.textContent = j.level || '普通会员'; window.__me = j; }
-  try { if (window.refreshTopNav) await window.refreshTopNav(); } catch {}
+  try { if (window.refreshTopNav) await window.refreshTopNav(true); } catch {}
 }
 
 // ---- 充值 ----
