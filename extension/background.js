@@ -74,8 +74,13 @@ async function xhsSearch(keyword, sort, type) {
   const url = 'https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(keyword)
     + (type === 'video' ? '&type=video' : type === 'image' ? '&type=image' : '');
   let tabId = null;
+  let prevActiveTab = null;
   try {
-    const tab = await chrome.tabs.create({ url, active: false });
+    // 注意：后台标签页(active:false)会被 Chrome 限流（定时器/渲染大幅变慢甚至暂停），
+    // 导致下面"几秒就该出结果"的轮询实际上卡住不动、感觉像"一直加载中"。
+    // 这里必须用 active:true 打开（短暂闪一下新标签页），抓完立刻关掉并切回原标签页。
+    try { const [cur] = await chrome.tabs.query({ active: true, currentWindow: true }); prevActiveTab = cur || null; } catch {}
+    const tab = await chrome.tabs.create({ url, active: true });
     tabId = tab.id;
     await _waitTabComplete(tabId, 20000);
     let notes = [], needLogin = false;
@@ -88,7 +93,10 @@ async function xhsSearch(keyword, sort, type) {
     return { ok: notes.length > 0, notes, needLogin };
   } catch (e) {
     return { ok: false, error: e.message || String(e) };
-  } finally { if (tabId != null) { try { await chrome.tabs.remove(tabId); } catch {} } }
+  } finally {
+    if (tabId != null) { try { await chrome.tabs.remove(tabId); } catch {} }
+    if (prevActiveTab && prevActiveTab.id != null) { try { await chrome.tabs.update(prevActiveTab.id, { active: true }); } catch {} }
+  }
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

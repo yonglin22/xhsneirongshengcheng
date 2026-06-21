@@ -1702,8 +1702,11 @@ async function grabBenchmarkNotes(searches) {
       if (j.ok && j.notes) for (const n of j.notes) { if (n.id && !seen.has(n.id)) { seen.add(n.id); all.push(n); if (all.length >= 20) break; } }
       // 抓完这个词立刻刷新累计数 + 边抓边显示已抓到的（不再一直停在 0）
       if (all.length) { benchNotes = all.slice(); try { renderBenchNotes(); } catch {} }
+      // 这个词没抓到、且报的是登录/会话失效 → 立刻停（再试其它词也一样会失败，白白多等）
+      if (!j.ok && j.error && /未登录|xhs login|未登录小红书|插件无响应/.test(j.error)) {
+        if (st) st.textContent = '⚠ ' + j.error; if (btn) { btn.disabled = false; btn.textContent = o; } benchNotes = all; if (all.length) renderBenchNotes(); return;
+      }
       if (st) st.textContent = all.length >= 20 ? `✓ 已抓满 20 篇真实对标` : `已抓 ${all.length} 篇…（继续抓下一个词）`;
-      else if (j.error && /未登录|xhs login/.test(j.error)) { if (st) st.textContent = '⚠ ' + j.error; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
     } catch {}
     if (i < kws.length - 1 && all.length < 20) await new Promise(r => setTimeout(r, 2500)); // 间隔，避免触发验证码
   }
