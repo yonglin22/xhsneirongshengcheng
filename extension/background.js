@@ -113,7 +113,13 @@ function _noteExtract() {
   }
   let needLogin = false;
   try { const tx = (document.body && document.body.innerText || '').slice(0, 800); if (!out && /(扫码登录|手机号登录|登录后查看|新用户登录|立即登录)/.test(tx)) needLogin = true; } catch {}
-  return { note: out, needLogin };
+  // 识别小红书拦截/失效页：标题或正文命中这些提示，说明链接过期/笔记被删/需登录，不能当正文用
+  let blocked = false;
+  try {
+    const blockRe = /(你访问的页面不见了|页面不见了|当前笔记暂时无法浏览|笔记不存在|内容不存在|访问异常|前往登录|请登录后查看|出错啦)/;
+    if (out && (blockRe.test(out.title || '') || blockRe.test(out.content || ''))) { blocked = true; out = null; }
+  } catch {}
+  return { note: out, needLogin, blocked };
 }
 async function xhsFetchNote(url) {
   const L = (...a) => { try { console.log('[朱砂单篇]', ...a); } catch {} };
@@ -126,16 +132,17 @@ async function xhsFetchNote(url) {
     const tab = await chrome.tabs.create({ url, active: true });
     tabId = tab.id;
     await _waitTabComplete(tabId, 20000);
-    let note = null, needLogin = false, lastErr = '';
+    let note = null, needLogin = false, blocked = false, lastErr = '';
     for (let i = 0; i < 16; i++) {
       await _sleep(1500);
       let res; try { res = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: _noteExtract }); } catch (e) { lastErr = e.message || String(e); continue; }
       const o = res && res[0] && res[0].result;
-      L('第', i + 1, '次解析：note=', o && o.note ? 'ok' : 'null', 'needLogin=', o ? o.needLogin : 'null');
-      if (o) { if (o.needLogin) needLogin = true; if (o.note && (o.note.title || o.note.content || (o.note.images || []).length)) { note = o.note; break; } }
+      L('第', i + 1, '次解析：note=', o && o.note ? 'ok' : 'null', 'needLogin=', o ? o.needLogin : 'null', 'blocked=', o ? o.blocked : 'null');
+      if (o) { if (o.needLogin) needLogin = true; if (o.blocked) blocked = true; if (o.note && (o.note.title || o.note.content || (o.note.images || []).length)) { note = o.note; break; } }
     }
     L('单篇抓取结束：', note ? '成功' : '失败');
     if (note) return { ok: true, ...note };
+    if (blocked) return { ok: false, error: '该笔记已失效或被拦截/删除/设为私密（用你本机登录的会话打开也看不到正文）。请换一条新链接，或手动粘贴标题+正文。' };
     return { ok: false, needLogin, error: needLogin ? '未登录小红书' : (lastErr ? ('注入脚本被拒：' + lastErr) : '打开了笔记页但没解析到正文（可能链接失效/被风控/小红书改版）') };
   } catch (e) {
     return { ok: false, error: e.message || String(e) };
