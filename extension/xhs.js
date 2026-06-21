@@ -58,16 +58,23 @@
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
+  // 小红书图文最多 18 张。data: 直接转 blob；http(s) 先直连，失败再用朱砂 img-proxy 兜底
+  // （AI 出图的签名链常带防盗链/CORS，从小红书域名直连会失败被丢图 → 必须代理回源）
+  async function fetchBlob(u) {
+    try { const r = await fetch(u); if (r.ok) return await r.blob(); } catch (e) {}
+    if (/^https?:\/\//.test(u)) {
+      try { const r = await fetch('https://yonglin.chat/api/img-proxy?u=' + encodeURIComponent(u)); if (r.ok) return await r.blob(); } catch (e) {}
+    }
+    return null;
+  }
   async function urlsToFiles(urls) {
     const files = [];
-    for (let i = 0; i < (urls || []).length && i < 9; i++) {
+    for (let i = 0; i < (urls || []).length && i < 18; i++) {
       const u = urls[i]; if (!u) continue;
-      try {
-        const resp = await fetch(u);
-        const blob = await resp.blob();
-        const ext = blob.type.includes('png') ? 'png' : 'jpg';
-        files.push(new File([blob], `img_${i + 1}.${ext}`, { type: blob.type || 'image/jpeg' }));
-      } catch (e) { log('图片下载失败', u, e); }
+      const blob = await fetchBlob(u);
+      if (!blob) { log('图片下载失败（已尝试代理兜底）', u); continue; }
+      const ext = blob.type.includes('png') ? 'png' : 'jpg';
+      files.push(new File([blob], `img_${i + 1}.${ext}`, { type: blob.type || 'image/jpeg' }));
     }
     return files;
   }
@@ -90,9 +97,10 @@
       clickByText(['上传图文', '写图文', '图文']);
       await sleep(1200);
       // 上传图片
+      const want = (payload.images || []).filter(Boolean).length;
       const files = await urlsToFiles(payload.images);
       const input = document.querySelector('input[type=file]');
-      if (input && files.length) { setFiles(input, files); say('已上传 ' + files.length + ' 张图，等待处理…'); }
+      if (input && files.length) { setFiles(input, files); say('已上传 ' + files.length + ' / ' + want + ' 张图' + (files.length < want ? '（部分图下载失败已跳过）' : '') + '，等待处理…'); }
       else { say('⚠ 没找到图片或上传框，请手动传图'); }
       await sleep(7000);
       // 标题
