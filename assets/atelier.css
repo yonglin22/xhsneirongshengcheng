@@ -56,11 +56,11 @@ html[data-theme="dark"] .field:focus{ background:#1c1c1e; }
 html[data-theme="dark"] select.field option{ background:#2a2a2c; }
 
 /* 按钮（小红书现代风 · 红色胶囊 + 按压手感）*/
-.btn-go{ background:linear-gradient(180deg,#ff4259 0%,#ff2442 52%,#f81537 100%); color:#fff; border-radius:999px !important; font-weight:600; letter-spacing:.01em;
-  box-shadow:0 4px 12px -3px rgba(255,36,66,.45);
-  transition:transform .16s cubic-bezier(.34,1.45,.5,1), filter .15s, box-shadow .15s; }
-.btn-go:hover{ filter:brightness(1.05) saturate(1.05); transform:translateY(-2px); box-shadow:0 10px 24px -5px rgba(255,36,66,.55); }
-.btn-go:active{ transform:translateY(0) scale(.96); box-shadow:0 2px 8px -2px rgba(255,36,66,.5); }
+.btn-go{ background:var(--cinnabar); color:#fff; border-radius:999px !important; font-weight:600; letter-spacing:.01em;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+  transition:transform .14s ease, filter .15s, box-shadow .15s; }
+.btn-go:hover{ filter:brightness(.96); transform:translateY(-1px); box-shadow:0 3px 8px -2px rgba(255,36,66,.3); }
+.btn-go:active{ transform:translateY(0); filter:brightness(.92); box-shadow:0 1px 2px rgba(0,0,0,.1); }
 .btn-go:disabled{ opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
 .btn-ghost{ background:#fff; border:1px solid var(--line); color:#444; border-radius:999px !important; font-weight:500;
   transition:transform .16s cubic-bezier(.34,1.45,.5,1), background .15s, border-color .15s; }

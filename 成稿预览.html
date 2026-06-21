@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 <script src="/assets/jszip.min.js?v=1"></script>
-<link rel="stylesheet" href="/assets/atelier.css?v=42" />
+<link rel="stylesheet" href="/assets/atelier.css?v=43" />
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=41"></script>
 <style>
@@ -722,6 +722,21 @@ function setCoverImages(arr, caps){
 // ===== 导出图片 =====
 function dl(href, name){ const a=document.createElement('a'); a.href=href; a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
 
+// 把任意图片地址转成同源 data: URL（导出前内联用）。
+// html2canvas 无法读取跨域图（会污染画布→导出空白），所以这里先 fetch 成 blob 再转 dataURL：
+// 先走同源代理，代理回源失败再直连原图，两者都拿不到才返回 null。
+async function urlToDataURL(u){
+  if(!u) return null;
+  if(u.startsWith('data:')) return u;
+  const grab = async (url)=>{
+    const r = await fetch(url); if(!r.ok) throw 0;
+    const b = await r.blob();
+    return await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(b); });
+  };
+  try{ return await grab('/api/img-proxy?u='+encodeURIComponent(u)); }
+  catch{ try{ return await grab(u); }catch{ return null; } }
+}
+
 // 把一张图（生成图裁掉底部水印、上传图不裁）画成 blob
 function cropImageToBlob(u){
   return new Promise((resolve)=>{
@@ -750,7 +765,14 @@ $('#exportBtn').addEventListener('click', async ()=>{
     try {
       if(document.fonts && document.fonts.ready) await document.fonts.ready;
       const art = $('#gzhArticle');
+      // 导出前把首图内联成同源 data: URL，否则跨域图会被 html2canvas 当成空白
+      const gc = $('#gzhCover'); let gcPrev = null;
+      if (gc && gc.style.display !== 'none' && gc.dataset.direct){
+        const du = await urlToDataURL(gc.dataset.direct);
+        if (du){ gcPrev = gc.src; gc.src = du; await new Promise(r=>{ if(gc.complete && gc.naturalWidth) r(); else { gc.onload=r; gc.onerror=r; } }); }
+      }
       const cv = await html2canvas(art, { scale:2, useCORS:true, backgroundColor:'#ffffff' });
+      if (gcPrev !== null) gc.src = gcPrev;
       const a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = '公众号文章长图_'+stamp+'.png'; a.click();
       const title = $('#gzhTitle').textContent.trim();
       const body = [...$('#gzhBody').children].map(el=>el.textContent.trim()).filter(Boolean).join('\n\n');
