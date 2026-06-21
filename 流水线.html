@@ -481,6 +481,13 @@ function outputHTML(st) {
 }
 
 function imgSrc(u) { return (u || '').startsWith('data:') ? u : '/api/img-proxy?u=' + encodeURIComponent(u); }
+/* <img> 用：默认走同源代理（解决小红书图防盗链 + 导出 PNG 同源），
+   一旦代理回源失败（如 ark/可灵签名图服务器拉不到、403、超时）→ onerror 自动退回直连原图，保证一定能显示。*/
+function imgAttr(u) {
+  if ((u || '').startsWith('data:')) return `src="${u}"`;
+  const direct = String(u).replace(/"/g, '&quot;');
+  return `src="${imgSrc(u)}" data-direct="${direct}" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.dataset.direct}"`;
+}
 
 // 把一张图的叠字（标题+内容）渲染成干净的信息卡覆盖层，版式跟随 layout
 function asStr(x) { return typeof x === 'string' ? x : (x == null ? '' : (x.text || x.title || x.content || (Array.isArray(x) ? x.join(' ') : String(x)))); }
@@ -515,7 +522,7 @@ function renderCoverImages() {
   const caps = state.coverCaptions || [];
   box.innerHTML = '<div class="flex flex-wrap gap-3 items-start">' + imgs.map((u, i) => `
     <div style="position:relative">
-      <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') || (u || '').startsWith('ctpl://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('ctpl://') ? coverTemplateHTML(u.slice(7)) : (u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : (caps[i] && caps[i].raw) ? `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>` : `<img src="${imgSrc(u)}" alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
+      <div class="cv-frame ${(u || '').startsWith('tpl://') || (u || '').startsWith('note://') || (u || '').startsWith('ctpl://') ? 'tpl' : ''}" ${(u || '').startsWith('note://') ? 'data-note="' + (+u.slice(7)) + '" title="点击放大"' : ''} style="width:156px${(u || '').startsWith('note://') ? ';cursor:zoom-in' : ''}">${(u || '').startsWith('ctpl://') ? coverTemplateHTML(u.slice(7)) : (u || '').startsWith('note://') ? noteCardHTML((state.notePages || [])[+u.slice(7)]) : (u || '').startsWith('tpl://') ? `<div class="cv-tpl t${i % 4}"></div>${capCardHTML(caps[i], i === 0, coverFallback)}` : (caps[i] && caps[i].raw) ? `<img ${imgAttr(u)} alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>` : `<img ${imgAttr(u)} alt="${i === 0 ? '封面' : '配图'}" class="zoomable" style="cursor:zoom-in"/>${capTheme(caps[i]) === 'poster' ? '' : '<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i === 0, coverFallback)}`}</div>
       <span class="ci-del" data-i="${i}" style="position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">✕</span>
       <div class="mt-1 flex flex-col items-center gap-1" style="width:156px">
         <span class="text-[10px] text-[var(--ink-soft)]">${i === 0 ? '封面' : '配图 ' + i}</span>
@@ -1311,10 +1318,10 @@ function renderGzhCover() {
   const u = (state.coverImages || [])[0];
   if (!u) { w.innerHTML = ''; return; }
   w.innerHTML = `<div style="position:relative;width:100%;max-width:520px;aspect-ratio:2.35/1;border-radius:10px;overflow:hidden;border:1px solid var(--line)">
-      <img src="${imgSrc(u)}" style="width:100%;height:100%;object-fit:cover;display:block" alt="公众号首图"/>
+      <img ${imgAttr(u)} style="width:100%;height:100%;object-fit:cover;display:block" alt="公众号首图"/>
       <button id="gzhCoverDel" title="删除重做" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:999px;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:12px">✕</button>
     </div>
-    <a href="${imgSrc(u)}" download="公众号首图.png" style="color:var(--cinnabar);display:inline-block;margin-top:6px;font-size:11px">⬇ 下载首图</a>`;
+    <a href="${u}" target="_blank" rel="noopener" download="公众号首图.png" style="color:var(--cinnabar);display:inline-block;margin-top:6px;font-size:11px">⬇ 下载首图</a>`;
   $('#gzhCoverDel')?.addEventListener('click', () => { state.coverImages = []; state.coverImage = ''; persist(); renderGzhCover(); });
 }
 async function genGzhCover() {
