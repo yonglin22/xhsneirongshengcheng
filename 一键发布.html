@@ -85,6 +85,12 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
   else if(id==='split') inner=`<div class="ct-img"></div><div class="ct-cap">${tt}${ss}</div>`;
   else if(id==='grid') inner=`<div class="ct-kicker"><span>VERTICAL</span><span>NO.01</span></div>${tt}${ss}`;
   else if(id==='clash') inner=`<div class="ct-top">${tt}</div>${ss}`;
+  else if(id==='frame') inner=`<div class="ct-corner tl"></div><div class="ct-corner tr"></div><div class="ct-corner bl"></div><div class="ct-corner br"></div>${tt}${ss}`;
+  else if(id==='ribbon') inner=`<div class="ct-ribbon">${memoDateStr().split(' ')[0]}</div>${tt}${ss}`;
+  else if(id==='stamp') inner=`<div class="ct-stamp">精选</div>${tt}${ss}<div class="ct-foot">朱砂·操盘台 · NO.01</div>`;
+  else if(id==='ticket') inner=`<div class="ct-tkhead"><span>BOARDING</span><span>VIP</span></div>${tt}${ss}<div class="ct-tkhole"></div>`;
+  else if(id==='neon') inner=`${tt}${ss}`;
+  else if(id==='paper') inner=`<div class="ct-papertape"></div>${tt}${ss}`;
   else inner=`${tt}${ss}`;
   return `<div class="cv-ctpl ctpl-${id} ${adj}" style="${vars}">${inner}</div>`;
 }
@@ -129,30 +135,50 @@ $('#extPubBtn').addEventListener('click', async ()=>{
   btn.disabled=false; btn.textContent=o;
 });
 window.addEventListener('message', e=>{ if(e.source===window && e.data && e.data.type==='ZHUSHA_PUBLISH_ACK'){ $('#pubStatus').textContent=(e.data.ok?'✓ ':'✗ ')+(e.data.msg||''); $('#pubStatus').style.color=e.data.ok?'#00a152':'var(--cinnabar-deep)'; } });
+async // 把一篇成稿数据装进 WORK（草稿/云端历史共用）
+function buildWORK(data, id){
+  const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
+  return { id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[] };
+}
+function loadDraft(){ try{ return JSON.parse(localStorage.getItem('ag_draft')||'{}'); }catch{ return {}; } }
 async function loadWorks(){
   const j = await (await fetch('/api/history')).json();
   const list = ((j&&j.list)||[]).filter(w=>w.platform!=='gzh'); // 发布到小红书草稿箱，仅列小红书成稿
-  $('#works').innerHTML = list.length ? list.map(w=>`
+  // 本地草稿 = 刚在「创作流水线」编辑/出图的这篇（同步写入，永远最新；云端历史可能因防抖/未刷新而滞后，导致少图）
+  const draft = loadDraft();
+  const draftImgs = (draft.coverImages||(draft.coverImage?[draft.coverImage]:[])).filter(Boolean).length;
+  const draftHtml = draftImgs ? `
+    <label class="flex items-center gap-2.5" style="border:1.5px solid var(--cinnabar);border-radius:10px;padding:9px 11px;cursor:pointer;background:rgba(255,36,66,.04)" data-id="__draft__">
+      <input type="radio" name="wk" value="__draft__" checked style="width:15px;height:15px"/>
+      <span style="flex:1;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 当前编辑中这篇（最新 · ${draftImgs} 张图）${(draft.topic||'').trim()?'：'+(draft.topic||'').trim().replace(/</g,'&lt;'):''}</span>
+      <span style="font-size:10px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:1px 6px">推荐</span>
+    </label>` : '';
+  $('#works').innerHTML = draftHtml + (list.length ? list.map(w=>`
     <label class="flex items-center gap-2.5" style="border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer" data-id="${w.id}">
       <input type="radio" name="wk" value="${w.id}" style="width:15px;height:15px"/>
       <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(w.topic||'（未命名）').replace(/</g,'&lt;')}</span>
       <span style="font-size:10px;color:#fff;background:${w.platform==='gzh'?'#07c160':'#ff2442'};border-radius:6px;padding:1px 6px">${w.platform==='gzh'?'公众号':'小红书'}</span>
       <span style="font-size:11px;color:var(--ink-soft)">${fmtD(w.ts)}</span>
-    </label>`).join('') : '<div class="text-[13px] text-[var(--ink-soft)] text-center py-6">还没有成稿，先去创作流水线生成。</div>';
+    </label>`).join('') : (draftHtml?'':'<div class="text-[13px] text-[var(--ink-soft)] text-center py-6">还没有成稿，先去创作流水线生成。</div>'));
+  function setStatus(WORK){
+    const n=(WORK.coverImages||[]).filter(u=>/^https?:\/\//.test(u)||/^(note|ctpl):\/\//.test(u)).length;
+    $('#pubStatus').textContent = `✓ 已选「${(WORK.title||'').slice(0,16)}」· 共 ${n} 张图（CSS 卡发布时自动转 PNG）`;
+    $('#pubStatus').style.color = n? '#00a152':'var(--cinnabar-deep)';
+  }
   $$('#works input[name=wk]').forEach(r=>r.addEventListener('change', async e=>{
-    const id=e.target.value; WORK=null; $('#pubStatus').textContent='读取成稿…'; $('#pubStatus').style.color='var(--ink-soft)';
+    const id=e.target.value; WORK=null;
+    if(id==='__draft__'){ WORK=buildWORK(loadDraft(), '__draft__'); setStatus(WORK); return; }
+    $('#pubStatus').textContent='读取成稿…'; $('#pubStatus').style.color='var(--ink-soft)';
     const t0=Date.now(); const tk=setInterval(()=>{ if(!WORK) $('#pubStatus').textContent='读取成稿…（'+Math.round((Date.now()-t0)/1000)+'s，数据较大请稍候）'; },1500);
     try{
       const resp=await fetch('/api/history/get?light=1&id='+encodeURIComponent(id),{ signal:AbortSignal.timeout(30000) });
       const d=await resp.json(); clearInterval(tk);
       const data=(d&&d.data)||d||{};
-      const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
-      WORK={ id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[] };
-      const n=raw.filter(u=>/^https?:\/\//.test(u)||/^(note|ctpl):\/\//.test(u)).length;
-      $('#pubStatus').textContent = `✓ 已选「${(WORK.title||'').slice(0,16)}」· 共 ${n} 张图（CSS 卡发布时自动转 PNG）`;
-      $('#pubStatus').style.color = n? '#00a152':'var(--cinnabar-deep)';
+      WORK=buildWORK(data, id); setStatus(WORK);
     }catch(err){ clearInterval(tk); $('#pubStatus').textContent='读取成稿失败：'+((err&&err.name==='TimeoutError')?'超时（数据过大），请重试或换一篇':(err.message||err)); $('#pubStatus').style.color='var(--cinnabar-deep)'; }
   }));
+  // 默认选中本地草稿这篇（最新、图最全），免得用户误发到滞后的云端旧版
+  if(draftImgs){ WORK=buildWORK(loadDraft(), '__draft__'); setStatus(WORK); }
 }
 loadWorks();
 </script>
