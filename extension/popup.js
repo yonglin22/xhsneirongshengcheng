@@ -45,28 +45,6 @@ async function runPlanFromPopup(p, btn) {
 document.getElementById('planRefresh').addEventListener('click', fetchPlans);
 fetchPlans();
 
-// 抓取自检：直接在插件内部跑一次真实抓取，把结果/失败原因明明白白显示出来（绕开网页那条链路）
-document.getElementById('selfTest').addEventListener('click', () => {
-  const btn = document.getElementById('selfTest'), out = document.getElementById('selfTestOut');
-  btn.disabled = true; btn.textContent = '抓取中…（约 10~30 秒，会闪开一个搜索页）';
-  out.style.color = '#444'; out.textContent = '正在打开小红书搜索页并提取笔记…';
-  const t0 = Date.now();
-  chrome.runtime.sendMessage({ type: 'xhsSearch', keyword: '美术考研', sort: 'popular', type: 'all' }, (resp) => {
-    btn.disabled = false; btn.textContent = '▶ 再测一次';
-    const secs = ((Date.now() - t0) / 1000).toFixed(1);
-    if (chrome.runtime.lastError) { out.style.color = '#e0353a'; out.textContent = '✗ 后台无响应：' + chrome.runtime.lastError.message + '（用时 ' + secs + 's）'; return; }
-    if (!resp) { out.style.color = '#e0353a'; out.textContent = '✗ 空响应（用时 ' + secs + 's）'; return; }
-    if (resp.needLogin) { out.style.color = '#e0883a'; out.textContent = '⚠ 检测到未登录小红书。请先在 Chrome 里打开 xiaohongshu.com 登录，再点这里重测。（用时 ' + secs + 's）'; return; }
-    if (resp.ok && resp.notes && resp.notes.length) {
-      out.style.color = '#00a152';
-      out.innerHTML = '✓ 成功抓到 <b>' + resp.notes.length + '</b> 篇（用时 ' + secs + 's）。抓取链路正常，网页端「抓约20篇」可用。<br>示例：' + escH2((resp.notes[0].title || '').slice(0, 30)) + '…';
-      return;
-    }
-    out.style.color = '#e0353a';
-    out.textContent = '✗ 没抓到（用时 ' + secs + 's）。原因：' + (resp.error || '页面已开但没解析到笔记，可能小红书改版或被风控') + '。可在 chrome://extensions 给本插件点「服务工作进程」看后台日志。';
-  });
-});
-
 // 待发私信草稿：列出 + 复制话术 + 去对方主页（人工确认发送，插件不自动私信）
 function escH(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function renderDM() {
