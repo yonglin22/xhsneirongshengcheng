@@ -24,9 +24,8 @@
   .hm-track{ display:flex; transition:transform .5s cubic-bezier(.22,.7,.2,1); }
   .hm-slide{ flex:0 0 100%; min-width:0; cursor:pointer; }
   .hm-slide .hm-hero{ height:100%; }
-  .hm-hero-invite{ background:linear-gradient(120deg,var(--paper),var(--gold-bg)) !important; }
-  .hm-hero-pay{ background:linear-gradient(120deg,var(--paper),#eaf1fb) !important; }
-  html[data-theme="dark"] .hm-hero-pay{ background:linear-gradient(120deg,var(--paper-2),#1b2230) !important; }
+  .hm-hero-invite{ background:linear-gradient(120deg,var(--paper),var(--tint)) !important; }
+  .hm-hero-pay{ background:linear-gradient(120deg,var(--paper),var(--tint)) !important; }
   .hm-dots{ position:absolute; bottom:12px; left:0; right:0; display:flex; gap:6px; justify-content:center; z-index:3; }
   .hm-dots i{ width:8px; height:8px; border-radius:999px; background:rgba(120,120,120,.28); cursor:pointer; transition:.22s; }
   .hm-dots i.on{ background:var(--cinnabar); width:20px; }
@@ -120,7 +119,7 @@
       <!-- Slide 2 · 邀请有礼 -->
       <div class="hm-slide" data-href="/邀请有礼.html"><div class="hm-hero hm-hero-invite">
         <div class="hm-hero-l">
-          <div class="hm-kick" style="color:var(--gold)">🎁 邀请有礼</div>
+          <div class="hm-kick">🎁 邀请有礼</div>
           <h1 class="hm-h1">邀请好友，<span style="color:var(--cinnabar)">好友得 200 · 你得 100</span></h1>
           <p class="hm-sub">好友通过你的链接注册：好友得 200 积分、你得 100 积分；好友首充你再返 10%。单级 · 仅积分 · 不可提现 · 每日封顶防刷。</p>
           <div class="hm-acts">
@@ -178,8 +177,8 @@
       <div class="font-song font-bold text-[16px] mb-1">成稿预览</div>
       <p class="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">真实小红书排版，一键导出图文包。</p>
     </a>
-    <a href="/一键发布.html" class="card p-5 block group" style="transition:.18s;border-color:rgba(255,138,0,.35)">
-      <div class="flex items-center justify-between mb-2"><span class="stamp text-[11px] px-2 py-1 leading-none" style="background:linear-gradient(180deg,#ffb02e,#ff8a00)">获客</span><span class="text-[var(--ink-soft)] group-hover:translate-x-1 transition">→</span></div>
+    <a href="/一键发布.html" class="card p-5 block group" style="transition:.18s">
+      <div class="flex items-center justify-between mb-2"><span class="stamp text-[11px] px-2 py-1 leading-none">获客</span><span class="text-[var(--ink-soft)] group-hover:translate-x-1 transition">→</span></div>
       <div class="font-song font-bold text-[16px] mb-1">🚀 一键发布</div>
       <p class="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">选成稿 → 选矩阵账号 → 一键推到小红书草稿箱。</p>
     </a>
