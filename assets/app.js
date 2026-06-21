@@ -15,6 +15,25 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
   } catch (e) {}
 })();
 
+/* 站内导航预热：多页应用每次点链接都是整页重新加载（重下 HTML/CSS/JS），在高延迟网络下
+   「返回工作台/账号矩阵」这类跳转会感觉很卡。鼠标悬停/触屏按下时就提前用 <link rel=prefetch>
+   把目标页面预取进浏览器缓存，真正点击时往往已经命中缓存，体感秒开。 */
+(function () {
+  const done = new Set();
+  function warm(href) {
+    if (!href || done.has(href)) return; done.add(href);
+    const l = document.createElement('link'); l.rel = 'prefetch'; l.href = href; document.head.appendChild(l);
+  }
+  function onIntent(e) {
+    const a = e.target.closest && e.target.closest('a[href]'); if (!a) return;
+    const href = a.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('//') || a.target === '_blank') return;
+    warm(href);
+  }
+  document.addEventListener('mouseover', onIntent, { passive: true });
+  document.addEventListener('touchstart', onIntent, { passive: true });
+})();
+
 /* 全站共享的 /api/auth/me 请求：同一次页面加载内，登录守卫/顶栏/Cloud 各自都要查登录态，
    不去重会变成 3 个并发请求打到同一个接口，在高延迟网络下白白多等几百 ms 到几秒。
    force=true 用于登录/退出/充值后需要拿最新余额的场景。*/

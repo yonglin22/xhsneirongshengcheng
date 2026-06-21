@@ -63,7 +63,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=41"></script>
+<script src="/assets/app.js?v=42"></script>
 <script>
 const $ = s => document.querySelector(s);
 // 主题切换：已由全局外壳（app.js）统一处理，此处移除
@@ -84,8 +84,17 @@ async function refreshHealth() {
   return j.billing;
 }
 const RECO = { basic: '🔥 最划算', exp: '👍 新人首选' };  // 套餐推荐角标
-async function loadPacks() {
-  const { j } = await api('/api/price'); if (!j.ok) return;
+async function loadPacks(retried) {
+  let r;
+  try { r = await api('/api/price'); } catch { r = { j: {} }; }
+  const j = r.j || {};
+  if (!j.ok) {
+    // 接口偶发失败（网络抖动）时不要一直空白：自动重试一次，仍失败给出可点的重试按钮
+    if (!retried) { setTimeout(() => loadPacks(true), 1200); return; }
+    $('#packs').innerHTML = `<div class="text-[13px] text-[var(--ink-soft)] p-4 text-center" style="grid-column:1/-1">套餐加载失败，可能是网络较慢 <button id="retryPacks" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px] ml-2">重试</button></div>`;
+    $('#retryPacks')?.addEventListener('click', () => loadPacks());
+    return;
+  }
   // 排序：可购套餐按价格升序在前，已购（限购用尽）沉底
   PACKS = (j.packs || []).slice().sort((a, b) => (a.used ? 1 : 0) - (b.used ? 1 : 0) || a.cny - b.cny);
   $('#packs').innerHTML = PACKS.map(p => p.used
