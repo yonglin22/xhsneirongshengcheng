@@ -94,7 +94,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=44"></script>
+<script src="/assets/app.js?v=45"></script>
 <script>
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
@@ -1619,12 +1619,15 @@ function renderFinder(d) {
             <option value="0" ${benchWindow === 0 ? 'selected' : ''}>📅 全部</option>
           </select>
           <span id="benchStatus" class="text-[11px] text-[var(--ink-soft)] basis-full"></span>
+          <span id="extHint" class="text-[11px] basis-full" style="display:none;color:#c97200">💡 装「小红书采集插件」后，用你自己的账号抓真实笔记，<b>不限次、不弹验证码</b>。<a href="/帮助.html#caiji" style="color:var(--cinnabar-deep);text-decoration:underline">怎么装 →</a></span>
         </div>
         <div id="benchList"></div>
       </div>
     </div>
   </div>`;
   const gb = $('#grabBench'); if (gb) gb.addEventListener('click', () => grabBenchmarkNotes(searches));
+  // 未装插件时提示可装插件用自己账号抓（不限次）；装了就隐藏
+  const eh = $('#extHint'); if (eh) { const upd = () => { eh.style.display = (window.xhsExt && window.xhsExt.available) ? 'none' : ''; }; upd(); window.addEventListener('xhsext-ready', upd); }
   const bfs = $('#benchFetchSort'); if (bfs) bfs.addEventListener('change', () => { benchFetchSort = bfs.value; });
   const bft = $('#benchFetchType'); if (bft) bft.addEventListener('change', () => { benchFetchType = bft.value; });
   const tg = $('#fdKwToggle'); if (tg) tg.addEventListener('click', () => { benchKwCollapsed = !benchKwCollapsed; renderFinder(d); if (benchNotes.length) renderBenchNotes(); });
@@ -1682,7 +1685,14 @@ async function grabBenchmarkNotes(searches) {
   for (let i = 0; i < kws.length && all.length < 20; i++) {
     if (st) st.textContent = `正在抓「${kws[i]}」…（已得 ${all.length} 篇，约需 10~30 秒/词，请稍候）`;
     try {
-      let j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: benchFetchSort, type: benchFetchType }) })).json();
+      let j;
+      if (window.xhsExt && window.xhsExt.available) {
+        // 装了插件：用用户自己登录的小红书账号在本机抓（不限次、不被机房IP风控）
+        j = await window.xhsExt.search(kws[i], benchFetchSort, benchFetchType);
+        if (j && j.needLogin) { if (st) st.textContent = '⚠ 请先在浏览器里登录小红书，再回来抓（插件用你自己的账号，不限次）'; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
+      } else {
+        j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: benchFetchSort, type: benchFetchType }) })).json();
+      }
       // 命中每日抓取上限 → 停止并友好提示
       if (j.limited) { if (st) st.textContent = '⚠ ' + j.error; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
       // 线上没有 xhs CLI（ENOENT/未找到 xhs 命令）→ 回退到直连搜索 /api/search（需配 XHS_COOKIE 才有结果）

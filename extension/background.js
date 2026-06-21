@@ -1,6 +1,96 @@
 // 后台中转：朱砂页面 → 小红书创作页
 let pending = null; // { title, body, images }
 
+// ===== 抓对标：用用户自己登录的小红书，在后台开搜索页抓真实笔记（不限次、不被机房IP风控）=====
+function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function _waitTabComplete(tabId, timeout) {
+  return new Promise((resolve) => {
+    let done = false;
+    const fin = (v) => { if (!done) { done = true; clearTimeout(to); try { chrome.tabs.onUpdated.removeListener(fn); } catch {} resolve(v); } };
+    const to = setTimeout(() => fin(false), timeout || 20000);
+    const fn = (id, info) => { if (id === tabId && info.status === 'complete') fin(true); };
+    chrome.tabs.onUpdated.addListener(fn);
+    chrome.tabs.get(tabId, t => { if (t && t.status === 'complete') fin(true); });
+  });
+}
+// 运行在小红书页面「主世界」里：能读 window.__INITIAL_STATE__ 和 DOM，提取真实笔记
+function _pageExtract() {
+  const notes = [], seen = new Set();
+  try {
+    (function walk(o) {
+      if (!o || typeof o !== 'object' || notes.length >= 24) return;
+      if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+      const nc = o.noteCard || o.note_card;
+      if (nc && (o.id || nc.noteId || nc.note_id)) {
+        const id = o.id || nc.noteId || nc.note_id;
+        if (!seen.has(id)) {
+          seen.add(id);
+          const ii = nc.interactInfo || nc.interact_info || {}, u = nc.user || {};
+          const token = nc.xsecToken || o.xsecToken || nc.xsec_token || '';
+          notes.push({
+            id, token,
+            title: nc.displayTitle || nc.display_title || nc.title || '',
+            cover: (nc.cover && (nc.cover.urlDefault || nc.cover.url_default || nc.cover.url)) || '',
+            author: u.nickname || u.nickName || '', userId: u.userId || u.user_id || '',
+            likes: ii.likedCount || ii.liked_count || '', collects: ii.collectedCount || ii.collected_count || '', comments: ii.commentCount || ii.comment_count || '',
+            link: 'https://www.xiaohongshu.com/explore/' + id + (token ? ('?xsec_token=' + token + '&xsec_source=pc_search') : ''),
+            authorLink: (u.userId || u.user_id) ? ('https://www.xiaohongshu.com/user/profile/' + (u.userId || u.user_id)) : '',
+          });
+        }
+        return;
+      }
+      for (const k in o) walk(o[k]);
+    })(window.__INITIAL_STATE__);
+  } catch (e) {}
+  if (!notes.length) { // 兜底：直接扒 DOM 里的笔记卡片
+    try {
+      for (const a of document.querySelectorAll('a[href*="/explore/"],a[href*="/search_result/"],a[href*="/discovery/item/"]')) {
+        const href = a.getAttribute('href') || '';
+        const m = href.match(/\/(?:explore|search_result|discovery\/item)\/([0-9a-zA-Z]+)/); if (!m) continue;
+        const id = m[1]; if (seen.has(id)) continue; seen.add(id);
+        const card = a.closest('section,.note-item,[class*="note"]') || a;
+        const img = card.querySelector('img'); const titleEl = card.querySelector('[class*="title"],.title');
+        const nameEl = card.querySelector('[class*="name"],[class*="author"]'); const cntEl = card.querySelector('[class*="count"],[class*="like"]');
+        const tm = href.match(/xsec_token=([^&]+)/);
+        notes.push({
+          id, token: tm ? decodeURIComponent(tm[1]) : '',
+          title: (titleEl ? titleEl.textContent : '').trim().slice(0, 80),
+          cover: img ? (img.getAttribute('src') || img.getAttribute('data-src') || '') : '',
+          author: (nameEl ? nameEl.textContent : '').trim(), userId: '',
+          likes: (cntEl ? cntEl.textContent : '').trim(), collects: '', comments: '',
+          link: href.startsWith('http') ? href : ('https://www.xiaohongshu.com' + (href.startsWith('/') ? href : '/' + href)),
+          authorLink: '',
+        });
+        if (notes.length >= 24) break;
+      }
+    } catch (e) {}
+  }
+  let needLogin = false;
+  try { const t = (document.body && document.body.innerText || '').slice(0, 800); if (notes.length === 0 && /(扫码登录|手机号登录|登录后查看|新用户登录|立即登录)/.test(t)) needLogin = true; } catch {}
+  return { notes: notes.slice(0, 20), needLogin };
+}
+async function xhsSearch(keyword, sort, type) {
+  if (!keyword) return { ok: false, error: '缺少关键词' };
+  const url = 'https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(keyword)
+    + (type === 'video' ? '&type=video' : type === 'image' ? '&type=image' : '');
+  let tabId = null;
+  try {
+    const tab = await chrome.tabs.create({ url, active: false });
+    tabId = tab.id;
+    await _waitTabComplete(tabId, 20000);
+    let notes = [], needLogin = false;
+    for (let i = 0; i < 12; i++) { // SPA 异步出结果，轮询最多 ~14s
+      await _sleep(1200);
+      let res; try { res = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: _pageExtract }); } catch (e) { continue; }
+      const out = res && res[0] && res[0].result;
+      if (out) { if (out.needLogin) needLogin = true; if (out.notes && out.notes.length) { notes = out.notes; break; } }
+    }
+    return { ok: notes.length > 0, notes, needLogin };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  } finally { if (tabId != null) { try { await chrome.tabs.remove(tabId); } catch {} } }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'publish') {
     pending = msg.payload || null;
@@ -24,6 +114,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       chrome.tabs.create({ url, active: true });
       sendResponse({ ok: true, msg: '已打开小红书，开始执行养号计划' });
     });
+    return true;
+  }
+  if (msg && msg.type === 'xhsSearch') {
+    xhsSearch(msg.keyword, msg.sort, msg.type).then(sendResponse).catch(e => sendResponse({ ok: false, error: e.message || String(e) }));
     return true;
   }
   if (msg && msg.type === 'ping') { sendResponse({ ok: true }); return true; }

@@ -32,6 +32,32 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
   };
 })();
 
+/* 小红书对标采集插件桥接（复用「朱砂·小红书发布助手」插件）：
+   装了插件 + 在浏览器登录小红书后，抓对标走「用户自己的账号 + 住宅 IP」，不限次、不被机房 IP 风控。
+   插件 bridge.js 会向页面 postMessage 一个 {__zhusha_ext:'ready'}，据此判断可用；搜索请求走 postMessage 中转。 */
+(function () {
+  window.xhsExt = {
+    available: false, _pend: {}, _seq: 0,
+    search(keyword, sort, type) {
+      return new Promise((resolve) => {
+        const reqId = 'xs' + (++this._seq) + '_' + Date.now();
+        this._pend[reqId] = resolve;
+        window.postMessage({ type: 'ZHUSHA_XHS_SEARCH', keyword, sort, type, reqId }, '*');
+        setTimeout(() => { if (this._pend[reqId]) { const f = this._pend[reqId]; delete this._pend[reqId]; f({ ok: false, error: '插件无响应（请确认已在浏览器登录小红书）' }); } }, 45000);
+      });
+    }
+  };
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data) return;
+    if (e.data.__zhusha_ext === 'ready') { window.xhsExt.available = true; window.dispatchEvent(new Event('xhsext-ready')); }
+    if (e.data.type === 'ZHUSHA_XHS_SEARCH_ACK' && e.data.reqId && window.xhsExt._pend[e.data.reqId]) {
+      const f = window.xhsExt._pend[e.data.reqId]; delete window.xhsExt._pend[e.data.reqId];
+      f(e.data.result || { ok: false, error: '空响应' });
+    }
+  });
+  setTimeout(() => window.postMessage({ type: 'ZHUSHA_EXT_PING' }, '*'), 300); // 插件可能晚于本脚本注入，主动探一次
+})();
+
 /* 站内导航预热：多页应用每次点链接都是整页重新加载（重下 HTML/CSS/JS），在高延迟网络下
    「返回工作台/账号矩阵」这类跳转会感觉很卡。鼠标悬停/触屏按下时就提前用 <link rel=prefetch>
    把目标页面预取进浏览器缓存，真正点击时往往已经命中缓存，体感秒开。 */

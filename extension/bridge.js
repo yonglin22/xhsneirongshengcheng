@@ -25,6 +25,12 @@
         window.postMessage({ type: 'ZHUSHA_PUBLISH_ACK', ok: !!(resp && resp.ok), msg: (resp && resp.msg) || (chrome.runtime.lastError ? chrome.runtime.lastError.message : '') }, '*');
       });
     }
+    if (e.data.type === 'ZHUSHA_XHS_SEARCH') {
+      const { keyword, sort, type, reqId } = e.data;
+      chrome.runtime.sendMessage({ type: 'xhsSearch', keyword, sort, type }, (resp) => {
+        window.postMessage({ type: 'ZHUSHA_XHS_SEARCH_ACK', reqId, result: resp || { ok: false, error: chrome.runtime.lastError ? chrome.runtime.lastError.message : '插件无响应' } }, '*');
+      });
+    }
     if (e.data.type === 'ZHUSHA_NURTURE_PLAN') {
       const plan = e.data.plan || {};
       chrome.runtime.sendMessage({ type: 'nurturePlan', plan }, (resp) => {

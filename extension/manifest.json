@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "朱砂操盘台 · 小红书发布助手",
-  "version": "0.5.0",
-  "description": "把朱砂操盘台的成稿一键存入小红书草稿箱（在你本机浏览器、用你已登录的小红书，零风控）。",
+  "name": "朱砂操盘台 · 小红书采集&发布助手",
+  "version": "0.6.0",
+  "description": "用你本机已登录的小红书：①抓真实对标笔记（不限次、不被机房IP风控）②成稿一键存草稿箱。全程本机真实会话，零风控。",
   "permissions": ["tabs", "storage", "scripting"],
   "host_permissions": [
     "https://yonglin.chat/*",
