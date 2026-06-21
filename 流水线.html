@@ -161,8 +161,8 @@ const STEPS = [
 【选题】${s.topic}
 【框架(S3)】${s.frame || '（无，自行合理组织）'}
 要求：
-· 正文：开头前3行必须是钩子不铺垫；分点/分段、口语、emoji 适度；信息真实，涉及${getTrack().hardInfo}等硬信息一律写「需核实」；原创不与对标实质相似；结尾一句合规互动引导，不留任何联系方式。
-· 标题：给 3–5 个，≤20字、带钩子(痛点/数字/身份/悬念)，不标题党/不绝对化/不做上岸保证，并选出最推荐的一个。
+· 正文：开头前3行必须是钩子不铺垫；分点/分段、口语、emoji 适度；信息真实，涉及${getTrack().hardInfo}等硬信息一律写「需核实」；原创不与对标实质相似；结尾一句合规互动引导，不留任何联系方式。==正文 + 标签合计字数(含标签里的"#")不能超过1000字，请控制在800字以内留余量==。
+· 标题：给 3–5 个，==每个严格≤20字（含标点，超出算不合格，请数清楚字数再输出）==，带钩子(痛点/数字/身份/悬念)，不标题党/不绝对化/不做上岸保证，并选出最推荐的一个。
 · 标签：5–8 个，3 个大流量(如 ${getTrack().bigTags.join(' ')}) + 若干精准(细分/地域/痛点)，剔除凑数。
 只输出 JSON：{"body":["段落1","段落2","..."],"titles":["标题1","..."],"best":"最推荐标题","tags":["#标签1","..."]}` },
   { no:'S5', key:'cover', name:'封面·配图', type:'json',
@@ -1862,6 +1862,21 @@ async function analyzeRefImages() {
   } catch {}
 }
 
+// 小红书笔记硬约束：标题≤20字；正文+标签合计≤1000字。AI 偶有超长，这里兜底裁剪
+function enforceCopyLimits(st) {
+  st.titles = (st.titles || []).map(t => String(t || '').slice(0, 20));
+  st.best = String(st.best || '').slice(0, 20);
+  const tagsLen = () => (st.tags || []).join('').length;
+  const bodyLen = () => (st.body || []).join('').length;
+  while (bodyLen() + tagsLen() > 1000 && (st.tags || []).length > 5) st.tags.pop();
+  while (bodyLen() + tagsLen() > 1000 && st.body && st.body.length) {
+    const last = st.body[st.body.length - 1];
+    const over = bodyLen() + tagsLen() - 1000;
+    if (last.length > over) { st.body[st.body.length - 1] = last.slice(0, last.length - over); }
+    else { st.body.pop(); }
+  }
+}
+
 async function runStep(st) {
   // S2/S3 生成前：逐张视觉解析对标图组（不只封面，每张都解析）
   if ((st.key === 'skeleton' || st.key === 'frame') && (state.refImages || []).length && !(state.refVisions && state.refVisions.length)) {
@@ -1887,7 +1902,12 @@ async function runStep(st) {
   const txt = await callClaude({ prompt, model: $('#model').value, max_tokens: st.key === 'copy' ? 2600 : st.key === 'frame' ? 3200 : 1400, json: st.type === 'json', action: st.key });
   if (st.type === 'json') {
     const j = extractJSON(txt);
-    if (st.key === 'copy') { state.body = Array.isArray(j.body) ? j.body : String(j.body || '').split(/\n{2,}/).map(x => x.trim()).filter(Boolean); state.titles = j.titles || []; state.best = j.best || (j.titles || [])[0] || ''; state.tags = j.tags || []; if (j.summary !== undefined) state.summary = j.summary; }
+    if (st.key === 'copy') {
+      state.body = Array.isArray(j.body) ? j.body : String(j.body || '').split(/\n{2,}/).map(x => x.trim()).filter(Boolean);
+      state.titles = j.titles || []; state.best = j.best || (j.titles || [])[0] || ''; state.tags = j.tags || [];
+      if (j.summary !== undefined) state.summary = j.summary;
+      if (!isGzh()) { enforceCopyLimits(state); }
+    }
     else if (st.key === 'cover') state.cover = { cover_lines: j.cover_lines || [], visual: j.visual || '' };
   } else { state[st.key] = txt; }
   persist();
