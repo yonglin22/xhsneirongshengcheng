@@ -17,14 +17,17 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 /* 全站 fetch 兜底超时：很多页面各自手写 fetch('/api/...') 没加超时，弱网下请求挂住不返回，
    按钮/页面就会卡死在「加载中」且永不恢复（如手机端登录卡在「登录中…」）。这里统一拦截
-   window.fetch，凡是调用方没自带 signal 的请求，20s 还没结果就主动 abort，让上层 catch/then
-   走到失败分支而不是无限等待。 */
+   window.fetch，凡是调用方没自带 signal 的请求，超时还没结果就主动 abort，让上层 catch/then
+   走到失败分支而不是无限等待。
+   ⚠ 兜底超时必须设得足够长（120s）：抓取真实对标(/api/xhs-search 50~55s)、AI 出图/成稿等都是
+   合理的慢操作，超时太短会把它们误判成失败（如对标「没抓到」）。需要快超时的页面（登录/充值/
+   账户/管理 等）各自传了显式 signal，会走上面的分支、不受这里影响。 */
 (function () {
   const _fetch = window.fetch.bind(window);
   window.fetch = function (input, init) {
     if (init && init.signal) return _fetch(input, init); // 调用方已自带 signal，不重复包一层
     const ctl = new AbortController();
-    const to = setTimeout(() => ctl.abort(), 20000);
+    const to = setTimeout(() => ctl.abort(), 120000);
     return _fetch(input, { ...(init || {}), signal: ctl.signal }).finally(() => clearTimeout(to));
   };
 })();
