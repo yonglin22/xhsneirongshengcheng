@@ -393,7 +393,8 @@ const server = http.createServer(async (req, res) => {
     const u = url.searchParams.get('u');
     if (!u || !/^https?:\/\//i.test(u)) return send(res, 400, 'missing or bad url');
     try {
-      const up = await fetch(u);
+      const up = await fetch(u, { signal: AbortSignal.timeout(20000), headers: { 'user-agent': 'Mozilla/5.0' } });
+      if (!up.ok) return send(res, 502, 'proxy failed: upstream ' + up.status);
       const buf = Buffer.from(await up.arrayBuffer());
       res.writeHead(up.status, { 'content-type': up.headers.get('content-type') || 'image/png', 'cache-control': 'public, max-age=3600' });
       res.end(buf);
