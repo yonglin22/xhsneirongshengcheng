@@ -42,7 +42,7 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
       return new Promise((resolve) => {
         const reqId = 'xs' + (++this._seq) + '_' + Date.now();
         this._pend[reqId] = resolve;
-        window.postMessage({ type: 'ZHUSHA_XHS_SEARCH', keyword, sort, type, reqId }, '*');
+        window.postMessage({ type: 'ZHUSHA_XHS_SEARCH', keyword, sort, searchType: type, reqId }, '*'); // 注意：搜索筛选类型用 searchType，不能叫 type，否则会覆盖消息本身的 type 字段
         setTimeout(() => { if (this._pend[reqId]) { const f = this._pend[reqId]; delete this._pend[reqId]; f({ ok: false, error: '插件无响应（请确认已在浏览器登录小红书）' }); } }, 70000);
       });
     }

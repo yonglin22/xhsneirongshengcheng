@@ -145,7 +145,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // 立刻回执（不让发起方的长连接挂 40+ 秒、避免端口被回收），抓完后用 tabs.sendMessage 把结果“推”回发起页。
     const reqId = msg.reqId, tabId = sender && sender.tab && sender.tab.id;
     const push = (result) => { if (tabId != null) { try { chrome.tabs.sendMessage(tabId, { type: 'xhsSearchResult', reqId, result }, () => void chrome.runtime.lastError); } catch {} } };
-    xhsSearch(msg.keyword, msg.sort, msg.type).then(push).catch(e => push({ ok: false, error: e.message || String(e) }));
+    xhsSearch(msg.keyword, msg.sort, msg.searchType).then(push).catch(e => push({ ok: false, error: e.message || String(e) }));
     try { sendResponse({ ok: true, started: true }); } catch {}
     return true;
   }
