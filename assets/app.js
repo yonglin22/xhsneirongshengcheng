@@ -45,12 +45,21 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
         window.postMessage({ type: 'ZHUSHA_XHS_SEARCH', keyword, sort, searchType: type, reqId }, '*'); // 注意：搜索筛选类型用 searchType，不能叫 type，否则会覆盖消息本身的 type 字段
         setTimeout(() => { if (this._pend[reqId]) { const f = this._pend[reqId]; delete this._pend[reqId]; f({ ok: false, error: '插件无响应（请确认已在浏览器登录小红书）' }); } }, 70000);
       });
+    },
+    // 用本机登录会话抓单篇笔记正文（不走服务器，绕开机房IP反爬/token失效）
+    fetchNote(url) {
+      return new Promise((resolve) => {
+        const reqId = 'xn' + (++this._seq) + '_' + Date.now();
+        this._pend[reqId] = resolve;
+        window.postMessage({ type: 'ZHUSHA_XHS_FETCH_NOTE', url, reqId }, '*');
+        setTimeout(() => { if (this._pend[reqId]) { const f = this._pend[reqId]; delete this._pend[reqId]; f({ ok: false, error: '插件无响应（请确认已在浏览器登录小红书）' }); } }, 70000);
+      });
     }
   };
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data) return;
     if (e.data.__zhusha_ext === 'ready') { window.xhsExt.available = true; window.dispatchEvent(new Event('xhsext-ready')); }
-    if (e.data.type === 'ZHUSHA_XHS_SEARCH_ACK' && e.data.reqId && window.xhsExt._pend[e.data.reqId]) {
+    if ((e.data.type === 'ZHUSHA_XHS_SEARCH_ACK' || e.data.type === 'ZHUSHA_XHS_FETCH_NOTE_ACK') && e.data.reqId && window.xhsExt._pend[e.data.reqId]) {
       const f = window.xhsExt._pend[e.data.reqId]; delete window.xhsExt._pend[e.data.reqId];
       f(e.data.result || { ok: false, error: '空响应' });
     }

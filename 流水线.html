@@ -94,7 +94,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=46"></script>
+<script src="/assets/app.js?v=47"></script>
 <script>
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
@@ -1452,7 +1452,17 @@ function renderPanel() {
       return;
     }
     try {
-      const j = await (await fetch('/api/fetch-note', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ url }) })).json();
+      // 优先走插件：用本机已登录会话打开笔记读正文，绕开机房IP反爬/token失效（服务器直抓会"链接已失效"）
+      let j;
+      if (window.xhsExt && window.xhsExt.available) {
+        fs.textContent = '正在用插件抓取笔记正文（本机会话，约 10~25 秒）…';
+        j = await window.xhsExt.fetchNote(url);
+        if (j && j.needLogin) { fs.style.color = 'var(--cinnabar-deep)'; fs.textContent = '⚠ 请先在浏览器登录小红书后重试'; fetchNote.disabled = false; fetchNote.textContent = o; return; }
+        // 插件没抓到（链接失效/改版）再退回服务器试一把
+        if (!j || !j.ok) j = await (await fetch('/api/fetch-note', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ url }) })).json();
+      } else {
+        j = await (await fetch('/api/fetch-note', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ url }) })).json();
+      }
       if (j.ok) {
         const tagStr = (j.tags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
         const txt = [j.title, j.content, tagStr].filter(Boolean).join('\n\n');

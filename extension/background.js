@@ -27,8 +27,12 @@ function _pageExtract() {
           seen.add(id);
           const ii = nc.interactInfo || nc.interact_info || {}, u = nc.user || {};
           const token = nc.xsecToken || o.xsecToken || nc.xsec_token || '';
+          // 发布时间：搜索页常没有；有才取（毫秒时间戳/字符串），转 YYYY-MM-DD 供前端时间窗筛选/按最新排序，绝不编造
+          const ts = nc.time || nc.publishTime || nc.publish_time || o.time || 0;
+          let date = '';
+          try { if (ts) { const d = new Date(typeof ts === 'number' ? ts : (Number(ts) || ts)); if (!isNaN(d.getTime())) date = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } } catch {}
           notes.push({
-            id, token,
+            id, token, date,
             title: nc.displayTitle || nc.display_title || nc.title || '',
             cover: (nc.cover && (nc.cover.urlDefault || nc.cover.url_default || nc.cover.url)) || '',
             author: u.nickname || u.nickName || '', userId: u.userId || u.user_id || '',
@@ -68,6 +72,78 @@ function _pageExtract() {
   let needLogin = false;
   try { const t = (document.body && document.body.innerText || '').slice(0, 800); if (notes.length === 0 && /(扫码登录|手机号登录|登录后查看|新用户登录|立即登录)/.test(t)) needLogin = true; } catch {}
   return { notes: notes.slice(0, 20), needLogin };
+}
+// 运行在小红书笔记详情页「主世界」：读 window.__INITIAL_STATE__ 的 noteDetailMap 取单篇正文/图/标签
+function _noteExtract() {
+  let out = null;
+  try {
+    const st = window.__INITIAL_STATE__ || {};
+    let map = null;
+    (function find(o, depth) {
+      if (out || !o || typeof o !== 'object' || depth > 8) return;
+      if (o.noteDetailMap || o.note_detail_map) { map = o.noteDetailMap || o.note_detail_map; }
+      if (map) {
+        for (const k in map) {
+          const nd = map[k] && (map[k].note || map[k]); if (!nd) continue;
+          if (nd.title != null || nd.desc != null) {
+            const ii = nd.interactInfo || nd.interact_info || {}, u = nd.user || {};
+            const imgs = (nd.imageList || nd.image_list || []).map(im => (im && (im.urlDefault || im.url_default || im.url || (im.infoList && im.infoList[0] && im.infoList[0].url))) || '').filter(Boolean);
+            const tags = (nd.tagList || nd.tag_list || []).map(t => (t && (t.name || t.text)) || '').filter(Boolean);
+            out = {
+              title: nd.title || '', content: nd.desc || '', images: imgs, tags,
+              author: u.nickname || u.nickName || '',
+              likes: ii.likedCount || ii.liked_count || '', collects: ii.collectedCount || ii.collected_count || '', comments: ii.commentCount || ii.comment_count || '',
+            };
+            return;
+          }
+        }
+      }
+      for (const k in o) find(o[k], depth + 1);
+    })(st, 0);
+  } catch (e) {}
+  if (!out) { // 兜底：扒 DOM
+    try {
+      const t = document.querySelector('#detail-title, [class*="title"]');
+      const d = document.querySelector('#detail-desc, [class*="desc"], .note-content');
+      const imgs = [...document.querySelectorAll('.note-slider img, [class*="swiper"] img, .media-container img')].map(i => i.getAttribute('src') || '').filter(Boolean);
+      const tags = [...document.querySelectorAll('a[href*="search_result"] , [class*="tag"]')].map(e => (e.textContent || '').trim()).filter(s => s && s.length < 20);
+      const title = t ? (t.textContent || '').trim() : '', content = d ? (d.textContent || '').trim() : '';
+      if (title || content || imgs.length) out = { title, content, images: imgs.slice(0, 18), tags: [...new Set(tags)].slice(0, 12), author: '', likes: '', collects: '', comments: '' };
+    } catch (e) {}
+  }
+  let needLogin = false;
+  try { const tx = (document.body && document.body.innerText || '').slice(0, 800); if (!out && /(扫码登录|手机号登录|登录后查看|新用户登录|立即登录)/.test(tx)) needLogin = true; } catch {}
+  return { note: out, needLogin };
+}
+async function xhsFetchNote(url) {
+  const L = (...a) => { try { console.log('[朱砂单篇]', ...a); } catch {} };
+  L('收到单篇抓取 url=', url);
+  if (!url) return { ok: false, error: '缺少链接' };
+  _keepAliveStart();
+  let tabId = null, prevActiveTab = null;
+  try {
+    try { const [cur] = await chrome.tabs.query({ active: true, currentWindow: true }); prevActiveTab = cur || null; } catch {}
+    const tab = await chrome.tabs.create({ url, active: true });
+    tabId = tab.id;
+    await _waitTabComplete(tabId, 20000);
+    let note = null, needLogin = false, lastErr = '';
+    for (let i = 0; i < 16; i++) {
+      await _sleep(1500);
+      let res; try { res = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: _noteExtract }); } catch (e) { lastErr = e.message || String(e); continue; }
+      const o = res && res[0] && res[0].result;
+      L('第', i + 1, '次解析：note=', o && o.note ? 'ok' : 'null', 'needLogin=', o ? o.needLogin : 'null');
+      if (o) { if (o.needLogin) needLogin = true; if (o.note && (o.note.title || o.note.content || (o.note.images || []).length)) { note = o.note; break; } }
+    }
+    L('单篇抓取结束：', note ? '成功' : '失败');
+    if (note) return { ok: true, ...note };
+    return { ok: false, needLogin, error: needLogin ? '未登录小红书' : (lastErr ? ('注入脚本被拒：' + lastErr) : '打开了笔记页但没解析到正文（可能链接失效/被风控/小红书改版）') };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  } finally {
+    if (tabId != null) { try { await chrome.tabs.remove(tabId); } catch {} }
+    if (prevActiveTab && prevActiveTab.id != null) { try { await chrome.tabs.update(prevActiveTab.id, { active: true }); } catch {} }
+    _keepAliveStop();
+  }
 }
 // 心跳：抓取要 40+ 秒，但 MV3 后台进程闲置 ~30s 就会被 Chrome 杀掉（控制台开着时不会，所以手测能成、关了就废）。
 // 抓取期间每 20s 调一次 chrome API，把后台进程一直“续命”，直到抓完。
@@ -146,6 +222,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const reqId = msg.reqId, tabId = sender && sender.tab && sender.tab.id;
     const push = (result) => { if (tabId != null) { try { chrome.tabs.sendMessage(tabId, { type: 'xhsSearchResult', reqId, result }, () => void chrome.runtime.lastError); } catch {} } };
     xhsSearch(msg.keyword, msg.sort, msg.searchType).then(push).catch(e => push({ ok: false, error: e.message || String(e) }));
+    try { sendResponse({ ok: true, started: true }); } catch {}
+    return true;
+  }
+  if (msg && msg.type === 'xhsFetchNote') {
+    const reqId = msg.reqId, tabId = sender && sender.tab && sender.tab.id;
+    const push = (result) => { if (tabId != null) { try { chrome.tabs.sendMessage(tabId, { type: 'xhsFetchNoteResult', reqId, result }, () => void chrome.runtime.lastError); } catch {} } };
+    xhsFetchNote(msg.url).then(push).catch(e => push({ ok: false, error: e.message || String(e) }));
     try { sendResponse({ ok: true, started: true }); } catch {}
     return true;
   }
