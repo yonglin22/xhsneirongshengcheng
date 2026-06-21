@@ -94,7 +94,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=48"></script>
+<script src="/assets/app.js?v=49"></script>
 <script>
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
@@ -1579,6 +1579,8 @@ function renderPanel() {
 
 // 渲染「找对标」结果：左=关键词(可折叠) + 右=对标笔记20篇(可排序)，左右随折叠互相切换宽度
 let benchNotes = [], benchSort = 'likes', benchKwCollapsed = false, benchWindow = 3; // benchWindow: 月数，0=全部
+// 互动门槛：点赞+收藏 ≥ benchMinEngage 视为「达标」。来自「找对标建议」的 filter.minEngage（AI 按目标给，列表里有的数据才能筛）。benchOnlyQualified=只看达标的
+let benchMinEngage = 0, benchOnlyQualified = false;
 // 抓取维度（传给小红书，决定抓回来的是哪批；区别于上面抓回后前端重排的 benchSort）
 let benchFetchSort = 'popular', benchFetchType = 'all'; // sort: general/popular/latest · type: all/image/video
 function renderFinder(d) {
@@ -1655,13 +1657,31 @@ function renderBenchNotes() {
   let list = benchNotes.slice();
   const total = list.length, hidden = benchWindow ? list.filter(n => { const dn = dateNum(n.date); return dn && dn < cutNum; }).length : 0;
   if (benchWindow) list = list.filter(n => { const dn = dateNum(n.date); return !dn || dn >= cutNum; });
-  list.sort((a, b) => benchSort === 'date' ? (dateNum(b.date) - dateNum(a.date)) : benchSort === 'comments' ? (parseCount(b.comments) - parseCount(a.comments)) : (parseCount(b.likes) - parseCount(a.likes)));
+  // 互动门槛：点赞+收藏 ≥ benchMinEngage 算「达标」。只对列表里有的数字筛（粉丝数/内容形式拿不到，不做）
+  const engOf = n => parseCount(n.likes) + parseCount(n.collects);
+  const qualified = benchMinEngage > 0 ? list.filter(n => engOf(n) >= benchMinEngage).length : 0;
+  if (benchMinEngage > 0 && benchOnlyQualified) list = list.filter(n => engOf(n) >= benchMinEngage);
+  // 排序：先按是否达标（达标的排前），再按所选维度
+  const cmp = (a, b) => benchSort === 'date' ? (dateNum(b.date) - dateNum(a.date)) : benchSort === 'comments' ? (parseCount(b.comments) - parseCount(a.comments)) : (parseCount(b.likes) - parseCount(a.likes));
+  list.sort((a, b) => { if (benchMinEngage > 0 && !benchOnlyQualified) { const qa = engOf(a) >= benchMinEngage ? 1 : 0, qb = engOf(b) >= benchMinEngage ? 1 : 0; if (qa !== qb) return qb - qa; } return cmp(a, b); });
   const sortLabel = benchSort === 'date' ? '最新' : benchSort === 'comments' ? '评论' : '点赞';
-  if (st) st.textContent = `✓ ${list.length} 篇 · ${winLabel} · 按${sortLabel}` + (hidden ? `（隐藏 ${hidden} 篇更早的）` : '') + '，挑 1 篇点「用这篇拆解」';
-  if (!list.length) { box.innerHTML = `<div class="text-[11px] text-[var(--ink-soft)] mt-1">${winLabel}内没有结果（共 ${total} 篇）。把时间筛选改成「全部」可看全部。</div>`; return; }
+  if (st) {
+    let html = `✓ ${list.length} 篇 · ${winLabel} · 按${sortLabel}` + (hidden ? `（隐藏 ${hidden} 篇更早的）` : '');
+    if (benchMinEngage > 0) {
+      html += ` · <b style="color:var(--cinnabar-deep)">${qualified} 篇达标</b>(点赞+收藏≥${benchMinEngage})`;
+      html += ` <a id="benchQualToggle" href="javascript:void(0)" style="color:var(--cinnabar-deep);text-decoration:underline">${benchOnlyQualified ? '显示全部' : '只看达标'}</a>`;
+    }
+    html += '，挑 1 篇点「用这篇拆解」';
+    st.innerHTML = html;
+    const qt = $('#benchQualToggle'); if (qt) qt.addEventListener('click', () => { benchOnlyQualified = !benchOnlyQualified; renderBenchNotes(); });
+  }
+  if (!list.length) { box.innerHTML = `<div class="text-[11px] text-[var(--ink-soft)] mt-1">${benchOnlyQualified ? '没有达标的笔记（点赞+收藏≥' + benchMinEngage + '）。点上方「显示全部」看所有。' : winLabel + '内没有结果（共 ' + total + ' 篇）。把时间筛选改成「全部」可看全部。'}</div>`; return; }
   box.innerHTML = '<div class="grid gap-2 mt-1" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">' + list.map(n => {
     const stats = [n.likes ? '❤' + n.likes : '', n.collects ? '⭐' + n.collects : '', n.comments ? '💬' + n.comments : ''].filter(Boolean).join(' ');
-    return `<div class="out p-1.5" style="display:flex;flex-direction:column">
+    const isQual = benchMinEngage > 0 && engOf(n) >= benchMinEngage;
+    const dim = benchMinEngage > 0 && !isQual && !benchOnlyQualified; // 未达标的淡化显示
+    return `<div class="out p-1.5" style="display:flex;flex-direction:column;position:relative${dim ? ';opacity:0.45' : ''}">
+      ${isQual ? '<div style="position:absolute;top:4px;left:4px;z-index:1;background:var(--cinnabar);color:#fff;font-size:9px;padding:1px 5px;border-radius:5px">🔥达标</div>' : ''}
       ${n.cover ? `<img src="/api/img-proxy?u=${encodeURIComponent(n.cover)}" class="zoomable" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;cursor:zoom-in"/>` : ''}
       ${n.title ? `<div class="text-[11px] mt-1 leading-tight" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${n.title}</div>` : ''}
       <div class="text-[10px] text-[var(--ink-soft)] mt-1" style="display:flex;align-items:center;gap:3px">${n.authorLink ? `<a href="${n.authorLink}" target="_blank" rel="noopener" style="color:var(--cinnabar-deep)">@${n.author || '博主'}</a>` : ('@' + (n.author || '博主'))}</div>
@@ -1768,13 +1788,14 @@ async function genFinder() {
 只输出 JSON：
 {"dimension":"按我的目标该找什么样的对标及原因（电商起号/快速出单→低粉爆款；自媒体涨粉→头部高互动），一句话",
 "searches":[{"keyword":"具体搜索词/话题","sort":"建议排序：最多点赞 或 最新 或 综合","why":"为什么搜这个，一句话"}],
-"filter":{"months":"对标该看多近的：时效强/追热点→2，常规→3，长青干货→6（只填数字 2/3/6）","sort":"对标笔记列表默认按什么排：likes(互动高/找爆款) 或 date(追最新/蹭时效)"},
+"filter":{"months":"对标该看多近的：时效强/追热点→2，常规→3，长青干货→6（只填数字 2/3/6）","sort":"对标笔记列表默认按什么排：likes(互动高/找爆款) 或 date(追最新/蹭时效)","minEngage":"互动门槛=点赞+收藏的数字下限，用来自动筛掉互动太低的：电商起号找低粉爆款可设100，常规找爆款300，头部高互动可设1000；没有硬性要求填0（只填数字）"},
 "pick":"从搜索结果里怎么挑出最适合的那 1 篇来拆解（与上面 filter 一致：近 N 月、互动量高、可复刻、与选题强相关）"}
 searches 给 6–8 个，覆盖核心词、长尾词、痛点词、人群词。filter 要和 dimension/pick 的逻辑自洽。`;
     const d = extractJSON(await callClaude({ prompt, model: $('#model').value, max_tokens: 1400, json: true }));
     state.refFinder = d; state.refGoal = goal; Draft.save(state); renderRail();
     // 列表筛选/排序默认跟随「对标建议」的 filter（与建议逻辑保持一致）；映射到下拉档位 3/6/12
     const fm = d.filter || {}; const mo = +fm.months; benchWindow = mo >= 12 ? 12 : mo === 6 ? 6 : 3; benchSort = (fm.sort === 'date') ? 'date' : 'likes';
+    benchMinEngage = Math.max(0, +fm.minEngage || 0); benchOnlyQualified = false; // 互动门槛跟随建议；默认不强制隐藏，只标记+给开关
     renderFinder(d);
     fst.textContent = '✓ 正在按建议抓约20篇对标…（也可点搜索词手动去搜）';
     grabBenchmarkNotes(d.searches || []); // 自动抓取约20篇真实对标笔记（尽力而为）
