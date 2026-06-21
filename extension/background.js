@@ -69,10 +69,17 @@ function _pageExtract() {
   try { const t = (document.body && document.body.innerText || '').slice(0, 800); if (notes.length === 0 && /(扫码登录|手机号登录|登录后查看|新用户登录|立即登录)/.test(t)) needLogin = true; } catch {}
   return { notes: notes.slice(0, 20), needLogin };
 }
+// 心跳：抓取要 40+ 秒，但 MV3 后台进程闲置 ~30s 就会被 Chrome 杀掉（控制台开着时不会，所以手测能成、关了就废）。
+// 抓取期间每 20s 调一次 chrome API，把后台进程一直“续命”，直到抓完。
+let _keepAliveTimer = null, _keepAliveRef = 0;
+function _keepAliveStart() { _keepAliveRef++; if (_keepAliveTimer) return; _keepAliveTimer = setInterval(() => { try { chrome.runtime.getPlatformInfo(() => void chrome.runtime.lastError); } catch {} }, 20000); }
+function _keepAliveStop() { _keepAliveRef = Math.max(0, _keepAliveRef - 1); if (_keepAliveRef === 0 && _keepAliveTimer) { clearInterval(_keepAliveTimer); _keepAliveTimer = null; } }
+
 async function xhsSearch(keyword, sort, type) {
   const L = (...a) => { try { console.log('[朱砂抓取]', ...a); } catch {} };
   L('收到抓取请求 keyword=', keyword, 'sort=', sort, 'type=', type);
   if (!keyword) return { ok: false, error: '缺少关键词' };
+  _keepAliveStart();
   const url = 'https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(keyword)
     + (type === 'video' ? '&type=video' : type === 'image' ? '&type=image' : '');
   let tabId = null;
@@ -105,6 +112,7 @@ async function xhsSearch(keyword, sort, type) {
   } finally {
     if (tabId != null) { try { await chrome.tabs.remove(tabId); } catch {} }
     if (prevActiveTab && prevActiveTab.id != null) { try { await chrome.tabs.update(prevActiveTab.id, { active: true }); } catch {} }
+    _keepAliveStop();
   }
 }
 
@@ -134,7 +142,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg && msg.type === 'xhsSearch') {
-    xhsSearch(msg.keyword, msg.sort, msg.type).then(sendResponse).catch(e => sendResponse({ ok: false, error: e.message || String(e) }));
+    // 立刻回执（不让发起方的长连接挂 40+ 秒、避免端口被回收），抓完后用 tabs.sendMessage 把结果“推”回发起页。
+    const reqId = msg.reqId, tabId = sender && sender.tab && sender.tab.id;
+    const push = (result) => { if (tabId != null) { try { chrome.tabs.sendMessage(tabId, { type: 'xhsSearchResult', reqId, result }, () => void chrome.runtime.lastError); } catch {} } };
+    xhsSearch(msg.keyword, msg.sort, msg.type).then(push).catch(e => push({ ok: false, error: e.message || String(e) }));
+    try { sendResponse({ ok: true, started: true }); } catch {}
     return true;
   }
   if (msg && msg.type === 'ping') { sendResponse({ ok: true }); return true; }

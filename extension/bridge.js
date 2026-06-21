@@ -27,14 +27,13 @@
     }
     if (e.data.type === 'ZHUSHA_XHS_SEARCH') {
       const { keyword, sort, type, reqId } = e.data;
-      // 插件被重新加载/更新后，已打开的旧页面里的本脚本连接会失效（Extension context invalidated），
-      // 此时 sendMessage 会直接抛错。必须 try/catch 并回 ACK，否则页面会干等到超时显示「插件无响应」。
+      // 抓取要 40+ 秒，旧写法靠 sendMessage 回调长挂着等结果，后台进程一被回收回调就丢、页面只能干等超时。
+      // 改：把 reqId 一并发给后台，后台立刻回执、抓完后用 tabs.sendMessage 把结果“推”回来（见下方监听）。
+      // 插件被重新加载后旧页面里本脚本连接会失效（Extension context invalidated），sendMessage 抛错 → 回 ACK 提示刷新。
       try {
-        chrome.runtime.sendMessage({ type: 'xhsSearch', keyword, sort, type }, (resp) => {
-          window.postMessage({ type: 'ZHUSHA_XHS_SEARCH_ACK', reqId, result: resp || { ok: false, error: chrome.runtime.lastError ? chrome.runtime.lastError.message : '插件无响应' } }, '*');
-        });
+        chrome.runtime.sendMessage({ type: 'xhsSearch', keyword, sort, type, reqId }, () => void chrome.runtime.lastError);
       } catch (err) {
-        window.postMessage({ type: 'ZHUSHA_XHS_SEARCH_ACK', reqId, result: { ok: false, error: '插件连接已失效（请刷新本页面 F5 后重试）：' + (err && err.message || err) } }, '*');
+        window.postMessage({ type: 'ZHUSHA_XHS_SEARCH_ACK', reqId, result: { ok: false, error: '插件连接已失效（请刷新本页面 ⌘R 后重试）：' + (err && err.message || err) } }, '*');
       }
     }
     if (e.data.type === 'ZHUSHA_NURTURE_PLAN') {
@@ -42,6 +41,13 @@
       chrome.runtime.sendMessage({ type: 'nurturePlan', plan }, (resp) => {
         window.postMessage({ type: 'ZHUSHA_NURTURE_ACK', ok: !!(resp && resp.ok), msg: (resp && resp.msg) || '' }, '*');
       });
+    }
+  });
+
+  // 后台抓完后把结果“推”回来（不依赖那条会被回收的长连接），转发给页面。
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg && msg.type === 'xhsSearchResult') {
+      window.postMessage({ type: 'ZHUSHA_XHS_SEARCH_ACK', reqId: msg.reqId, result: msg.result || { ok: false, error: '空响应' } }, '*');
     }
   });
 })();
