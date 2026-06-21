@@ -135,7 +135,7 @@ $('#extPubBtn').addEventListener('click', async ()=>{
   btn.disabled=false; btn.textContent=o;
 });
 window.addEventListener('message', e=>{ if(e.source===window && e.data && e.data.type==='ZHUSHA_PUBLISH_ACK'){ $('#pubStatus').textContent=(e.data.ok?'✓ ':'✗ ')+(e.data.msg||''); $('#pubStatus').style.color=e.data.ok?'#00a152':'var(--cinnabar-deep)'; } });
-async // 把一篇成稿数据装进 WORK（草稿/云端历史共用）
+// 把一篇成稿数据装进 WORK（草稿/云端历史共用）
 function buildWORK(data, id){
   const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
   return { id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[] };
