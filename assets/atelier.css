@@ -255,9 +255,10 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .hl{ background-size:100% .46em; background-position:0 .96em; padding:0 .1em; }
 /* 顶部：状态栏 + 导航栏 */
 .cv-note.is-memo .nt-ios-top{ position:absolute; top:0; left:0; right:0; z-index:4; background:#fff; }
-.cv-note.is-memo .nt-ios-status{ height:6cqw; display:flex; align-items:center; justify-content:space-between; padding:0 6cqw 0 7.5cqw; }
-.cv-note.is-memo .nt-clock{ font-size:3.5cqw; font-weight:700; color:#000; letter-spacing:.03em; line-height:1; }
-.cv-note.is-memo .nt-stat-r{ display:flex; align-items:center; gap:1.5cqw; }
+.cv-note.is-memo .nt-ios-status{ position:relative; height:6cqw; padding:0 6cqw 0 7.5cqw; }
+/* 时钟文字与右侧图标统一用 absolute+translateY(-50%) 居中，避免 flex 居中按文字行盒（含字体留白）而非字形视觉中心导致的错位 */
+.cv-note.is-memo .nt-clock{ position:absolute; left:7.5cqw; top:50%; transform:translateY(-50%); font-size:3.5cqw; font-weight:700; color:#000; letter-spacing:.03em; line-height:1; }
+.cv-note.is-memo .nt-stat-r{ position:absolute; right:6cqw; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:1.5cqw; }
 .cv-note.is-memo .nt-si{ height:2.9cqw; width:auto; fill:#000; display:block; }
 .cv-note.is-memo .nt-bat{ height:3.2cqw; width:auto; fill:#000; color:#000; display:block; }
 .cv-note.is-memo .nt-ios-nav{ position:relative; height:9cqw; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
