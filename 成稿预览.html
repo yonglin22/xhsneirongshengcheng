@@ -760,9 +760,10 @@ $('#exportBtn').addEventListener('click', async ()=>{
   const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin inline-block">◠</span><span>打包中…</span>';
   document.body.classList.add('exporting');
   const stamp = new Date().toISOString().slice(0,10);
-  // 公众号：导出文章长图 PNG + 文案.txt（粘进编辑器）
+  // 公众号：导出文章长图 PNG + 文案.txt，统一打包成 zip（与小红书图文包导出体验一致）
   if (window.__isGzhStage) {
     try {
+      if(typeof JSZip==='undefined'){ setStatus('导出库未加载（可能离线），请联网后重试', 'err'); document.body.classList.remove('exporting'); btn.disabled=false; btn.innerHTML=old; return; }
       if(document.fonts && document.fonts.ready) await document.fonts.ready;
       const art = $('#gzhArticle');
       // 导出前把首图内联成同源 data: URL，否则跨域图会被 html2canvas 当成空白
@@ -773,12 +774,15 @@ $('#exportBtn').addEventListener('click', async ()=>{
       }
       const cv = await html2canvas(art, { scale:2, useCORS:true, backgroundColor:'#ffffff' });
       if (gcPrev !== null) gc.src = gcPrev;
-      const a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = '公众号文章长图_'+stamp+'.png'; a.click();
+      const pngBlob = await new Promise(r=>cv.toBlob(r, 'image/png'));
       const title = $('#gzhTitle').textContent.trim();
       const body = [...$('#gzhBody').children].map(el=>el.textContent.trim()).filter(Boolean).join('\n\n');
-      const txt = new Blob([`${title}\n\n${body}`], {type:'text/plain'});
-      const a2 = document.createElement('a'); a2.href = URL.createObjectURL(txt); a2.download = '公众号正文_'+stamp+'.txt'; a2.click();
-      setStatus('✓ 已导出公众号文章长图 PNG + 正文 txt（正文建议直接「复制文案」粘进编辑器）');
+      const zip = new JSZip();
+      if (pngBlob) zip.file('公众号文章长图.png', pngBlob);
+      zip.file('公众号正文.txt', `${title}\n\n${body}\n`);
+      const blob = await zip.generateAsync({ type:'blob' });
+      dl(URL.createObjectURL(blob), '公众号图文包_'+stamp+'.zip');
+      setStatus('✓ 已打包导出：公众号文章长图.png + 正文.txt（公众号图文包_'+stamp+'.zip，正文建议直接「复制文案」粘进编辑器）');
     } catch(err){ setStatus('导出失败：'+(err.message||err), 'err'); }
     document.body.classList.remove('exporting'); btn.disabled=false; btn.innerHTML=old; return;
   }
