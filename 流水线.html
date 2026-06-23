@@ -1298,6 +1298,17 @@ function downscaleImage(file, max = 1100) {
     rd.onerror = () => res(''); rd.readAsDataURL(file);
   });
 }
+// 远程出图链接（ark 签名图，跨域且约 24h 过期）→ 经同源代理拉成 data: URL 持久化。
+// 否则隔天/跨域时预览变 broken、导出图文包也截不到首图。失败则退回原链接兜底。
+async function remoteToDataURL(u) {
+  if (!u || u.startsWith('data:')) return u;
+  try {
+    const r = await fetch('/api/img-proxy?u=' + encodeURIComponent(u));
+    if (!r.ok) throw 0;
+    const b = await r.blob();
+    return await new Promise(res => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = () => res(u); rd.readAsDataURL(b); });
+  } catch { return u; }
+}
 // S2 上传对标图：下采样 → 存进 refImages → 立即逐张自动解析（不依赖小红书抓取）
 async function onRefUpload(e) {
   const files = [...e.target.files]; if (!files.length) { e.target.value = ''; return; }
@@ -1345,6 +1356,7 @@ async function genGzhCover() {
   }
   try {
     let u; try { u = await once(); } catch (e1) { if (stx) stx.textContent = '出图失败，重试中…'; await new Promise(r => setTimeout(r, 1200)); u = await once(); }
+    u = await remoteToDataURL(u); // 持久化为同源 data: URL：防过期/跨域导致预览或导出丢图
     state.coverImages = [u]; state.coverImage = u; state.coverCaptions = [{ theme: 'photo', raw: true }]; persist(); renderGzhCover();
     if (stx) { stx.textContent = '✓ 首图已生成'; stx.style.color = '#00a152'; }
   } catch (e) { if (stx) { stx.textContent = '生成失败：' + (e && e.message || e) + '（可再点一次）'; stx.style.color = 'var(--cinnabar-deep)'; } }
