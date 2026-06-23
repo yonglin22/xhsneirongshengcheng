@@ -225,7 +225,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note:not(.is-cover) .nt-h1{ font-size:7.4cqw; margin-bottom:1.6cqw; }
 .cv-note .nt-meta{ font-size:3.4cqw; color:var(--nt-meta); margin:2.4cqw 0 4cqw; }
 .cv-note .nt-sec{ font-size:5.3cqw; font-weight:900; color:var(--nt-ink); margin:3cqw 0 1.4cqw; display:flex; align-items:center; gap:2cqw; }
-.cv-note .nt-sec .nt-dot{ width:1.4cqw; height:4.4cqw; border-radius:.8cqw; background:var(--nt-accent); flex:none; }
+/* 竖条用 align-items:center 会按文字行盒居中，而 CJK 字形在行盒里偏下→竖条显得偏高；translateY(0.2cqw) 把竖条压到与中文标题视觉中心齐平（Noto CJK 实测校准，离散<0.2px） */
+.cv-note .nt-sec .nt-dot{ width:1.4cqw; height:4.4cqw; border-radius:.8cqw; background:var(--nt-accent); flex:none; transform:translateY(0.2cqw); }
 .cv-note .nt-sub{ font-size:4.2cqw; font-weight:800; color:var(--nt-ink); margin:2.2cqw 0 .6cqw; }
 .cv-note .nt-p{ font-size:3.7cqw; line-height:1.55; color:var(--nt-ink2); margin:1.2cqw 0; }
 .cv-note .nt-ol{ margin:1cqw 0; }
