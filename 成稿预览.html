@@ -439,7 +439,7 @@ function setCoverImage(u){
 function importDraftData(d){
   if(!d || (!d.body && !d.best && !d.title)){ setStatus('这篇还没有成稿内容', 'err'); return; }
   if(d.topic) $('#topic').value=d.topic;
-  render({ cover_lines:(d.cover&&d.cover.cover_lines)||d.cover_lines, title:d.best||d.title, body:d.body, tags:d.tags, platform:d.platform, summary:d.summary });
+  render({ cover_lines:(d.cover&&d.cover.cover_lines)||d.cover_lines, title:d.best||d.title, body:d.body, tags:d.tags, platform:d.platform, summary:d.summary, coverImages:d.coverImages, coverImage:d.coverImage });
   window.__notePages = d.notePages || [];
   const imgs = d.coverImages || (d.coverImage?[d.coverImage]:[]);
   setCoverImages(imgs, d.coverCaptions || []);
