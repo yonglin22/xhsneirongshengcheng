@@ -771,10 +771,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('xhsInput').addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
     panel.querySelectorAll('.xhs-tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.t)));
     makeDraggable();
-    // 首页：每次打开都默认展开小红书助手；其它页：仅首次访问自动弹一次
-    const isHome = document.body.getAttribute('data-page') === 'home';
-    if (isHome) { setTimeout(open, 800); }
-    else { let seen = false; try { seen = localStorage.getItem('ag_xhs_widget_seen') === '1'; } catch {}; if (!seen) { setTimeout(open, 1200); try { localStorage.setItem('ag_xhs_widget_seen', '1'); } catch {} } }
+    // 仅首次访问自动弹一次，之后都不再自动打开（包括首页），用户点悬浮按钮才打开
+    let seen = false; try { seen = localStorage.getItem('ag_xhs_widget_seen') === '1'; } catch {}
+    if (!seen) { setTimeout(open, 1200); try { localStorage.setItem('ag_xhs_widget_seen', '1'); } catch {} }
   });
 })();
 
