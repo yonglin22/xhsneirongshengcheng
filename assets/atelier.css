@@ -261,7 +261,9 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-si{ height:2.9cqw; width:auto; fill:#000; display:block; }
 .cv-note.is-memo .nt-bat{ height:3.2cqw; width:auto; fill:#000; color:#000; display:block; }
 .cv-note.is-memo .nt-ios-nav{ position:relative; height:9cqw; display:flex; align-items:center; justify-content:space-between; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
-.cv-note.is-memo .nt-nav-back{ color:#e8a400; font-size:4cqw; font-weight:500; line-height:1; }
+.cv-note.is-memo .nt-nav-back{ display:flex; align-items:center; gap:.8cqw; color:#e8a400; }
+.cv-note.is-memo .nt-nav-chev{ height:4cqw; width:auto; display:block; }
+.cv-note.is-memo .nt-nav-back-label{ font-size:4cqw; font-weight:500; line-height:1; }
 /* 日期居中显示在导航栏（备忘录顶栏标题位）*/
 .cv-note.is-memo .nt-nav-date{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:#8a8a90; font-size:2.85cqw; font-weight:600; white-space:nowrap; letter-spacing:.01em; line-height:1; }
 .cv-note.is-memo .nt-nav-r{ display:flex; align-items:center; gap:3.4cqw; }
