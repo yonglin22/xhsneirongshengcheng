@@ -597,24 +597,24 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.__xhsWidget) return; window.__xhsWidget = 1;
   const cin = 'var(--cinnabar,#ff2442)';
   let loaded = false, KB = '', DOCS = [], FAQ = [], RULES = [];
-  function ensureHelpKB() { return new Promise(r => { if (window.HELP_DOCS) return r(); const s = document.createElement('script'); s.src = '/assets/help-kb.js?v=4'; s.onload = () => r(); s.onerror = () => r(); document.head.appendChild(s); }); }
+  function ensureHelpKB() { return new Promise(r => { if (window.HELP_DOCS) return r(); const s = document.createElement('script'); s.src = '/assets/help-kb.js?v=5'; s.onload = () => r(); s.onerror = () => r(); document.head.appendChild(s); }); }
   async function loadKB() {
     if (loaded) return; loaded = true;
     await ensureHelpKB();
     DOCS = window.HELP_DOCS || []; FAQ = window.HELP_FAQ || []; RULES = window.XHS_RULES || [];
     try { const k = await (await fetch('/api/help-kb')).json(); if (k && k.ok) { if (k.docs && k.docs.length) DOCS = k.docs; if (k.faq && k.faq.length) FAQ = k.faq; if (k.rules && k.rules.length) RULES = k.rules; } } catch {}
     const RM = window.XHS_RULES_META || { src: '', date: '' };
-    KB = '【小红书规则要点（以官方为准；回答时请附带「出处/更新日期」）】\n' + RULES.map((x, i) => `[规则${i + 1}] ${x.t}：${x.d}（出处：${x.src || RM.src || '小红书官方'}｜更新：${x.date || RM.date || '需核实'}）`).join('\n')
+    KB = '【小红书/微信公众号规则要点（以官方为准；回答时请附带「出处/更新日期」）】\n' + RULES.map((x, i) => `[规则${i + 1}] ${x.t}：${x.d}（出处：${x.src || RM.src || '小红书官方'}｜更新：${x.date || RM.date || '需核实'}）`).join('\n')
       + '\n\n【本产品操作文档】\n' + DOCS.map((x, i) => `[文档${i + 1}] ${x.q}：${String(x.a).replace(/\*\*/g, '').slice(0, 240)}`).join('\n')
       + '\n\n【常见问题 FAQ】\n' + FAQ.map((x, i) => `[FAQ${i + 1}] ${x.q}：${String(x.a).replace(/\*\*/g, '').slice(0, 220)}`).join('\n');
   }
   function el(html) { const d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
   function mk(t) { return window.mark ? window.mark(t) : String(t || ''); }
   // 悬浮按钮：左侧中部（避开右下角「一键对标生成」等按钮）
-  const fab = el(`<button id="xhsFab" title="小红书助手 · 帮助中心" style="position:fixed;right:22px;bottom:22px;z-index:130;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:${cin};color:#fff;font-size:24px;box-shadow:0 8px 24px -6px rgba(255,36,66,.5)">📕</button>`);
+  const fab = el(`<button id="xhsFab" title="创作助手 · 帮助中心" style="position:fixed;right:22px;bottom:22px;z-index:130;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:${cin};color:#fff;font-size:24px;box-shadow:0 8px 24px -6px rgba(255,36,66,.5)">📕</button>`);
   const panel = el(`<div id="xhsPanel" style="position:fixed;right:22px;bottom:88px;z-index:131;width:min(380px,93vw);height:min(540px,82vh);background:var(--paper,#fff);color:var(--ink,#222);border:1px solid var(--line,#eee);border-radius:16px;box-shadow:0 18px 50px -12px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden">
     <div id="xhsHeader" style="background:${cin};color:#fff;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none">
-      <div style="font-weight:700;font-size:14px">📕 小红书助手 · 帮助中心 <span style="opacity:.7;font-weight:400;font-size:11px">⠿ 可拖动</span></div>
+      <div style="font-weight:700;font-size:14px">📕 创作助手 · 帮助中心（小红书+公众号） <span style="opacity:.7;font-weight:400;font-size:11px">⠿ 可拖动</span></div>
       <button id="xhsClose" title="收起" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1">×</button></div>
     <div style="display:flex;border-bottom:1px solid var(--line,#eee);font-size:12.5px">
       <button class="xhs-tab" data-t="doc" style="flex:1;border:none;background:none;padding:9px 0;cursor:pointer;font-weight:600">📘 操作文档</button>
@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inp = document.getElementById('xhsInput'); const q = (inp.value || '').trim(); if (!q) return; inp.value = '';
     add('q', mk(q)); const wait = add('a', '查询中…'); await loadKB();
     try {
-      const ans = await window.callClaude({ action: 'rule_query', max_tokens: 600, system: '你是小红书「规则+本产品用法」助手。只依据下面知识库作答，不编造未收录规则；平台规则以官方最新公告为准，不保证账号结果。判断式问题先给✅符合/⚠有风险/❌不建议结论再说原因。引用到具体规则时，在末尾用一行小字附上「出处+更新日期」，更新日期【只能取知识库里该条的“更新”值】，严禁使用你自己记忆里的日期/年份。若知识库未收录该主题，明确说「知识库暂未收录，请以小红书官方最新公告为准」，不编造规则或日期。简洁可执行。\n\n' + KB, prompt: q });
+      const ans = await window.callClaude({ action: 'rule_query', max_tokens: 600, system: '你是「小红书+微信公众号 规则与本产品用法」助手。只依据下面知识库作答，不编造未收录规则；平台规则以各平台官方最新公告为准，不保证账号结果。回答前先判断用户问的是小红书还是公众号（或两者都答），不要用小红书的规则去回答公众号问题，反之亦然。判断式问题先给✅符合/⚠有风险/❌不建议结论再说原因。引用到具体规则时，在末尾用一行小字附上「出处+更新日期」，更新日期【只能取知识库里该条的“更新”值】，严禁使用你自己记忆里的日期/年份。若知识库未收录该主题，明确说「知识库暂未收录，请以对应平台官方最新公告为准」，不编造规则或日期。简洁可执行。\n\n' + KB, prompt: q });
       wait.innerHTML = mk(ans);
       // 实时联网：附「查小红书最新相关笔记」按钮（真实笔记链接，规则以官方为准）
       const live = document.createElement('div'); live.style.cssText = 'margin-top:8px';
@@ -708,6 +708,8 @@ document.addEventListener('DOMContentLoaded', () => {
     '蹭热点要注意什么？', '图片尺寸用多少合适？', '被判搬运/重复怎么改？',
     '评论区怎么引导互动？', '同一篇可以多平台发吗？', '账号定位怎么做更垂直？',
     '电子资源类目怎么开通？', '开店要什么资质？', '怎么开通笔记带货权限？', '专业号怎么认证？',
+    '公众号首图怎么生成？', '公众号导出的图文包是什么格式？', '公众号要怎么标广告？',
+    '公众号认证有什么用？', '小红书和公众号能共用一套人设吗？',
   ];
   let quickIdx = 0;
   function renderChips() {
@@ -754,7 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
       inited = true; await loadKB();
       document.getElementById('xhsDoc').innerHTML = accHTML(DOCS); bindAcc(document.getElementById('xhsDoc'));
       document.getElementById('xhsFaq').innerHTML = accHTML(FAQ); bindAcc(document.getElementById('xhsFaq'));
-      add('a', '你好，我是小红书助手 👋 上面「操作文档/常见问题」可直接翻看；有具体问题就在这问我（平台规则/限流避坑/工具用法）。');
+      add('a', '你好，我是创作助手 👋 覆盖小红书和公众号两个平台。上面「操作文档/常见问题」可直接翻看；有具体问题就在这问我（平台规则/限流避坑/工具用法）。');
       const w = document.createElement('div'); w.id = 'xhsChips'; w.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
       document.getElementById('xhsBody').appendChild(w); renderChips();
     }
