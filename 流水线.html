@@ -1857,8 +1857,8 @@ function renderRefImages() {
 function refBlock() {
   let b = '';
   if (state.ref && state.ref.trim()) b += '【对标笔记（标题+正文+话题标签）】\n' + state.ref.trim().slice(0, 2500) + '\n';
-  const vis = (state.refVisions || []).filter(Boolean);
-  if (vis.length) b += '【对标图组 · 逐张视觉描述（第 i 张的文字/版式/画面）】\n' + vis.map((d, i) => `第${i + 1}张：${d}`).join('\n') + '\n';
+  const visArr = state.refVisions || [];
+  if (visArr.some(d => d && d.trim())) b += '【对标图组 · 逐张视觉描述（第 i 张的文字/版式/画面）】\n' + visArr.map((d, i) => `第${i + 1}张：${(d && d.trim()) ? d.trim() : '（未识别）'}`).join('\n') + '\n';
   else if (state.refVision && state.refVision.trim()) b += '【对标图片/封面 视觉描述】\n' + state.refVision.trim() + '\n';
   return b ? ('\n\n参考下面这篇对标（仅借鉴其方法/结构/视觉策略，绝不照抄、不洗稿）：\n' + b) : '';
 }
@@ -1897,21 +1897,35 @@ async function runStep(st) {
     renderRefImages(); // 解析完把逐张描述显示在图片下方
   }
   let prompt = st.prompt(state);
-  // S2 拆解纳入「逐张」视觉描述（每张的文字/版式/画面/作用）
+  // S2 拆解纳入「逐张」视觉描述。按对标图原始张数逐张列出（个别识别失败也保留占位+正确序号），
+  // 不再 filter(Boolean)——否则某张视觉解析失败/超时时会被悄悄丢掉并把后面的序号串位，导致"只分析了第一张"。
   if (st.key === 'skeleton') {
-    const vis = (state.refVisions || []).filter(Boolean);
-    if (vis.length) prompt += '\n\n【对标图组 · 逐张视觉解析（请逐张拆解：每张的文字内容、版式形式、画面与作用——封面的钩子策略、每页干货的呈现方式）】\n' + vis.map((d, i) => `第${i + 1}张：${d}`).join('\n');
+    const visArr = state.refVisions || [];
+    const anyVis = visArr.some(d => d && d.trim());
+    if (anyVis) {
+      const lines = visArr.map((d, i) => `第${i + 1}张：${(d && d.trim()) ? d.trim() : '（这张未能自动识别文字，请结合对标正文推断它在第' + (i + 1) + '位的内容与版式）'}`).join('\n');
+      prompt += `\n\n【对标图组 · 共 ${visArr.length} 张 · 逐张视觉解析（每张的文字内容、版式形式、画面与作用——封面的钩子策略、每页干货的呈现方式）】\n` + lines
+        + `\n→ ==⑤「逐张图片拆解」与最后的「结构骨架」都必须把第1张到第${visArr.length}张逐一单独列出（每张一条），禁止把多张合并成「图2-4」这类区间，禁止省略任何一张==。`;
+    }
     else if (state.refVision) prompt += '\n\n【对标封面 视觉描述】\n' + state.refVision;
   }
-  // S3 框架：也对每张笔记图片做拆解，并据此规划"每张图该放什么内容"
+  // S3 框架：对每张图逐张拆解并规划"每张图该放什么内容"，张数严格对齐对标原始张数
   if (st.key === 'frame') {
-    const vis = (state.refVisions || []).filter(Boolean);
-    if (vis.length) prompt += '\n\n【对标图组 · 逐张拆解（请据此规划本篇每张图的内容与版式：第 i 张放什么干货、用什么版式，跟对标第 i 张对位）】\n' + vis.map((d, i) => `第${i + 1}张：${d}`).join('\n')
-      + `\n→ ==配图规划必须正好 ${vis.length} 张：第1张…一直到第${vis.length}张，与对标图组一一对应，不多不少==。每张写清「第N张：文字内容/干货 + 版式」，缺一张或多一张都不行；不要把多张并成一段，也不要凭空加图。`;
+    const visArr = state.refVisions || [];
+    const n = visArr.length || (state.refImages || []).length;
+    if (visArr.some(d => d && d.trim())) {
+      const lines = visArr.map((d, i) => `第${i + 1}张：${(d && d.trim()) ? d.trim() : '（未识别，按正文推断）'}`).join('\n');
+      prompt += '\n\n【对标图组 · 逐张拆解（请据此规划本篇每张图的内容与版式：第 i 张放什么干货、用什么版式，跟对标第 i 张对位）】\n' + lines;
+    }
+    if (n) prompt += `\n→ ==配图规划必须正好 ${n} 张：第1张…一直到第${n}张，与对标图组一一对应，不多不少==。每张写清「第N张：文字内容/干货 + 版式」，缺一张或多一张都不行；不要把多张并成一段，也不要凭空加图。`;
   }
   // S3/正文合并步 带上对标参考（含图片视觉描述）；封面步不带——它只对齐 S3 框架封面规划，避免被对标正文带偏
   if (['frame', 'copy'].includes(st.key)) prompt += refBlock();
-  const txt = await callClaude({ prompt, model: $('#model').value, max_tokens: st.key === 'copy' ? 2600 : st.key === 'frame' ? 3200 : 1400, json: st.type === 'json', action: st.key });
+  // S2 输出 token 随对标图张数放大：1400 打底，每多 1 张 +320，封顶 3200。否则 6 张图挤在 1400 token 里，模型只能把多张压成「图2-4」
+  const refN = (state.refImages || []).length;
+  const skTok = Math.min(3200, 1400 + Math.max(0, refN - 2) * 320);
+  const maxTok = st.key === 'copy' ? 2600 : st.key === 'frame' ? 3200 : st.key === 'skeleton' ? skTok : 1400;
+  const txt = await callClaude({ prompt, model: $('#model').value, max_tokens: maxTok, json: st.type === 'json', action: st.key });
   if (st.type === 'json') {
     const j = extractJSON(txt);
     if (st.key === 'copy') {
