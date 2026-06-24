@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>朱砂操盘台 · 商业计划书 / 推广方案 / 落地指标</title>
+<style>
+  :root{
+    --ink:#1c1c1e; --ink-soft:#6b6f76; --paper:#ffffff; --paper-2:#f6f4ee;
+    --cinnabar:#ff2442; --cinnabar-deep:#c91530; --gold:#c8932c; --line:#e7e3d8;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:#0b0b0c; font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",-apple-system,sans-serif; color:var(--ink); }
+  .deck{ max-width:1280px; margin:0 auto; padding:40px 0 120px; }
+  .slide{
+    width:1280px; height:720px; background:var(--paper); position:relative; overflow:hidden;
+    margin:0 auto 28px; border-radius:6px; box-shadow:0 20px 60px -20px rgba(0,0,0,.5);
+    padding:64px 72px; display:flex; flex-direction:column;
+  }
+  .slide::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:8px; background:var(--cinnabar); }
+  .kicker{ font-size:14px; color:var(--cinnabar-deep); font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-bottom:10px; }
+  h1{ font-size:40px; font-weight:800; line-height:1.25; color:var(--ink); }
+  h2{ font-size:30px; font-weight:800; margin-bottom:22px; color:var(--ink); }
+  h2 .num{ color:var(--cinnabar); margin-right:10px; }
+  .sub{ font-size:17px; color:var(--ink-soft); margin-top:14px; line-height:1.7; max-width:880px; }
+  .grid{ display:grid; gap:18px; margin-top:6px; flex:1; }
+  .g2{ grid-template-columns:1fr 1fr; }
+  .g3{ grid-template-columns:1fr 1fr 1fr; }
+  .g4{ grid-template-columns:1fr 1fr 1fr 1fr; }
+  .card{ background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:20px 22px; }
+  .card h3{ font-size:16.5px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  .card p{ font-size:13.5px; color:var(--ink-soft); line-height:1.65; }
+  .pill{ display:inline-block; background:rgba(255,36,66,.1); color:var(--cinnabar-deep); font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; margin-right:6px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th,td{ border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top; }
+  th{ background:var(--paper-2); font-weight:700; color:var(--ink); }
+  td{ color:#3a3a3e; }
+  .num-big{ font-size:34px; font-weight:800; color:var(--cinnabar); }
+  .foot{ position:absolute; bottom:28px; right:72px; font-size:12px; color:#b9b6ad; }
+  .page{ position:absolute; bottom:28px; left:72px; font-size:12px; color:#b9b6ad; }
+  .center{ align-items:center; justify-content:center; text-align:center; }
+  .cover{ background:linear-gradient(135deg,#1c1c1e 0%,#2a1418 60%,#3a1620 100%); color:#fff; }
+  .cover::before{ display:none; }
+  .cover h1{ color:#fff; font-size:54px; }
+  .cover .tag{ color:#ffb9bf; font-size:20px; font-weight:600; margin-top:18px; }
+  .cover .meta{ color:#a8a6ad; font-size:14px; margin-top:60px; }
+  .flow{ display:flex; gap:0; flex:1; align-items:stretch; }
+  .flow .step{ flex:1; background:var(--paper-2); border-radius:12px; padding:16px 14px; margin-right:10px; position:relative; }
+  .flow .step:last-child{ margin-right:0; }
+  .flow .step .n{ font-size:22px; font-weight:800; color:var(--cinnabar); }
+  .flow .step h4{ font-size:14px; font-weight:700; margin:6px 0 6px; }
+  .flow .step p{ font-size:11.5px; color:var(--ink-soft); line-height:1.5; }
+  ul.bul{ list-style:none; }
+  ul.bul li{ font-size:14.5px; color:#3a3a3e; line-height:1.8; padding-left:20px; position:relative; margin-bottom:6px; }
+  ul.bul li::before{ content:"●"; color:var(--cinnabar); position:absolute; left:0; font-size:9px; top:6px; }
+  .badge-row{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .stat{ flex:1; background:var(--paper-2); border-radius:12px; padding:16px; text-align:center; }
+  .stat .v{ font-size:26px; font-weight:800; color:var(--cinnabar); }
+  .stat .l{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
+  @media print{
+    body{ background:#fff; }
+    .slide{ box-shadow:none; page-break-after:always; margin:0; border-radius:0; }
+  }
+  .toolbar{ position:fixed; top:16px; right:16px; z-index:50; display:flex; gap:8px; }
+  .toolbar button{ background:#fff; border:1px solid var(--line); border-radius:999px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; }
+  .toolbar button:hover{ background:var(--paper-2); }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="window.print()">🖨️ 导出 / 打印为 PDF</button>
+</div>
+
+<div class="deck">
+
+  <!-- 0 封面 -->
+  <section class="slide cover center">
+    <div class="kicker" style="color:#ff8b95">BUSINESS PLAN · 2026</div>
+    <h1>朱砂操盘台</h1>
+    <div class="tag">最懂你赛道的 AI，3 分钟一篇，篇篇是爆款</div>
+    <div class="meta">商业计划书 · 近一年推广方案 · 落地指标体系　|　2026.06</div>
+  </section>
+
+  <!-- 1 一句话 & 目录 -->
+  <section class="slide">
+    <div class="kicker">CONTENTS</div>
+    <h1>三份文件，一套打法</h1>
+    <div class="grid g3" style="margin-top:30px;">
+      <div class="card">
+        <h3>📘 第一部分 · 商业计划书</h3>
+        <p>痛点 → 产品 → 差异化 → 商业模式 → 市场测算 → 财务预测 → 团队与融资需求</p>
+      </div>
+      <div class="card">
+        <h3>📣 第二部分 · 近一年推广方案</h3>
+        <p>北极星指标 → 渠道矩阵 → 12 个月节奏表 → 内容与裂变机制 → 预算分配</p>
+      </div>
+      <div class="card">
+        <h3>📊 第三部分 · 落地指标体系</h3>
+        <p>分层指标（获客/激活/留存/付费/裂变）→ 季度 OKR → 风险预案</p>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:24px;">定位一句话：<b>朱砂操盘台是面向内容创作者的「垂直赛道 AI 操盘系统」</b>——通过「赛道智能体」（人设+知识库+合规红线）+「八步流水线」，把选题到发布的全流程压缩到 3 分钟，且保证内容专业不串味、合规不限流。</div>
+  </section>
+
+  <!-- 2 痛点 -->
+  <section class="slide">
+    <h2><span class="num">01</span>用户痛点：内容创作的四座大山</h2>
+    <div class="grid g4">
+      <div class="card"><h3>🎯 不知道发什么</h3><p>选题靠灵感，没有方法论；爆款追不上热点，灵感枯竭是常态。</p></div>
+      <div class="card"><h3>🧩 写不出爆款</h3><p>会模仿但抓不住钩子结构；对标拆解全靠手动，效率低、易跑偏。</p></div>
+      <div class="card"><h3>🎨 不会做封面</h3><p>没有设计基础，封面决定点击率，但素人最弱的恰恰是这一环。</p></div>
+      <div class="card"><h3>🛡️ 怕违规限流</h3><p>绝对化用语、导流话术、未核实信息一不留神就被限流甚至封号。</p></div>
+    </div>
+    <div class="sub" style="margin-top:18px;">市场上现有工具多是「通用文案生成器」，套用同一套模板和语气 → 内容同质化严重，是当前小红书生态「千篇一律」的根因。朱砂要解决的不是「能不能生成」，而是「生成的是不是只属于这个赛道、这个人」。</div>
+  </section>
+
+  <!-- 3 产品方案：八步流水线 -->
+  <section class="slide">
+    <h2><span class="num">02</span>解决方案：八步流水线，3 分钟出稿</h2>
+    <div class="flow">
+      <div class="step"><div class="n">01</div><h4>选题</h4><p>三层漏斗+实时热点，赛道智能体定向给话题</p></div>
+      <div class="step"><div class="n">02</div><h4>对标拆解</h4><p>逐张图片拆文字/版式/钩子策略，给结构骨架</p></div>
+      <div class="step"><div class="n">03</div><h4>框架</h4><p>钩子+分块大纲+配图规划，逐张对位对标</p></div>
+      <div class="step"><div class="n">04</div><h4>正文/标题/标签</h4><p>一次性产出正文+候选标题+精准标签组合</p></div>
+      <div class="step"><div class="n">05</div><h4>封面配图</h4><p>AI 生图或上传实拍，十余种笔记卡模板覆盖</p></div>
+      <div class="step"><div class="n">06</div><h4>合规自检</h4><p>违禁词/绝对化/导流/失实逐项查并给改后版</p></div>
+      <div class="step"><div class="n">07</div><h4>成稿预览</h4><p>真实排版预览，一键导出 1080P 图文包</p></div>
+      <div class="step"><div class="n">08</div><h4>一键发布</h4><p>Chrome 插件直推草稿箱，零风控完成最后一步</p></div>
+    </div>
+    <div class="sub" style="margin-top:16px;">每一步都可独立编辑、独立重跑，用户始终掌控最终成稿——AI 不是替代创作者，而是把创作者从「重复劳动」里解放出来，专注判断与表达。</div>
+  </section>
+
+  <!-- 4 核心差异化：赛道智能体 -->
+  <section class="slide">
+    <h2><span class="num">03</span>核心壁垒：赛道智能体（而非通用文案机）</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>🧠 四层人设系统</h3>
+        <ul class="bul">
+          <li>KB1 人设资料：身份/口吻/擅长领域</li>
+          <li>KB2 本人爆文样本：学语气、不照抄</li>
+          <li>KB3 行业事实库：防幻觉的硬信息边界</li>
+          <li>KB4 赛道合规红线：该垂类特有的禁区</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔒 边界约束（最高优先级）</h3>
+        <ul class="bul">
+          <li>禁区：绝不出现的话术/承诺</li>
+          <li>必守事实：只能这样说的硬信息</li>
+          <li>统一口径：术语跨篇一致</li>
+          <li>创作偏好：减少返工的风格锁定</li>
+        </ul>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:10px;"><b>为什么这是壁垒：</b>通用 AI 文案工具换个用户就是同一套腔调，朱砂的每个赛道智能体都是「私有化训练」的结果——用得越久，知识库越厚，迁移成本越高，这是留存与复购的根本支撑。</div>
+  </section>
+
+  <!-- 5 目标用户与场景 -->
+  <section class="slide">
+    <h2><span class="num">04</span>目标用户与场景</h2>
+    <table>
+      <tr><th>用户分层</th><th>典型场景</th><th>核心诉求</th><th>付费意愿</th></tr>
+      <tr><td>素人/新手博主</td><td>0 基础起号，没有选题与排版能力</td><td>降低门槛，跑通第一篇</td><td>低单价、高频小额</td></tr>
+      <tr><td>知识/垂类博主</td><td>固定赛道长期更新，怕串味、怕同质化</td><td>专业度+一致性+效率</td><td>中等，重复购买</td></tr>
+      <tr><td>电商/微商卖家</td><td>需要持续种草内容带货</td><td>转化导向的钩子与合规话术</td><td>中高，关联 GMV</td></tr>
+      <tr><td>MCN/代运营团队</td><td>多账号矩阵批量出稿</td><td>批量效率+账号矩阵管理+插件直推</td><td>高，B 端合同制</td></tr>
+    </table>
+    <div class="sub" style="margin-top:14px;">优先级：先打透 <b>知识/垂类博主</b>（赛道智能体的价值最大化场景，且天然产生内容沉淀与口碑），再向上拓展 <b>MCN/代运营</b> 这一高客单价 B 端市场。</div>
+  </section>
+
+  <!-- 6 市场测算 -->
+  <section class="slide">
+    <h2><span class="num">05</span>市场测算（TAM / SAM / SOM）</h2>
+    <div class="grid g3">
+      <div class="card"><h3>TAM</h3><p class="num-big">¥120亿+</p><p>小红书月活创作者超 3000 万，按行业内容服务/工具人均年付费 ¥300-500 估算的潜在市场。</p></div>
+      <div class="card"><h3>SAM</h3><p class="num-big">¥15亿</p><p>聚焦「有持续更新意愿+垂类身份明确」的活跃创作者约 500 万人，AI 内容工具渗透场景。</p></div>
+      <div class="card"><h3>SOM（首年目标）</h3><p class="num-big">¥800万</p><p>首年覆盖 8-10 万注册用户，付费转化 8%-10%，ARPU ¥80-120/年，对应首年 GMV 目标。</p></div>
+    </div>
+    <div class="sub" style="margin-top:18px;">注：以上为基于公开行业数据的估算口径（小红书 DAU/MAU 公开披露 + 内容工具赛道平均付费率参照），最终以实际增长曲线滚动校准。</div>
+  </section>
+
+  <!-- 7 竞品对比 -->
+  <section class="slide">
+    <h2><span class="num">06</span>竞争格局</h2>
+    <table>
+      <tr><th>维度</th><th>通用 AI 写作工具<br>(如 ChatGPT/文心一言类)</th><th>同质化笔记生成器</th><th>朱砂操盘台</th></tr>
+      <tr><td>赛道专业度</td><td>需自己反复调 Prompt</td><td>统一模板，千篇一律</td><td>赛道智能体，人设+知识库专属训练</td></tr>
+      <tr><td>合规风险</td><td>无内置审查</td><td>少数有基础违禁词检测</td><td>三道合规门（框架审→自检→人审）</td></tr>
+      <tr><td>全流程闭环</td><td>仅文案，无配图/发布</td><td>多为单点工具，需自行拼接</td><td>选题→正文→配图→预览→发布 全闭环</td></tr>
+      <tr><td>发布摩擦</td><td>需手动搬运</td><td>需手动搬运</td><td>Chrome 插件一键直推草稿箱</td></tr>
+      <tr><td>增长机制</td><td>无</td><td>多为直接付费</td><td>积分制+邀请裂变，冷启动友好</td></tr>
+    </table>
+  </section>
+
+  <!-- 8 商业模式 -->
+  <section class="slide">
+    <h2><span class="num">07</span>商业模式：积分制 + 分层会员 + B 端代理</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>💳 C 端：按用量积分付费</h3>
+        <ul class="bul">
+          <li>1 积分 = ¥0.01，按生成结果实际扣费，失败不收费</li>
+          <li>新用户注册赠 200 积分，体验包/基础包阶梯定价</li>
+          <li>成品模板 120 积分/套，买断可二次编辑</li>
+          <li>合伙人充值额外赠 30% 积分，提升客单与忠诚度</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🏢 B 端：代运营 / 矩阵账号订阅</h3>
+        <ul class="bul">
+          <li>账号矩阵管理 + 批量出稿，按席位/账号数订阅制</li>
+          <li>定制赛道智能体（行业知识库代为搭建）服务费</li>
+          <li>插件「直推草稿箱」面向 MCN 的合规分发能力</li>
+          <li>未来：API 开放给第三方内容工具/代理商分润</li>
+        </ul>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:10px;">定价哲学：<b>选题免费、轻量步骤低价、核心产出（正文/配图）计费</b>——降低试用门槛，把付费点放在用户已经获得明确价值之后。</div>
+  </section>
+
+  <!-- 9 增长引擎 -->
+  <section class="slide">
+    <h2><span class="num">08</span>增长引擎：裂变 + 内容双轮驱动</h2>
+    <div class="badge-row">
+      <div class="stat"><div class="v">邀请返现</div><div class="l">好友得200，你得100，首充再返10%</div></div>
+      <div class="stat"><div class="v">分享海报</div><div class="l">作品自带邀请码二维码，自然裂变</div></div>
+      <div class="stat"><div class="v">赛道社群</div><div class="l">垂类创作者互助/对标共享，沉淀私域</div></div>
+      <div class="stat"><div class="v">案例种草</div><div class="l">用产品做内容反向种草产品本身</div></div>
+    </div>
+    <div class="sub" style="margin-top:24px;">核心增长飞轮：<b>用户用朱砂生成爆款笔记 → 笔记本身成为产品的广告位（"AI生成"话题+成果展示） → 评论区导流到产品 → 新用户邀请获积分 → 继续生产内容</b>。产品即渠道，是冷启动阶段最低成本的获客方式。</div>
+  </section>
+
+  <!-- 10 财务预测 -->
+  <section class="slide">
+    <h2><span class="num">09</span>财务预测（首年，单位：万元）</h2>
+    <table>
+      <tr><th>季度</th><th>注册用户（累计）</th><th>付费用户（累计）</th><th>GMV</th><th>毛利</th><th>主要投入</th></tr>
+      <tr><td>Q1</td><td>1.5万</td><td>800</td><td>15</td><td>9</td><td>内容种草+种子用户运营</td></tr>
+      <tr><td>Q2</td><td>4万</td><td>2,800</td><td>60</td><td>38</td><td>KOC合作+邀请裂变加码</td></tr>
+      <tr><td>Q3</td><td>7万</td><td>5,500</td><td>140</td><td>92</td><td>B端代运营试点+插件迭代</td></tr>
+      <tr><td>Q4</td><td>10万</td><td>9,000</td><td>260</td><td>175</td><td>赛道库扩充+多平台预研</td></tr>
+    </table>
+    <div class="sub" style="margin-top:14px;">假设：付费转化率 6%→9% 逐季提升，ARPU ¥90-110/年，毛利率维持在 60%-67%（AI 调用成本随模型降价持续优化）。</div>
+  </section>
+
+  <!-- 11 团队与融资 -->
+  <section class="slide">
+    <h2><span class="num">10</span>团队与资金需求</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>👥 团队配置（首年目标）</h3>
+        <ul class="bul">
+          <li>产品+研发：3-5人（含 1 名 AI/Prompt 工程负责人）</li>
+          <li>内容/增长：2-3人（赛道知识库搭建+KOC对接）</li>
+          <li>合规/法务顾问：兼职/外部支持</li>
+          <li>运营/客服：1-2人</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>💰 资金用途</h3>
+        <ul class="bul">
+          <li>40% 研发：模型调用成本+流水线/插件迭代</li>
+          <li>35% 增长：KOC合作、邀请裂变补贴、内容投放</li>
+          <li>15% 团队：核心团队人力成本</li>
+          <li>10% 合规/运维：服务器、安全、法务</li>
+        </ul>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:10px;">首年建议资金规模：<b>¥300-500万</b>，目标在 12 个月内验证 PMF 并跑通 B 端代理付费模式，为下一轮融资/盈亏平衡铺路。</div>
+  </section>
+
+  <!-- ===== 第二部分：推广方案 ===== -->
+
+  <!-- 12 推广总览 -->
+  <section class="slide">
+    <div class="kicker" style="color:var(--cinnabar-deep)">PART 2 · 近一年推广方案</div>
+    <h1 style="margin-top:10px;">北极星指标与打法总览</h1>
+    <div class="grid g4" style="margin-top:30px;">
+      <div class="card"><h3>北极星指标</h3><p>月度「成稿完成数」（用户跑完八步并导出/发布的笔记数）</p></div>
+      <div class="card"><h3>增长打法</h3><p>内容种草 + KOC共创 + 邀请裂变 + B端代理 四线并进</p></div>
+      <div class="card"><h3>预算节奏</h3><p>前两季度重内容验证，后两季度重渠道放量与B端转化</p></div>
+      <div class="card"><h3>组织节奏</h3><p>双周迭代产品，月度复盘增长漏斗，季度校准定价</p></div>
+    </div>
+  </section>
+
+  <!-- 13 渠道矩阵 -->
+  <section class="slide">
+    <h2><span class="num">11</span>渠道矩阵</h2>
+    <table>
+      <tr><th>渠道</th><th>打法</th><th>目标人群</th><th>预期占比（年）</th></tr>
+      <tr><td>小红书种草</td><td>素人测评+"AI生成笔记"话题挑战+对比实拍，自然流为主</td><td>素人/垂类博主</td><td>35%</td></tr>
+      <tr><td>KOC共创</td><td>邀请垂类中腰部博主试用并产出"用朱砂3分钟出稿"内容</td><td>知识/垂类博主</td><td>25%</td></tr>
+      <tr><td>邀请裂变（产品内）</td><td>积分返现+分享海报+老带新激励</td><td>全量用户</td><td>20%</td></tr>
+      <tr><td>私域/社群</td><td>赛道社群运营、案例库沉淀、答疑直播</td><td>中重度用户</td><td>10%</td></tr>
+      <tr><td>B端直销/渠道</td><td>MCN/代运营公司BD，账号矩阵订阅制</td><td>MCN/代理团队</td><td>10%</td></tr>
+    </table>
+  </section>
+
+  <!-- 14 12个月节奏表 -->
+  <section class="slide">
+    <h2><span class="num">12</span>12 个月推广节奏</h2>
+    <table style="font-size:12px;">
+      <tr><th>阶段</th><th>月份</th><th>核心目标</th><th>关键动作</th></tr>
+      <tr><td rowspan="3">冷启动验证<br>(Q1)</td><td>M1</td><td>跑通核心流程口碑</td><td>200名种子用户内测，1v1收集反馈，打磨S2-S6体验</td></tr>
+      <tr><td>M2</td><td>验证赛道智能体价值</td><td>上线5个预设赛道，邀请10个垂类KOC共创案例笔记</td></tr>
+      <tr><td>M3</td><td>启动自然流获客</td><td>小红书"AI 3分钟出稿"话题挑战，开放邀请裂变功能</td></tr>
+      <tr><td rowspan="3">渠道放量<br>(Q2)</td><td>M4</td><td>付费转化率爬坡</td><td>体验包/基础包定价AB测试，分享海报功能上线</td></tr>
+      <tr><td>M5</td><td>扩大KOC矩阵</td><td>追加20个垂类KOC，案例库做成"赛道百宝箱"内容栏目</td></tr>
+      <tr><td>M6</td><td>合规与口碑建立</td><td>合规自检功能升级，公开"零限流"使用数据背书</td></tr>
+      <tr><td rowspan="3">规模化增长<br>(Q3)</td><td>M7</td><td>B端代理试点</td><td>签约3-5家MCN/代运营团队，账号矩阵功能打磨</td></tr>
+      <tr><td>M8</td><td>插件生态深化</td><td>Chrome插件迭代（多账号切换/批量发布），降低发布摩擦</td></tr>
+      <tr><td>M9</td><td>内容矩阵规模化</td><td>UGC内容激励计划，"我的爆款是朱砂出的"标签传播</td></tr>
+      <tr><td rowspan="3">效率与复购<br>(Q4)</td><td>M10</td><td>提升ARPU</td><td>会员等级/合伙人体系上线，赛道库扩充到20+</td></tr>
+      <tr><td>M11</td><td>B端规模复制</td><td>B端签约目标15家，标准化代理商SOP手册</td></tr>
+      <tr><td>M12</td><td>年度复盘&规划</td><td>全年数据复盘，制定第二年多平台（抖音/公众号）扩张计划</td></tr>
+    </table>
+  </section>
+
+  <!-- 15 内容与裂变机制 -->
+  <section class="slide">
+    <h2><span class="num">13</span>内容矩阵与裂变机制设计</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>📹 内容矩阵</h3>
+        <ul class="bul">
+          <li>"3分钟出稿"实录类：录屏展示从0到成稿全过程</li>
+          <li>"对标拆解"教学类：用真实爆款笔记演示拆解逻辑</li>
+          <li>"赛道智能体"故事类：垂类博主真实使用反馈/涨粉案例</li>
+          <li>"合规避坑"科普类：违禁词/限流案例科普，建立信任</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔁 裂变机制</h3>
+        <ul class="bul">
+          <li>邀请得积分：好友注册得200，你得100（双向激励）</li>
+          <li>分享海报自带二维码，作品发布即自然带流量</li>
+          <li>"赛道挑战赛"：垂类话题UGC比赛，优胜者送积分包</li>
+          <li>老用户专属"合伙人"身份：充值多得30%积分+专属赛道额度</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 预算分配 -->
+  <section class="slide">
+    <h2><span class="num">14</span>年度推广预算分配（参考）</h2>
+    <div class="grid g4">
+      <div class="stat"><div class="v">35%</div><div class="l">KOC/达人合作费用</div></div>
+      <div class="stat"><div class="v">25%</div><div class="l">裂变积分补贴</div></div>
+      <div class="stat"><div class="v">20%</div><div class="l">内容投放/信息流</div></div>
+      <div class="stat"><div class="v">20%</div><div class="l">B端BD与渠道合作</div></div>
+    </div>
+    <div class="sub" style="margin-top:24px;">原则：<b>前轻后重</b>——Q1-Q2 以最小成本验证内容与机制有效性，Q3-Q4 在确认 ROI 后加大KOC与B端投入，避免在未验证模型前large-scale烧钱获客。</div>
+  </section>
+
+  <!-- ===== 第三部分：落地指标 ===== -->
+
+  <!-- 17 指标体系总览 -->
+  <section class="slide">
+    <div class="kicker" style="color:var(--cinnabar-deep)">PART 3 · 落地指标体系</div>
+    <h1 style="margin-top:10px;">分层指标：从获客到复购</h1>
+    <table style="margin-top:30px;">
+      <tr><th>层级</th><th>核心指标</th><th>定义</th><th>首年目标</th></tr>
+      <tr><td>获客 Acquisition</td><td>月新增注册</td><td>新注册账号数</td><td>Q4月均 1.2万</td></tr>
+      <tr><td>激活 Activation</td><td>首次成稿率</td><td>注册7天内完成第一篇成稿占比</td><td>≥45%</td></tr>
+      <tr><td>留存 Retention</td><td>次月留存率</td><td>次月仍有创作行为的用户占比</td><td>≥30%</td></tr>
+      <tr><td>付费 Revenue</td><td>付费转化率 / ARPU</td><td>付费用户占比 / 年人均收入</td><td>9% / ¥100</td></tr>
+      <tr><td>裂变 Referral</td><td>邀请系数 K</td><td>每个用户平均带来的新用户数</td><td>≥0.3</td></tr>
+    </table>
+  </section>
+
+  <!-- 18 季度OKR -->
+  <section class="slide">
+    <h2><span class="num">15</span>季度 OKR 对照表</h2>
+    <table style="font-size:12px;">
+      <tr><th>季度</th><th>O（目标）</th><th>KR（关键结果）</th></tr>
+      <tr><td>Q1</td><td>验证产品价值与赛道智能体可用性</td><td>种子用户首次成稿率≥40%；5个预设赛道上线；NPS≥30</td></tr>
+      <tr><td>Q2</td><td>跑通自然流获客与初步付费转化</td><td>月新增注册≥6千；付费转化率≥6%；邀请系数K≥0.15</td></tr>
+      <tr><td>Q3</td><td>建立B端代理与插件生态</td><td>签约MCN≥5家；插件周活跃发布数≥3千次；次月留存≥28%</td></tr>
+      <tr><td>Q4</td><td>规模化增长与ARPU提升</td><td>月新增注册≥1.2万；ARPU≥¥100；B端签约≥15家</td></tr>
+    </table>
+  </section>
+
+  <!-- 19 风险与应对 -->
+  <section class="slide">
+    <h2><span class="num">16</span>关键风险与应对预案</h2>
+    <div class="grid g2">
+      <div class="card"><h3>⚠️ 平台规则风险</h3><p>小红书可能收紧"AI生成内容"政策或插件发布通道 → 持续强化合规自检+合规话术更新机制，发布环节保留"人工终审"作为安全垫，不依赖单一发布路径。</p></div>
+      <div class="card"><h3>⚠️ 模型成本波动</h3><p>主流模型API涨价侵蚀毛利 → 多模型供应商可替换架构，按任务复杂度动态分配模型，持续监控单篇生成成本。</p></div>
+      <div class="card"><h3>⚠️ 内容同质化反噬</h3><p>大规模AI生成可能导致内容趋同被平台识别限流 → 加大KB2/KB3知识库个性化权重，强制要求用户素材输入，避免"裸生成"。</p></div>
+      <div class="card"><h3>⚠️ 获客成本攀升</h3><p>KOC/投放成本上涨压缩ROI → 优先做透"产品即内容"的自然裂变，控制KOC投放占比上限，建立私域复用资产。</p></div>
+    </div>
+  </section>
+
+  <!-- 20 结尾 -->
+  <section class="slide cover center">
+    <div class="kicker" style="color:#ff8b95">THANK YOU</div>
+    <h1 style="font-size:42px;">最懂你赛道的 AI<br>3分钟一篇，篇篇是爆款</h1>
+    <div class="meta">朱砂操盘台 · 商业计划书 / 推广方案 / 落地指标体系　|　2026.06</div>
+  </section>
+
+</div>
+
+</body>
+</html>
