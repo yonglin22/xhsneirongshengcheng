@@ -49,6 +49,7 @@
       <button data-v="rules">规则知识库</button>
       <button data-v="qaLog">问答日志</button>
       <button data-v="agentApps">智能体申请</button>
+      <button data-v="xhsLogin">采集登录</button>
       <button data-v="roles">角色管理</button>
       <button data-v="perms">权限管理</button>
       <button data-v="menus">菜单管理</button>
@@ -288,6 +289,24 @@ const views = {
       <div class="flex items-center gap-2 mt-3"><button id="mnSave" class="btn-go rounded-lg px-5 py-2 text-[13px]">保存菜单</button><span id="mnMsg" class="text-[12px] text-[var(--ink-soft)]"></span></div>
       <p class="text-[12px] text-[var(--ink-soft)] mt-2">概览 / 角色 / 权限 / 菜单 为系统必开项，不可停用。改名后顶部标签即时生效。</p></div>`;
   },
+  // —— 采集登录：小红书登录态查看 + 一键扫码续期（过期后在这里扫码，无需登录服务器）——
+  async xhsLogin() {
+    const { j } = await aget('/api/admin/xhs-login-status'); const s = j || {};
+    let statusHtml;
+    if (!s.ok) statusHtml = `<div class="kpi"><div class="text-[13px]" style="color:var(--cinnabar-deep)">状态查询失败：${s.error || '未知错误'}</div></div>`;
+    else if (s.loggedIn) statusHtml = `<div class="kpi" style="border-left:3px solid #00a052"><div class="text-[12px] text-[var(--ink-soft)] mb-1">当前状态</div><div class="text-[15px] font-bold" style="color:#00a052">✓ 已登录，抓取正常</div><div class="text-[12.5px] mt-1">账号：${s.nickname || '—'}${s.redId ? ' · 小红书号 ' + s.redId : ''}</div></div>`;
+    else statusHtml = `<div class="kpi" style="border-left:3px solid var(--cinnabar)"><div class="text-[12px] text-[var(--ink-soft)] mb-1">当前状态</div><div class="text-[15px] font-bold" style="color:var(--cinnabar-deep)">✗ 登录态已过期</div><div class="text-[12.5px] mt-1">「抓对标 / 查笔记」会失败，点下方「重新扫码登录」恢复。</div></div>`;
+    return `<div class="space-y-4" style="max-width:540px">
+      <p class="text-[13px] text-[var(--ink-soft)]">小红书登录态由小红书服务端控制，约数天~两周会过期（和手机 App 偶尔要重登一个道理）。过期后在此点「重新扫码登录」，用<strong>手机小红书 App → 我 → 右上角扫一扫</strong>扫码即可恢复抓取，<strong>无需登录服务器、无需敲命令</strong>。系统每 6 小时自动保活一次，已尽量延长不过期时间。</p>
+      ${statusHtml}
+      <div class="flex gap-2 items-center flex-wrap">
+        <button id="xhsReBtn" class="btn-go rounded-lg px-5 py-2.5 text-[13px]">🔄 重新扫码登录</button>
+        <button id="xhsRefresh" class="btn-ghost rounded-lg px-4 py-2.5 text-[13px]">刷新状态</button>
+        <span id="xhsReMsg" class="text-[12.5px] text-[var(--ink-soft)]"></span>
+      </div>
+      <div id="xhsQrBox"></div>
+    </div>`;
+  },
 };
 let RBAC = { roles: [], menus: [], staff: [] };
 // 角色行（含可展开的成员明细行）——初始渲染与本地增删后复用
@@ -429,6 +448,32 @@ async function renderView() {
       } else msg('#mnMsg', '保存失败：' + (j.error || ''), false);
     });
   }
+  if (curView === 'xhsLogin') {
+    $('#xhsRefresh')?.addEventListener('click', renderView);
+    $('#xhsReBtn')?.addEventListener('click', async () => {
+      const btn = $('#xhsReBtn'); btn.disabled = true; msg('#xhsReMsg', '正在拉起登录浏览器，约 20~40 秒后出二维码…', true); $('#xhsQrBox').innerHTML = '';
+      const { ok, j } = await apost('/api/admin/xhs-relogin', {});
+      if (!ok || !j.ok) { btn.disabled = false; msg('#xhsReMsg', '发起失败：' + (j.error || ''), false); return; }
+      let qn = 0; const qrPoll = setInterval(async () => {
+        qn++; const r = await aget('/api/admin/xhs-relogin-qr');
+        const st = r.j || {};
+        if (st.ok && st.status === 'ready') {
+          clearInterval(qrPoll); btn.disabled = false;
+          msg('#xhsReMsg', '请用手机小红书 App → 我 → 扫一扫，扫下面二维码', true);
+          $('#xhsQrBox').innerHTML = `<div class="card p-4 inline-block mt-1"><img src="${st.img}" alt="登录二维码" style="width:240px;height:240px;image-rendering:pixelated;display:block;background:#fff"/><div class="text-[12px] text-[var(--ink-soft)] mt-2 text-center">扫码并在手机上确认后，约 5 秒自动检测登录</div></div>`;
+          let n = 0; const poll = setInterval(async () => {
+            n++; const r2 = await aget('/api/admin/xhs-login-status');
+            if (r2.j && r2.j.ok && r2.j.loggedIn) { clearInterval(poll); msg('#xhsReMsg', '✓ 登录成功：' + (r2.j.nickname || ''), true); $('#xhsQrBox').innerHTML = '<div class="kpi" style="border-left:3px solid #00a052"><div class="text-[14px] font-bold" style="color:#00a052">✓ 已恢复登录，抓取功能可用</div><div class="text-[12.5px] mt-1">账号：' + (r2.j.nickname || '—') + (r2.j.redId ? ' · 小红书号 ' + r2.j.redId : '') + '</div></div>'; }
+            else if (n > 40) { clearInterval(poll); msg('#xhsReMsg', '等待扫码超时（约 2 分钟），请重新点击生成二维码', false); }
+          }, 3000);
+        } else if (st.ok && st.status === 'error') {
+          clearInterval(qrPoll); btn.disabled = false; msg('#xhsReMsg', '生成失败：' + (st.error || '未知错误'), false);
+        } else if (qn > 30) {
+          clearInterval(qrPoll); btn.disabled = false; msg('#xhsReMsg', '生成二维码超时，请重新点击', false);
+        }
+      }, 2000);
+    });
+  }
 }
 $('#navSeg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
   curView = b.dataset.v; $('#navSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderView();
@@ -454,7 +499,7 @@ async function boot() {
     window.__applyMenuLabels = () => { if (!menuCfg) return; const lm = {}; menuCfg.forEach(m => lm[m.key] = m.label); $('#navSeg').querySelectorAll('button').forEach(b => { if (lm[b.dataset.v]) b.textContent = lm[b.dataset.v]; }); };
     window.__applyMenuLabels();
     if (menus) {
-      $('#navSeg').querySelectorAll('button').forEach(b => { b.style.display = menus.includes(b.dataset.v) ? '' : 'none'; });
+      $('#navSeg').querySelectorAll('button').forEach(b => { if (b.dataset.v === 'xhsLogin') return; b.style.display = menus.includes(b.dataset.v) ? '' : 'none'; });
       if (!menus.includes(curView)) { curView = menus[0] || 'overview'; $('#navSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === curView)); }
     }
     renderView();

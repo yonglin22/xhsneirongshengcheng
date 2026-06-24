@@ -365,6 +365,90 @@ async function fetchPaperArt() {
   return out;
 }
 
+// ===== 小红书登录态：状态查询 + 后台自助扫码续期（纯新增，绝不改 /api/xhs-search 抓取逻辑）=====
+// 续期原理：小红书 cookie 由小红书服务端控制，约数天~两周过期；这里让管理员在「管理后台」
+// 一键发起 xhs login --qrcode，把虚拟屏(:99)里浏览器渲染出的二维码截图、解码、用 qrencode 重画成
+// 清晰二维码回传前端，管理员手机扫一下即可恢复抓取——无需 SSH、无需敲命令。
+const { execFile: _execFile, spawn: _spawn } = require('child_process');
+const XHS_DISPLAY = process.env.XHS_DISPLAY || ':99';
+const XHS_HOME = process.env.HOME || '/home/app';
+const XHS_USER = process.env.XHS_USER || 'app';
+function xhsEnv() { return { ...process.env, HOME: XHS_HOME, DISPLAY: XHS_DISPLAY }; }
+function runCmd(cmd, args, timeout = 20000) {
+  return new Promise(resolve => {
+    _execFile(cmd, args, { timeout, maxBuffer: 8 * 1024 * 1024, env: xhsEnv() }, (err, so, se) => {
+      resolve({ code: err ? (err.code || 1) : 0, stdout: (so || '').toString(), stderr: (se || '').toString(), err });
+    });
+  });
+}
+// 查询登录态：优先 xhs status --json，解析失败再退回纯文本 status 兜底识别
+async function xhsStatus() {
+  const rj = await runCmd('xhs', ['status', '--json'], 20000);
+  let info = null; try { info = JSON.parse(rj.stdout); } catch {}
+  if (info && info.data) {
+    const u = info.data.user || {};
+    return { loggedIn: !!info.data.authenticated, nickname: u.nickname || u.name || '', redId: u.red_id || u.username || '', raw: (rj.stdout || '').slice(0, 300) };
+  }
+  const rt = await runCmd('xhs', ['status'], 20000);
+  const out = (rt.stdout + '\n' + rt.stderr);
+  const expired = /expired|未登录|not logged|Session expired/i.test(out);
+  const ok = /Logged in|authenticated[:：]\s*true|已登录/i.test(out) && !expired;
+  const m = out.match(/昵称[:：]\s*(.+)/) || out.match(/nickname[:：]\s*'?([^'\n]+)/i);
+  const rid = out.match(/小红书号[:：]\s*(\S+)/) || out.match(/red_id[:：]\s*'?([^'\n]+)/i);
+  return { loggedIn: ok, nickname: m ? m[1].trim() : '', redId: rid ? rid[1].trim() : '', raw: out.slice(0, 300) };
+}
+// 确保虚拟屏 :99 在跑（纯命令行 VPS 无图形界面，扫码登录的浏览器需要一个 DISPLAY）
+function ensureXvfb() {
+  return new Promise(resolve => {
+    _execFile('pgrep', ['-f', 'Xvfb ' + XHS_DISPLAY], (err, so) => {
+      if (!err && (so || '').trim()) return resolve(true);
+      try { const p = _spawn('Xvfb', [XHS_DISPLAY, '-screen', '0', '1360x900x24', '-ac'], { detached: true, stdio: 'ignore', env: xhsEnv() }); p.unref(); } catch {}
+      setTimeout(() => resolve(true), 1800);
+    });
+  });
+}
+// 整个流程（拉起浏览器等渲染+截图+解码+重画）耗时可达 30~60 秒，远超普通接口超时；
+// 因此改成后台异步跑，前端先收到「已开始」，再轮询 /api/admin/xhs-relogin-qr 拿结果，避免 fetch 超时误报失败。
+let xhsReloginState = { status: 'idle', img: '', qr: '', error: '', startedAt: 0 };
+// 发起一次扫码登录：后台拉起 xhs login（持续等扫码），截虚拟屏→解码二维码→qrencode 重画清晰码回传
+async function xhsReloginRun() {
+  try {
+    await ensureXvfb();
+    await runCmd('pkill', ['-u', XHS_USER, '-f', 'xhs login'], 5000);
+    await runCmd('pkill', ['-u', XHS_USER, '-f', 'camoufox'], 5000);
+    await new Promise(r => setTimeout(r, 800));
+    const logPath = path.join(XHS_HOME, 'xhslogin.log');
+    const pngPath = path.join(XHS_HOME, 'qr_raw.png');
+    const cleanPath = path.join(XHS_HOME, 'qr_clean.png');
+    try {
+      const out = fs.openSync(logPath, 'w');
+      const p = _spawn('xhs', ['login', '--qrcode'], { detached: true, stdio: ['ignore', out, out], env: xhsEnv(), cwd: XHS_HOME });
+      p.unref();
+    } catch (e) { xhsReloginState = { status: 'error', img: '', qr: '', error: '启动登录进程失败：' + (e.message || e), startedAt: xhsReloginState.startedAt }; return; }
+    await new Promise(r => setTimeout(r, 14000)); // 等浏览器把二维码渲染出来
+    await runCmd('import', ['-window', 'root', pngPath], 12000); // imagemagick 截虚拟屏
+    let qr = '';
+    const z = await runCmd('zbarimg', ['--raw', '-q', pngPath], 12000);
+    if (z.code === 0) qr = (z.stdout || '').trim().split('\n')[0] || '';
+    let img = '';
+    if (qr) { // 用 qrencode 把解码出的登录链接重画成清晰二维码（比直接发桌面截图更易扫）
+      const qe = await runCmd('qrencode', ['-o', cleanPath, '-s', '8', '-m', '2', qr], 8000);
+      if (qe.code === 0) { try { img = 'data:image/png;base64,' + fs.readFileSync(cleanPath).toString('base64'); } catch {} }
+    }
+    if (!img) { try { img = 'data:image/png;base64,' + fs.readFileSync(pngPath).toString('base64'); } catch {} } // 兜底：发原始截图
+    if (!img) { xhsReloginState = { status: 'error', img: '', qr: '', error: '未能生成二维码（虚拟屏/截图/解码工具异常，请确认已装 xvfb imagemagick zbar-tools qrencode）', startedAt: xhsReloginState.startedAt }; return; }
+    xhsReloginState = { status: 'ready', img, qr, error: '', startedAt: xhsReloginState.startedAt };
+  } catch (e) {
+    xhsReloginState = { status: 'error', img: '', qr: '', error: '生成二维码异常：' + (e.message || e), startedAt: xhsReloginState.startedAt };
+  }
+}
+function xhsReloginStart() {
+  if (xhsReloginState.status === 'running') return { ok: true, status: 'running' };
+  xhsReloginState = { status: 'running', img: '', qr: '', error: '', startedAt: Date.now() };
+  xhsReloginRun(); // 不 await，立即返回
+  return { ok: true, status: 'running' };
+}
+
 const server = http.createServer(async (req, res) => {
  try {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -1374,6 +1458,21 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/admin/roles' && req.method === 'POST') { if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' }); const { roles } = JSON.parse((await readBody(req)) || '{}'); return sendJSON(res, 200, { ok: true, roles: billing.rolesSet(roles || []) }); }
     if (pathname === '/api/admin/menus' && req.method === 'GET') { if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' }); return sendJSON(res, 200, { ok: true, menus: billing.menuCfgGet() }); }
     if (pathname === '/api/admin/menus' && req.method === 'POST') { if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' }); const { menus } = JSON.parse((await readBody(req)) || '{}'); return sendJSON(res, 200, { ok: true, menus: billing.menuCfgSet(menus || []) }); }
+    // ===== 小红书采集登录态：状态 + 后台自助扫码续期（纯新增，不改 /api/xhs-search 抓取逻辑）=====
+    if (pathname === '/api/admin/xhs-login-status') {
+      if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' });
+      try { return sendJSON(res, 200, { ok: true, ...(await xhsStatus()) }); }
+      catch (e) { return sendJSON(res, 200, { ok: false, error: '查询失败：' + (e.message || e) }); }
+    }
+    if (pathname === '/api/admin/xhs-relogin' && req.method === 'POST') {
+      if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' });
+      try { return sendJSON(res, 200, xhsReloginStart()); }
+      catch (e) { return sendJSON(res, 200, { ok: false, error: '发起登录失败：' + (e.message || e) }); }
+    }
+    if (pathname === '/api/admin/xhs-relogin-qr') {
+      if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' });
+      return sendJSON(res, 200, { ok: true, ...xhsReloginState });
+    }
     // 当前管理员可见菜单（超管=全部；员工=分配的菜单）
     if (pathname === '/api/admin/my-menus') {
       if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' });
@@ -1455,3 +1554,13 @@ server.listen(PORT, () => {
   console.log(`  格式: ${API_FORMAT}  · 转发: ${API_BASE}${API_FORMAT === 'openai' ? '/chat/completions' : '/v1/messages'}  · 鉴权: ${API_FORMAT === 'openai' ? 'bearer' : AUTH_STYLE}${FORCE_MODEL ? '  · 模型: ' + FORCE_MODEL : ''}`);
   console.log(`  API Key: ${API_KEY ? '已配置 ✓' : '未配置 ✗（请在 .env 写入 ANTHROPIC_API_KEY）'}\n`);
 });
+
+// 小红书登录态保活：每 6 小时轻量调一次 xhs status（CLI 每次调用会顺带刷新 cookie，能明显延长不过期时间）；
+// 真过期时打一条日志提醒。设 XHS_KEEPALIVE=0 可关闭。本地没装 xhs 时调用失败也无害。
+if (process.env.XHS_KEEPALIVE !== '0') {
+  const ka = setInterval(async () => {
+    try { const s = await xhsStatus(); if (!s.loggedIn) console.warn('  [xhs] 登录态已过期 → 请到「管理后台 · 采集登录」重新扫码续期'); }
+    catch { /* 没装 xhs / 本地环境，忽略 */ }
+  }, 6 * 3600 * 1000);
+  if (ka.unref) ka.unref();
+}

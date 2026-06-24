@@ -21,6 +21,8 @@
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs python3 python3-venv pipx git debian-keyring debian-archive-keyring apt-transport-https
+# 后台「采集登录」自助续期需要的：虚拟屏 + 截图 + 二维码解码/重画
+apt-get install -y xvfb imagemagick zbar-tools qrencode
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
 apt-get update && apt-get install -y caddy
@@ -137,11 +139,20 @@ systemctl restart app
 
 ---
 
+## 小红书登录态续期（已内置「后台自助」，不必再 SSH）
+小红书 cookie 约数天~两周过期，过期后抓对标/查笔记会失败。**续期已做成后台自助**：
+- 用管理员账号进 `https://yonglin.chat/管理.html` → 顶部「采集登录」标签；
+- 看到「✗ 登录态已过期」就点「🔄 重新扫码登录」→ 页面出二维码 → 手机小红书 App「我 → 扫一扫」扫码 → 自动检测恢复。
+- 全程无需登录服务器。前提：第 1 步已 `apt-get install xvfb imagemagick zbar-tools qrencode`。
+- 系统每 6 小时自动保活一次（`xhs status` 顺带刷新 cookie），已尽量延长不过期时间；设 `.env` 里 `XHS_KEEPALIVE=0` 可关闭。
+> 兜底（万一后台页打不开时的手动法）：`sudo -u app bash -lc 'export DISPLAY=:99; cd /home/app && nohup xhs login --qrcode >/home/app/xhslogin.log 2>&1 &'`，等 14s 后 `sudo -u app bash -lc 'DISPLAY=:99 import -window root /home/app/qr.png'`，`zbarimg --raw /home/app/qr.png | xargs -0 qrencode -t ANSIUTF8 -m1` 在终端出码扫描，再 `systemctl restart app`。
+
 ## 排查
 | 现象 | 处理 |
 |---|---|
 | `systemctl status app` 报错 | `journalctl -u app -n 50` 看日志；多半是 .env 缺 key 或 node 版本 |
-| 抓取报"未找到 xhs"/"未登录" | app 用户下 `xhs status`；没登录就 `xhs login --qrcode` 重扫 |
+| 抓取报"未找到 xhs"/"未登录" | 进管理后台「采集登录」点重新扫码；或 app 用户下 `xhs status` / `xhs login --qrcode` 重扫 |
+| 后台「采集登录」二维码出不来 | 确认装了 `xvfb imagemagick zbar-tools qrencode`；`pgrep -f 'Xvfb :99'` 看虚拟屏是否在跑 |
 | Caddy 证书申请失败 | 防火墙 80/443 没放行，或 DNS 还没生效 |
 | 登录后又要重登 | `SESSION_SECRET` 每次启动变了 → 确认 .env 里写死了固定值 |
 | 数据还会丢吗 | 不会。billing.db 在 VPS 永久磁盘，重启/更新都保留；另有每日备份 |
