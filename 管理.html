@@ -459,7 +459,7 @@ async function renderView() {
         const st = r.j || {};
         if (st.ok && st.status === 'ready') {
           clearInterval(qrPoll); btn.disabled = false;
-          msg('#xhsReMsg', '请用手机小红书 App → 我 → 扫一扫，扫下面二维码', true);
+          msg('#xhsReMsg', '⚡ 请立刻用手机小红书 App → 我 → 扫一扫，扫下面二维码（系统等待扫码有时限，越快越好）', true);
           $('#xhsQrBox').innerHTML = `<div class="card p-4 inline-block mt-1"><img src="${st.img}" alt="登录二维码" style="width:240px;height:240px;image-rendering:pixelated;display:block;background:#fff"/><div class="text-[12px] text-[var(--ink-soft)] mt-2 text-center">扫码并在手机上确认后，约 5 秒自动检测登录</div></div>`;
           let n = 0; const poll = setInterval(async () => {
             n++; const r2 = await aget('/api/admin/xhs-login-status');

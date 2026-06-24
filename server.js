@@ -412,18 +412,23 @@ async function xhsReloginRun() {
       const p = _spawn('xhs', ['login', '--qrcode'], { detached: true, stdio: ['ignore', out, out], env: xhsEnv(), cwd: XHS_HOME });
       p.unref();
     } catch (e) { xhsReloginState = { status: 'error', img: '', qr: '', error: '启动登录进程失败：' + (e.message || e), startedAt: xhsReloginState.startedAt }; return; }
-    await new Promise(r => setTimeout(r, 14000)); // 等浏览器把二维码渲染出来
-    await runCmd('import', ['-window', 'root', pngPath], 12000); // imagemagick 截虚拟屏
+    // xhs 自身等扫码有内部超时（实测约几十秒就会判定"等浏览器完成超时"），所以这里尽量快地反复截屏+解码，
+    // 一拿到有效二维码立刻返回给前端，给管理员留出最多的实际扫码时间，而不是固定死等14秒才截一次。
+    await new Promise(r => setTimeout(r, 3000)); // 给浏览器留最短的渐染时间
     let qr = '';
-    const z = await runCmd('zbarimg', ['--raw', '-q', pngPath], 12000);
-    if (z.code === 0) qr = (z.stdout || '').trim().split('\n')[0] || '';
+    for (let i = 0; i < 12; i++) { // 最多尝试 ~3s+12*1.5s ≈ 21s
+      await runCmd('import', ['-window', 'root', pngPath], 6000);
+      const z = await runCmd('zbarimg', ['--raw', '-q', pngPath], 6000);
+      if (z.code === 0) { const v = (z.stdout || '').trim().split('\n')[0] || ''; if (v) { qr = v; break; } }
+      await new Promise(r => setTimeout(r, 1500));
+    }
     let img = '';
     if (qr) { // 用 qrencode 把解码出的登录链接重画成清晰二维码（比直接发桌面截图更易扫）
       const qe = await runCmd('qrencode', ['-o', cleanPath, '-s', '8', '-m', '2', qr], 8000);
       if (qe.code === 0) { try { img = 'data:image/png;base64,' + fs.readFileSync(cleanPath).toString('base64'); } catch {} }
     }
     if (!img) { try { img = 'data:image/png;base64,' + fs.readFileSync(pngPath).toString('base64'); } catch {} } // 兜底：发原始截图
-    if (!img) { xhsReloginState = { status: 'error', img: '', qr: '', error: '未能生成二维码（虚拟屏/截图/解码工具异常，请确认已装 xvfb imagemagick zbar-tools qrencode）', startedAt: xhsReloginState.startedAt }; return; }
+    if (!qr || !img) { xhsReloginState = { status: 'error', img: '', qr: '', error: '未能在时限内识别到二维码（浏览器渲染慢或xhs内部已超时，请重新点击；若反复失败请检查虚拟屏/camoufox是否正常）', startedAt: xhsReloginState.startedAt }; return; }
     xhsReloginState = { status: 'ready', img, qr, error: '', startedAt: xhsReloginState.startedAt };
   } catch (e) {
     xhsReloginState = { status: 'error', img: '', qr: '', error: '生成二维码异常：' + (e.message || e), startedAt: xhsReloginState.startedAt };
