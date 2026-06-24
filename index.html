@@ -100,7 +100,7 @@
       <div class="hm-slide" data-href="/流水线.html?new=1"><div class="hm-hero">
         <div class="hm-hero-l">
           <div class="hm-kick">第一步 → 第八步 · 一条流水线</div>
-          <h1 class="hm-h1"><span style="color:var(--cinnabar)">3 分钟</span>出一篇<span style="color:var(--cinnabar)">不限流·高质量</span>的小红书笔记</h1>
+          <h1 class="hm-h1">最懂你赛道的<span style="color:var(--cinnabar)">AI</span>，<span style="color:var(--cinnabar)">3 分钟一篇</span>，篇篇是<span style="color:var(--cinnabar)">爆款</span></h1>
           <p id="heroTagline" class="hm-sub">把 0-1 发笔记经验做成可运行的智能体：选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签 → 合规自检。</p>
           <div class="hm-acts">
             <a href="/流水线.html?new=1" class="btn-go">✍️ 开始创作 →</a>
@@ -232,7 +232,7 @@
 (function () {
   // 每步都锚定到页面真实元素（sel），聚光高亮 + 卡片就近显示
   const STEPS = [
-    { e: '👋', t: '这里是你的操盘台', b: '欢迎来到朱砂 · 操盘台首页（工作台）。跟着 5 步走，约 3 分钟出一篇不限流·高质量的小红书笔记。', sel: '.ag-brand' },
+    { e: '👋', t: '这里是你的操盘台', b: '欢迎来到朱砂 · 操盘台首页（工作台）。最懂你赛道的 AI，跟着 5 步走，3 分钟一篇，篇篇是爆款。', sel: '.ag-brand' },
     { e: '🧩', t: '1 · 选 / 建你的赛道智能体', b: '顶栏这里切换赛道（美术考研 / 职场求职 / 母婴…），或点「＋ 新增赛道」建专属智能体。每个赛道自带人设、合规红线、模板，多篇不串味。', sel: '#agTracks' },
     { e: '⚙️', t: '2 · 设置智能体（更像你）', b: '点「⚙ 智能体设置」：设定语气/配图风格、喂知识库 KB、上传你自己的笔记让 AI 学你的口吻。', sel: '#agTracks' },
     { e: '✍️', t: '3 · 开始创作（含选题）', b: '从这里进创作流水线：生成选题 → 对标拆解 → 框架 → 正文·标题·标签 → 封面·配图，每步可改，也能「一键按对标生成全套」。', sel: '.ag-create' },
@@ -453,7 +453,7 @@ function fmtD(ts) { const d = new Date(ts); const p = n => String(n).padStart(2,
 function renderWorks(filter) {
   const grid = document.getElementById('worksGrid'); if (!grid) return;
   let list = _works.slice(); if (filter) { const f = filter.toLowerCase(); list = list.filter(w => String(w.topic || '').toLowerCase().includes(f)); }
-  if (!list.length) { grid.innerHTML = `<div class="hm-empty">${_works.length ? '没有匹配的作品。' : '还没有作品 —— 点上方「✍️ 开始创作」生成你的第一篇不限流·高质量笔记吧。'}</div>`; return; }
+  if (!list.length) { grid.innerHTML = `<div class="hm-empty">${_works.length ? '没有匹配的作品。' : '还没有作品 —— 点上方「✍️ 开始创作」生成你的第一篇爆款笔记吧。'}</div>`; return; }
   grid.innerHTML = list.slice(0, 12).map(w => { const s = workStatus(w);
     // ① 有真实出图(http) → 显示首图；② 长文笔记款 → 用首张笔记卡的底色/标题渲染彩色封面缩略图；③ 还没出图 → 浅色标题占位
     const esc = s => String(s || '').replace(/</g, '&lt;');
