@@ -409,47 +409,69 @@ function ensureXvfb() {
 }
 // 整个流程（拉起浏览器等渲染+截图+解码+重画）耗时可达 30~60 秒，远超普通接口超时；
 // 因此改成后台异步跑，前端先收到「已开始」，再轮询 /api/admin/xhs-relogin-qr 拿结果，避免 fetch 超时误报失败。
-let xhsReloginState = { status: 'idle', img: '', qr: '', error: '', startedAt: 0 };
-// 发起一次扫码登录：后台拉起 xhs login（持续等扫码），截虚拟屏→解码二维码→qrencode 重画清晰码回传
-async function xhsReloginRun() {
-  try {
-    await ensureXvfb();
-    await runCmd('pkill', ['-u', XHS_USER, '-f', 'xhs login'], 5000);
-    await runCmd('pkill', ['-u', XHS_USER, '-f', 'camoufox'], 5000);
-    await new Promise(r => setTimeout(r, 800));
-    const logPath = path.join(XHS_HOME, 'xhslogin.log');
-    const pngPath = path.join(XHS_HOME, 'qr_raw.png');
-    const cleanPath = path.join(XHS_HOME, 'qr_clean.png');
-    try {
-      const out = fs.openSync(logPath, 'w');
-      const p = _spawn('xhs', ['login', '--qrcode'], { detached: true, stdio: ['ignore', out, out], env: xhsEnv(), cwd: XHS_HOME });
-      p.unref();
-    } catch (e) { xhsReloginState = { status: 'error', img: '', qr: '', error: '启动登录进程失败：' + (e.message || e), startedAt: xhsReloginState.startedAt }; return; }
-    // xhs 自身等扫码有内部超时（实测约几十秒就会判定"等浏览器完成超时"），所以这里尽量快地反复截屏+解码，
-    // 一拿到有效二维码立刻返回给前端，给管理员留出最多的实际扫码时间，而不是固定死等14秒才截一次。
-    await new Promise(r => setTimeout(r, 3000)); // 给浏览器留最短的渐染时间
-    let qr = '';
-    for (let i = 0; i < 12; i++) { // 最多尝试 ~3s+12*1.5s ≈ 21s
-      await runCmd('import', ['-window', 'root', pngPath], 6000);
-      const z = await runCmd('zbarimg', ['--raw', '-q', pngPath], 6000);
-      if (z.code === 0) { const v = (z.stdout || '').trim().split('\n')[0] || ''; if (v) { qr = v; break; } }
-      await new Promise(r => setTimeout(r, 1500));
-    }
-    let img = '';
-    if (qr) { // 用 qrencode 把解码出的登录链接重画成清晰二维码（比直接发桌面截图更易扫）
-      const qe = await runCmd('qrencode', ['-o', cleanPath, '-s', '8', '-m', '2', qr], 8000);
-      if (qe.code === 0) { try { img = 'data:image/png;base64,' + fs.readFileSync(cleanPath).toString('base64'); } catch {} }
-    }
-    if (!img) { try { img = 'data:image/png;base64,' + fs.readFileSync(pngPath).toString('base64'); } catch {} } // 兜底：发原始截图
-    if (!qr || !img) { xhsReloginState = { status: 'error', img: '', qr: '', error: '未能在时限内识别到二维码（浏览器渲染慢或xhs内部已超时，请重新点击；若反复失败请检查虚拟屏/camoufox是否正常）', startedAt: xhsReloginState.startedAt }; return; }
-    xhsReloginState = { status: 'ready', img, qr, error: '', startedAt: xhsReloginState.startedAt };
-  } catch (e) {
-    xhsReloginState = { status: 'error', img: '', qr: '', error: '生成二维码异常：' + (e.message || e), startedAt: xhsReloginState.startedAt };
+// 实测 xhs 自身"等浏览器完成扫码"有内部超时（不到一两分钟就会判定超时退出），管理员从看到二维码到
+// 拿起手机扫完往往就会超过这个窗口——所以这里不是"生成一次二维码就完事"，而是持续循环：旧的一轮超时/
+// 失败就自动重新拉起一轮新的登录、生成新二维码（gen 自增），前端据此自动刷新画面，直到登录成功或总时长到上限。
+let xhsReloginState = { status: 'idle', img: '', qr: '', error: '', gen: 0, startedAt: 0 };
+async function xhsCaptureOneQr(pngPath, cleanPath) {
+  let qr = '';
+  for (let i = 0; i < 12; i++) { // 最多尝试 ~3s+12*1.5s ≈ 21s
+    await runCmd('import', ['-window', 'root', pngPath], 6000);
+    const z = await runCmd('zbarimg', ['--raw', '-q', pngPath], 6000);
+    if (z.code === 0) { const v = (z.stdout || '').trim().split('\n')[0] || ''; if (v) { qr = v; break; } }
+    await new Promise(r => setTimeout(r, 1500));
   }
+  let img = '';
+  if (qr) { // 用 qrencode 把解码出的登录链接重画成清晰二维码（比直接发桌面截图更易扫）
+    const qe = await runCmd('qrencode', ['-o', cleanPath, '-s', '8', '-m', '2', qr], 8000);
+    if (qe.code === 0) { try { img = 'data:image/png;base64,' + fs.readFileSync(cleanPath).toString('base64'); } catch {} }
+  }
+  if (!img) { try { img = 'data:image/png;base64,' + fs.readFileSync(pngPath).toString('base64'); } catch {} } // 兜底：发原始截图
+  return { qr, img };
+}
+// 发起一轮扫码登录：后台拉起 xhs login（持续等扫码），截虚拟屏→解码二维码→qrencode 重画清晰码回传；
+// 若这一轮在仍未登录成功的情况下结束（xhs 自身超时退出/进程已不在），自动重开下一轮，直到登录成功或总超时。
+async function xhsReloginRun() {
+  await ensureXvfb();
+  const logPath = path.join(XHS_HOME, 'xhslogin.log');
+  const pngPath = path.join(XHS_HOME, 'qr_raw.png');
+  const cleanPath = path.join(XHS_HOME, 'qr_clean.png');
+  const deadline = Date.now() + 4 * 60 * 1000; // 总共最多循环刷新 4 分钟
+  while (Date.now() < deadline) {
+    try {
+      await runCmd('pkill', ['-u', XHS_USER, '-f', 'xhs login'], 5000);
+      await runCmd('pkill', ['-u', XHS_USER, '-f', 'camoufox'], 5000);
+      await new Promise(r => setTimeout(r, 800));
+      let proc;
+      try {
+        const out = fs.openSync(logPath, 'w');
+        proc = _spawn('xhs', ['login', '--qrcode'], { detached: true, stdio: ['ignore', out, out], env: xhsEnv(), cwd: XHS_HOME });
+        proc.unref();
+      } catch (e) { xhsReloginState = { ...xhsReloginState, status: 'error', error: '启动登录进程失败：' + (e.message || e) }; return; }
+      await new Promise(r => setTimeout(r, 3000)); // 给浏览器留最短的渲染时间
+      const { qr, img } = await xhsCaptureOneQr(pngPath, cleanPath);
+      if (!qr || !img) { xhsReloginState = { ...xhsReloginState, status: 'error', error: '未能识别到二维码（虚拟屏/截图/解码工具异常，请确认已装 xvfb imagemagick zbar-tools qrencode）' }; return; }
+      xhsReloginState = { status: 'ready', img, qr, error: '', gen: xhsReloginState.gen + 1, startedAt: xhsReloginState.startedAt };
+      // 这一轮二维码已展示给前端；接下来等它被扫完(登录成功) 或 这一轮login进程退出(xhs内部超时)再决定是否重开一轮
+      const roundDeadline = Date.now() + 50000;
+      while (Date.now() < roundDeadline && Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 4000));
+        const st = await xhsStatus();
+        if (st.loggedIn) return; // 登录成功，结束整个循环（前端的登录态轮询会检测到并提示）
+        const alive = await runCmd('pgrep', ['-u', XHS_USER, '-f', 'xhs login']);
+        if (alive.code !== 0 || !(alive.stdout || '').trim()) break; // 这一轮进程已退出（多半是内部超时）→ 跳出去重开一轮
+      }
+    } catch (e) {
+      xhsReloginState = { ...xhsReloginState, status: 'error', error: '生成二维码异常：' + (e.message || e) };
+      return;
+    }
+  }
+  if (xhsReloginState.status !== 'ready') return;
+  // 4分钟内一直没登录成功：保留最后一张二维码，前端的登录态轮询超时后会提示重新点击
 }
 function xhsReloginStart() {
   if (xhsReloginState.status === 'running') return { ok: true, status: 'running' };
-  xhsReloginState = { status: 'running', img: '', qr: '', error: '', startedAt: Date.now() };
+  xhsReloginState = { status: 'running', img: '', qr: '', error: '', gen: 0, startedAt: Date.now() };
   xhsReloginRun(); // 不 await，立即返回
   return { ok: true, status: 'running' };
 }
