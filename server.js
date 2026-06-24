@@ -735,7 +735,13 @@ const server = http.createServer(async (req, res) => {
 
   // ---- 塔罗 H5 演示：免登录 / 免费 / 限频。服务端注入塔罗 System Prompt + 强制 JSON ----
   if (pathname === '/api/tarot' && req.method === 'POST') {
-    if (!API_KEY) return sendJSON(res, 500, { error: '服务端未配置模型 key' });
+    // 演示专用模型配置：设了 TAROT_AI_KEY 即与朱砂(/api/claude)彻底隔离；未设则回退共享 key 先能跑
+    const T_KEY = process.env.TAROT_AI_KEY || API_KEY;
+    const T_FORMAT = (process.env.TAROT_AI_PROVIDER || API_FORMAT).toLowerCase();
+    const T_BASE = (process.env.TAROT_AI_BASE_URL || API_BASE).replace(/\/+$/, '');
+    const T_MODEL = process.env.TAROT_AI_MODEL || FORCE_MODEL || (T_FORMAT === 'openai' ? 'deepseek-chat' : 'claude-sonnet-4-6');
+    const T_AUTH = (process.env.TAROT_AI_AUTH_STYLE || AUTH_STYLE).toLowerCase();
+    if (!T_KEY) return sendJSON(res, 500, { error: '服务端未配置模型 key' });
     const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || (req.socket && req.socket.remoteAddress) || 'unknown';
     if (!tarotRateOk(ip)) return sendJSON(res, 429, { error: '体验太频繁了，歇一会儿再来～' });
     let payload; try { payload = JSON.parse((await readBody(req)) || '{}'); } catch { payload = {}; }
@@ -747,24 +753,23 @@ const server = http.createServer(async (req, res) => {
     }
     const userMsg = `领域：${domain}\n我的处境：${situation}\n\n抽到的牌：${cardsText}\n\n请按系统设定的 JSON 结构给出解读。`;
     try {
-      const model = FORCE_MODEL || (API_FORMAT === 'openai' ? 'deepseek-chat' : 'claude-sonnet-4-6');
       let upUrl, headers, body;
-      if (API_FORMAT === 'openai') {
-        upUrl = `${API_BASE}/chat/completions`;
-        headers = { 'content-type': 'application/json', 'authorization': 'Bearer ' + API_KEY };
-        body = { model, max_tokens: 1500, temperature: 0.8, response_format: { type: 'json_object' },
+      if (T_FORMAT === 'openai') {
+        upUrl = `${T_BASE}/chat/completions`;
+        headers = { 'content-type': 'application/json', 'authorization': 'Bearer ' + T_KEY };
+        body = { model: T_MODEL, max_tokens: 1500, temperature: 0.8, response_format: { type: 'json_object' },
           messages: [{ role: 'system', content: TAROT_PROMPT }, { role: 'user', content: userMsg }] };
       } else {
-        upUrl = `${API_BASE}/v1/messages`;
+        upUrl = `${T_BASE}/v1/messages`;
         headers = { 'content-type': 'application/json', 'anthropic-version': API_VERSION };
-        if (AUTH_STYLE === 'bearer') headers['authorization'] = 'Bearer ' + API_KEY; else headers['x-api-key'] = API_KEY;
-        body = { model, max_tokens: 1500, temperature: 0.8, system: TAROT_PROMPT, messages: [{ role: 'user', content: userMsg }] };
+        if (T_AUTH === 'bearer') headers['authorization'] = 'Bearer ' + T_KEY; else headers['x-api-key'] = T_KEY;
+        body = { model: T_MODEL, max_tokens: 1500, temperature: 0.8, system: TAROT_PROMPT, messages: [{ role: 'user', content: userMsg }] };
       }
       const up = await fetch(upUrl, { method: 'POST', headers, body: JSON.stringify(body) });
       const text = await up.text();
       if (!up.ok) return sendJSON(res, 502, { error: '模型调用失败' });
       let raw;
-      if (API_FORMAT === 'openai') { const j = JSON.parse(text); raw = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || ''; }
+      if (T_FORMAT === 'openai') { const j = JSON.parse(text); raw = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || ''; }
       else { const j = JSON.parse(text); raw = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join(''); }
       let s = String(raw).replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
       const a = s.indexOf('{'), b = s.lastIndexOf('}'); if (a >= 0 && b > a) s = s.slice(a, b + 1);
