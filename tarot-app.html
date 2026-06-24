@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FateTell · 全流程原型</title>
+<style>
+  :root{
+    --bg:#F4F2EE; --bg-raise:#FAF9F6; --ink:#1A1815; --ink-soft:#56524C;
+    --ink-faint:#A8A299; --line:#E4E0D8; --line-soft:#EDEAE3; --amber:#C9A36A;
+    --card-back:#26221E; --card-back-2:#332E28; --face:#FBF9F5;
+    --serif:"Songti SC","STSong","Noto Serif SC",serif;
+    --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#E9E6E0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:flex;justify-content:center;}
+  .phone{width:100%;max-width:430px;min-height:100vh;background:var(--bg);position:relative;overflow:hidden;}
+
+  .orb{position:absolute;width:300px;height:300px;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,rgba(201,163,106,.5),rgba(201,163,106,.2) 35%,rgba(201,163,106,0) 70%);
+    filter:blur(8px);pointer-events:none;z-index:0;opacity:0;transition:opacity 1.2s ease;top:60px;left:50%;margin-left:-150px;}
+  .orb.show{opacity:1;}
+  .orb.pulse{animation:breathe 3.4s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{transform:scale(.94);opacity:.85;}50%{transform:scale(1.06);opacity:1;}}
+
+  .screen{position:relative;z-index:1;display:none;flex-direction:column;min-height:100vh;padding:0 30px 110px;}
+  .screen.active{display:flex;}
+  .brand{text-align:center;font-family:var(--serif);font-size:15px;letter-spacing:.34em;color:var(--ink);opacity:.85;padding:22px 0 4px;}
+  .brand span{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ink);margin-left:6px;vertical-align:middle;transform:translateY(-1px);}
+  .eyebrow{font-size:12px;letter-spacing:.32em;color:var(--ink-faint);text-transform:uppercase;}
+  .label{font-size:12px;letter-spacing:.2em;color:var(--ink-faint);margin-bottom:14px;text-transform:uppercase;}
+  .muted{color:var(--ink-faint);}
+  .serif{font-family:var(--serif);}
+
+  .topbar{display:flex;align-items:center;height:50px;margin:0 -30px 6px;padding:0 24px;}
+  .back{font-size:22px;color:var(--ink);line-height:1;padding:8px 8px 8px 0;cursor:pointer;}
+  .topbar .tt{font-family:var(--serif);font-size:16px;letter-spacing:.1em;margin-left:4px;}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:15px;letter-spacing:.08em;
+    padding:14px 30px;border-radius:30px;background:var(--ink);color:var(--face);border:none;cursor:pointer;transition:opacity .3s;}
+  .btn:active{opacity:.8;}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink);}
+  .btn.block{display:flex;width:100%;}
+
+  /* ---- LOGIN ---- */
+  #login{justify-content:center;align-items:center;text-align:center;}
+  #login .lg-title{font-family:var(--serif);font-size:40px;line-height:1.15;margin-bottom:16px;}
+  #login .lg-sub{font-size:14px;line-height:1.85;color:var(--ink-soft);max-width:280px;margin-bottom:54px;}
+  #login .wxbtn{display:flex;align-items:center;gap:10px;background:#07C160;color:#fff;border:none;border-radius:30px;
+    font-size:16px;padding:15px 40px;cursor:pointer;font-family:var(--sans);}
+  #login .wxdot{width:18px;height:18px;border-radius:50%;background:#fff;display:inline-block;}
+  #login .lg-note{font-size:11.5px;color:var(--ink-faint);margin-top:22px;line-height:1.7;max-width:280px;}
+
+  /* ---- HOME 日签 ---- */
+  .today-head{display:flex;align-items:center;justify-content:space-between;margin:24px 0 22px;}
+  .streak{font-size:12px;color:var(--amber);letter-spacing:.05em;}
+  .today-card{display:flex;justify-content:center;margin-bottom:30px;}
+  .tip{text-align:center;font-family:var(--serif);font-size:21px;line-height:1.6;padding:0 6px;}
+  .yj{display:flex;align-items:center;justify-content:center;margin:30px 0;}
+  .yj-item{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:80px;}
+  .yj-k{font-size:11px;color:var(--ink-faint);letter-spacing:.2em;}
+  .yj-v{font-family:var(--serif);font-size:19px;}
+  .yj-sep{width:1px;height:32px;background:var(--line);}
+  .cta-line{text-align:center;font-size:13px;color:var(--ink-faint);margin:6px 0 16px;}
+
+  /* ---- ASK 问事 ---- */
+  .hero{font-family:var(--serif);font-weight:500;line-height:1.12;font-size:38px;margin-bottom:14px;}
+  .hero-sub{font-size:14px;line-height:1.85;color:var(--ink-soft);max-width:300px;margin-bottom:34px;}
+  .domains{display:flex;gap:12px;margin-bottom:30px;}
+  .domain{flex:1;background:var(--bg-raise);border:1px solid var(--line);border-radius:18px;padding:20px 0 16px;text-align:center;cursor:pointer;transition:all .3s;}
+  .domain .d-char{font-family:var(--serif);font-size:24px;line-height:1;margin-bottom:8px;}
+  .domain .d-en{font-size:10px;letter-spacing:.26em;color:var(--ink-faint);text-transform:uppercase;}
+  .domain.sel{border-color:var(--ink);background:var(--ink);}
+  .domain.sel .d-char,.domain.sel .d-en{color:var(--face);}
+  .field-wrap{position:relative;margin-bottom:26px;}
+  .field{width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);font-family:var(--serif);font-size:18px;color:var(--ink);padding:14px 2px;resize:none;line-height:1.6;}
+  .field::placeholder{color:var(--ink-faint);}
+  .field:focus{outline:none;border-color:var(--ink);}
+  .count{position:absolute;right:2px;bottom:-18px;font-size:11px;color:var(--ink-faint);}
+  .go-row{display:flex;align-items:center;justify-content:space-between;margin-top:30px;}
+  .go-hint{font-size:12.5px;color:var(--ink-faint);line-height:1.7;max-width:230px;}
+  .go-btn{width:60px;height:60px;border-radius:50%;flex-shrink:0;background:var(--ink);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .3s,opacity .3s;}
+  .go-btn:disabled{opacity:.3;}
+  .go-btn:not(:disabled):active{transform:scale(.92);}
+  .go-btn svg{width:22px;height:22px;stroke:var(--face);}
+  .bal-line{font-size:12px;color:var(--ink-faint);margin-top:24px;}
+
+  /* ---- READING 解读 ---- */
+  .read-head{text-align:center;margin-bottom:26px;min-height:48px;}
+  .read-head .rh-py{font-size:11px;letter-spacing:.3em;color:var(--ink-faint);font-style:italic;margin-bottom:6px;}
+  .read-head .rh-title{font-family:var(--serif);font-size:23px;letter-spacing:.04em;}
+  .cards-row{display:flex;justify-content:center;gap:10px;margin-bottom:8px;perspective:1400px;}
+  .card{flex:1 1 0;max-width:100px;aspect-ratio:100/166;position:relative;opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.2,1);}
+  .card.in{opacity:1;transform:translateY(0);}
+  .card-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform 1.05s cubic-bezier(.16,1,.3,1);}
+  .card.flip .card-inner{transform:rotateY(180deg);}
+  .card-back,.card-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:11px;overflow:hidden;}
+  .card-back{background:radial-gradient(120% 80% at 50% -10%,var(--card-back-2),var(--card-back));border:1px solid #1d1916;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(30,26,22,.18);}
+  .card-back::before{content:"";position:absolute;inset:9px;border-radius:7px;border:1px solid rgba(201,163,106,.28);}
+  .cb-mark{width:34px;height:34px;border-radius:50%;border:1px solid rgba(232,226,216,.4);}
+  .card-face{background:var(--face);transform:rotateY(180deg);border:1px solid var(--line);box-shadow:0 12px 30px rgba(30,26,22,.13);display:flex;flex-direction:column;align-items:center;padding:14px 8px 12px;}
+  .cf-pos{font-size:10px;letter-spacing:.22em;color:var(--ink-faint);}
+  .cf-mark{font-family:var(--serif);font-size:44px;line-height:1;color:var(--line);margin-top:12px;margin-bottom:auto;}
+  .card-face.rev .cf-glyphwrap{transform:rotate(180deg);}
+  .cf-name{font-family:var(--serif);font-size:18px;letter-spacing:.06em;margin-bottom:5px;}
+  .cf-ori{font-size:10.5px;letter-spacing:.12em;color:var(--ink-soft);display:flex;align-items:center;gap:4px;}
+  .cf-ori .dot{width:3px;height:3px;border-radius:50%;background:var(--amber);}
+  .card-face.rev .cf-ori .dot{background:var(--ink-faint);}
+  .meanings{margin-top:24px;}
+  .meaning{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--line-soft);opacity:0;transform:translateY(8px);transition:opacity .6s,transform .6s;}
+  .meaning.in{opacity:1;transform:translateY(0);}
+  .meaning:first-child{border-top:none;}
+  .m-pos{font-family:var(--serif);font-size:13px;color:var(--ink-faint);width:50px;flex-shrink:0;}
+  .m-text{font-size:13.5px;line-height:1.75;color:var(--ink-soft);}
+  .m-card{color:var(--ink);font-weight:500;}
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .8s,transform .8s cubic-bezier(.2,.8,.2,1);}
+  .reveal.in{opacity:1;transform:translateY(0);}
+  .sec{margin-top:38px;}
+  .sec-label{font-size:11px;letter-spacing:.28em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:15px;display:flex;align-items:center;gap:12px;}
+  .sec-label::after{content:"";flex:1;height:1px;background:var(--line-soft);}
+  .situation{font-family:var(--serif);font-size:22px;line-height:1.5;}
+  .perspective{font-size:15px;line-height:1.95;color:var(--ink-soft);}
+  .ins{display:flex;gap:16px;padding:16px 0;border-top:1px solid var(--line-soft);}
+  .ins:first-child{border-top:none;}
+  .ins-n{font-family:var(--serif);font-size:15px;color:var(--ink-faint);width:20px;flex-shrink:0;}
+  .ins-t{font-size:14.5px;line-height:1.8;}
+  .action-card{background:var(--ink);color:var(--face);border-radius:20px;padding:24px;margin-top:16px;}
+  .action-card .ac-label{font-size:11px;letter-spacing:.26em;color:rgba(251,249,245,.5);text-transform:uppercase;margin-bottom:12px;}
+  .action-card .ac-text{font-family:var(--serif);font-size:17px;line-height:1.65;}
+  .interp-wait{margin-top:36px;text-align:center;font-family:var(--serif);font-size:15px;color:var(--ink-faint);letter-spacing:.15em;}
+  .read-foot{margin-top:40px;}
+  .private{background:var(--bg-raise);border:1px solid var(--line);border-radius:18px;padding:22px;text-align:center;}
+  .pv-t{font-family:var(--serif);font-size:18px;margin-bottom:8px;}
+  .pv-d{font-size:13px;color:var(--ink-faint);line-height:1.7;margin-bottom:14px;}
+  .pv-wx{font-size:14px;color:var(--amber);}
+  .foot-actions{display:flex;gap:12px;margin:24px 0 16px;}
+  .foot-actions .btn{flex:1;}
+  .rf-line{text-align:center;font-size:12px;color:var(--ink-faint);line-height:1.8;}
+
+  /* ---- MINE 我的 ---- */
+  .panel{background:var(--bg-raise);border:1px solid var(--line);border-radius:18px;padding:22px;}
+  .row{display:flex;align-items:center;justify-content:space-between;}
+  .w-label{font-size:12px;color:var(--ink-faint);margin-bottom:8px;}
+  .w-balance{font-family:var(--serif);font-size:40px;line-height:1;}
+  .w-streak{font-size:12px;color:var(--ink-faint);margin-top:14px;}
+  .tabs{display:flex;gap:24px;margin:28px 0 4px;}
+  .mtab{font-size:15px;color:var(--ink-faint);padding-bottom:8px;cursor:pointer;}
+  .mtab.on{color:var(--ink);border-bottom:2px solid var(--ink);}
+  .empty{text-align:center;padding:46px 0;font-size:13px;color:var(--ink-faint);}
+  .hist-item{padding:18px 0;border-bottom:1px solid var(--line-soft);cursor:pointer;}
+  .hi-domain{font-family:var(--serif);font-size:14px;}
+  .hi-when{font-size:11px;color:var(--ink-faint);}
+  .hi-head{font-size:14px;color:var(--ink-soft);margin-top:8px;line-height:1.6;}
+  .led-item{display:flex;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line-soft);}
+  .le-type{font-size:14px;}
+  .le-amt{font-family:var(--serif);font-size:15px;}
+  .le-when{font-size:11px;color:var(--ink-faint);text-align:right;margin-top:4px;}
+
+  /* ---- RECHARGE 充值 ---- */
+  .rc-balance{text-align:center;margin:8px 0 30px;}
+  .pack{display:flex;align-items:center;justify-content:space-between;background:var(--bg-raise);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:12px;cursor:pointer;transition:background .2s;}
+  .pack:active{background:#F1EEE8;}
+  .pk-credits{font-family:var(--serif);font-size:20px;}
+  .pk-label{font-size:12px;color:var(--ink-faint);margin-top:6px;}
+  .pk-price{font-family:var(--serif);font-size:22px;}
+  .mock-note{font-size:11.5px;line-height:1.7;margin-top:14px;background:#FBF3E3;border:1px solid #EAD9B5;padding:14px;border-radius:12px;color:#8a6d3b;}
+
+  .disclaimer{font-size:11.5px;line-height:1.8;color:var(--ink-faint);margin-top:26px;padding-top:18px;border-top:1px solid var(--line-soft);}
+
+  /* ---- TABBAR ---- */
+  .tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:64px;
+    background:rgba(250,249,246,.94);backdrop-filter:blur(8px);border-top:1px solid var(--line);
+    display:none;align-items:center;z-index:20;}
+  .tabbar.show{display:flex;}
+  .tabbar .tab{flex:1;text-align:center;font-size:12px;color:var(--ink-faint);letter-spacing:.05em;padding:6px 0;cursor:pointer;}
+  .tabbar .tab .ic{font-family:var(--serif);font-size:18px;display:block;margin-bottom:3px;}
+  .tabbar .tab.on{color:var(--ink);}
+
+  .toast{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(26,24,21,.9);color:#fff;font-size:13px;padding:10px 18px;border-radius:20px;z-index:50;opacity:0;transition:opacity .3s;pointer-events:none;}
+  .toast.show{opacity:1;}
+  @media (prefers-reduced-motion: reduce){.card-inner{transition:none;}.orb.pulse{animation:none;}}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="orb" id="orb"></div>
+
+  <!-- ===== LOGIN ===== -->
+  <section class="screen active" id="login">
+    <div class="brand" style="position:absolute;top:30px;left:0;right:0;">FATETELL<span></span></div>
+    <div class="lg-title serif">问一事，<br>看清此刻</div>
+    <div class="lg-sub">塔罗不预言你的未来。它是一面镜子，照见你当下真正的处境，把选择权留给你。</div>
+    <button class="wxbtn" onclick="doLogin()"><span class="wxdot"></span>微信一键登录</button>
+    <div class="lg-note">演示：小程序内为微信静默授权登录，用户一进即登录、无独立登录页。此屏仅示意。</div>
+  </section>
+
+  <!-- ===== HOME 日签 ===== -->
+  <section class="screen" id="home">
+    <div class="brand">FATETELL<span></span></div>
+    <div class="today-head"><div class="eyebrow">TODAY · 今日牌</div><div class="streak" id="homeStreak"></div></div>
+    <div class="today-card" id="homeCard"></div>
+    <div class="tip" id="homeTip"></div>
+    <div class="yj" id="homeYj"></div>
+    <div class="cta-line">心里有正纠结的事？</div>
+    <button class="btn block" onclick="go('ask')">问一事，看清此刻 →</button>
+    <div class="disclaimer">每日一签仅供自我觉察与提点，不构成确定性预测。</div>
+  </section>
+
+  <!-- ===== ASK 问事 ===== -->
+  <section class="screen" id="ask">
+    <div class="topbar"><div class="back" onclick="go('home')">‹</div><div class="tt">问一事</div></div>
+    <div class="hero serif">你最近<br>在纠结什么</div>
+    <div class="hero-sub">把具体的事说出来，越具体，照得越清。</div>
+    <div class="label">想问哪一面</div>
+    <div class="domains" id="domains">
+      <div class="domain sel" data-domain="姻缘"><div class="d-char">姻缘</div><div class="d-en">Love</div></div>
+      <div class="domain" data-domain="事业"><div class="d-char">事业</div><div class="d-en">Career</div></div>
+      <div class="domain" data-domain="财运"><div class="d-char">财运</div><div class="d-en">Fortune</div></div>
+    </div>
+    <div class="field-wrap">
+      <textarea class="field" id="situation" rows="3" maxlength="200" placeholder="比如：和对象在一起三年，最近总吵架，不知道该不该继续…"></textarea>
+      <div class="count"><span id="cc">0</span>/200</div>
+    </div>
+    <div class="go-row">
+      <div class="go-hint">默契抽三张牌：<br>现状 · 阻碍 · 指引</div>
+      <button class="go-btn" id="goBtn" disabled onclick="goReading()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="bal-line" id="askBal"></div>
+    <div class="disclaimer">仅供自我觉察与决策参考，不构成任何确定性预测或投资建议。</div>
+  </section>
+
+  <!-- ===== READING 解读 ===== -->
+  <section class="screen" id="reading">
+    <div class="topbar"><div class="back" onclick="go('home')">‹</div><div class="tt">解读</div></div>
+    <div class="read-head"><div class="rh-py" id="rhPy">chōu pái zhōng</div><div class="rh-title" id="rhTitle">正在为你抽牌</div></div>
+    <div class="cards-row" id="cardsRow"></div>
+    <div class="meanings" id="meanings"></div>
+    <div class="interp-wait" id="interpWait" style="display:none;">聆听你的处境，正在解读…</div>
+    <div id="readingBody"></div>
+  </section>
+
+  <!-- ===== MINE 我的 ===== -->
+  <section class="screen" id="mine">
+    <div class="brand">FATETELL<span></span></div>
+    <div class="panel">
+      <div class="row">
+        <div><div class="w-label">我的积分</div><div class="w-balance serif" id="mineBal">0</div></div>
+        <button class="btn" onclick="go('recharge')">充值</button>
+      </div>
+      <div class="w-streak" id="mineStreak"></div>
+    </div>
+    <div class="tabs">
+      <div class="mtab on" data-mtab="history" onclick="switchMine('history')">解读记录</div>
+      <div class="mtab" data-mtab="ledger" onclick="switchMine('ledger')">积分明细</div>
+    </div>
+    <div id="mineHistory"></div>
+    <div id="mineLedger" style="display:none;"></div>
+    <div class="panel" style="margin-top:30px;text-align:center;">
+      <div class="pv-t serif">加我，聊得更深</div>
+      <div class="pv-d">更深的牌阵与 1 对 1 解读，加微信解锁。</div>
+      <div class="pv-wx" onclick="toast('微信号已复制（演示）')">微信：fatetell_helper（点此复制）</div>
+    </div>
+  </section>
+
+  <!-- ===== RECHARGE 充值 ===== -->
+  <section class="screen" id="recharge">
+    <div class="topbar"><div class="back" onclick="go('mine')">‹</div><div class="tt">充值</div></div>
+    <div class="rc-balance"><div class="w-label">当前积分</div><div class="serif" style="font-size:36px;" id="rcBal">0</div></div>
+    <div id="packs"></div>
+    <div class="mock-note">演示为「模拟支付」：点击即到账，不走真实扣款。小程序内走微信支付。</div>
+    <div class="disclaimer">积分为虚拟内容，用于解锁深度解读等服务，一经消耗不予退还。</div>
+  </section>
+
+  <!-- ===== TABBAR ===== -->
+  <nav class="tabbar" id="tabbar">
+    <div class="tab" data-tab="home" onclick="go('home')"><span class="ic">☽</span>每日一签</div>
+    <div class="tab" data-tab="mine" onclick="go('mine')"><span class="ic">◷</span>我的</div>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 牌库 ============ */
+const MAJOR=[["愚人","0"],["魔术师","I"],["女祭司","II"],["皇后","III"],["皇帝","IV"],["教皇","V"],["恋人","VI"],["战车","VII"],["力量","VIII"],["隐士","IX"],["命运之轮","X"],["正义","XI"],["倒吊人","XII"],["死神","XIII"],["节制","XIV"],["恶魔","XV"],["高塔","XVI"],["星星","XVII"],["月亮","XVIII"],["太阳","XIX"],["审判","XX"],["世界","XXI"]];
+const SUITS=[["权杖","杖"],["圣杯","杯"],["宝剑","剑"],["星币","币"]];
+const RANKS=["王牌","二","三","四","五","六","七","八","九","十","侍从","骑士","皇后","国王"];
+const DECK=[];MAJOR.forEach(([n,m])=>DECK.push({name:n,mark:m}));SUITS.forEach(([s,g])=>RANKS.forEach(r=>DECK.push({name:s+r,mark:g})));
+const POSITIONS=["现状","阻碍","指引"];
+function drawCards(n){const d=DECK.slice();for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d.slice(0,n).map((c,i)=>({position:POSITIONS[i],name:c.name,mark:c.mark,reversed:Math.random()<0.5}));}
+
+const SUITTIP={"权杖":{tip:"心里那点火还在，今天让它带你迈出一小步。",yi:"行动",ji:"空想"},"圣杯":{tip:"照顾一下自己的感受，它在跟你说真话。",yi:"倾听",ji:"压抑"},"宝剑":{tip:"想清楚比想得多更重要，给念头一点秩序。",yi:"梳理",ji:"钻牛角"},"星币":{tip:"把注意力放回手边能落地的小事上。",yi:"务实",ji:"攀比"}};
+const MAJORTIP={tip:"今天适合慢下来，听听自己真正想要什么。",yi:"觉察",ji:"勉强"};
+function tipOf(card){for(const k in SUITTIP){if(card.name.indexOf(k)===0)return SUITTIP[k];}return MAJORTIP;}
+
+/* ============ 模拟状态 ============ */
+const PRICE=290;
+const PACKS=[{id:"p1",cny:1,credits:100,label:"体验"},{id:"p6",cny:6,credits:600,label:"基础"},{id:"p30",cny:30,credits:3300,label:"进阶",tag:"送300"},{id:"p68",cny:68,credits:8000,label:"工作室",tag:"送1200"}];
+const state={
+  balance:300, streak:3,
+  history:[{
+    domain:"事业", when:"昨天",
+    data:{cards:[{position:"现状",name:"星币八",mark:"币",reversed:true,meaning:"星币八逆位——你不是在精进，是在重复；手还在动，人已经停了。"},{position:"阻碍",name:"月亮",mark:"XVIII",reversed:false,meaning:"月亮正位——挡路的不是那份风险，是你在用半夜的恐惧、而不是白天的清醒做决定。"},{position:"指引",name:"权杖二",mark:"杖",reversed:false,meaning:"权杖二正位——退一步看你手里的地图：这是个要规划丈量的选择，不是梭哈的赌。"}],situation:"你嘴上说在权衡稳定和机会，其实心里早就待腻了——真正让你迈不动的不是这步有多险，是你还没把'险'看清楚，只剩一团模糊的怕。",perspective:"星币八逆位摆在现状，说你已在原地空转，'稳定'对你早不是安全，是温水。绊住你的月亮，是你自己想象出来的迷雾。而权杖二告诉你，出路是把那团模糊摊开成一张能看的地图。",insights:["先分清你是'奔着成长去'，还是'逃着无聊走'——前者让你挑对机会，后者只会让你逃进下一个坑。","'稳定'不是没有成本的选项，你已经在用停滞付费了。","把'风险大'翻译成'我得先搞清哪三件事，这个险才算我扛得住'。"],action:"列出你必须先弄明白的几个问题再决定：这家公司的钱能撑多久、你去了具体做什么、最坏情况能不能兜得住。"}
+  }],
+  ledger:[{type:"新人赠送",amount:"+300",when:"刚刚"}]
+};
+
+/* ============ 路由 ============ */
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const TABS=["home","mine"];
+function go(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $("#"+id).classList.add("active");
+  window.scrollTo(0,0);
+  const tb=$("#tabbar");
+  if(TABS.includes(id)){tb.classList.add("show");document.querySelectorAll(".tabbar .tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===id));}
+  else tb.classList.remove("show");
+  $("#orb").classList.toggle("show", id==="home"||id==="login");
+  $("#orb").classList.remove("pulse");
+  if(id==="home")renderHome();
+  if(id==="ask")renderAsk();
+  if(id==="mine")renderMine();
+  if(id==="recharge")renderRecharge();
+}
+function doLogin(){ go("home"); }
+let toastT;
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1600);}
+
+/* ============ 日签 ============ */
+let todaySign=null;
+function renderHome(){
+  if(!todaySign){const c=drawCards(1)[0];c.position="今日";const t=tipOf(c);todaySign={card:c,tip:t.tip,yi:t.yi,ji:t.ji,energy:40+Math.floor(Math.random()*56)};}
+  const s=todaySign;
+  $("#homeStreak").textContent=state.streak>0?("连签 "+state.streak+" 天"):"";
+  $("#homeCard").innerHTML=cardHTML(s.card,true,150);
+  $("#homeTip").textContent=s.tip;
+  $("#homeYj").innerHTML=`<div class="yj-item"><div class="yj-k">宜</div><div class="yj-v">${s.yi}</div></div><div class="yj-sep"></div><div class="yj-item"><div class="yj-k">忌</div><div class="yj-v">${s.ji}</div></div><div class="yj-sep"></div><div class="yj-item"><div class="yj-k">能量</div><div class="yj-v">${s.energy}</div></div>`;
+}
+function cardHTML(c,flipped,w){
+  const width=w||100;
+  return `<div class="card in ${flipped?'flip':''}" style="max-width:${width}px;width:${width}px;flex:none;">
+    <div class="card-inner"><div class="card-back"><div class="cb-mark"></div></div>
+    <div class="card-face ${c.reversed?'rev':''}"><div class="cf-pos">${c.position}</div><div class="cf-glyphwrap"><div class="cf-mark">${c.mark}</div></div><div class="cf-name">${c.name}</div><div class="cf-ori"><span class="dot"></span>${c.reversed?'逆位':'正位'}</div></div></div></div>`;
+}
+
+/* ============ 问事 ============ */
+let domain="姻缘";
+document.querySelectorAll("#domains .domain").forEach(d=>d.addEventListener("click",()=>{document.querySelectorAll("#domains .domain").forEach(x=>x.classList.remove("sel"));d.classList.add("sel");domain=d.dataset.domain;}));
+const field=$("#situation"),goBtn=$("#goBtn"),cc=$("#cc");
+field.addEventListener("input",()=>{cc.textContent=field.value.length;goBtn.disabled=field.value.trim().length<4;});
+function renderAsk(){$("#askBal").textContent=`当前积分 ${state.balance} · 深度解读 ${PRICE}/次`;}
+
+function goReading(){
+  if(field.value.trim().length<4)return;
+  if(state.balance<PRICE){
+    if(confirm(`深度解读需 ${PRICE} 积分，当前 ${state.balance}，去充值？`))go("recharge");
+    return;
+  }
+  const text=field.value.trim();
+  go("reading");
+  runReading(domain,text);
+}
+
+/* ============ 解读（接真 /api/tarot） ============ */
+async function runReading(dm,text){
+  // 重置
+  $("#rhTitle").textContent="正在为你抽牌";$("#rhPy").textContent="chōu pái zhōng";
+  $("#cardsRow").innerHTML="";$("#meanings").innerHTML="";$("#readingBody").innerHTML="";$("#interpWait").style.display="none";
+  $("#orb").classList.add("show","pulse");
+  const cards=drawCards(3);
+  const apiPromise=interpret(dm,text,cards);
+  await renderCardBacks(cards);
+  await sleep(550);
+  $("#rhTitle").textContent="你抽到的牌";$("#rhPy").textContent="nǐ chōu dào de pái";
+  await flipCards();
+  await sleep(250);
+  showMeaningSkeleton(cards);
+  await sleep(150);
+  $("#orb").classList.remove("pulse");
+  $("#interpWait").style.display="block";
+  try{
+    const data=await apiPromise;
+    $("#interpWait").style.display="none";
+    await sleep(200);
+    fillMeanings(cards,data.cards);
+    renderBody(data);
+    // 扣分 + 入账 + 记历史
+    state.balance-=PRICE;
+    state.ledger.unshift({type:"深度解读",amount:"-"+PRICE,when:"刚刚"});
+    state.history.unshift({domain:dm,when:"刚刚",data:{cards:cards.map((c,i)=>({...c,meaning:(data.cards[i]||{}).meaning||""})),situation:data.situation,perspective:data.perspective,insights:data.insights,action:data.action}});
+  }catch(e){
+    $("#interpWait").style.display="none";
+    $("#readingBody").innerHTML=`<div class="panel" style="text-align:center;"><div style="font-size:14px;line-height:1.7;color:var(--ink-soft);margin-bottom:14px;">牌已摊开，但解读没接上——可能网络晃了一下或体验太频繁。积分未扣，再试一次。</div><button class="btn ghost" onclick="go('ask')">重新抽牌</button></div>`;
+  }
+}
+async function renderCardBacks(cards){
+  const row=$("#cardsRow");row.innerHTML="";
+  cards.forEach(c=>{const el=document.createElement("div");el.className="card";el.innerHTML=`<div class="card-inner"><div class="card-back"><div class="cb-mark"></div></div><div class="card-face ${c.reversed?'rev':''}"><div class="cf-pos">${c.position}</div><div class="cf-glyphwrap"><div class="cf-mark">${c.mark}</div></div><div class="cf-name">${c.name}</div><div class="cf-ori"><span class="dot"></span>${c.reversed?'逆位':'正位'}</div></div></div>`;row.appendChild(el);});
+  const els=row.querySelectorAll(".card");for(let i=0;i<els.length;i++){await sleep(130);els[i].classList.add("in");}
+}
+async function flipCards(){const els=$("#cardsRow").querySelectorAll(".card");for(let i=0;i<els.length;i++){els[i].classList.add("flip");await sleep(430);}}
+function showMeaningSkeleton(cards){const box=$("#meanings");box.innerHTML="";cards.forEach((c,i)=>{const el=document.createElement("div");el.className="meaning";el.id="mn"+i;el.innerHTML=`<div class="m-pos">${c.position}</div><div class="m-text"><span class="m-card">${c.name}·${c.reversed?'逆位':'正位'}</span></div>`;box.appendChild(el);setTimeout(()=>el.classList.add("in"),120*i);});}
+function fillMeanings(cards,aiCards){cards.forEach((c,i)=>{const el=$("#mn"+i);if(!el)return;const m=(aiCards&&aiCards[i]&&aiCards[i].meaning)||"";el.querySelector(".m-text").innerHTML=`<span class="m-card">${c.name}·${c.reversed?'逆位':'正位'}</span>　${m}`;});}
+function renderBody(d){
+  const ins=(d.insights||[]).map((t,i)=>`<div class="ins"><div class="ins-n">${i+1}</div><div class="ins-t">${t}</div></div>`).join("");
+  $("#readingBody").innerHTML=`
+    <div class="sec reveal" id="r1"><div class="sec-label">此刻的你</div><div class="situation">${d.situation||""}</div></div>
+    <div class="sec reveal" id="r2"><div class="sec-label">牌面在说</div><div class="perspective">${d.perspective||""}</div></div>
+    <div class="sec reveal" id="r3"><div class="sec-label">你可以怎么选</div><div>${ins}</div></div>
+    <div class="sec reveal" id="r4"><div class="sec-label">今天，先做这一件</div><div class="action-card"><div class="ac-label">Today</div><div class="ac-text">${d.action||""}</div></div></div>
+    <div class="read-foot reveal" id="r5">
+      <div class="private"><div class="pv-t serif">想把这件事聊透？</div><div class="pv-d">加我微信，解锁更深的牌阵与 1 对 1 解读。</div><div class="pv-wx" onclick="toast('微信号已复制（演示）')">微信：fatetell_helper（点此复制）</div></div>
+      <div class="foot-actions"><button class="btn ghost" onclick="toast('已收藏（演示）')">收藏</button><button class="btn" onclick="go('ask')">再问一事</button></div>
+      <div class="rf-line">塔罗是镜，不是判决。怎么走，始终由你说了算。</div>
+    </div>`;
+  ["r1","r2","r3","r4","r5"].forEach((id,i)=>setTimeout(()=>{const e=$("#"+id);if(e)e.classList.add("in");},i*240+60));
+}
+function renderDirect(d){
+  $("#rhTitle").textContent="你抽到的牌";$("#rhPy").textContent="nǐ chōu dào de pái";
+  $("#orb").classList.add("show");$("#orb").classList.remove("pulse");
+  $("#interpWait").style.display="none";
+  const row=$("#cardsRow");row.innerHTML="";
+  d.cards.forEach(c=>{row.insertAdjacentHTML("beforeend",cardHTML(c,true,100).replace('style="max-width:100px;width:100px;flex:none;"',''));});
+  const box=$("#meanings");box.innerHTML="";
+  d.cards.forEach(c=>{box.insertAdjacentHTML("beforeend",`<div class="meaning in"><div class="m-pos">${c.position}</div><div class="m-text"><span class="m-card">${c.name}·${c.reversed?'逆位':'正位'}</span>　${c.meaning||""}</div></div>`);});
+  renderBody(d);
+  ["r1","r2","r3","r4","r5"].forEach(id=>{const e=$("#"+id);if(e)e.classList.add("in");});
+}
+
+/* ============ 我的 ============ */
+function renderMine(){
+  $("#mineBal").textContent=state.balance;
+  $("#mineStreak").textContent="连续签到 "+state.streak+" 天";
+  const h=$("#mineHistory");
+  h.innerHTML=state.history.length?state.history.map((it,i)=>`<div class="hist-item" onclick="openHistory(${i})"><div class="row"><div class="hi-domain">${it.domain}</div><div class="hi-when">${it.when}</div></div><div class="hi-head">${(it.data.situation||"").slice(0,32)}</div></div>`).join(""):`<div class="empty">还没有解读记录，去问一事吧。</div>`;
+  $("#mineLedger").innerHTML=state.ledger.length?state.ledger.map(l=>`<div class="led-item"><div class="le-type">${l.type}</div><div><div class="le-amt">${l.amount}</div><div class="le-when">${l.when}</div></div></div>`).join(""):`<div class="empty">暂无积分流水。</div>`;
+}
+function switchMine(t){document.querySelectorAll(".mtab").forEach(m=>m.classList.toggle("on",m.dataset.mtab===t));$("#mineHistory").style.display=t==="history"?"block":"none";$("#mineLedger").style.display=t==="ledger"?"block":"none";}
+function openHistory(i){const it=state.history[i];if(!it)return;go("reading");renderDirect(it.data);}
+
+/* ============ 充值 ============ */
+function renderRecharge(){
+  $("#rcBal").textContent=state.balance;
+  $("#packs").innerHTML=PACKS.map(p=>`<div class="pack" onclick="buy('${p.id}')"><div><div class="pk-credits">${p.credits} 积分</div><div class="pk-label">${p.label}${p.tag?(' · '+p.tag):''}</div></div><div class="pk-price">¥${p.cny}</div></div>`).join("");
+}
+function buy(id){const p=PACKS.find(x=>x.id===id);if(!p)return;state.balance+=p.credits;state.ledger.unshift({type:"充值",amount:"+"+p.credits,when:"刚刚"});renderRecharge();toast(`充值成功（模拟）+${p.credits}`);}
+
+/* ============ 调真实后端 ============ */
+async function interpret(dm,text,cards){
+  const cardsText=cards.map(c=>`${c.position}·${c.name}(${c.reversed?'逆位':'正位'})`).join("、");
+  const res=await fetch("/api/tarot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domain:dm,situation:text,cardsText})});
+  if(!res.ok)throw new Error("API "+res.status);
+  const data=await res.json();
+  if(data&&data.error)throw new Error(data.error);
+  return data;
+}
+</script>
+</body>
+</html>
