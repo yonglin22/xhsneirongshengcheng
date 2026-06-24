@@ -1,0 +1,13 @@
+.recharge { padding-top: 44rpx; padding-bottom: 60rpx; }
+
+.rc-balance { text-align: center; margin-bottom: 60rpx; }
+.rc-cap { font-size: 24rpx; margin-bottom: 12rpx; }
+.rc-num { font-size: 68rpx; line-height: 1; }
+
+.pack { display: flex; align-items: center; justify-content: space-between; background: var(--bg-raise); border: 1rpx solid var(--line); border-radius: 26rpx; padding: 38rpx 42rpx; margin-bottom: 24rpx; }
+.pack-hover { background: #F1EEE8; }
+.pk-credits { font-size: 38rpx; }
+.pk-label { font-size: 24rpx; margin-top: 12rpx; }
+.pk-price { font-size: 42rpx; }
+
+.mock-note { font-size: 23rpx; line-height: 1.7; margin-top: 28rpx; background: #FBF3E3; border: 1rpx solid #EAD9B5; padding: 24rpx; border-radius: 18rpx; color: #8a6d3b; }

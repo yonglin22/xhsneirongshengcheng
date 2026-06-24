@@ -1,0 +1,28 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/ask/index",
+    "pages/reading/index",
+    "pages/mine/index",
+    "pages/recharge/index"
+  ],
+  "window": {
+    "backgroundColor": "#F4F2EE",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#F4F2EE",
+    "navigationBarTitleText": "FateTell",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#A8A299",
+    "selectedColor": "#1A1815",
+    "backgroundColor": "#FAF9F6",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/home/index", "text": "每日一签" },
+      { "pagePath": "pages/mine/index", "text": "我的" }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

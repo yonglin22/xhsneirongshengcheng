@@ -1,0 +1,28 @@
+.reading { padding-top: 16rpx; padding-bottom: 120rpx; }
+
+.read-head { text-align: center; margin: 24rpx 0 44rpx; }
+.rh-py { font-size: 22rpx; letter-spacing: .3em; color: var(--ink-faint); margin-bottom: 12rpx; }
+.rh-title { font-size: 46rpx; letter-spacing: .04em; }
+
+.meanings { margin-top: 52rpx; }
+.meaning { display: flex; gap: 26rpx; padding: 30rpx 0; border-top: 1rpx solid var(--line-soft); }
+.meaning:first-child { border-top: none; }
+.m-pos { font-family: var(--serif); font-size: 25rpx; color: var(--ink-faint); width: 92rpx; flex-shrink: 0; padding-top: 2rpx; }
+.m-text { font-size: 26rpx; line-height: 1.75; color: var(--ink-soft); flex: 1; }
+.m-card { color: var(--ink); font-weight: 500; }
+
+.interp-wait { margin-top: 72rpx; text-align: center; }
+.iw-dots { font-size: 28rpx; color: var(--ink-faint); letter-spacing: .15em; }
+
+.err { margin-top: 64rpx; text-align: center; }
+.err-t { font-size: 28rpx; line-height: 1.75; color: var(--ink-soft); margin-bottom: 32rpx; }
+
+.insights { }
+.read-foot { margin-top: 88rpx; }
+.private { text-align: center; }
+.pv-t { font-size: 34rpx; margin-bottom: 14rpx; }
+.pv-d { font-size: 25rpx; line-height: 1.7; margin-bottom: 22rpx; }
+.pv-wx { font-size: 27rpx; color: var(--amber); letter-spacing: .04em; }
+.foot-actions { display: flex; gap: 24rpx; margin: 48rpx 0 30rpx; }
+.foot-actions .btn { flex: 1; }
+.rf-line { text-align: center; font-size: 24rpx; line-height: 1.8; }
