@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FateTell · 问一事，看清此刻</title>
+<style>
+  :root{
+    --bg:#F4F2EE;
+    --bg-raise:#FAF9F6;
+    --ink:#1A1815;
+    --ink-soft:#56524C;
+    --ink-faint:#A8A299;
+    --line:#E4E0D8;
+    --line-soft:#EDEAE3;
+    --amber:#C9A36A;
+    --card-back:#26221E;
+    --card-back-2:#332E28;
+    --face:#FBF9F5;
+    --serif:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC",serif;
+    --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    display:flex;justify-content:center;
+    overflow-x:hidden;
+  }
+  .phone{
+    width:100%;max-width:430px;min-height:100vh;
+    background:var(--bg);
+    position:relative;overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+
+  /* ---------- ambient amber orb ---------- */
+  .orb{
+    position:absolute;width:300px;height:300px;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,
+      rgba(201,163,106,.55) 0%,
+      rgba(201,163,106,.22) 35%,
+      rgba(201,163,106,0) 70%);
+    filter:blur(8px);
+    pointer-events:none;z-index:0;
+    opacity:0;transition:opacity 1.2s ease;
+  }
+  .orb.show{opacity:1;}
+  .orb.pulse{animation:breathe 3.4s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{transform:scale(.94);opacity:.85;}50%{transform:scale(1.06);opacity:1;}}
+
+  /* ---------- shared ---------- */
+  .screen{
+    position:relative;z-index:1;flex:1;
+    display:none;flex-direction:column;
+    padding:0 30px;
+  }
+  .screen.active{display:flex;}
+  .pinyin{
+    font-family:var(--sans);font-size:11px;letter-spacing:.18em;
+    color:var(--ink-faint);text-transform:lowercase;
+    display:block;margin-bottom:4px;font-style:italic;
+  }
+  .eyebrow{
+    font-size:12px;letter-spacing:.32em;color:var(--ink-faint);
+    text-transform:uppercase;margin-bottom:14px;
+  }
+
+  /* ---------- ENTRY ---------- */
+  #entry{justify-content:flex-start;padding-top:78px;padding-bottom:48px;}
+  .brand{
+    position:absolute;top:30px;left:0;right:0;text-align:center;
+    font-family:var(--serif);font-size:15px;letter-spacing:.34em;color:var(--ink);
+    opacity:.85;
+  }
+  .brand span{display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--ink);margin-left:6px;vertical-align:middle;transform:translateY(-1px);}
+  .hero-title{
+    font-family:var(--serif);font-weight:500;line-height:1.12;
+    font-size:42px;letter-spacing:.01em;margin-bottom:18px;
+  }
+  .hero-title .ann{position:relative;}
+  .hero-sub{
+    font-size:14px;line-height:1.85;color:var(--ink-soft);
+    max-width:300px;margin-bottom:46px;
+  }
+  .label{
+    font-size:12px;letter-spacing:.2em;color:var(--ink-faint);
+    margin-bottom:14px;text-transform:uppercase;
+  }
+  .domains{display:flex;gap:12px;margin-bottom:38px;}
+  .domain{
+    flex:1;background:var(--bg-raise);
+    border:1px solid var(--line);border-radius:18px;
+    padding:22px 0 18px;text-align:center;cursor:pointer;
+    transition:border-color .35s ease,background .35s ease,transform .25s ease;
+    position:relative;overflow:hidden;
+  }
+  .domain .d-char{font-family:var(--serif);font-size:26px;line-height:1;margin-bottom:9px;}
+  .domain .d-en{font-size:10px;letter-spacing:.26em;color:var(--ink-faint);text-transform:uppercase;}
+  .domain.sel{border-color:var(--ink);background:var(--ink);}
+  .domain.sel .d-char,.domain.sel .d-en{color:var(--face);}
+  .domain.sel .d-en{color:rgba(251,249,245,.6);}
+
+  .field-wrap{position:relative;margin-bottom:30px;}
+  .field{
+    width:100%;background:transparent;border:none;
+    border-bottom:1px solid var(--line);
+    font-family:var(--serif);font-size:18px;color:var(--ink);
+    padding:14px 2px;resize:none;line-height:1.6;
+    transition:border-color .3s ease;
+  }
+  .field::placeholder{color:var(--ink-faint);font-family:var(--serif);}
+  .field:focus{outline:none;border-color:var(--ink);}
+  .count{position:absolute;right:2px;bottom:-20px;font-size:11px;color:var(--ink-faint);letter-spacing:.05em;}
+
+  .go-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto;}
+  .go-hint{font-size:12.5px;color:var(--ink-faint);line-height:1.7;max-width:230px;}
+  .go-btn{
+    width:62px;height:62px;border-radius:50%;flex-shrink:0;
+    background:var(--ink);border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .3s ease;
+  }
+  .go-btn:disabled{opacity:.3;cursor:default;}
+  .go-btn:not(:disabled):active{transform:scale(.92);}
+  .go-btn svg{width:22px;height:22px;stroke:var(--face);}
+
+  .disclaimer{
+    text-align:left;font-size:11.5px;line-height:1.8;color:var(--ink-faint);
+    margin-top:28px;padding-top:20px;border-top:1px solid var(--line-soft);
+    letter-spacing:.02em;
+  }
+
+  /* ---------- READING ---------- */
+  #reading{padding-top:64px;padding-bottom:60px;overflow-y:auto;}
+  .read-head{text-align:center;margin-bottom:30px;min-height:54px;transition:opacity .6s ease;}
+  .read-head .rh-py{font-size:11px;letter-spacing:.3em;color:var(--ink-faint);text-transform:lowercase;font-style:italic;margin-bottom:6px;}
+  .read-head .rh-title{font-family:var(--serif);font-size:24px;letter-spacing:.04em;}
+
+  .cards-row{
+    display:flex;justify-content:center;gap:10px;
+    margin-bottom:8px;perspective:1400px;
+  }
+  .card{
+    flex:1 1 0;max-width:100px;aspect-ratio:100/166;height:auto;
+    position:relative;
+    opacity:0;transform:translateY(14px);
+    transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.2,1);
+  }
+  .card.in{opacity:1;transform:translateY(0);}
+  .card-inner{
+    position:absolute;inset:0;transform-style:preserve-3d;
+    transition:transform 1.05s cubic-bezier(.16,1,.3,1);
+  }
+  .card.flip .card-inner{transform:rotateY(180deg);}
+  .card-back,.card-face{
+    position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border-radius:11px;overflow:hidden;
+  }
+  .card-back{
+    background:
+      radial-gradient(120% 80% at 50% -10%,var(--card-back-2),var(--card-back));
+    border:1px solid #1d1916;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 26px rgba(30,26,22,.18);
+  }
+  .card-back::before{
+    content:"";position:absolute;inset:9px;border-radius:7px;
+    border:1px solid rgba(201,163,106,.28);
+  }
+  .cb-mark{width:34px;height:34px;border-radius:50%;
+    border:1px solid rgba(232,226,216,.4);position:relative;}
+  .cb-mark::after{content:"";position:absolute;left:50%;top:4px;bottom:4px;width:1px;
+    background:rgba(232,226,216,.4);transform:translateX(-.5px);}
+  .cb-mark::before{content:"";position:absolute;width:8px;height:8px;border-radius:50%;
+    background:rgba(232,226,216,.4);left:calc(50% - 4px);top:calc(50% - 4px);}
+
+  .card-face{
+    background:var(--face);transform:rotateY(180deg);
+    border:1px solid var(--line);
+    box-shadow:0 12px 30px rgba(30,26,22,.13);
+    display:flex;flex-direction:column;align-items:center;
+    padding:14px 8px 12px;
+  }
+  .cf-pos{font-size:10px;letter-spacing:.22em;color:var(--ink-faint);text-transform:uppercase;}
+  .cf-mark{
+    font-family:var(--serif);font-size:46px;line-height:1;
+    color:var(--line);margin-top:14px;margin-bottom:auto;
+    user-select:none;
+  }
+  .card-face.rev .cf-glyphwrap{transform:rotate(180deg);}
+  .cf-name{font-family:var(--serif);font-size:18px;letter-spacing:.06em;margin-bottom:5px;}
+  .cf-ori{font-size:10.5px;letter-spacing:.12em;color:var(--ink-soft);
+    display:flex;align-items:center;gap:4px;}
+  .cf-ori .dot{width:3px;height:3px;border-radius:50%;background:var(--amber);}
+  .card-face.rev .cf-ori .dot{background:var(--ink-faint);}
+
+  /* per-card one-line meaning */
+  .meanings{margin-top:26px;display:flex;flex-direction:column;gap:0;}
+  .meaning{
+    display:flex;gap:14px;padding:15px 0;border-top:1px solid var(--line-soft);
+    opacity:0;transform:translateY(8px);transition:opacity .6s ease,transform .6s ease;
+  }
+  .meaning.in{opacity:1;transform:translateY(0);}
+  .meaning:first-child{border-top:none;}
+  .m-pos{font-family:var(--serif);font-size:13px;color:var(--ink-faint);
+    flex-shrink:0;width:54px;letter-spacing:.08em;padding-top:1px;}
+  .m-text{font-size:13.5px;line-height:1.75;color:var(--ink-soft);}
+  .m-card{color:var(--ink);font-weight:500;}
+
+  /* reading body */
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.2,1);}
+  .reveal.in{opacity:1;transform:translateY(0);}
+
+  .sec{margin-top:40px;}
+  .sec-label{
+    font-size:11px;letter-spacing:.28em;color:var(--ink-faint);
+    text-transform:uppercase;margin-bottom:16px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .sec-label::after{content:"";flex:1;height:1px;background:var(--line-soft);}
+
+  .situation{font-family:var(--serif);font-size:23px;line-height:1.5;letter-spacing:.01em;}
+  .perspective{font-size:15px;line-height:1.95;color:var(--ink-soft);}
+
+  .insights{display:flex;flex-direction:column;gap:0;}
+  .ins{display:flex;gap:16px;padding:17px 0;border-top:1px solid var(--line-soft);}
+  .ins:first-child{border-top:none;}
+  .ins-n{font-family:var(--serif);font-size:15px;color:var(--ink-faint);flex-shrink:0;width:20px;padding-top:1px;}
+  .ins-t{font-size:14.5px;line-height:1.8;color:var(--ink);}
+
+  .action-card{
+    background:var(--ink);color:var(--face);border-radius:20px;
+    padding:26px 24px;margin-top:18px;
+  }
+  .action-card .ac-label{font-size:11px;letter-spacing:.26em;color:rgba(251,249,245,.5);
+    text-transform:uppercase;margin-bottom:13px;}
+  .action-card .ac-text{font-family:var(--serif);font-size:17px;line-height:1.65;letter-spacing:.02em;}
+
+  .read-foot{margin-top:46px;text-align:center;}
+  .read-foot .rf-line{font-size:13px;color:var(--ink-faint);line-height:1.8;margin-bottom:22px;letter-spacing:.03em;}
+  .again{
+    display:inline-flex;align-items:center;gap:10px;
+    background:transparent;border:1px solid var(--ink);color:var(--ink);
+    font-family:var(--serif);font-size:14px;letter-spacing:.1em;
+    padding:13px 28px;border-radius:30px;cursor:pointer;
+    transition:background .3s ease,color .3s ease;
+  }
+  .again:active{background:var(--ink);color:var(--face);}
+
+  /* interp placeholder / error */
+  .interp-wait{margin-top:40px;text-align:center;opacity:0;transition:opacity .6s ease;}
+  .interp-wait.in{opacity:1;}
+  .interp-wait .iw-dots{font-family:var(--serif);font-size:15px;color:var(--ink-faint);letter-spacing:.2em;}
+  .interp-wait .iw-dots::after{content:"";animation:dots 1.4s steps(4,end) infinite;}
+  @keyframes dots{0%{content:"";}25%{content:"·";}50%{content:"· ·";}75%{content:"· · ·";}}
+  .err{margin-top:40px;padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--bg-raise);}
+  .err p{font-size:14px;line-height:1.75;color:var(--ink-soft);margin-bottom:16px;}
+  .err button{font-family:var(--serif);font-size:13px;border:1px solid var(--ink);background:transparent;
+    color:var(--ink);padding:9px 20px;border-radius:24px;cursor:pointer;}
+
+  @media (prefers-reduced-motion: reduce){
+    .card-inner{transition:none;}
+    .orb.pulse{animation:none;}
+    *{transition-duration:.01ms !important;}
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="orb" id="orb"></div>
+
+  <!-- ===================== ENTRY ===================== -->
+  <section class="screen active" id="entry">
+    <div class="brand">FATETELL<span></span></div>
+
+    <h1 class="hero-title">问一事，<br>看清此刻</h1>
+    <p class="hero-sub">塔罗不预言你的未来。它是一面镜子，照见你当下真正的处境，把选择权留给你。</p>
+
+    <div class="label">想问哪一面</div>
+    <div class="domains">
+      <div class="domain sel" data-domain="姻缘">
+        <div class="d-char">姻缘</div>
+        <div class="d-en">Love</div>
+      </div>
+      <div class="domain" data-domain="事业">
+        <div class="d-char">事业</div>
+        <div class="d-en">Career</div>
+      </div>
+      <div class="domain" data-domain="财运">
+        <div class="d-char">财运</div>
+        <div class="d-en">Fortune</div>
+      </div>
+    </div>
+
+    <div class="label">你最近在纠结什么</div>
+    <div class="field-wrap">
+      <textarea class="field" id="situation" rows="3" maxlength="200"
+        placeholder="把具体的事说出来，越具体，照得越清…"></textarea>
+      <div class="count"><span id="cc">0</span>/200</div>
+    </div>
+
+    <div class="go-row">
+      <div class="go-hint">默契抽三张牌：<br>现状 · 阻碍 · 指引</div>
+      <button class="go-btn" id="goBtn" disabled aria-label="抽牌">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M13 6l6 6-6 6"/>
+        </svg>
+      </button>
+    </div>
+
+    <p class="disclaimer">仅供自我觉察与决策参考，不构成任何确定性预测或投资建议。怎么走，始终由你决定。</p>
+  </section>
+
+  <!-- ===================== READING ===================== -->
+  <section class="screen" id="reading">
+    <div class="read-head" id="readHead">
+      <div class="rh-py">chōu qiān</div>
+      <div class="rh-title" id="rhTitle">正在为你抽牌</div>
+    </div>
+
+    <div class="cards-row" id="cardsRow"></div>
+
+    <div class="meanings" id="meanings"></div>
+
+    <div class="interp-wait" id="interpWait">
+      <div class="iw-dots">聆听你的处境，正在解读</div>
+    </div>
+
+    <div id="readingBody"></div>
+  </section>
+</div>
+
+<script>
+/* =========================================================
+   塔罗牌库（演示版含 78 张；少阿卡纳用花色字作水印）
+   ========================================================= */
+const MAJOR = [
+  ["愚人","0"],["魔术师","I"],["女祭司","II"],["皇后","III"],["皇帝","IV"],["教皇","V"],
+  ["恋人","VI"],["战车","VII"],["力量","VIII"],["隐士","IX"],["命运之轮","X"],["正义","XI"],
+  ["倒吊人","XII"],["死神","XIII"],["节制","XIV"],["恶魔","XV"],["高塔","XVI"],["星星","XVII"],
+  ["月亮","XVIII"],["太阳","XIX"],["审判","XX"],["世界","XXI"]
+];
+const SUITS = [["权杖","杖"],["圣杯","杯"],["宝剑","剑"],["星币","币"]];
+const RANKS = ["王牌","二","三","四","五","六","七","八","九","十","侍从","骑士","皇后","国王"];
+const DECK = [];
+MAJOR.forEach(([cn,rn])=>DECK.push({name:cn,mark:rn}));
+SUITS.forEach(([suit,glyph])=>RANKS.forEach(r=>DECK.push({name:suit+r,mark:glyph})));
+
+const POSITIONS = ["现状","阻碍","指引"];
+
+/* Fisher–Yates 抽牌 */
+function drawCards(n){
+  const d=DECK.slice();
+  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+  return d.slice(0,n).map((c,i)=>({
+    position:POSITIONS[i],
+    name:c.name,
+    mark:c.mark,
+    reversed:Math.random()<0.5
+  }));
+}
+
+/* =========================================================
+   交互
+   ========================================================= */
+const $ = s=>document.querySelector(s);
+let domain="姻缘";
+
+// 领域选择
+document.querySelectorAll(".domain").forEach(d=>{
+  d.addEventListener("click",()=>{
+    document.querySelectorAll(".domain").forEach(x=>x.classList.remove("sel"));
+    d.classList.add("sel");
+    domain=d.dataset.domain;
+  });
+});
+
+// 输入计数 + 启用按钮
+const field=$("#situation"), goBtn=$("#goBtn"), cc=$("#cc");
+field.addEventListener("input",()=>{
+  const v=field.value.trim();
+  cc.textContent=field.value.length;
+  goBtn.disabled = v.length<4;
+});
+
+// 暖光初始位置
+const orb=$("#orb");
+function placeOrb(top,right){orb.style.top=top;orb.style.right=right;orb.style.left="auto";}
+placeOrb("180px","-120px");
+
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+goBtn.addEventListener("click",start);
+
+async function start(){
+  const text=field.value.trim();
+  const cards=drawCards(3);
+
+  // 切到解读页
+  $("#entry").classList.remove("active");
+  const reading=$("#reading");
+  reading.classList.add("active");
+  reading.scrollTop=0;
+
+  // 暖光：抽牌时点亮 + 呼吸（用 margin 居中，transform 留给呼吸动画）
+  orb.style.top="84px";
+  orb.style.left="50%";
+  orb.style.right="auto";
+  orb.style.marginLeft="-150px";
+  orb.classList.add("show","pulse");
+
+  // 同时发起 API（不阻塞动画）
+  const apiPromise = interpret(domain,text,cards);
+
+  // 渲染三张牌背
+  await renderCardBacks(cards);
+
+  // 仪式停顿
+  await sleep(650);
+
+  // 逐张翻牌
+  $("#rhTitle").textContent="你抽到的牌";
+  $("#readHead").querySelector(".rh-py").textContent="nǐ chōu dào de pái";
+  await flipCards(cards);
+
+  await sleep(300);
+  // 显示每张牌的位置/牌名（AI 解读文字稍后填入）
+  showMeaningSkeleton(cards);
+
+  // 进入解读等待
+  await sleep(200);
+  orb.classList.remove("pulse");
+  $("#interpWait").classList.add("in");
+
+  // 等 API
+  try{
+    const data = await apiPromise;
+    $("#interpWait").classList.remove("in");
+    await sleep(250);
+    fillMeanings(cards,data.cards);
+    renderBody(data);
+  }catch(e){
+    $("#interpWait").classList.remove("in");
+    showError(e);
+  }
+}
+
+/* ---- 渲染牌背 ---- */
+async function renderCardBacks(cards){
+  const row=$("#cardsRow");
+  row.innerHTML="";
+  cards.forEach(c=>{
+    const el=document.createElement("div");
+    el.className="card";
+    el.innerHTML=`
+      <div class="card-inner">
+        <div class="card-back"><div class="cb-mark"></div></div>
+        <div class="card-face ${c.reversed?'rev':''}">
+          <div class="cf-pos">${c.position}</div>
+          <div class="cf-glyphwrap"><div class="cf-mark">${c.mark}</div></div>
+          <div class="cf-name">${c.name}</div>
+          <div class="cf-ori"><span class="dot"></span>${c.reversed?'逆位':'正位'}</div>
+        </div>
+      </div>`;
+    row.appendChild(el);
+  });
+  // 依次入场
+  const els=row.querySelectorAll(".card");
+  for(let i=0;i<els.length;i++){await sleep(130);els[i].classList.add("in");}
+}
+
+/* ---- 翻牌 ---- */
+async function flipCards(cards){
+  const els=$("#cardsRow").querySelectorAll(".card");
+  for(let i=0;i<els.length;i++){
+    els[i].classList.add("flip");
+    await sleep(430);
+  }
+}
+
+/* ---- 牌义骨架（先占位） ---- */
+function showMeaningSkeleton(cards){
+  const box=$("#meanings");
+  box.innerHTML="";
+  cards.forEach((c,i)=>{
+    const el=document.createElement("div");
+    el.className="meaning";
+    el.id="mn"+i;
+    el.innerHTML=`<div class="m-pos">${c.position}</div>
+      <div class="m-text"><span class="m-card">${c.name}·${c.reversed?'逆位':'正位'}</span></div>`;
+    box.appendChild(el);
+    setTimeout(()=>el.classList.add("in"),120*i);
+  });
+}
+
+/* ---- 填入 AI 牌义 ---- */
+function fillMeanings(cards,aiCards){
+  cards.forEach((c,i)=>{
+    const el=$("#mn"+i);
+    if(!el)return;
+    const m=(aiCards&&aiCards[i]&&aiCards[i].meaning)||"";
+    el.querySelector(".m-text").innerHTML=
+      `<span class="m-card">${c.name}·${c.reversed?'逆位':'正位'}</span>　${m}`;
+  });
+}
+
+/* ---- 渲染解读正文 ---- */
+function renderBody(d){
+  const ins=(d.insights||[]).map((t,i)=>
+    `<div class="ins"><div class="ins-n">${i+1}</div><div class="ins-t">${t}</div></div>`).join("");
+  const html=`
+    <div class="sec reveal" id="r1">
+      <div class="sec-label">此刻的你</div>
+      <div class="situation">${d.situation||""}</div>
+    </div>
+    <div class="sec reveal" id="r2">
+      <div class="sec-label">牌面在说</div>
+      <div class="perspective">${d.perspective||""}</div>
+    </div>
+    <div class="sec reveal" id="r3">
+      <div class="sec-label">你可以怎么选</div>
+      <div class="insights">${ins}</div>
+    </div>
+    <div class="sec reveal" id="r4">
+      <div class="sec-label">今天，先做这一件</div>
+      <div class="action-card">
+        <div class="ac-label">Today</div>
+        <div class="ac-text">${d.action||""}</div>
+      </div>
+    </div>
+    <div class="read-foot reveal" id="r5">
+      <div class="rf-line">塔罗是镜，不是判决。<br>怎么走，始终由你说了算。</div>
+      <button class="again" onclick="location.reload()">再问一事</button>
+    </div>`;
+  $("#readingBody").innerHTML=html;
+  ["r1","r2","r3","r4","r5"].forEach((id,i)=>
+    setTimeout(()=>{const e=$("#"+id);if(e)e.classList.add("in");},i*260+60));
+}
+
+/* ---- 错误态 ---- */
+function showError(e){
+  $("#readingBody").innerHTML=`
+    <div class="err">
+      <p>牌已经摊开了，但解读没接上——可能是网络晃了一下，或体验太频繁。稍等再试一次就好。</p>
+      <button onclick="location.reload()">重新抽牌</button>
+    </div>`;
+  console.error(e);
+}
+
+/* =========================================================
+   调用后端 /api/tarot（服务端注入 System Prompt + DeepSeek key + 强制 JSON）
+   ========================================================= */
+async function interpret(domain,text,cards){
+  const cardsText=cards.map(c=>`${c.position}·${c.name}(${c.reversed?'逆位':'正位'})`).join("、");
+  const res=await fetch("/api/tarot",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ domain, situation:text, cardsText })
+  });
+  if(!res.ok) throw new Error("API "+res.status);
+  const data=await res.json();
+  if(data && data.error) throw new Error(data.error);
+  return data;
+}
+</script>
+</body>
+</html>

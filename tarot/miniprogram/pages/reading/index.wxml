@@ -1,0 +1,84 @@
+<view class="orb {{orbOn?'show pulse':''}}"></view>
+
+<view class="screen reading">
+  <view class="read-head">
+    <view class="rh-py">{{headPy}}</view>
+    <view class="rh-title serif">{{head}}</view>
+  </view>
+
+  <view class="cards-row">
+    <view
+      wx:for="{{cards}}"
+      wx:key="position"
+      class="card {{item.in?'in':''}} {{item.flip?'flip':''}}">
+      <view class="card-inner">
+        <view class="card-back"><view class="cb-mark"></view></view>
+        <view class="card-face">
+          <view class="cf-pos">{{item.position}}</view>
+          <view class="cf-glyph {{item.reversed?'rev':''}}">{{item.mark}}</view>
+          <view class="cf-name">{{item.name}}</view>
+          <view class="cf-ori {{item.reversed?'rev':''}}"><view class="dot"></view>{{item.reversed?'逆位':'正位'}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="meanings" wx:if="{{showMean}}">
+    <view wx:for="{{cards}}" wx:key="position" class="meaning">
+      <view class="m-pos">{{item.position}}</view>
+      <view class="m-text"><text class="m-card">{{item.name}}·{{item.reversed?'逆位':'正位'}}</text>{{item.meaning ? '　' + item.meaning : ''}}</view>
+    </view>
+  </view>
+
+  <view class="interp-wait" wx:if="{{cards.length>0 && !body && !error}}">
+    <view class="iw-dots serif">聆听你的处境，正在解读…</view>
+  </view>
+
+  <view class="err panel" wx:if="{{error}}">
+    <view class="err-t">{{error}}</view>
+    <view class="btn ghost" bindtap="onErr" hover-class="btn-hover">{{errBtn}}</view>
+  </view>
+
+  <block wx:if="{{body}}">
+    <view class="sec reveal {{reveal.r1?'in':''}}">
+      <view class="sec-label">此刻的你<view class="ln"></view></view>
+      <view class="situation">{{typed}}</view>
+    </view>
+
+    <view class="sec reveal {{reveal.r2?'in':''}}">
+      <view class="sec-label">牌面在说<view class="ln"></view></view>
+      <view class="perspective">{{body.perspective}}</view>
+    </view>
+
+    <view class="sec reveal {{reveal.r3?'in':''}}">
+      <view class="sec-label">你可以怎么选<view class="ln"></view></view>
+      <view class="insights">
+        <view wx:for="{{body.insights}}" wx:key="*this" class="ins">
+          <view class="ins-n">{{index + 1}}</view>
+          <view class="ins-t">{{item}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="sec reveal {{reveal.r4?'in':''}}">
+      <view class="sec-label">今天，先做这一件<view class="ln"></view></view>
+      <view class="action-card">
+        <view class="ac-label">Today</view>
+        <view class="ac-text">{{body.action}}</view>
+      </view>
+    </view>
+
+    <view class="read-foot reveal {{reveal.r5?'in':''}}">
+      <view class="private panel">
+        <view class="pv-t serif">想把这件事聊透？</view>
+        <view class="pv-d muted">加我微信，可解锁更深的牌阵与 1 对 1 解读。</view>
+        <view class="pv-wx" bindtap="copyWechat">微信：{{serviceWechat}}（点此复制）</view>
+      </view>
+      <view class="foot-actions">
+        <view class="btn ghost" bindtap="toggleFav" hover-class="btn-hover">{{faved ? '已收藏' : '收藏'}}</view>
+        <view class="btn" bindtap="again" hover-class="btn-hover">再问一事</view>
+      </view>
+      <view class="rf-line muted">塔罗是镜，不是判决。怎么走，始终由你说了算。</view>
+    </view>
+  </block>
+</view>
