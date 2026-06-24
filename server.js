@@ -394,33 +394,46 @@ function ensureXvfb() {
     });
   });
 }
+// 整个流程（拉起浏览器等渲染+截图+解码+重画）耗时可达 30~60 秒，远超普通接口超时；
+// 因此改成后台异步跑，前端先收到「已开始」，再轮询 /api/admin/xhs-relogin-qr 拿结果，避免 fetch 超时误报失败。
+let xhsReloginState = { status: 'idle', img: '', qr: '', error: '', startedAt: 0 };
 // 发起一次扫码登录：后台拉起 xhs login（持续等扫码），截虚拟屏→解码二维码→qrencode 重画清晰码回传
-async function xhsReloginStart() {
-  await ensureXvfb();
-  await runCmd('pkill', ['-u', XHS_USER, '-f', 'xhs login'], 5000);
-  await runCmd('pkill', ['-u', XHS_USER, '-f', 'camoufox'], 5000);
-  await new Promise(r => setTimeout(r, 800));
-  const logPath = path.join(XHS_HOME, 'xhslogin.log');
-  const pngPath = path.join(XHS_HOME, 'qr_raw.png');
-  const cleanPath = path.join(XHS_HOME, 'qr_clean.png');
+async function xhsReloginRun() {
   try {
-    const out = fs.openSync(logPath, 'w');
-    const p = _spawn('xhs', ['login', '--qrcode'], { detached: true, stdio: ['ignore', out, out], env: xhsEnv(), cwd: XHS_HOME });
-    p.unref();
-  } catch (e) { return { ok: false, error: '启动登录进程失败：' + (e.message || e) }; }
-  await new Promise(r => setTimeout(r, 14000)); // 等浏览器把二维码渲染出来
-  await runCmd('import', ['-window', 'root', pngPath], 12000); // imagemagick 截虚拟屏
-  let qr = '';
-  const z = await runCmd('zbarimg', ['--raw', '-q', pngPath], 12000);
-  if (z.code === 0) qr = (z.stdout || '').trim().split('\n')[0] || '';
-  let img = '';
-  if (qr) { // 用 qrencode 把解码出的登录链接重画成清晰二维码（比直接发桌面截图更易扫）
-    const qe = await runCmd('qrencode', ['-o', cleanPath, '-s', '8', '-m', '2', qr], 8000);
-    if (qe.code === 0) { try { img = 'data:image/png;base64,' + fs.readFileSync(cleanPath).toString('base64'); } catch {} }
+    await ensureXvfb();
+    await runCmd('pkill', ['-u', XHS_USER, '-f', 'xhs login'], 5000);
+    await runCmd('pkill', ['-u', XHS_USER, '-f', 'camoufox'], 5000);
+    await new Promise(r => setTimeout(r, 800));
+    const logPath = path.join(XHS_HOME, 'xhslogin.log');
+    const pngPath = path.join(XHS_HOME, 'qr_raw.png');
+    const cleanPath = path.join(XHS_HOME, 'qr_clean.png');
+    try {
+      const out = fs.openSync(logPath, 'w');
+      const p = _spawn('xhs', ['login', '--qrcode'], { detached: true, stdio: ['ignore', out, out], env: xhsEnv(), cwd: XHS_HOME });
+      p.unref();
+    } catch (e) { xhsReloginState = { status: 'error', img: '', qr: '', error: '启动登录进程失败：' + (e.message || e), startedAt: xhsReloginState.startedAt }; return; }
+    await new Promise(r => setTimeout(r, 14000)); // 等浏览器把二维码渲染出来
+    await runCmd('import', ['-window', 'root', pngPath], 12000); // imagemagick 截虚拟屏
+    let qr = '';
+    const z = await runCmd('zbarimg', ['--raw', '-q', pngPath], 12000);
+    if (z.code === 0) qr = (z.stdout || '').trim().split('\n')[0] || '';
+    let img = '';
+    if (qr) { // 用 qrencode 把解码出的登录链接重画成清晰二维码（比直接发桌面截图更易扫）
+      const qe = await runCmd('qrencode', ['-o', cleanPath, '-s', '8', '-m', '2', qr], 8000);
+      if (qe.code === 0) { try { img = 'data:image/png;base64,' + fs.readFileSync(cleanPath).toString('base64'); } catch {} }
+    }
+    if (!img) { try { img = 'data:image/png;base64,' + fs.readFileSync(pngPath).toString('base64'); } catch {} } // 兜底：发原始截图
+    if (!img) { xhsReloginState = { status: 'error', img: '', qr: '', error: '未能生成二维码（虚拟屏/截图/解码工具异常，请确认已装 xvfb imagemagick zbar-tools qrencode）', startedAt: xhsReloginState.startedAt }; return; }
+    xhsReloginState = { status: 'ready', img, qr, error: '', startedAt: xhsReloginState.startedAt };
+  } catch (e) {
+    xhsReloginState = { status: 'error', img: '', qr: '', error: '生成二维码异常：' + (e.message || e), startedAt: xhsReloginState.startedAt };
   }
-  if (!img) { try { img = 'data:image/png;base64,' + fs.readFileSync(pngPath).toString('base64'); } catch {} } // 兜底：发原始截图
-  if (!img) return { ok: false, error: '未能生成二维码（虚拟屏/截图/解码工具异常，请确认已装 xvfb imagemagick zbar-tools qrencode）' };
-  return { ok: true, qr, img, crisp: !!qr };
+}
+function xhsReloginStart() {
+  if (xhsReloginState.status === 'running') return { ok: true, status: 'running' };
+  xhsReloginState = { status: 'running', img: '', qr: '', error: '', startedAt: Date.now() };
+  xhsReloginRun(); // 不 await，立即返回
+  return { ok: true, status: 'running' };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -1399,8 +1412,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (pathname === '/api/admin/xhs-relogin' && req.method === 'POST') {
       if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' });
-      try { return sendJSON(res, 200, await xhsReloginStart()); }
+      try { return sendJSON(res, 200, xhsReloginStart()); }
       catch (e) { return sendJSON(res, 200, { ok: false, error: '发起登录失败：' + (e.message || e) }); }
+    }
+    if (pathname === '/api/admin/xhs-relogin-qr') {
+      if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' });
+      return sendJSON(res, 200, { ok: true, ...xhsReloginState });
     }
     // 当前管理员可见菜单（超管=全部；员工=分配的菜单）
     if (pathname === '/api/admin/my-menus') {
