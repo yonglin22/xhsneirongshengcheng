@@ -1,6 +1,0 @@
-.ask { padding-top: 24rpx; padding-bottom: 60rpx; }
-.hero { font-size: 76rpx; line-height: 1.14; font-weight: 500; }
-.hero-sub { font-size: 28rpx; line-height: 1.85; color: var(--ink-soft); margin: 32rpx 0 64rpx; }
-.go-row { display: flex; align-items: center; justify-content: space-between; margin-top: 76rpx; }
-.go-hint { font-size: 25rpx; line-height: 1.7; max-width: 420rpx; }
-.balance-line { font-size: 24rpx; margin-top: 40rpx; }
