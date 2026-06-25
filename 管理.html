@@ -454,22 +454,26 @@ async function renderView() {
       const btn = $('#xhsReBtn'); btn.disabled = true; msg('#xhsReMsg', '正在拉起登录浏览器，约 20~40 秒后出二维码…', true); $('#xhsQrBox').innerHTML = '';
       const { ok, j } = await apost('/api/admin/xhs-relogin', {});
       if (!ok || !j.ok) { btn.disabled = false; msg('#xhsReMsg', '发起失败：' + (j.error || ''), false); return; }
-      let qn = 0; const qrPoll = setInterval(async () => {
-        qn++; const r = await aget('/api/admin/xhs-relogin-qr');
+      let lastGen = 0, n = 0;
+      // 二维码可能因 xhs 内部超时被后台自动刷新（gen 自增），所以持续轮询直到登录成功或总超时——而不是只看一次。
+      const poll = setInterval(async () => {
+        n++;
+        const [r, r2] = await Promise.all([aget('/api/admin/xhs-relogin-qr'), aget('/api/admin/xhs-login-status')]);
+        if (r2.j && r2.j.ok && r2.j.loggedIn) {
+          clearInterval(poll); btn.disabled = false;
+          msg('#xhsReMsg', '✓ 登录成功：' + (r2.j.nickname || ''), true);
+          $('#xhsQrBox').innerHTML = '<div class="kpi" style="border-left:3px solid #00a052"><div class="text-[14px] font-bold" style="color:#00a052">✓ 已恢复登录，抓取功能可用</div><div class="text-[12.5px] mt-1">账号：' + (r2.j.nickname || '—') + (r2.j.redId ? ' · 小红书号 ' + r2.j.redId : '') + '</div></div>';
+          return;
+        }
         const st = r.j || {};
-        if (st.ok && st.status === 'ready') {
-          clearInterval(qrPoll); btn.disabled = false;
-          msg('#xhsReMsg', '请用手机小红书 App → 我 → 扫一扫，扫下面二维码', true);
+        if (st.ok && st.status === 'ready' && st.gen !== lastGen) {
+          lastGen = st.gen; btn.disabled = false;
+          msg('#xhsReMsg', '⚡ 请立刻用手机小红书 App → 我 → 扫一扫（若没及时扫，系统会自动换一张新码，无需重新点击）', true);
           $('#xhsQrBox').innerHTML = `<div class="card p-4 inline-block mt-1"><img src="${st.img}" alt="登录二维码" style="width:240px;height:240px;image-rendering:pixelated;display:block;background:#fff"/><div class="text-[12px] text-[var(--ink-soft)] mt-2 text-center">扫码并在手机上确认后，约 5 秒自动检测登录</div></div>`;
-          let n = 0; const poll = setInterval(async () => {
-            n++; const r2 = await aget('/api/admin/xhs-login-status');
-            if (r2.j && r2.j.ok && r2.j.loggedIn) { clearInterval(poll); msg('#xhsReMsg', '✓ 登录成功：' + (r2.j.nickname || ''), true); $('#xhsQrBox').innerHTML = '<div class="kpi" style="border-left:3px solid #00a052"><div class="text-[14px] font-bold" style="color:#00a052">✓ 已恢复登录，抓取功能可用</div><div class="text-[12.5px] mt-1">账号：' + (r2.j.nickname || '—') + (r2.j.redId ? ' · 小红书号 ' + r2.j.redId : '') + '</div></div>'; }
-            else if (n > 40) { clearInterval(poll); msg('#xhsReMsg', '等待扫码超时（约 2 分钟），请重新点击生成二维码', false); }
-          }, 3000);
         } else if (st.ok && st.status === 'error') {
-          clearInterval(qrPoll); btn.disabled = false; msg('#xhsReMsg', '生成失败：' + (st.error || '未知错误'), false);
-        } else if (qn > 30) {
-          clearInterval(qrPoll); btn.disabled = false; msg('#xhsReMsg', '生成二维码超时，请重新点击', false);
+          clearInterval(poll); btn.disabled = false; msg('#xhsReMsg', '生成失败：' + (st.error || '未知错误'), false);
+        } else if (n > 130) { // 约 4 分钟+余量，对应后端总循环上限
+          clearInterval(poll); btn.disabled = false; msg('#xhsReMsg', '等待扫码超时，请重新点击生成二维码', false);
         }
       }, 2000);
     });
