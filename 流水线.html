@@ -724,7 +724,18 @@ async function reanalyzeOne(i) {
 
 // ===== 本赛道「爆款封面模板」：把对标爆款封面解析成可复制/改写的生图提示词（按赛道缓存）=====
 // 复用已抓到的对标封面(state.refImages)与现有视觉解析(/api/vision)，不改任何抓取逻辑。
-const CVTPL_VISION_PROMPT = '你是资深小红书封面设计师。请把这张爆款封面"翻译"成一段可直接用于 AI 生图的【封面生图提示词】，让别人能复刻这种封面版式与风格（主体内容可替换）。用一段连贯中文，覆盖：整体风格调性、画面构图与主体位置、背景质感与配色、主标题的位置/字体风格/字号大小、有无副标题或信息卡片及其排版位置、装饰元素（光斑/线条/图标/边框/纹理等）。只描述版式与风格，不要写具体文案内容（用"此处放大标题/副标题"代替）。140~200字，直接输出提示词正文，不要任何前缀或解释。';
+const CVTPL_VISION_PROMPT = `You are an expert at writing image generation prompts for GPT image-1 (OpenAI). Analyze this Xiaohongshu (RED) viral cover image and output a ready-to-use English image generation prompt that can recreate its visual style and layout — subject/product can be replaced later.
+
+The prompt MUST cover in this order:
+1. Overall style & mood (e.g. "clean minimalist product photo", "soft Korean aesthetic", "bold typographic poster")
+2. Composition & subject placement (e.g. "product centered slightly upper-left, 3:4 vertical format, generous top whitespace for text overlay")
+3. Background & color palette (specific colors or tones, texture if any)
+4. Lighting quality (e.g. "soft natural diffused light", "studio shadowless light", "warm golden hour backlight")
+5. Decorative elements & layout zones (e.g. "thin golden border frame", "top-right info card area", "scattered crystal dust bokeh")
+6. Typography zones — describe PLACEMENT only, no actual text (e.g. "large bold title area reserved at top-center, subtitle line below")
+7. Quality tags at end: "ultra HD, 4K, professional photography, no text, no watermark, 3:4 vertical"
+
+Output ONLY the prompt text (no labels, no explanation). 150–220 words in English.`;
 function cvtplKey() { const t = (typeof getTrack === 'function') ? getTrack() : null; return 'ag_cvtpl_' + ((t && t.id) || 'default'); }
 function loadCvTpls() { try { const a = JSON.parse(localStorage.getItem(cvtplKey()) || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } }
 function saveCvTpls(a) { try { localStorage.setItem(cvtplKey(), JSON.stringify((a || []).slice(0, 8))); } catch {} }
@@ -759,8 +770,8 @@ function renderCvTpls() {
       <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
         <textarea class="cvtpl-prompt field rounded-lg px-2.5 py-1.5 text-[12px] leading-relaxed" data-i="${i}" rows="4" style="resize:vertical">${esc(tp.prompt)}</textarea>
         <div class="flex items-center gap-2 flex-wrap">
-          <button class="cvtpl-copy btn-go rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}">📋 复制提示词</button>
-          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--cinnabar);background:#fff;color:var(--cinnabar);cursor:pointer">🎨 用这个出封面</button>
+          <button class="cvtpl-copy rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper-2);color:var(--ink);cursor:pointer">📋 复制提示词</button>
+          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer">🎨 出封面</button>
           <span class="cvtpl-msg text-[11px]" data-i="${i}"></span>
         </div>
       </div>
@@ -1667,7 +1678,14 @@ function renderPanel() {
   });
   $('#cvTplGen')?.addEventListener('click', genCvTplsFromBench);
   $('#cvTplClear')?.addEventListener('click', () => { saveCvTpls([]); renderCvTpls(); const s = $('#cvTplStatus'); if (s) s.textContent = ''; });
-  if (st.key === 'cover') { if (isGzh()) renderGzhCover(); else { renderCoverImages(); renderCvTpls(); } }
+  if (st.key === 'cover') {
+    if (isGzh()) renderGzhCover();
+    else {
+      renderCoverImages(); renderCvTpls();
+      // 有对标封面且还没生成过模板 → 自动解析，无需手动点
+      if ((state.refImages || []).length && !loadCvTpls().length) genCvTplsFromBench();
+    }
+  }
   if (st.input === 'ref') {
     renderRefImages();
     const rg = $('#refGoal'); if (rg && state.refGoal) rg.value = state.refGoal;
