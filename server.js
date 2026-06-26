@@ -575,17 +575,18 @@ const server = http.createServer(async (req, res) => {
       let { prompt, size } = reqBody;
       if (!prompt) return send(res, 400, JSON.stringify({ error: '缺少 prompt' }), { 'content-type': 'application/json' });
       prompt = String(prompt).slice(0, 2400); // 统一上限：图像提示词不必超长，且可灵硬上限 2500，防 "size must be between 0 and 2500"
-      // 供应商：前端可按图指定（封面 ark、内页 kling），否则用 .env 默认
+      // 供应商：前端可按图指定（封面 gptimage、内页 kling），否则用 .env 默认
       const provider = (reqBody.provider || process.env.IMAGE_PROVIDER || 'zhipu').toLowerCase();
       let ikey, model;
       if (provider === 'ark') { ikey = process.env.SEEDREAM_API_KEY || ''; model = reqBody.model || process.env.SEEDREAM_MODEL || 'doubao-seedream-3-0-t2i-250415'; }
+      else if (provider === 'gptimage') { ikey = process.env.GPT_IMAGE_API_KEY || ''; model = reqBody.model || process.env.GPT_IMAGE_MODEL || 'gpt-image-1'; }
       else if (provider === 'kling') { ikey = 'jwt'; model = process.env.KLING_MODEL || 'kling-v1'; }
       else { ikey = process.env.IMAGE_API_KEY || process.env.ZHIPU_API_KEY || ''; model = reqBody.model || process.env.IMAGE_MODEL || process.env.ZHIPU_IMAGE_MODEL || 'cogview-3-flash'; }
       if (provider === 'kling' && (!process.env.KLING_ACCESS_KEY || !process.env.KLING_SECRET_KEY)) return send(res, 500, JSON.stringify({ error: '未配置 KLING_ACCESS_KEY/SECRET_KEY' }), { 'content-type': 'application/json' });
       if (provider !== 'kling' && !ikey) return send(res, 500, JSON.stringify({ error: '未配置该图像供应商的 key（provider=' + provider + '）' }), { 'content-type': 'application/json' });
 
       // 三档计价：premium（Seedream/顶级）> hd（可灵/cogview-4/FLUX/Kolors）> std（flash）
-      const isPremium = provider === 'ark' || /gpt-image|dall-?e|imagen|seedream|flux\.1-pro|midjourney/i.test(model) || reqBody.tier === 'premium';
+      const isPremium = provider === 'ark' || provider === 'gptimage' || /gpt-image|dall-?e|imagen|seedream|flux\.1-pro|midjourney/i.test(model) || reqBody.tier === 'premium';
       const isHd = !isPremium && (provider === 'kling' || /cogview-4|flux\.1-dev|kolors/i.test(model) || reqBody.hd === true);
       const imgKey = isPremium ? 'image_premium' : isHd ? 'image_hd' : 'image_std';
       const imgDef = isPremium ? 30 : isHd ? 12 : 5;
@@ -597,6 +598,38 @@ const server = http.createServer(async (req, res) => {
         // 可灵：异步出图（JWT + 轮询）
         try { outUrl = await klingGenerate(prompt, '3:4'); }
         catch (e) { return send(res, 502, JSON.stringify({ error: '可灵出图失败：' + (e.message || String(e)) }), { 'content-type': 'application/json' }); }
+      } else if (provider === 'gptimage') {
+        // OpenAI gpt-image-1：有参考图(init_image/ref_image) → /images/edits 真·图生图，否则 /images/generations 文生图
+        const base = process.env.GPT_IMAGE_BASE_URL || 'https://api.openai.com/v1';
+        const allowedSizes = ['1024x1024', '1024x1536', '1536x1024'];
+        const gptSize = allowedSizes.includes(size) ? size : (process.env.GPT_IMAGE_SIZE && allowedSizes.includes(process.env.GPT_IMAGE_SIZE) ? process.env.GPT_IMAGE_SIZE : '1024x1536');
+        let refImg = reqBody.init_image || reqBody.ref_image || '';
+        if (refImg && /^https?:\/\//i.test(refImg)) {
+          try {
+            const ir = await fetch(refImg, { signal: AbortSignal.timeout(10000), headers: { 'user-agent': 'Mozilla/5.0', 'referer': 'https://www.xiaohongshu.com/' } });
+            if (ir.ok) { const ct = ir.headers.get('content-type') || 'image/jpeg'; refImg = 'data:' + ct + ';base64,' + Buffer.from(await ir.arrayBuffer()).toString('base64'); }
+            else refImg = '';
+          } catch { refImg = ''; }
+        }
+        let up, text;
+        const m = refImg && /^data:(.+?);base64,(.*)$/.exec(refImg);
+        if (m) {
+          const fd = new FormData();
+          fd.append('model', model);
+          fd.append('prompt', prompt);
+          fd.append('size', gptSize);
+          fd.append('image', new Blob([Buffer.from(m[2], 'base64')], { type: m[1] || 'image/png' }), 'ref.png');
+          up = await fetch(base + '/images/edits', { signal: AbortSignal.timeout(90000), method: 'POST', headers: { authorization: 'Bearer ' + ikey }, body: fd });
+        } else {
+          up = await fetch(base + '/images/generations', { signal: AbortSignal.timeout(90000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
+        }
+        text = await up.text();
+        if (!up.ok) return send(res, up.status, text, { 'content-type': 'application/json' });
+        try {
+          const j = JSON.parse(text);
+          outUrl = (j.data && j.data[0] && (j.data[0].url || (j.data[0].b64_json && 'data:image/png;base64,' + j.data[0].b64_json))) || '';
+        } catch {}
+        if (!outUrl) return send(res, 502, JSON.stringify({ error: '上游未返回图片：' + text.slice(0, 200) }), { 'content-type': 'application/json' });
       } else {
         // 统一竖版 3:4（各家合法尺寸不同）
         const RATIO_3x4 = { siliconflow: '768x1024', openai: '1024x1024', zhipu: '864x1152', ark: '864x1152' };
