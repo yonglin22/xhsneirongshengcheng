@@ -460,6 +460,15 @@ function outputHTML(st) {
           <span class="text-[10px] text-[var(--ink-soft)]">背景:浅蓝/浅黄/米白/深色/#色值 · 位置:靠上/居中/靠下 · 对齐:居中/左 · 字号:大/中/小</span>
         </div>
       </div>
+      <div class="mt-3" id="cvTplSection">
+        <div class="text-[11px] text-[var(--ink-soft)] mb-1.5">🔥 本赛道爆款封面参考（解析对标封面 → 套用同款<b>生图提示词</b>，可复制改写后一键出封面）</div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="cvTplGen" class="btn-go rounded-lg px-3.5 py-1.5 text-[12px]">🔍 解析对标爆款封面 → 出模板</button>
+          <button id="cvTplClear" class="rounded-lg px-3 py-1.5 text-[12px]" style="border:1px dashed var(--line);background:#fff;color:var(--ink-soft);cursor:pointer">清空</button>
+          <span id="cvTplStatus" class="text-[11px] text-[var(--ink-soft)]"></span>
+        </div>
+        <div id="cvTplWrap" class="mt-2"></div>
+      </div>
       <div class="mt-3 flex items-center gap-2.5 flex-wrap">
         <button id="genNote" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">📝 生成长文笔记图</button>
         <button id="upImg" class="btn-go rounded-xl px-4 py-2.5 text-[13px]">📎 上传真实图（实拍最佳）</button>
@@ -711,6 +720,77 @@ async function reanalyzeOne(i) {
   state.refVisions = state.refVisions || [];
   state.refVisions[i] = await visionOne(imgs[i]);
   persist(); renderRefImages();
+}
+
+// ===== 本赛道「爆款封面模板」：把对标爆款封面解析成可复制/改写的生图提示词（按赛道缓存）=====
+// 复用已抓到的对标封面(state.refImages)与现有视觉解析(/api/vision)，不改任何抓取逻辑。
+const CVTPL_VISION_PROMPT = '你是资深小红书封面设计师。请把这张爆款封面"翻译"成一段可直接用于 AI 生图的【封面生图提示词】，让别人能复刻这种封面版式与风格（主体内容可替换）。用一段连贯中文，覆盖：整体风格调性、画面构图与主体位置、背景质感与配色、主标题的位置/字体风格/字号大小、有无副标题或信息卡片及其排版位置、装饰元素（光斑/线条/图标/边框/纹理等）。只描述版式与风格，不要写具体文案内容（用"此处放大标题/副标题"代替）。140~200字，直接输出提示词正文，不要任何前缀或解释。';
+function cvtplKey() { const t = (typeof getTrack === 'function') ? getTrack() : null; return 'ag_cvtpl_' + ((t && t.id) || 'default'); }
+function loadCvTpls() { try { const a = JSON.parse(localStorage.getItem(cvtplKey()) || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } }
+function saveCvTpls(a) { try { localStorage.setItem(cvtplKey(), JSON.stringify((a || []).slice(0, 8))); } catch {} }
+async function genCvTplsFromBench() {
+  const btn = $('#cvTplGen'), st = $('#cvTplStatus'); const old = btn ? btn.textContent : '';
+  const imgs = (state.refImages || []).slice(0, 5);
+  if (!imgs.length) { if (st) { st.textContent = '没有对标封面：请先在第二步「贴对标 / 找对标」抓到笔记，再回来解析。'; st.style.color = 'var(--cinnabar-deep)'; } return; }
+  if (btn) { btn.disabled = true; btn.textContent = '解析中…'; }
+  const out = [];
+  for (let i = 0; i < imgs.length; i++) {
+    if (st) { st.textContent = '解析对标封面 ' + (i + 1) + '/' + imgs.length + '…'; st.style.color = 'var(--ink-soft)'; }
+    let prompt = '';
+    try {
+      const j = await (await fetch('/api/vision', { method: 'POST', signal: AbortSignal.timeout(45000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: imgs[i], prompt: CVTPL_VISION_PROMPT }) })).json();
+      if (j.ok && j.desc) prompt = j.desc.trim().slice(0, 600);
+    } catch {}
+    if (prompt) out.push({ url: imgs[i], prompt });
+  }
+  if (btn) { btn.disabled = false; btn.textContent = old; }
+  if (!out.length) { if (st) { st.textContent = '解析失败（视觉模型未配置或取图失败），可稍后重试。'; st.style.color = 'var(--cinnabar-deep)'; } return; }
+  saveCvTpls(out);
+  if (st) { st.textContent = '✓ 已生成 ' + out.length + ' 个封面模板，可复制提示词自己改，或点「用这个出封面」直接生图'; st.style.color = '#00a052'; }
+  renderCvTpls();
+}
+function renderCvTpls() {
+  const box = $('#cvTplWrap'); if (!box) return;
+  const arr = loadCvTpls();
+  if (!arr.length) { box.innerHTML = '<div class="text-[11px] text-[var(--ink-soft)]" style="padding:6px 0">还没有模板。点上方「解析对标爆款封面」即可按本赛道对标笔记的封面，生成一组可复制改写的生图提示词。</div>'; return; }
+  box.innerHTML = arr.map((tp, i) => `
+    <div class="cvtpl-card" style="display:flex;gap:10px;align-items:stretch;border:1px solid var(--line);border-radius:12px;padding:9px;margin-bottom:9px;background:var(--paper)">
+      <img ${imgAttr(tp.url)} style="width:88px;height:118px;object-fit:cover;border-radius:8px;flex:none;background:var(--paper-2)" />
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+        <textarea class="cvtpl-prompt field rounded-lg px-2.5 py-1.5 text-[12px] leading-relaxed" data-i="${i}" rows="4" style="resize:vertical">${esc(tp.prompt)}</textarea>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button class="cvtpl-copy btn-go rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}">📋 复制提示词</button>
+          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--cinnabar);background:#fff;color:var(--cinnabar);cursor:pointer">🎨 用这个出封面</button>
+          <span class="cvtpl-msg text-[11px]" data-i="${i}"></span>
+        </div>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('.cvtpl-prompt').forEach(t => t.addEventListener('input', e => { const i = +e.target.dataset.i; const a = loadCvTpls(); if (a[i]) { a[i].prompt = e.target.value; saveCvTpls(a); } }));
+  box.querySelectorAll('.cvtpl-copy').forEach(b => b.addEventListener('click', async () => {
+    const i = +b.dataset.i; const a = loadCvTpls(); const txt = (a[i] && a[i].prompt) || '';
+    try { await navigator.clipboard.writeText(txt); } catch { const ta = box.querySelector('.cvtpl-prompt[data-i="' + i + '"]'); if (ta) { ta.select(); document.execCommand('copy'); } }
+    const o = b.textContent; b.textContent = '✓ 已复制'; setTimeout(() => b.textContent = o, 1200);
+  }));
+  box.querySelectorAll('.cvtpl-gen').forEach(b => b.addEventListener('click', () => genCoverFromCvTpl(+b.dataset.i)));
+}
+async function genCoverFromCvTpl(i) {
+  const a = loadCvTpls(); const tp = a[i]; if (!tp) return;
+  const msg = document.querySelector('.cvtpl-msg[data-i="' + i + '"]');
+  const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
+  const titleHint = lines.length ? '封面主标题文字为「' + lines.join('；') + '」，按提示词描述的版式排上去；' : '主标题位置留出大字标题排版位；';
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const prompt = tp.prompt + '。' + titleHint + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 3:4，高清、有设计感、版式精致。';
+  if (msg) { msg.textContent = '出图中…（约 30 秒）'; msg.style.color = 'var(--ink-soft)'; }
+  try {
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(130000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, init_image: tp.url, action: 'cover' }) });
+    const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
+    let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
+    if (!u) throw new Error('上游无图');
+    state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
+    state.coverImages[0] = u; state.coverImage = state.coverImages[0]; persist();
+    renderCoverImages();
+    if (msg) { msg.textContent = '✓ 已生成，见下方封面预览'; msg.style.color = '#00a052'; }
+  } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
 }
 
 // 生图负向：禁止"带文字的载体" + 乱入物体（苹果/手机/人脸/食物等与主题无关元素）
@@ -1585,7 +1665,9 @@ function renderPanel() {
     state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.tplAdjText = e.target.value;
     rewriteCtplMarkers(); persistSoft(); renderCoverImages(); // 只重渲图区，输入框不失焦
   });
-  if (st.key === 'cover') { if (isGzh()) renderGzhCover(); else renderCoverImages(); }
+  $('#cvTplGen')?.addEventListener('click', genCvTplsFromBench);
+  $('#cvTplClear')?.addEventListener('click', () => { saveCvTpls([]); renderCvTpls(); const s = $('#cvTplStatus'); if (s) s.textContent = ''; });
+  if (st.key === 'cover') { if (isGzh()) renderGzhCover(); else { renderCoverImages(); renderCvTpls(); } }
   if (st.input === 'ref') {
     renderRefImages();
     const rg = $('#refGoal'); if (rg && state.refGoal) rg.value = state.refGoal;
