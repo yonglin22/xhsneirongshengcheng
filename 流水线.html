@@ -442,22 +442,27 @@ function outputHTML(st) {
   }
   if (st.key === 'cover') {
     const cl = (v && v.cover_lines) || [];
+    const _selTpls = COVER_TPLS.filter(([id])=>(state.coverImages||[]).some(u=>(u||'').startsWith('ctpl://')&&u.slice(7).split('|')[0]===id));
     return `<div class="out p-4 space-y-2">
         <div class="text-[11px] text-[var(--ink-soft)]">封面文案（叠在图上，两行）</div>
         <input id="cl0" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[0])}" placeholder="第一行" />
         <input id="cl1" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[1])}" placeholder="第二行" />
-        <div class="text-[11px] text-[var(--ink-soft)] pt-1">视觉建议</div>
-        <textarea id="cvVisual" class="field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" rows="2">${(v&&v.visual)||''}</textarea>
       </div>
-      <div class="mt-3">
-        <div class="text-[11px] text-[var(--ink-soft)] mb-1.5">🎨 封面模板（<b>可多选</b>做候选 · 套你的封面文案 · 文字精准秒出可导出）</div>
-        <div class="flex flex-wrap gap-2">
-          ${COVER_TPLS.map(([id,name])=>{ const on=(state.coverImages||[]).some(u=>(u||'').startsWith('ctpl://')&&u.slice(7).split('|')[0]===id); return `<button class="cv-tpl-pick" data-tpl="${id}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:9px;padding:6px 12px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'#fff'};color:${on?'#fff':'var(--ink)'}">${on?'✓ ':''}${name}</button>`;}).join('')}
-          <button class="cv-tpl-pick" data-tpl="__none" style="border:1px dashed var(--line);border-radius:9px;padding:6px 12px;font-size:12px;cursor:pointer;background:#fff;color:var(--ink-soft)">清除全部</button>
+      <div class="mt-3" style="position:relative">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="cvTplDropBtn" style="border:1px solid var(--line);border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer;background:var(--paper);color:var(--ink);display:flex;align-items:center;gap:6px">
+            🎨 封面模板${_selTpls.length ? ` <span style="background:var(--cinnabar);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px">${_selTpls.length}</span>` : ''} <span style="font-size:10px;opacity:.5">▼</span>
+          </button>
+          <input id="ctplAdj" class="field rounded-lg px-3 py-1.5 text-[12px]" style="flex:1;min-width:200px" placeholder="调整：背景浅蓝 / 标题居中 / 字号大…" value="${esc((state.cover&&state.cover.tplAdjText)||'')}" />
         </div>
-        <div class="mt-2 flex items-center gap-2 flex-wrap">
-          <input id="ctplAdj" class="field rounded-lg px-3 py-1.5 text-[12px]" style="flex:1;min-width:240px" placeholder="调整提示：背景浅蓝 / 标题居中 / 字号大 / 靠下…（可组合）" value="${esc((state.cover&&state.cover.tplAdjText)||'')}" />
-          <span class="text-[10px] text-[var(--ink-soft)]">背景:浅蓝/浅黄/米白/深色/#色值 · 位置:靠上/居中/靠下 · 对齐:居中/左 · 字号:大/中/小</span>
+        <div id="cvTplDropPanel" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:60;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px -6px rgba(0,0,0,.18);padding:12px;width:min(480px,90vw)">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            ${COVER_TPLS.map(([id,name])=>{ const on=(state.coverImages||[]).some(u=>(u||'').startsWith('ctpl://')&&u.slice(7).split('|')[0]===id); return `<button class="cv-tpl-pick" data-tpl="${id}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:8px;padding:5px 11px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${on?'✓ ':''}${name}</button>`;}).join('')}
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="cv-tpl-pick" data-tpl="__none" style="border:1px dashed var(--line);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;background:transparent;color:var(--ink-soft)">清除全部</button>
+            <button id="cvTplDropClose" style="border:none;background:none;font-size:11px;color:var(--ink-soft);cursor:pointer;margin-left:auto">关闭 ✕</button>
+          </div>
         </div>
       </div>
       <div class="mt-3" id="cvTplSection">
@@ -470,8 +475,8 @@ function outputHTML(st) {
         <div id="cvTplWrap" class="mt-2"></div>
       </div>
       <div class="mt-3 flex items-center gap-2.5 flex-wrap">
-        <button id="genNote" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">📝 生成长文笔记图</button>
-        <button id="upImg" class="btn-go rounded-xl px-4 py-2.5 text-[13px]">📎 上传真实图（实拍最佳）</button>
+        <button id="genNote" style="border:1px solid var(--line);border-radius:12px;padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer;background:var(--paper);color:var(--ink)">📝 生成长文笔记图</button>
+        <button id="upImg" style="border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;cursor:pointer;background:var(--paper);color:var(--ink)">📎 上传真实图</button>
         <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
         <span class="text-[11px] text-[var(--ink-soft)]">${(state.refImages||[]).length?('对标 '+state.refImages.length+' 张 → 生成 '+Math.min(Math.max(state.refImages.length,1),9)+' 张，按对标结构'):('默认 3 张；贴对标后按其张数')}${(typeof agentImgStyle==='function'&&agentImgStyle())?(' · 画风：'+agentImgStyle()):' · 未设画风（智能体页可设）'}</span>
         <span id="imgStatus" class="text-[12px]"></span>
@@ -1671,6 +1676,8 @@ function renderPanel() {
       else state.coverImages.unshift('ctpl://' + id + ctplSuffix());
     }
     state.coverImage = state.coverImages[0] || ''; persist(); renderPanel();
+    // 多选场景：重渲后把下拉面板重新打开，避免每选一项就关闭
+    const _dp = $('#cvTplDropPanel'); if (_dp) _dp.style.display = 'block';
   }));
   const ctplAdj = $('#ctplAdj'); if (ctplAdj) ctplAdj.addEventListener('input', e => {
     state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.tplAdjText = e.target.value;
@@ -1678,6 +1685,12 @@ function renderPanel() {
   });
   $('#cvTplGen')?.addEventListener('click', genCvTplsFromBench);
   $('#cvTplClear')?.addEventListener('click', () => { saveCvTpls([]); renderCvTpls(); const s = $('#cvTplStatus'); if (s) s.textContent = ''; });
+  const _dropBtn = $('#cvTplDropBtn'), _dropPanel = $('#cvTplDropPanel');
+  if (_dropBtn && _dropPanel) {
+    _dropBtn.addEventListener('click', e => { e.stopPropagation(); _dropPanel.style.display = _dropPanel.style.display === 'none' ? 'block' : 'none'; });
+    $('#cvTplDropClose')?.addEventListener('click', () => { _dropPanel.style.display = 'none'; });
+    document.addEventListener('click', function _cdrop(e) { if (_dropPanel && !_dropPanel.contains(e.target) && e.target !== _dropBtn) { _dropPanel.style.display = 'none'; } }, { capture: false });
+  }
   if (st.key === 'cover') {
     if (isGzh()) renderGzhCover();
     else {
