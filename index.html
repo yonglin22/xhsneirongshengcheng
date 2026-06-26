@@ -209,10 +209,10 @@
 </main>
 
 <!-- 新手首次登录操作引导 -->
-<div id="onb" style="display:none;position:fixed;inset:0;z-index:140">
+<div id="onb" style="display:none;position:fixed;inset:0;z-index:140;pointer-events:none">
   <!-- 聚光高亮框：超大 box-shadow 把四周压暗，只亮出目标元素 -->
   <div id="onbRing" style="position:fixed;border:2px solid var(--cinnabar);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.55);transition:top .3s cubic-bezier(.22,.7,.2,1),left .3s cubic-bezier(.22,.7,.2,1),width .3s,height .3s;pointer-events:none;display:none"></div>
-  <div id="onbCard" class="card" style="position:fixed;width:min(360px,92vw);padding:0;overflow:hidden;z-index:141;box-shadow:0 24px 60px -18px rgba(0,0,0,.5);transition:top .28s cubic-bezier(.22,.7,.2,1),left .28s cubic-bezier(.22,.7,.2,1)">
+  <div id="onbCard" class="card" style="position:fixed;width:min(360px,92vw);padding:0;overflow:hidden;z-index:141;box-shadow:0 24px 60px -18px rgba(0,0,0,.5);transition:top .28s cubic-bezier(.22,.7,.2,1),left .28s cubic-bezier(.22,.7,.2,1);pointer-events:auto">
     <div style="height:4px;background:var(--paper-2)"><div id="onbBar" style="height:100%;background:var(--cinnabar);width:20%;transition:.25s"></div></div>
     <div style="padding:18px 20px 15px">
       <div style="display:flex;align-items:center;gap:9px"><span id="onbEmoji" style="font-size:24px;line-height:1">👋</span><span id="onbTitle" class="font-song font-bold text-[16px]">欢迎</span></div>
