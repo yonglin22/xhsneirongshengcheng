@@ -584,6 +584,7 @@ const server = http.createServer(async (req, res) => {
       else { ikey = process.env.IMAGE_API_KEY || process.env.ZHIPU_API_KEY || ''; model = reqBody.model || process.env.IMAGE_MODEL || process.env.ZHIPU_IMAGE_MODEL || 'cogview-3-flash'; }
       if (provider === 'kling' && (!process.env.KLING_ACCESS_KEY || !process.env.KLING_SECRET_KEY)) return send(res, 500, JSON.stringify({ error: '未配置 KLING_ACCESS_KEY/SECRET_KEY' }), { 'content-type': 'application/json' });
       if (provider !== 'kling' && !ikey) return send(res, 500, JSON.stringify({ error: '未配置该图像供应商的 key（provider=' + provider + '）' }), { 'content-type': 'application/json' });
+      if (provider !== 'kling' && !/^[\x20-\x7E]+$/.test(ikey)) return send(res, 500, JSON.stringify({ error: 'GPT_IMAGE_API_KEY 包含非法字符，请检查 .env 文件——填的是中文占位符而非真实 key，请用 sudo nano /opt/zhusha/.env 改成真实 key 后重启服务。' }), { 'content-type': 'application/json' });
 
       // 三档计价：premium（Seedream/顶级）> hd（可灵/cogview-4/FLUX/Kolors）> std（flash）
       const isPremium = provider === 'ark' || provider === 'gptimage' || /gpt-image|dall-?e|imagen|seedream|flux\.1-pro|midjourney/i.test(model) || reqBody.tier === 'premium';
