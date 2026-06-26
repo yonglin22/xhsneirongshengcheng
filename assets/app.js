@@ -729,7 +729,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // 恢复上次拖动到的位置（持久化）
   function restorePos() {
-    try { const p = JSON.parse(localStorage.getItem('ag_xhs_pos') || 'null'); if (p && p.left) { panel.style.transform = 'none'; panel.style.left = p.left; panel.style.top = p.top; panel.style.bottom = 'auto'; } } catch {}
+    try {
+      const p = JSON.parse(localStorage.getItem('ag_xhs_pos') || 'null');
+      if (!p || !p.left) return;
+      let nl = parseFloat(p.left), nt = parseFloat(p.top);
+      if (!isFinite(nl) || !isFinite(nt)) return;
+      nl = Math.max(4, Math.min(window.innerWidth - 80, nl));
+      nt = Math.max(4, Math.min(window.innerHeight - 60, nt));
+      panel.style.transform = 'none'; panel.style.left = nl + 'px'; panel.style.top = nt + 'px'; panel.style.bottom = 'auto';
+    } catch {}
   }
   // 标题栏拖动浮窗到任意位置
   function makeDraggable() {
