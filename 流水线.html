@@ -910,10 +910,10 @@ async function genAiCoverUrl(setStatus) {
   const sref = (typeof pickStyleRef === 'function') ? pickStyleRef({ scene: topic, layout: '封面', title: topic }) : null;
   const tps = loadCvTpls(); const colorRef = tps.length ? String(tps[0].prompt || '').replace(/\s+/g, '').slice(0, 120) : '';
   const prompt = titleHint + (sref && sref.prompt ? '严格贴合本账号配图风格库的风格：' + String(sref.prompt).replace(/\s+/g, '').slice(0, 160) + '。' : '') + (colorRef ? '配色与氛围可参考：' + colorRef + '。' : '') + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 ' + ratioWord() + '，商业摄影或高级插画质感、色彩饱满有氛围、主体清晰、细节精致，整图铺满，高清，无任何文字。';
+  // 注意：不传 init_image（纯文生图）。gptimage 的 i2i 对"无文字封面"易擦成白图/出错→导致没图；改为只把配图库的风格描述写进提示词来跟随画风，稳定出图。
   const body = { provider: 'gptimage', prompt, action: 'cover', size: ratioSize() };
-  if (sref && sref.url) body.init_image = sref.url; // 配图风格库参考图当垫图，统一画风
   try {
-    if (setStatus) setStatus('正在生成 AI 封面备选' + (sref ? '（跟随配图风格库）' : '') + '（约 30~60 秒）…');
+    if (setStatus) setStatus('正在生成 AI 封面备选' + (sref && sref.prompt ? '（跟随配图风格库）' : '') + '（约 30~60 秒）…');
     const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const tx = await r.text(); if (!r.ok) return '';
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
@@ -2349,8 +2349,9 @@ async function autoRun() {
   const aiCoverPromise = (autoAiCoverOn() && !isGzh()) ? genAiCoverUrl(null).catch(() => '') : null;
   // 提速：对标视觉解析（5 张 vision）也开局并行预取并写进缓存，到 S6 直接命中、不再等
   if ((state.refImages || []).length) analyzeRefImageSet(null).catch(() => {});
+  const startIdx = Math.min(Math.max(cur | 0, 0), STEPS.length - 1); // 从「当前所在步」开始，不回到第二步从头跑
   try {
-    for (let i = 0; i < STEPS.length; i++) {
+    for (let i = startIdx; i < STEPS.length; i++) {
       const st = STEPS[i];
       if (st.input === 'ref' && !state.ref) continue; // 没贴对标就跳过 S2
       cur = i; renderRail(); renderPanel();
@@ -2374,7 +2375,7 @@ async function autoRun() {
       }
       renderRail(); renderPanel();
     }
-    setAuto('✓ 已自动跑完（' + (state.ref ? 'S2–S7' : 'S3–S7，未贴对标已跳过 S2') + '，含封面图）。可去成稿预览 →');
+    setAuto('✓ 已自动跑完（从 ' + dispNo(STEPS[startIdx].no) + ' 至末步' + (startIdx === 0 && !state.ref ? '，未贴对标已跳过 S2' : '') + '，含封面图）。可去成稿预览 →');
   } catch (e) { setAuto('中断于 ' + (STEPS[cur] ? STEPS[cur].no : '') + '：' + (e.message || e), true); }
   finally { autoRunning = false; const ab2 = $('#autoBtn'); if (ab2) { ab2.disabled = false; ab2.textContent = '▶ 一键按对标生成全套（图文+封面图）'; } }
 }
