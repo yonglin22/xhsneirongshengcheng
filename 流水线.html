@@ -452,6 +452,11 @@ function outputHTML(st) {
         <span class="text-[var(--ink-soft)]">比例</span>${_ratioBtns}
         <span style="width:1px;height:15px;background:var(--line);margin:0 2px"></span>
         <button id="upImg" style="border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;background:var(--paper);color:var(--ink)">📎 上传真实图</button>
+        <span style="width:1px;height:15px;background:var(--line);margin:0 2px"></span>
+        <label id="aiCoverToggle" title="开：生成长图/一键全套时默认多出一张 AI 图封面（更慢·耗积分）；关：只出备忘录真字封面卡" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none;border:1px solid ${autoAiCoverOn() ? 'var(--cinnabar)' : 'var(--line)'};border-radius:8px;padding:4px 10px;background:${autoAiCoverOn() ? 'rgba(255,36,66,.06)' : 'var(--paper)'}">
+          <input id="aiCoverChk" type="checkbox" ${autoAiCoverOn() ? 'checked' : ''} style="accent-color:var(--cinnabar);cursor:pointer"/>
+          <span style="color:${autoAiCoverOn() ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'};font-weight:600">默认出 AI 封面</span>
+        </label>
         <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
         <span id="imgStatus" class="text-[12px]"></span>
       </div>
@@ -758,6 +763,9 @@ function curRatio() { return state.imgRatio || '3:4'; }
 // gpt-image 原生只出竖图 1024x1536(=2:3)，所以 API 尺寸统一用它(永不报错)；不同比例靠提示词 + 显示裁切体现
 function ratioSize() { return '1024x1536'; }
 function ratioWord() { return curRatio() + ' 竖版'; }
+// 「默认出 AI 封面」全局开关（localStorage 持久化、跨草稿生效）；默认开
+function autoAiCoverOn() { return localStorage.getItem('ag_auto_ai_cover') !== '0'; }
+function setAutoAiCover(on) { localStorage.setItem('ag_auto_ai_cover', on ? '1' : '0'); }
 function ratioCss() { return ({ '2:3': '2/3', '3:4': '3/4', '9:16': '9/16' })[curRatio()] || '3/4'; }
 // ===== 本赛道「爆款封面模板」：把对标爆款封面解析成可复制/改写的生图提示词（按赛道缓存）=====
 // 复用已抓到的对标封面(state.refImages)与现有视觉解析(/api/vision)，不改任何抓取逻辑。
@@ -1479,8 +1487,8 @@ async function genNoteImages() {
     persist(); renderCoverImages();
     if (st) { st.textContent = '✓ 已排成 ' + finalPages.length + ' 页长图笔记' + (splitN > 0 ? '（含 ' + splitN + ' 页因内容多自动拆分）' : '') + '（去成稿预览导 1080P）'; st.style.color = '#00a152'; }
     await resplitTooSmallNotes(st); // 再按实际缩放比例兜底拆分被缩太小的页（在纯 note:// 集上做）
-    // 默认两种封面都出：AI 图封面放到封面位(第一张)，备忘录真字封面卡(note://0)挪到第二张；封面位点「⇄ 换封面」可一键切换
-    const aiUrl = await genAiCoverUrl(m => { if (st) { st.textContent = m; st.style.color = 'var(--ink-soft)'; } });
+    // 默认两种封面都出（受「默认出 AI 封面」开关控制）：AI 图封面放封面位(第一张)，备忘录真字封面卡挪到第二张；封面位点「⇄ 换封面」可一键切换
+    const aiUrl = autoAiCoverOn() ? await genAiCoverUrl(m => { if (st) { st.textContent = m; st.style.color = 'var(--ink-soft)'; } }) : '';
     if (aiUrl) {
       state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
       state.coverImages.unshift(aiUrl);               // AI 封面放封面位，备忘录卡顺移到第二张
@@ -1488,7 +1496,7 @@ async function genNoteImages() {
       state.coverImage = state.coverImages[0];
       persist(); renderCoverImages();
       if (st) { st.textContent = '✓ AI 图封面（封面位）+ 备忘录真字封面卡（第二张）都已生成 —— 点「⇄ 换封面」可一键切换'; st.style.color = '#00a152'; }
-    } else if (st) { st.textContent = '✓ 备忘录长图已生成（AI 封面这次没出来，可在封面卡点「🔄」重试）'; st.style.color = '#00a152'; }
+    } else if (st) { st.textContent = autoAiCoverOn() ? '✓ 备忘录长图已生成（AI 封面这次没出来，可在封面卡点「🔄」重试）' : '✓ 备忘录真字封面卡 + 长图已生成（AI 封面开关已关）'; st.style.color = '#00a152'; }
   } catch (e) { if (st) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
   finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
 }
@@ -1782,6 +1790,7 @@ function renderPanel() {
   $('#genNote')?.addEventListener('click', genNoteImages);
   $('#genMemoCover')?.addEventListener('click', genMemoCover);
   $$('.img-ratio').forEach(b => b.addEventListener('click', () => { state.imgRatio = b.dataset.r; persist(); renderPanel(); }));
+  $('#aiCoverChk')?.addEventListener('change', e => { setAutoAiCover(e.target.checked); renderPanel(); });
   $('#genImg')?.addEventListener('click', genCoverImage);
   $('#genGzhCover')?.addEventListener('click', genGzhCover);
   $('#upImg')?.addEventListener('click', () => $('#coverFile')?.click());
@@ -2315,8 +2324,8 @@ async function autoRun() {
         const cn = coverCount();
         setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
         try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
-        // 一键全套同样默认双封面：AI 图封面放封面位(第一张)，原配图/备忘录卡顺移到第二张
-        try {
+        // 一键全套同样默认双封面（受「默认出 AI 封面」开关控制）：AI 图封面放封面位(第一张)，原配图/备忘录卡顺移到第二张
+        if (autoAiCoverOn()) try {
           setAuto('正在生成 AI 封面（放封面位，跟随智能体画风）…');
           const aiUrl = await genAiCoverUrl(setAuto);
           if (aiUrl) {
