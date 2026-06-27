@@ -206,7 +206,7 @@ function renderStyleRefs() {
   box.innerHTML = styleRefs.map((it, i) => `<div style="display:flex;gap:8px;align-items:flex-start;width:100%;margin-bottom:8px">
     <div style="position:relative;flex:0 0 auto"><img src="${it.url}" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"/><span class="sr-del" data-i="${i}" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:10px">✕</span></div>
     <div style="flex:1;min-width:0">
-      <textarea class="sr-prompt field" data-i="${i}" rows="2" placeholder="这张图的生图提示词模板（点「✨提炼画风」自动生成，可改）" style="width:100%;font-size:12px;border-radius:8px;padding:6px 8px;resize:vertical">${(it.prompt || '').replace(/</g, '&lt;')}</textarea>
+      <textarea class="sr-prompt field" data-i="${i}" rows="4" placeholder="这张图的完整生图提示词（点「✨提炼这张」自动生成，可改）" style="width:100%;font-size:12px;border-radius:8px;padding:6px 8px;resize:vertical">${(it.prompt || '').replace(/</g, '&lt;')}</textarea>
       <button class="sr-distill1 btn-ghost rounded-md px-2 py-0.5 text-[11px]" data-i="${i}" style="margin-top:3px">✨ 提炼这张</button>
     </div>
   </div>`).join('');
@@ -370,8 +370,8 @@ async function distillOne(i, btn) {
   const it = styleRefs[i]; if (!it || !it.url) return;
   const o = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = '提炼中…'; }
   try {
-    const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: it.url, prompt: '把这张图提炼成一条「可复用的小红书生图提示词模板」：依次写画面类型(实拍/插画/3D)、构图/版式、主体布局、配色、光影、质感氛围；用于以后换内容时复用同款风格。只输出这条提示词本身（中文、一句话、≤60字），不要解释、不写具体文字内容。' }) })).json();
-    if (j.ok && j.desc) { styleRefs[i].prompt = j.desc.trim().replace(/\s+/g, ' ').slice(0, 80); renderStyleRefs(); }
+    const j = await (await fetch('/api/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: it.url, prompt: '请把这张图提炼成一条【可直接重现该图的完整中文生图提示词】（用于 GPT image-1，换内容时复用同款风格）。按顺序详细描述：①画面类型(实拍/插画/3D/海报)②整体风格与氛围③构图与主体位置(含竖版比例、留白)④背景与配色(具体色调/材质)⑤光影质感⑥装饰元素与版块分区⑦质量标签(超高清/专业摄影/无文字水印)。【只描述视觉，绝不复述图中任何文字内容或知识点】。只输出提示词正文，120-220 字中文，不要解释。' }) })).json();
+    if (j.ok && j.desc) { styleRefs[i].prompt = j.desc.trim().replace(/\s+/g, ' ').slice(0, 400); renderStyleRefs(); }
     else { $('#status').textContent = '提炼失败：' + (j.error || '换张更清晰的图'); $('#status').style.color = 'var(--cinnabar-deep)'; }
   } catch (e) { $('#status').textContent = '提炼失败：' + (e.message || e); $('#status').style.color = 'var(--cinnabar-deep)'; }
   finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
