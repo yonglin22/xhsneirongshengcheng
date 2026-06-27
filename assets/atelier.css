@@ -277,11 +277,10 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-ios-nav{ position:relative; height:9cqw; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
 /* 用 flex align-items:center 几何居中（实测：140px 缩略图与 360px 预览都 0px 对齐，360px 导出 0.33px 对齐）。
    line-height 居中在小字号 CJK 下像素不稳（140px 偏 2.7px），故弃用；flex 按盒子几何中心居中，跨尺寸稳定。 */
-/* chevron 绝对定位移出文字流，让「备忘录」单独在 flex 里几何居中：
-   ① flex 居中→小尺寸像素稳；② 文字旁没有 SVG 兄弟扰动基线→html2canvas 跨平台(含 macOS PingFang)不再压低「备忘录」 */
-.cv-note.is-memo .nt-nav-back{ position:absolute; left:4.5cqw; top:0; height:9cqw; display:flex; align-items:center; padding-left:3.6cqw; white-space:nowrap; z-index:1; color:#e8a400; }
-.cv-note.is-memo .nt-nav-chev{ position:absolute; left:0; top:50%; transform:translateY(-50%); height:4cqw; width:auto; }
-.cv-note.is-memo .nt-nav-back-label{ font-size:4cqw; font-weight:500; line-height:1; display:block; }
+/* 「< 备忘录」整块做成 SVG（chevron 路径 + <text> 文字，文字用 y 坐标定位）。
+   原因：HTML 文字在 html2canvas 里垂直位置依赖字体度量，macOS(PingFang) 会把中文压低；
+   SVG 里文字位置是绝对坐标，html2canvas 与浏览器、跨平台都按坐标画 → 永远居中、不掉。实测 html2canvas 输出验证。 */
+.cv-note.is-memo svg.nt-nav-back{ position:absolute; left:4.5cqw; top:0; height:9cqw; width:calc(9cqw * 88 / 26); z-index:1; overflow:visible; }
 .cv-note.is-memo .nt-nav-date{ position:absolute; left:0; right:0; top:0; height:9cqw; display:flex; align-items:center; justify-content:center; color:#8a8a90; font-size:2.85cqw; font-weight:600; white-space:nowrap; letter-spacing:.01em; line-height:1; pointer-events:none; }
 /* 右侧纯图标区：用 flex（图标是 SVG，不受 html2canvas 文字掉位影响），避免 inline-block 右对齐被 html2canvas 算错而裁掉「...」 */
 .cv-note.is-memo .nt-nav-r{ position:absolute; right:4.5cqw; top:0; height:9cqw; display:flex; align-items:center; gap:3.2cqw; z-index:1; }
