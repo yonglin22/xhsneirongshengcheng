@@ -446,7 +446,7 @@ function outputHTML(st) {
     const _ratioBtns = ['2:3','3:4','9:16'].map(r=>{const on=((state.imgRatio||'3:4')===r);return `<button class="img-ratio" data-r="${r}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 10px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${r}</button>`;}).join('');
     return `<div class="out p-4 space-y-3">
       <!-- 主操作：一键出醇备忘录真字图（封面+内页） -->
-      <button id="genNote" style="width:100%;border:none;border-radius:12px;padding:13px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#ff4259,#ff2442);color:#fff;box-shadow:0 6px 18px -6px rgba(255,36,66,.5)">📒 生成长图笔记（醇备忘录真字 · 封面+内页）</button>
+      <button id="genNote" style="width:100%;border:none;border-radius:12px;padding:13px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#ff4259,#ff2442);color:#fff;box-shadow:0 6px 18px -6px rgba(255,36,66,.5)">📒 生成长图笔记（备忘录真字封面 + AI图封面 + 内页）</button>
       <!-- 紧凑副操作行：比例 + 上传真实图 -->
       <div class="flex items-center gap-2 flex-wrap text-[12px]">
         <span class="text-[var(--ink-soft)]">比例</span>${_ratioBtns}
@@ -558,12 +558,19 @@ function renderCoverImages() {
       <span class="ci-del" data-i="${i}" style="position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,.18)">✕</span>
       <div class="mt-1 flex flex-col items-center gap-1" style="width:156px">
         <span class="text-[10px] text-[var(--ink-soft)]">${i === 0 ? '封面' : '配图 ' + i}</span>
+        ${i === 0 && imgs.length > 1 ? `<button class="ci-swap" title="把第二张换上来当封面（备忘录卡 ⇄ AI图封面）" style="width:100%;border:1px solid var(--line);color:var(--ink);background:var(--paper-2);border-radius:8px;padding:4px 0;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">⇄ 换封面</button>` : ''}
         <button class="ci-regen2" data-i="${i}" title="${(u || '').startsWith('note://') ? '重排这页文字（可填补充要求/上传图替换）' : '重新出图（改提示词/上传参考图）'}" style="width:100%;border:1px solid var(--cinnabar);color:var(--cinnabar);background:#fff;border-radius:8px;padding:4px 0;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">🔄 ${(u || '').startsWith('note://') ? '重排这页' : '重新出图'}</button>
       </div>
     </div>`).join('') + '</div>';
   box.querySelectorAll('.ci-del').forEach(x => x.addEventListener('click', () => {
     const i = +x.dataset.i; state.coverImages = state.coverImages || imgs.slice(); state.coverImages.splice(i, 1);
     state.coverImage = state.coverImages[0] || ''; persist(); renderCoverImages();
+  }));
+  box.querySelectorAll('.ci-swap').forEach(x => x.addEventListener('click', () => {
+    const a = state.coverImages || imgs.slice(); if (a.length < 2) return;
+    [a[0], a[1]] = [a[1], a[0]];                          // 封面位 ⇄ 第二张
+    const c = state.coverCaptions || []; while (c.length < 2) c.push(null); [c[0], c[1]] = [c[1], c[0]];
+    state.coverImages = a; state.coverCaptions = c; state.coverImage = a[0]; persist(); renderCoverImages();
   }));
   box.querySelectorAll('.ci-regen, .ci-regen2').forEach(x => x.addEventListener('click', () => openRegenModal(+x.dataset.i)));
   // 长图笔记页：内容超框就等比缩小（双 rAF + 字体加载完后再各测一次，保证导出也准）
@@ -853,6 +860,27 @@ async function genCoverFromCvTpl(i) {
     renderCoverImages();
     if (msg) { msg.textContent = lines.length ? '✓ 已生成（AI 背景 + 标题叠字）' : '✓ 已生成（无封面文案，纯图）'; msg.style.color = '#00a052'; }
   } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
+}
+// AI 封面叠字（来自 S3 第一张/封面文案）：标题+要点，poster 主题=玻璃底板白字
+function aiCoverCaption() {
+  const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
+  return lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : { raw: true };
+}
+// 生成一张「按主题 + 智能体画风」的纯视觉 AI 封面背景图，返回短链 URL（失败返回 ''，不抛错）。供「出封面」与默认流程共用。
+async function genAiCoverUrl(setStatus) {
+  const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
+  const topic = (state.topic || lines[0] || '').replace(/[（(].*$/, '').slice(0, 40);
+  const titleHint = '生成一张【纯视觉小红书封面背景图】（不是信息图、不是笔记截图、不是文字排版！画面里绝对不能出现任何文字、汉字、字母、数字、假字或排版栏）。主题：「' + topic + '」——用与主题相关的精致实拍或高级插画场景，整图铺满质感与细节、构图有主体、色彩高级，绝不能纯色或大面积留白；上半部留一块柔和明亮但仍带背景纹理的区域，方便后期叠加标题。';
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : ''); // 跟随智能体已设的「配图画风」
+  const tps = loadCvTpls(); const colorRef = tps.length ? String(tps[0].prompt || '').replace(/\s+/g, '').slice(0, 120) : '';
+  const prompt = titleHint + (colorRef ? '仅参考其配色与整体氛围（不要复制其中任何文字或信息排版）：' + colorRef + '。' : '') + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 ' + ratioWord() + '，商业摄影或高级插画质感、色彩饱满有氛围、主体清晰、细节精致，整图铺满，高清，无任何文字。';
+  try {
+    if (setStatus) setStatus('正在生成 AI 封面备选（约 30~60 秒）…');
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, action: 'cover', size: ratioSize() }) });
+    const tx = await r.text(); if (!r.ok) return '';
+    let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
+    return u || '';
+  } catch { return ''; }
 }
 // 📒 备忘录封面卡（真字）：按 S3 框架·第1张「配图规划」+ 对标第1张解析，CSS 排成备忘录风封面（文字真实、零乱码）
 async function genMemoCover() {
@@ -1450,7 +1478,18 @@ async function genNoteImages() {
     state.coverCaptions = [];
     persist(); renderCoverImages();
     if (st) { st.textContent = '✓ 已排成 ' + finalPages.length + ' 页长图笔记' + (splitN > 0 ? '（含 ' + splitN + ' 页因内容多自动拆分）' : '') + '（去成稿预览导 1080P）'; st.style.color = '#00a152'; }
-    await resplitTooSmallNotes(st); // 再按实际缩放比例兜底拆分被缩太小的页
+    await resplitTooSmallNotes(st); // 再按实际缩放比例兜底拆分被缩太小的页（在纯 note:// 集上做）
+    // 默认两种封面都出：备忘录真字封面卡(note://0) 留在封面位；再生成一张 AI 图封面作为「封面备选」插到第二张，封面位可一键切换
+    const aiUrl = await genAiCoverUrl(m => { if (st) { st.textContent = m; st.style.color = 'var(--ink-soft)'; } });
+    if (aiUrl) {
+      state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
+      state.coverImages.splice(1, 0, aiUrl);          // AI 封面插到第二张，备忘录卡仍在封面位
+      state.coverCaptions[0] = state.coverCaptions[0] || null;
+      state.coverCaptions.splice(1, 0, aiCoverCaption());
+      state.coverImage = state.coverImages[0];
+      persist(); renderCoverImages();
+      if (st) { st.textContent = '✓ 备忘录真字封面卡 + AI 图封面 都已生成 —— 封面位点「⇄ 换封面」一键切换'; st.style.color = '#00a152'; }
+    } else if (st) { st.textContent = '✓ 备忘录长图已生成（AI 封面这次没出来，可在封面卡点「🔄」重试）'; st.style.color = '#00a152'; }
   } catch (e) { if (st) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
   finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
 }
