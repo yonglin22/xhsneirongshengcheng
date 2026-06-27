@@ -76,3 +76,17 @@ function renderDM() {
   });
 }
 renderDM();
+
+// 顶部「有新版」横幅：读 background 存的 zsUpdate；点下载打开下载链接
+(function () {
+  function showUpd(u) {
+    const bar = document.getElementById('updBar'); if (!bar || !u || !u.latest) return;
+    bar.style.display = 'block';
+    const v = document.getElementById('updVer'); if (v) v.textContent = (u.current ? 'v' + u.current + ' → ' : '') + 'v' + u.latest;
+    const dl = document.getElementById('updDl');
+    if (dl) dl.onclick = () => { chrome.tabs.create({ url: u.download || 'https://yonglin.chat/api/ext-download', active: true }); window.close(); };
+  }
+  try { chrome.storage.local.get(['zsUpdate'], (st) => { if (st && st.zsUpdate) showUpd(st.zsUpdate); }); } catch {}
+  // 打开弹窗时也顺手催一次后台检查
+  try { chrome.runtime.sendMessage({ type: 'zsCheckUpdate' }, () => void chrome.runtime.lastError); } catch {}
+})();

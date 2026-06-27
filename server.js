@@ -556,6 +556,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ---- 获客 Agent · 脚本（朱砂助手插件）下载：把 extension 目录现打成 zip 给已登录客户下载 ----
+  // 插件查最新版本号（公开，无需登录）：插件后台定时拉这个跟自己 manifest 版本比，有新版就提醒
+  if (pathname === '/api/ext-version' && req.method === 'GET') {
+    let version = '', name = '';
+    try { const mf = JSON.parse(fs.readFileSync(path.join(__dirname, 'extension', 'manifest.json'), 'utf8')); version = mf.version || ''; name = mf.name || ''; } catch {}
+    return sendJSON(res, 200, { ok: true, version, name, download: (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '') + '/api/ext-download' });
+  }
   if (pathname === '/api/ext-download' && req.method === 'GET') {
     if (!authUid(req)) return send(res, 401, '请先登录', { 'content-type': 'text/plain; charset=utf-8' });
     const extDir = path.join(__dirname, 'extension');

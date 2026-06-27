@@ -376,3 +376,61 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 });
+
+// ===== 自动检查更新：定时拉服务器最新版本号，比自己 manifest 新就提醒（角标 NEW + 通知 + 弹窗横幅）=====
+// （开发者模式「加载已解压」装的扩展不会被 Chrome 自动更新，这里至少做到「有新版主动提醒、一键下载」）
+const ZS_VERSION_URL = 'https://yonglin.chat/api/ext-version';
+function zsCmpVer(a, b) { // a>b →1, a<b →-1, 相等→0
+  const pa = String(a || '0').split('.').map(n => parseInt(n, 10) || 0);
+  const pb = String(b || '0').split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d > 0 ? 1 : -1; }
+  return 0;
+}
+async function zsCheckUpdate() {
+  try {
+    const local = chrome.runtime.getManifest().version;
+    const r = await fetch(ZS_VERSION_URL, { cache: 'no-store' });
+    const j = await r.json();
+    if (!j || !j.version) return;
+    if (zsCmpVer(j.version, local) > 0) {
+      // 有新版
+      const download = j.download || 'https://yonglin.chat/api/ext-download';
+      chrome.storage.local.set({ zsUpdate: { latest: j.version, current: local, download, ts: Date.now() } });
+      try { chrome.action.setBadgeText({ text: 'NEW' }); chrome.action.setBadgeBackgroundColor({ color: '#ff2442' }); } catch {}
+      // 仅在「这个新版本号」第一次发现时弹一次系统通知，避免反复打扰
+      chrome.storage.local.get(['zsNotifiedVer'], (st) => {
+        if (st.zsNotifiedVer === j.version) return;
+        chrome.storage.local.set({ zsNotifiedVer: j.version });
+        try {
+          chrome.notifications.create('zsUpdate', {
+            type: 'basic', iconUrl: 'icon128.png',
+            title: '朱砂助手有新版 ' + j.version,
+            message: '点此下载最新版（解压后到 chrome://extensions 重新加载即可更新）',
+            priority: 2,
+          }, () => void chrome.runtime.lastError);
+        } catch {}
+      });
+    } else {
+      // 已是最新：清掉角标和待更新标记
+      chrome.storage.local.remove('zsUpdate');
+      try { chrome.action.setBadgeText({ text: '' }); } catch {}
+    }
+  } catch (e) {}
+}
+// 点系统通知 → 打开下载
+chrome.notifications && chrome.notifications.onClicked.addListener((id) => {
+  if (id !== 'zsUpdate') return;
+  chrome.storage.local.get(['zsUpdate'], (st) => {
+    const url = (st.zsUpdate && st.zsUpdate.download) || 'https://yonglin.chat/api/ext-download';
+    chrome.tabs.create({ url });
+    chrome.notifications.clear('zsUpdate');
+  });
+});
+// 安装/启动时查一次 + 每 6 小时查一次
+chrome.runtime.onInstalled.addListener(() => zsCheckUpdate());
+chrome.runtime.onStartup && chrome.runtime.onStartup.addListener(() => zsCheckUpdate());
+chrome.alarms && chrome.alarms.create('zsUpdateCheck', { periodInMinutes: 360 });
+chrome.alarms && chrome.alarms.onAlarm.addListener((a) => { if (a && a.name === 'zsUpdateCheck') zsCheckUpdate(); });
+// 弹窗打开时催一次检查
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { if (msg && msg.type === 'zsCheckUpdate') { zsCheckUpdate(); try { sendResponse({ ok: true }); } catch {} } });
+zsCheckUpdate();
