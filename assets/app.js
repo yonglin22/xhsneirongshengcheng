@@ -54,12 +54,21 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
         window.postMessage({ type: 'ZHUSHA_XHS_FETCH_NOTE', url, reqId }, '*');
         setTimeout(() => { if (this._pend[reqId]) { const f = this._pend[reqId]; delete this._pend[reqId]; f({ ok: false, error: '插件无响应（请确认已在浏览器登录小红书）' }); } }, 70000);
       });
+    },
+    // 用本机登录会话抓某博主主页的粉丝数（只显示用）；profileUrl=博主主页链接
+    fetchFans(profileUrl) {
+      return new Promise((resolve) => {
+        const reqId = 'xf' + (++this._seq) + '_' + Date.now();
+        this._pend[reqId] = resolve;
+        window.postMessage({ type: 'ZHUSHA_XHS_FETCH_FANS', url: profileUrl, reqId }, '*');
+        setTimeout(() => { if (this._pend[reqId]) { const f = this._pend[reqId]; delete this._pend[reqId]; f({ ok: false, error: '插件无响应' }); } }, 40000);
+      });
     }
   };
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data) return;
     if (e.data.__zhusha_ext === 'ready') { window.xhsExt.available = true; window.dispatchEvent(new Event('xhsext-ready')); }
-    if ((e.data.type === 'ZHUSHA_XHS_SEARCH_ACK' || e.data.type === 'ZHUSHA_XHS_FETCH_NOTE_ACK') && e.data.reqId && window.xhsExt._pend[e.data.reqId]) {
+    if ((e.data.type === 'ZHUSHA_XHS_SEARCH_ACK' || e.data.type === 'ZHUSHA_XHS_FETCH_NOTE_ACK' || e.data.type === 'ZHUSHA_XHS_FETCH_FANS_ACK') && e.data.reqId && window.xhsExt._pend[e.data.reqId]) {
       const f = window.xhsExt._pend[e.data.reqId]; delete window.xhsExt._pend[e.data.reqId];
       f(e.data.result || { ok: false, error: '空响应' });
     }

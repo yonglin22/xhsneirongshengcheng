@@ -94,7 +94,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=50"></script>
+<script src="/assets/app.js?v=51"></script>
 <script>
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
@@ -1850,7 +1850,7 @@ function renderBenchNotes() {
       ${isQual ? '<div style="position:absolute;top:4px;left:4px;z-index:1;background:var(--cinnabar);color:#fff;font-size:9px;padding:1px 5px;border-radius:5px">🔥达标</div>' : ''}
       ${n.cover ? `<img src="/api/img-proxy?u=${encodeURIComponent(n.cover)}" class="zoomable" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;cursor:zoom-in"/>` : ''}
       ${n.title ? `<div class="text-[11px] mt-1 leading-tight" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${n.title}</div>` : ''}
-      <div class="text-[10px] text-[var(--ink-soft)] mt-1" style="display:flex;align-items:center;gap:3px">${n.authorLink ? `<a href="${n.authorLink}" target="_blank" rel="noopener" style="color:var(--cinnabar-deep)">@${n.author || '博主'}</a>` : ('@' + (n.author || '博主'))}</div>
+      <div class="text-[10px] text-[var(--ink-soft)] mt-1" style="display:flex;align-items:center;gap:3px;flex-wrap:wrap">${n.authorLink ? `<a href="${n.authorLink}" target="_blank" rel="noopener" style="color:var(--cinnabar-deep)">@${n.author || '博主'}</a>` : ('@' + (n.author || '博主'))}${n.userId ? `<span class="bench-fans" data-uid="${n.userId}">${n.fans != null ? '· 粉丝 ' + fmtFans(n.fans) : ''}</span>` : ''}</div>
       ${stats ? `<div class="text-[10px] text-[var(--ink-soft)] mt-0.5">${stats}</div>` : ''}
       ${n.date ? `<div class="text-[10px] text-[var(--ink-soft)]">🗓 ${n.date}</div>` : ''}
       <button class="use-note btn-go rounded-md w-full py-1 text-[11px] mt-1" data-link="${(n.link || '').replace(/"/g, '&quot;')}">用这篇拆解</button>
@@ -1862,6 +1862,51 @@ function renderBenchNotes() {
     const fb = $('#fetchNote'); if (fb) fb.click();
     const b2 = $('#s2body2'); if (b2) b2.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
+  fillBenchFans(); // 笔记已即时渲染；粉丝数随后用插件逐个补上（只显示、不筛选）
+}
+// 粉丝数格式化：纯数字→万/千；已是"3.2万"等字符串原样显示
+function fmtFans(v) {
+  if (v == null || v === '') return '—';
+  const s = String(v).trim(); if (/[万千wWkK]/.test(s)) return s;
+  const n = parseInt(s.replace(/[^\d]/g, ''), 10); if (!n && n !== 0) return s;
+  return n >= 10000 ? (n / 10000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, '') + '万' : (n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n));
+}
+// 逐个博主抓粉丝数（去重、串行，避免触发风控）；抓到就就地更新卡片，不阻塞挑选
+let _benchFansCache = {}; // userId → fans（同一批抓取内复用）
+let _fansFilling = false;
+async function fillBenchFans() {
+  if (_fansFilling) return;
+  if (!(window.xhsExt && window.xhsExt.available)) return; // 没插件就不显示粉丝
+  _fansFilling = true;
+  try {
+    // 当前列表里、去重后的、还没抓过粉丝的博主
+    const seen = new Set(), targets = [];
+    for (const n of benchNotes) {
+      if (!n || !n.userId || n.fans != null) continue;
+      if (_benchFansCache[n.userId] != null) { n.fans = _benchFansCache[n.userId]; continue; }
+      if (seen.has(n.userId)) continue; seen.add(n.userId);
+      targets.push(n);
+    }
+    // 先把缓存命中的就地刷新一次
+    paintFans();
+    for (const n of targets) {
+      const url = n.authorLink || ('https://www.xiaohongshu.com/user/profile/' + n.userId);
+      let r; try { r = await window.xhsExt.fetchFans(url); } catch { r = null; }
+      const fans = (r && r.ok && r.fans !== '') ? r.fans : '—';
+      _benchFansCache[n.userId] = fans;
+      for (const m of benchNotes) if (m.userId === n.userId) m.fans = fans;
+      paintFans();
+      await new Promise(r => setTimeout(r, 1200)); // 间隔，降风控
+    }
+  } finally { _fansFilling = false; }
+}
+// 把已抓到的粉丝数刷到对应卡片（按 userId）
+function paintFans() {
+  const box = $('#benchList'); if (!box) return;
+  box.querySelectorAll('.bench-fans').forEach(el => {
+    const uid = el.dataset.uid; const n = benchNotes.find(x => x.userId === uid);
+    if (n && n.fans != null) el.textContent = '· 粉丝 ' + fmtFans(n.fans);
+  });
 }
 // 解析"1.2万/3000+"等为数字，用于排序
 function parseCount(v) {

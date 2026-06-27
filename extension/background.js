@@ -171,6 +171,59 @@ async function xhsFetchNote(url) {
     _keepAliveStop();
   }
 }
+// 运行在小红书博主主页「主世界」：读 __INITIAL_STATE__ 取该博主的粉丝数（只显示用，不做筛选）
+function _fansExtract() {
+  let fans = '';
+  try {
+    const st = window.__INITIAL_STATE__ || {};
+    // 主页数据：user.userPageData.interactions = [{type:'fans',count},...]；不同版本字段不一，深搜兜底
+    (function find(o, depth) {
+      if (fans !== '' || !o || typeof o !== 'object' || depth > 9) return;
+      if (Array.isArray(o.interactions)) {
+        const f = o.interactions.find(x => x && /fans|粉丝/i.test(x.type || x.name || ''));
+        if (f && (f.count != null || f.value != null)) { fans = String(f.count != null ? f.count : f.value); return; }
+      }
+      if (o.fansCount != null) { fans = String(o.fansCount); return; }
+      if (o.fans != null && typeof o.fans !== 'object') { fans = String(o.fans); return; }
+      for (const k in o) find(o[k], depth + 1);
+    })(st, 0);
+  } catch (e) {}
+  if (fans === '') { // 兜底：扒 DOM（"粉丝"字样旁的数字）
+    try {
+      const els = [...document.querySelectorAll('[class*="fans"],[class*="count"],.user-interactions *')];
+      for (const el of els) { const t = (el.textContent || '').trim(); if (/粉丝/.test(t)) { const m = t.match(/([\d.]+\s*[万wW千kK]?)/); if (m) { fans = m[1].replace(/\s/g, ''); break; } } }
+    } catch (e) {}
+  }
+  let needLogin = false;
+  try { const tx = (document.body && document.body.innerText || '').slice(0, 600); if (fans === '' && /(扫码登录|手机号登录|登录后查看|立即登录)/.test(tx)) needLogin = true; } catch {}
+  return { fans, needLogin };
+}
+async function xhsFetchFans(url) {
+  if (!url) return { ok: false, error: '缺少主页链接' };
+  _keepAliveStart();
+  let tabId = null, prevActiveTab = null;
+  try {
+    try { const [cur] = await chrome.tabs.query({ active: true, currentWindow: true }); prevActiveTab = cur || null; } catch {}
+    const tab = await chrome.tabs.create({ url, active: true });
+    tabId = tab.id;
+    await _waitTabComplete(tabId, 18000);
+    let fans = '', needLogin = false;
+    for (let i = 0; i < 8; i++) {
+      await _sleep(1200);
+      let res; try { res = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: _fansExtract }); } catch (e) { continue; }
+      const o = res && res[0] && res[0].result;
+      if (o) { if (o.needLogin) needLogin = true; if (o.fans !== '') { fans = o.fans; break; } }
+    }
+    if (fans !== '') return { ok: true, fans };
+    return { ok: false, needLogin, error: needLogin ? '未登录小红书' : '没解析到粉丝数' };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  } finally {
+    if (tabId != null) { try { await chrome.tabs.remove(tabId); } catch {} }
+    if (prevActiveTab && prevActiveTab.id != null) { try { await chrome.tabs.update(prevActiveTab.id, { active: true }); } catch {} }
+    _keepAliveStop();
+  }
+}
 // 心跳：抓取要 40+ 秒，但 MV3 后台进程闲置 ~30s 就会被 Chrome 杀掉（控制台开着时不会，所以手测能成、关了就废）。
 // 抓取期间每 20s 调一次 chrome API，把后台进程一直“续命”，直到抓完。
 let _keepAliveTimer = null, _keepAliveRef = 0;
@@ -255,6 +308,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const reqId = msg.reqId, tabId = sender && sender.tab && sender.tab.id;
     const push = (result) => { if (tabId != null) { try { chrome.tabs.sendMessage(tabId, { type: 'xhsFetchNoteResult', reqId, result }, () => void chrome.runtime.lastError); } catch {} } };
     xhsFetchNote(msg.url).then(push).catch(e => push({ ok: false, error: e.message || String(e) }));
+    try { sendResponse({ ok: true, started: true }); } catch {}
+    return true;
+  }
+  if (msg && msg.type === 'xhsFetchFans') {
+    const reqId = msg.reqId, tabId = sender && sender.tab && sender.tab.id;
+    const push = (result) => { if (tabId != null) { try { chrome.tabs.sendMessage(tabId, { type: 'xhsFetchFansResult', reqId, result }, () => void chrome.runtime.lastError); } catch {} } };
+    xhsFetchFans(msg.url).then(push).catch(e => push({ ok: false, error: e.message || String(e) }));
     try { sendResponse({ ok: true, started: true }); } catch {}
     return true;
   }

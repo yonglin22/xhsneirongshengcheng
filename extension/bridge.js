@@ -44,6 +44,14 @@
         window.postMessage({ type: 'ZHUSHA_XHS_FETCH_NOTE_ACK', reqId, result: { ok: false, error: '插件连接已失效（请刷新本页面 ⌘R 后重试）：' + (err && err.message || err) } }, '*');
       }
     }
+    if (e.data.type === 'ZHUSHA_XHS_FETCH_FANS') {
+      const { url, reqId } = e.data;
+      try {
+        chrome.runtime.sendMessage({ type: 'xhsFetchFans', url, reqId }, () => void chrome.runtime.lastError);
+      } catch (err) {
+        window.postMessage({ type: 'ZHUSHA_XHS_FETCH_FANS_ACK', reqId, result: { ok: false, error: '插件连接已失效（请刷新本页面 ⌘R 后重试）：' + (err && err.message || err) } }, '*');
+      }
+    }
     if (e.data.type === 'ZHUSHA_NURTURE_PLAN') {
       const plan = e.data.plan || {};
       chrome.runtime.sendMessage({ type: 'nurturePlan', plan }, (resp) => {
@@ -59,6 +67,9 @@
     }
     if (msg && msg.type === 'xhsFetchNoteResult') {
       window.postMessage({ type: 'ZHUSHA_XHS_FETCH_NOTE_ACK', reqId: msg.reqId, result: msg.result || { ok: false, error: '空响应' } }, '*');
+    }
+    if (msg && msg.type === 'xhsFetchFansResult') {
+      window.postMessage({ type: 'ZHUSHA_XHS_FETCH_FANS_ACK', reqId: msg.reqId, result: msg.result || { ok: false, error: '空响应' } }, '*');
     }
   });
 })();
