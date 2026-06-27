@@ -128,6 +128,15 @@ function scriptLibAdd(uid, lib){ const now=Date.now(); const r=db.prepare('INSER
 function scriptLibUpdate(uid, id, lib){ const cur=db.prepare('SELECT * FROM script_libs WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; db.prepare('UPDATE script_libs SET title=?,items=?,updated_at=? WHERE id=? AND user_id=?').run(lib.title!==undefined?(String(lib.title).slice(0,60).trim()||'未命名话术库'):cur.title, lib.items!==undefined?JSON.stringify(_normScriptItems(lib.items)):cur.items, Date.now(), id, uid); return true; }
 function scriptLibRemove(uid, id){ db.prepare('DELETE FROM script_libs WHERE id=? AND user_id=?').run(id,uid); return true; }
 
+// ===== 获客 Agent · 评论收集（潜客列表）：截流时收集到的评论区用户，存为系统列表，供人工跟进 =====
+try { db.exec("CREATE TABLE IF NOT EXISTS collected_leads(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, platform TEXT, note_title TEXT, note_url TEXT, lead_user TEXT, lead_text TEXT, lead_link TEXT, status TEXT DEFAULT 'new', dkey TEXT, created_at INTEGER)"); } catch {}
+try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_uniq ON collected_leads(user_id, dkey)"); } catch {}
+function leadsList(uid, opt){ opt=opt||{}; const lim=Math.min(500,Math.max(1,parseInt(opt.limit)||200)); const off=Math.max(0,parseInt(opt.offset)||0); const total=db.prepare('SELECT COUNT(*) n FROM collected_leads WHERE user_id=?').get(uid).n; const list=db.prepare('SELECT id,platform,note_title,note_url,lead_user,lead_text,lead_link,status,created_at FROM collected_leads WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?').all(uid,lim,off); return { list, total }; }
+function leadsAdd(uid, batch){ const items=(Array.isArray(batch)?batch:[]).slice(0,200); if(!items.length) return { added:0 }; const now=Date.now(); const ins=db.prepare("INSERT OR IGNORE INTO collected_leads(user_id,platform,note_title,note_url,lead_user,lead_text,lead_link,status,dkey,created_at) VALUES(?,?,?,?,?,?,?,'new',?,?)"); let added=0; const run=()=>{ for(const it of items){ const lead_user=String((it&&it.lead_user)||'').slice(0,80).trim(); const lead_text=String((it&&it.lead_text)||'').slice(0,500).trim(); const lead_link=String((it&&it.lead_link)||'').slice(0,300).trim(); if(!lead_text&&!lead_user) continue; const dkey=(lead_link||(lead_user+'|'+lead_text)).slice(0,300); const r=ins.run(uid, String((it&&it.platform)||'xhs').slice(0,16), String((it&&it.note_title)||'').slice(0,120), String((it&&it.note_url)||'').slice(0,300), lead_user, lead_text, lead_link, dkey, now); if(r.changes) added++; } }; try{ txn(run); }catch{ run(); } return { added }; }
+function leadRemove(uid, id){ db.prepare('DELETE FROM collected_leads WHERE id=? AND user_id=?').run(id,uid); return true; }
+function leadsClear(uid){ db.prepare('DELETE FROM collected_leads WHERE user_id=?').run(uid); return true; }
+function leadStatus(uid, id, status){ db.prepare('UPDATE collected_leads SET status=? WHERE id=? AND user_id=?').run(String(status||'new').slice(0,16), id, uid); return true; }
+
 function txn(fn) { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; } }
 
 // ===== 会话 token（放 Cookie，HMAC 签名）=====
@@ -532,6 +541,7 @@ module.exports = {
   accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob,
   plansList, planAdd, planUpdate, planRemove,
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
+  leadsList, leadsAdd, leadRemove, leadsClear, leadStatus,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
 };
 

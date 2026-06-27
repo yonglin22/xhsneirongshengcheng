@@ -1162,7 +1162,7 @@ const server = http.createServer(async (req, res) => {
   // ============ 账号 / 钱包 / 订单 / 支付 / 管理（计费）============
   if (pathname.startsWith('/api/auth/') || pathname === '/api/wallet' || pathname === '/api/price'
     || pathname.startsWith('/api/order') || pathname.startsWith('/api/pay/') || pathname.startsWith('/api/admin/')
-    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts') || pathname.startsWith('/api/growth-plans') || pathname.startsWith('/api/script-libs')) {
+    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts') || pathname.startsWith('/api/growth-plans') || pathname.startsWith('/api/script-libs') || pathname.startsWith('/api/collected-leads')) {
     if (!billing) return sendJSON(res, 503, { error: '计费模块未启用（需 Node ≥ 22 的内置 node:sqlite）' });
 
     // 智能体配置（人设/KB/skills/配图风格，按账号存，跨设备）
@@ -1289,6 +1289,27 @@ const server = http.createServer(async (req, res) => {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       const { id } = JSON.parse((await readBody(req)) || '{}');
       return sendJSON(res, 200, { ok: billing.scriptLibRemove(uid, id) });
+    }
+
+    // 获客 Agent · 评论收集（潜客列表）：GET 查看 / POST 由执行端(插件)上报收集到的评论用户 / 删除 / 改状态
+    if (pathname === '/api/collected-leads' && req.method === 'GET') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      return sendJSON(res, 200, { ok: true, ...billing.leadsList(uid, { limit: url.searchParams.get('limit'), offset: url.searchParams.get('offset') }) });
+    }
+    if (pathname === '/api/collected-leads' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: true, ...billing.leadsAdd(uid, b.items || b.leads || []) });
+    }
+    if (pathname === '/api/collected-leads/delete' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const { id, all } = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: all ? billing.leadsClear(uid) : billing.leadRemove(uid, id) });
+    }
+    if (pathname === '/api/collected-leads/status' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const { id, status } = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.leadStatus(uid, id, status) });
     }
 
     // 创作流水线历史 / 作品库（按账号存，跨设备）

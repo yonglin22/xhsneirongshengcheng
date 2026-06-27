@@ -78,6 +78,13 @@
     const ctx = noteContext();
     const comments = collectComments(10);
     if (!comments.length) return;
+    // 收集评论 → 上报到系统「评论收集」潜客列表（纯新增：只上报，不改原有回复/私信逻辑）
+    if (ic.collect) {
+      try {
+        const noteTitle = (ctx.split('\n')[0] || '').slice(0, 120);
+        chrome.runtime.sendMessage({ type: 'reportLeads', items: comments.map(c => ({ platform: 'xhs', note_title: noteTitle, note_url: location.href, lead_user: c.user, lead_text: c.text, lead_link: c.link })) });
+      } catch (e) {}
+    }
     // isrc=预设/话术库 暂未接入素材库，目前只实现 AI 智能来源；非 AI 来源先跳过，避免话术与配置承诺不符
     const useAi = !ic.isrc || ic.isrc === 'ai';
     let replied = 0, queued = 0;

@@ -281,6 +281,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
+  // 收集到的评论区潜客 → 上报到朱砂服务端「评论收集」列表（带 yonglin.chat 登录 cookie）
+  if (msg && msg.type === 'reportLeads') {
+    (async () => {
+      try {
+        const r = await fetch('https://yonglin.chat/api/collected-leads', {
+          method: 'POST', credentials: 'include',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: msg.items || [] }),
+        });
+        const j = await r.json().catch(() => null);
+        sendResponse({ ok: !!(j && j.ok), added: j && j.added });
+      } catch (e) { sendResponse({ ok: false, error: e.message || String(e) }); }
+    })();
+    return true;
+  }
   // 待发私信草稿入库（人工确认发送，不自动发，降低高风险灰色操作的封号风险）
   if (msg && msg.type === 'queueDM') {
     chrome.storage.local.get(['zsPendingDM'], st => {

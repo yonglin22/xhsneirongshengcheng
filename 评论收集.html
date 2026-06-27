@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>评论收集 · 潜客列表 · 获客 Agent · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=51" />
+<style>
+  .lead-card{ display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+  .lead-main{ flex:1; min-width:200px; }
+  .lead-text{ font-size:13.5px; line-height:1.55; margin-top:3px; }
+  .lead-meta{ font-size:11px; color:var(--ink-soft); margin-top:5px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .lead-meta a{ color:var(--cinnabar-deep); }
+  .badge{ font-size:11px; color:#fff; background:var(--cinnabar); border-radius:6px; padding:2px 8px; }
+  .st{ font-size:11px; border:1px solid var(--line); border-radius:999px; padding:2px 10px; cursor:pointer; background:#fff; color:var(--ink-soft); }
+  .st.done{ background:#ecfdf3; border-color:#ace6c4; color:#00875a; }
+  .tool-btn{ border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; }
+  .filt{ font-size:12px; border:1px solid var(--line); border-radius:999px; padding:4px 12px; cursor:pointer; background:#fff; color:var(--ink-soft); }
+  .filt.on{ background:#f5f5f5; color:#444; box-shadow:inset 0 0 0 1px #ddd; }
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <a href="/账号矩阵.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 账号矩阵</a>
+  <a href="/获客计划.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4 ml-2">获客计划 →</a>
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">评论<span class="italic" style="color:var(--cinnabar)">收集</span></h1>
+    <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-2xl">截流计划执行时，从对标笔记评论区收集到的<b>潜在客户</b>会汇总到这里，供你人工跟进。点头像可去对方主页。</p>
+  </div>
+
+  <div class="card p-4 mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-[13px]">共 <b id="total">0</b> 条潜客</span>
+    <span class="ml-2 flex items-center gap-1.5">
+      <span class="filt on" data-f="all">全部</span>
+      <span class="filt" data-f="new">待联系</span>
+      <span class="filt" data-f="done">已联系</span>
+    </span>
+    <span class="ml-auto flex items-center gap-2">
+      <button id="refreshBtn" class="tool-btn">↻ 刷新</button>
+      <button id="exportBtn" class="tool-btn">⬇ 导出 CSV</button>
+      <button id="clearBtn" class="tool-btn" style="color:var(--cinnabar-deep);border-color:#f0c9c0">清空全部</button>
+    </span>
+  </div>
+
+  <div id="list" class="space-y-3"></div>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=49"></script>
+<script>
+let LEADS=[], filter='all';
+const PLAT={ xhs:'📕 小红书', dy:'🎵 抖音', sph:'🎬 视频号' };
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function api(path, method, body){
+  const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),15000);
+  try { const r=await fetch('/api/collected-leads'+path,{method:method||'GET',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined,signal:ctl.signal}); return await r.json(); }
+  catch { return { ok:false, error:'网络较慢或不稳定，请重试' }; }
+  finally { clearTimeout(to); }
+}
+function fmtTime(t){ if(!t) return ''; const d=new Date(t); const p=n=>String(n).padStart(2,'0'); return `${d.getMonth()+1}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function shown(){ return LEADS.filter(l=> filter==='all' ? true : filter==='done' ? l.status==='done' : l.status!=='done'); }
+function render(){
+  const arr=shown();
+  $('#total').textContent=LEADS.length;
+  $('#list').innerHTML = arr.length ? arr.map(l=>`
+    <div class="card p-4 lead-card" data-id="${l.id}">
+      <div class="lead-main">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="badge">${PLAT[l.platform]||l.platform||'小红书'}</span>
+          <b style="font-size:13px">${esc(l.lead_user)||'匿名用户'}</b>
+          ${l.lead_link?`<a href="${esc(l.lead_link)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--cinnabar-deep)">主页↗</a>`:''}
+        </div>
+        <div class="lead-text">${esc(l.lead_text)}</div>
+        <div class="lead-meta">
+          ${l.note_title?`<span>来源：${l.note_url?`<a href="${esc(l.note_url)}" target="_blank" rel="noopener">${esc(l.note_title)}↗</a>`:esc(l.note_title)}</span>`:''}
+          <span>${fmtTime(l.created_at)}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="st ${l.status==='done'?'done':''}" data-act="status">${l.status==='done'?'✓ 已联系':'待联系'}</span>
+        <button class="tool-btn lc-copy" data-act="copy" style="padding:4px 10px">复制</button>
+        <button class="tool-btn lc-del" data-act="del" style="padding:4px 10px;color:var(--ink-soft)">删除</button>
+      </div>
+    </div>`).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有收集到潜客。在「获客计划」里建一个<b>截流</b>计划并开启「收集评论」，执行后这里会自动汇总。</div>';
+}
+$('#list').addEventListener('click', async e=>{
+  const card=e.target.closest('[data-id]'); if(!card) return;
+  const id=+card.dataset.id; const l=LEADS.find(x=>x.id===id); if(!l) return;
+  const act=e.target.dataset.act;
+  if(act==='del'){ const r=await api('/delete','POST',{id}); if(r&&r.ok){ LEADS=LEADS.filter(x=>x.id!==id); render(); } return; }
+  if(act==='copy'){ const txt=`${l.lead_user||''}\t${l.lead_text||''}\t${l.lead_link||''}`; try{ await navigator.clipboard.writeText(txt); }catch{} const b=e.target; const o=b.textContent; b.textContent='✓'; setTimeout(()=>b.textContent=o,1000); return; }
+  if(act==='status'){ const ns=l.status==='done'?'new':'done'; const r=await api('/status','POST',{id,status:ns}); if(r&&r.ok){ l.status=ns; render(); } return; }
+});
+document.querySelectorAll('.filt').forEach(f=>f.addEventListener('click',()=>{ document.querySelectorAll('.filt').forEach(x=>x.classList.remove('on')); f.classList.add('on'); filter=f.dataset.f; render(); }));
+$('#refreshBtn').addEventListener('click', load);
+$('#clearBtn').addEventListener('click', async ()=>{ if(!LEADS.length) return; if(!confirm('清空全部 '+LEADS.length+' 条潜客？此操作不可撤销。')) return; const r=await api('/delete','POST',{all:true}); if(r&&r.ok){ LEADS=[]; render(); } });
+$('#exportBtn').addEventListener('click', ()=>{
+  const arr=shown(); if(!arr.length){ alert('没有可导出的数据'); return; }
+  const head=['平台','潜客','评论内容','主页链接','来源笔记','来源链接','状态','收集时间'];
+  const rows=arr.map(l=>[PLAT[l.platform]||l.platform||'',l.lead_user||'',l.lead_text||'',l.lead_link||'',l.note_title||'',l.note_url||'',l.status==='done'?'已联系':'待联系',fmtTime(l.created_at)]);
+  const csv=[head,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='潜客列表_'+Date.now()+'.csv'; a.click(); URL.revokeObjectURL(a.href);
+});
+async function load(){ const j=await api('?limit=500'); LEADS=(j&&j.list)||[]; render(); }
+load();
+</script>
+</body>
+</html>
