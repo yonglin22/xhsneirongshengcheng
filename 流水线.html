@@ -1886,25 +1886,34 @@ async function fillBenchFans() {
   _fansFilling = true;
   try {
     paintFans();
-    // 循环到「所有有 userId 的博主都抓过」为止——边抓边来的、后到批次也能补上，不会被一次性快照漏掉。
-    // 优先级：达标的博主先抓（你主要从达标里挑），同级按互动量高的先抓。
-    while (true) {
+    // 温和抓取，避免触发小红书「请求太频繁」反爬：
+    //   ① 只抓「达标」笔记的博主（你本来就从达标里挑）；没有达标的，退而抓互动量最高的前几个
+    //   ② 串行 + 2.5s 间隔  ③ 连续 3 次失败就停（多半已被风控，再抓只会更糟）
+    const hasQual = benchNotes.some(n => n && n.userId && benchQual(n));
+    let fetched = 0, failStreak = 0; const MAX_FETCH = 12;
+    while (fetched < MAX_FETCH) {
       let next = null, bestScore = -1;
       for (const n of benchNotes) {
         if (!n || !n.userId || n.fans != null) continue;
         if (_benchFansCache[n.userId] != null) { n.fans = _benchFansCache[n.userId]; continue; }
+        if (hasQual && !benchQual(n)) continue; // 有达标时只抓达标的，非达标不抓（省请求、降风控）
         const score = (benchQual(n) ? 1e9 : 0) + benchEng(n);
         if (score > bestScore) { bestScore = score; next = n; }
       }
-      if (!next) { paintFans(); break; }
+      if (!next) break;
       const url = next.authorLink || ('https://www.xiaohongshu.com/user/profile/' + next.userId);
       let r; try { r = await window.xhsExt.fetchFans(url); } catch { r = null; }
-      const fans = (r && r.ok && r.fans !== '' && r.fans != null) ? r.fans : '—';
-      _benchFansCache[next.userId] = fans;
-      for (const m of benchNotes) if (m.userId === next.userId) m.fans = fans;
-      paintFans();
-      await new Promise(rs => setTimeout(rs, 800)); // 间隔，降风控
+      const ok = !!(r && r.ok && r.fans !== '' && r.fans != null);
+      _benchFansCache[next.userId] = ok ? r.fans : '—';
+      for (const m of benchNotes) if (m.userId === next.userId) m.fans = ok ? r.fans : '—';
+      paintFans(); fetched++;
+      failStreak = ok ? 0 : failStreak + 1;
+      if (failStreak >= 3) break; // 连续失败 → 多半被风控，停手，别再触发「请求太频繁」
+      await new Promise(rs => setTimeout(rs, 2500)); // 间隔放大，降风控
     }
+    // 没抓的（达标外的、或停手后剩下的）标成「—」，避免一直停在「加载中…」
+    for (const n of benchNotes) if (n && n.userId && n.fans == null) n.fans = '—';
+    paintFans();
   } finally { _fansFilling = false; }
 }
 // 把粉丝数刷到对应卡片（按 userId）：已抓到显示数字；达标+低粉(<1万)加「💎低粉」；在抓的显示「加载中…」；没插件提示装插件
