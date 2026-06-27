@@ -1407,8 +1407,19 @@ const MEMO_TOP = '<div class="nt-ios-top">' + MEMO_STATUS + MEMO_NAV + '</div>';
 const MEMO_TOOLS = '<div class="nt-ios-tools"><svg class="nt-tool" viewBox="0 0 22 22"><rect x="2.5" y="3.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 8.7h17M2.5 13.5h17M8.7 3.5v15M13.3 3.5v15" stroke="currentColor" stroke-width="1.3"/></svg><svg class="nt-tool" viewBox="0 0 22 22"><rect x="3.5" y="3.5" width="15" height="15" rx="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7 11 9.6 13.6 15 7.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="nt-tool" viewBox="0 0 28 22"><text x="14" y="16.5" font-size="15" font-weight="700" text-anchor="middle" font-family="-apple-system,PingFang SC,sans-serif" fill="currentColor">Aa</text></svg><svg class="nt-tool" viewBox="0 0 24 22"><rect x="2.5" y="6" width="19" height="12.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12.2" r="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.3 6 9.7 3.8h4.6L15.7 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><svg class="nt-tool acc" viewBox="0 0 22 22"><path d="M14.6 2.8 19.2 7.4 8.5 18.1H4v-4.5L14.6 2.8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>';
 const MEMO_BOTTOM = '<div class="nt-ios-bottom">' + MEMO_TOOLS + '<div class="nt-home"></div></div>';
 // 内容超出 3:4 画框时等比缩小，绝不裁切（cqw 自相似，预览算的比例在导出同样成立）。返回实际缩放比例。
+// 备忘录标题自动适配：能一行放下就用大号，放不下才逐档缩小（避免短标题被挤成两行）。有意的「；」换行不动。
+function fitMemoTitle(noteEl) {
+  if (!noteEl.classList.contains('is-memo')) return;
+  const h = noteEl.querySelector('.nt-h1'); if (!h) return;
+  h.style.fontSize = '';
+  if (/<br/i.test(h.innerHTML)) return; // 标题在「；」处有意两行 → 保留
+  const cs = getComputedStyle(h); let fs = parseFloat(cs.fontSize); const lh = parseFloat(cs.lineHeight) || fs * 1.22;
+  let g = 0;
+  while (h.scrollHeight > lh * 1.45 && fs > 9 && g++ < 60) { fs -= 0.5; h.style.fontSize = fs + 'px'; }
+}
 function fitNote(noteEl) {
   const fit = noteEl.querySelector('.cv-note-fit'); if (!fit) { return 1; }
+  fitMemoTitle(noteEl);
   fit.style.transform = ''; fit.style.width = '100%';
   const cs = getComputedStyle(noteEl); const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
   const avail = noteEl.clientHeight - padV; const need = fit.scrollHeight; let s = 1;
