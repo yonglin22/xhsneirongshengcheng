@@ -62,10 +62,14 @@ function _pageExtract() {
         let userId = '', authorLink = '';
         const au = card.querySelector('a[href*="/user/profile/"]');
         if (au) { const um = (au.getAttribute('href') || '').match(/\/user\/profile\/([0-9a-zA-Z]+)/); if (um) { userId = um[1]; authorLink = 'https://www.xiaohongshu.com/user/profile/' + userId; } }
-        // 作者名优先取主页链接里的文本（干净，不含日期）；并把粘在名字后的「MM-DD / X天前」剥掉
-        let author = ((au && au.textContent) || (nameEl && nameEl.textContent) || '').trim().replace(/\s*\d{1,2}-\d{1,2}$/, '').replace(/\s*(?:今天|昨天|前天|\d+天前)$/, '').trim();
+        // 日期：搜索卡常把发布日期（MM-DD / X天前 / 今天）粘在作者名块里 → 先从作者文本里抠出来单独存进 date，供时间窗筛选/达标判断
+        const rawAuthorText = ((nameEl && nameEl.textContent) || '').trim();
+        const dm = rawAuthorText.match(/(\d{1,2}-\d{1,2})\s*$/) || rawAuthorText.match(/(今天|昨天|前天|\d+\s*天前)\s*$/);
+        const date = dm ? dm[1].replace(/\s/g, '') : '';
+        // 作者名优先取主页链接里的干净文本；再把可能粘着的日期/空白去掉
+        let author = ((au && au.textContent) || rawAuthorText || '').trim().replace(/\s*\d{1,2}-\d{1,2}$/, '').replace(/\s*(?:今天|昨天|前天|\d+\s*天前)$/, '').trim();
         notes.push({
-          id, token: tm ? decodeURIComponent(tm[1]) : '',
+          id, token: tm ? decodeURIComponent(tm[1]) : '', date,
           title: (titleEl ? titleEl.textContent : '').trim().slice(0, 80),
           cover: img ? (img.getAttribute('src') || img.getAttribute('data-src') || '') : '',
           author, userId,

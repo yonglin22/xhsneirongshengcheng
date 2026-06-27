@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "朱砂操盘台 · 小红书采集&发布助手",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "用你本机已登录的小红书：①抓真实对标笔记（不限次、不被机房IP风控）②抓博主粉丝数③成稿一键存草稿箱。全程本机真实会话，零风控。",
   "permissions": ["tabs", "storage", "scripting", "alarms", "notifications"],
   "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
