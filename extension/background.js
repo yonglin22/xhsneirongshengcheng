@@ -188,10 +188,20 @@ function _fansExtract() {
       for (const k in o) find(o[k], depth + 1);
     })(st, 0);
   } catch (e) {}
-  if (fans === '') { // 兜底：扒 DOM（"粉丝"字样旁的数字）
+  if (fans === '') { // 兜底：扒 DOM —— 找到"粉丝"字样的元素，再就近取数字（同元素/兄弟/父级）
     try {
-      const els = [...document.querySelectorAll('[class*="fans"],[class*="count"],.user-interactions *')];
-      for (const el of els) { const t = (el.textContent || '').trim(); if (/粉丝/.test(t)) { const m = t.match(/([\d.]+\s*[万wW千kK]?)/); if (m) { fans = m[1].replace(/\s/g, ''); break; } } }
+      const all = [...document.querySelectorAll('span,div,em,b')];
+      for (const el of all) {
+        const t = (el.textContent || '').trim();
+        if (t.length > 12 || !/粉丝/.test(t)) continue;
+        // 1) 同元素里就有数字（如"粉丝 1.2万"）
+        let m = t.match(/([\d.]+\s*[万千wWkK]?)/);
+        if (m && /\d/.test(m[1])) { fans = m[1].replace(/\s/g, ''); break; }
+        // 2) "粉丝"是 label，数字在它的前一个/后一个兄弟，或同父级另一个子节点
+        const cands = [el.previousElementSibling, el.nextElementSibling].concat(el.parentElement ? [...el.parentElement.children] : []);
+        for (const c of cands) { if (!c || c === el) continue; const ct = (c.textContent || '').trim(); const mm = ct.match(/^([\d.]+\s*[万千wWkK]?)$/); if (mm) { fans = mm[1].replace(/\s/g, ''); break; } }
+        if (fans !== '') break;
+      }
     } catch (e) {}
   }
   let needLogin = false;
