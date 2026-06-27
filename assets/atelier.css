@@ -267,7 +267,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo{ background:var(--nt-bg,#fff); padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 /* 字号整体向参考图（密集干货长图）看齐：标题更克制、正文更小更密 */
-.cv-note.is-memo .nt-h1{ font-size:5.7cqw; font-weight:800; color:#1c1c1e; margin-bottom:1.2cqw; letter-spacing:-.04cqw; line-height:1.24; }
+.cv-note.is-memo .nt-h1{ font-size:5.7cqw; font-weight:900; color:#111316; margin-bottom:1.2cqw; letter-spacing:-.04cqw; line-height:1.24; }
 /* 小节标题：emoji 引导、加粗，但比之前小一档，贴近参考图分节标题 */
 .cv-note.is-memo .nt-sec{ font-size:4.1cqw; font-weight:800; color:#1c1c1e; margin:1.6cqw 0 .9cqw; gap:1.1cqw; }
 /* 正文/列表统一缩到 3.35cqw、行距收紧，密度对齐参考图 */
