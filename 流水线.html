@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=64" />
+<link rel="stylesheet" href="/assets/atelier.css?v=65" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -475,8 +475,7 @@ function outputHTML(st) {
         <div id="cvTplWrap" class="mt-2"></div>
       </div>
       <div class="mt-3 flex items-center gap-2.5 flex-wrap">
-        <button id="genNote" style="border:1px solid var(--line);border-radius:12px;padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer;background:var(--paper);color:var(--ink)">📝 生成长文笔记图</button>
-        <button id="genMemoCover" style="border:1px solid var(--cinnabar);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;background:#fff;color:var(--cinnabar)">📒 备忘录封面卡（真字）</button>
+        <button id="genNote" style="border:1px solid var(--cinnabar);border-radius:12px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;background:var(--cinnabar);color:#fff">📒 生成长文笔记图（醇备忘录真字封面+内页）</button>
         <button id="upImg" style="border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;cursor:pointer;background:var(--paper);color:var(--ink)">📎 上传真实图</button>
         <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
         <span class="text-[11px] text-[var(--ink-soft)]">${(state.refImages||[]).length?('对标 '+state.refImages.length+' 张 → 生成 '+Math.min(Math.max(state.refImages.length,1),9)+' 张，按对标结构'):('默认 3 张；贴对标后按其张数')}${(typeof agentImgStyle==='function'&&agentImgStyle())?(' · 画风：'+agentImgStyle()):' · 未设画风（智能体页可设）'}</span>
@@ -1109,6 +1108,7 @@ async function generateCoverImagesCore(n) {
       try {
         if (p.isNote) {
           const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
+          if (page) page.memo = true; // 一键生成全套：长图笔记默认醇备忘录真字风
           results[p.i] = { kind: 'note', page };
         } else if (p.photoIdx < imgCap) {
           const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
@@ -1410,6 +1410,7 @@ async function genNoteImages() {
     // 内容过重的页 → 自动拆成两页（避免被缩得太小）；其余 auto-fit 兜底
     const finalPages = pages.reduce((acc, p) => acc.concat(splitHeavyPage(p)), []);
     const splitN = finalPages.length - pages.length;
+    finalPages.forEach(p => { if (p) p.memo = true; }); // 默认全部排成「醇备忘录真字」风（封面卡 + 长文笔记同款）
     state.notePages = finalPages;
     state.coverImages = finalPages.map((_, i) => 'note://' + i);
     state.coverImage = state.coverImages[0];

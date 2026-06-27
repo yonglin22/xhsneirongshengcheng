@@ -271,9 +271,10 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 时钟用 line-height=栏高 居中（html2canvas 对 translateY(-50%) 的文字会算偏→被裁，line-height 两边一致）；右侧纯图标用 flex 即可 */
 .cv-note.is-memo .nt-clock{ position:absolute; left:7.5cqw; top:0; height:6cqw; display:flex; align-items:center; font-size:3.5cqw; font-weight:700; color:#000; letter-spacing:.03em; line-height:1; }
 .cv-note.is-memo .nt-stat-r{ position:absolute; right:6cqw; top:0; height:6cqw; display:flex; align-items:center; gap:1.5cqw; }
-.cv-note.is-memo .nt-si{ height:2.9cqw; width:auto; fill:#000; display:block; }
-.cv-note.is-memo .nt-batpct{ font-size:3cqw; font-weight:600; color:#000; margin-right:.4cqw; letter-spacing:0; }
-.cv-note.is-memo .nt-bat{ height:3.2cqw; width:auto; fill:#000; color:#000; display:block; }
+/* 状态栏右侧元素：统一视觉高度（信号/wifi/电池同高），100 字号贴近图标，整体更像真 iOS 状态栏、不显错位 */
+.cv-note.is-memo .nt-si{ height:3.1cqw; width:auto; fill:#000; display:block; }
+.cv-note.is-memo .nt-batpct{ font-size:3.1cqw; font-weight:600; color:#000; margin-right:.5cqw; letter-spacing:0; line-height:1; }
+.cv-note.is-memo .nt-bat{ height:3.1cqw; width:auto; fill:#000; color:#000; display:block; }
 .cv-note.is-memo .nt-ios-nav{ position:relative; height:9cqw; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
 /* 用 flex align-items:center 几何居中（实测：140px 缩略图与 360px 预览都 0px 对齐，360px 导出 0.33px 对齐）。
    line-height 居中在小字号 CJK 下像素不稳（140px 偏 2.7px），故弃用；flex 按盒子几何中心居中，跨尺寸稳定。 */
