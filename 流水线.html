@@ -800,7 +800,7 @@ function renderCvTpls() {
         <textarea class="cvtpl-prompt field rounded-lg px-2.5 py-1.5 text-[12px] leading-relaxed" data-i="${i}" rows="4" style="resize:vertical">${esc(tp.prompt)}</textarea>
         <div class="flex items-center gap-2 flex-wrap">
           <button class="cvtpl-copy rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper-2);color:var(--ink);cursor:pointer">📋 复制提示词</button>
-          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer">🎨 出封面</button>
+          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer">🎨 出封面（替换封面位）</button>
           <span class="cvtpl-msg text-[11px]" data-i="${i}"></span>
         </div>
       </div>
@@ -829,8 +829,10 @@ async function genCoverFromCvTpl(i) {
     const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
     if (!u) throw new Error('上游无图');
-    state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
-    state.coverImages[0] = u; state.coverImage = state.coverImages[0];
+    // 「出封面」= 替换第一张（封面位 index 0），不新增位置。若原封面位是备忘录卡(note://)则解除其页绑定，干净替换成 AI 实物封面。
+    if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
+    if (!state.coverImages.length) state.coverImages.push(u); else state.coverImages[0] = u;
+    state.coverImage = state.coverImages[0];
     // AI 出干净背景，系统把封面文案（来自 S3 第一张配图规划）叠上去——文字真实清晰，不再空白
     state.coverCaptions = state.coverCaptions || [];
     state.coverCaptions[0] = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : { raw: true };
