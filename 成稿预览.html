@@ -418,7 +418,7 @@ $('#topic').addEventListener('input', e=> localStorage.setItem('ag_topic', e.tar
 })();
 
 // 同源代理地址（导出需同源，避免 canvas 污染）
-function pxSrc(u){ return (u||'').startsWith('data:') ? u : ('/api/img-proxy?u='+encodeURIComponent(u)); }
+function pxSrc(u){ u=u||''; return (u.startsWith('data:')||u.startsWith('/')||u.startsWith(location.origin)) ? u : ('/api/img-proxy?u='+encodeURIComponent(u)); }
 // 给 img 设图：优先走代理（同源、可导出）；代理回源失败（签名图过期/防盗链/服务器拉不到）→ 自动退回直连原图，保证至少能显示
 function loadImg(img, u){
   if(!img) return;

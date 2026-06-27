@@ -102,7 +102,7 @@ $('#model').value = localStorage.getItem('ag_model') || 'claude-opus-4-8';
 $('#model').addEventListener('change', e => localStorage.setItem('ag_model', e.target.value));
 
 let cImages = [];
-function imgSrc(u){ return (u||'').startsWith('data:') ? u : '/api/img-proxy?u='+encodeURIComponent(u); }
+function imgSrc(u){ u=u||''; return (u.startsWith('data:')||u.startsWith('/')||u.startsWith(location.origin)) ? u : '/api/img-proxy?u='+encodeURIComponent(u); }
 // 长图笔记（note://）/ 模板卡（tpl://）渲染（与成稿预览一致），避免被当成 <img> 裂图
 function hexA(h,a){ const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim()); if(!m)return 'rgba(255,150,60,'+a+')'; const n=parseInt(m[1],16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
 function noteStyleVars(page){ const p=page||{}; const memo=!!p.memo;

@@ -494,7 +494,7 @@ function outputHTML(st) {
   return '';
 }
 
-function imgSrc(u) { return (u || '').startsWith('data:') ? u : '/api/img-proxy?u=' + encodeURIComponent(u); }
+function imgSrc(u) { u = u || ''; return (u.startsWith('data:') || u.startsWith('/') || u.startsWith(location.origin)) ? u : '/api/img-proxy?u=' + encodeURIComponent(u); }
 /* <img> 用：默认走同源代理（解决小红书图防盗链 + 导出 PNG 同源），
    一旦代理回源失败（如 ark/可灵签名图服务器拉不到、403、超时）→ onerror 自动退回直连原图，保证一定能显示。*/
 function imgAttr(u) {
