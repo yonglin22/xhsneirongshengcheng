@@ -252,10 +252,16 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 纸面背景跟随 --nt-bg（可自定义颜色）；顶栏/底栏保持白色，像真 iOS UI */
 .cv-note.is-memo{ background:var(--nt-bg,#fff); padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
-.cv-note.is-memo .nt-h1{ font-size:6.6cqw; font-weight:800; color:#1c1c1e; margin-bottom:1.4cqw; letter-spacing:0; }
-.cv-note.is-memo .nt-sec{ font-weight:800; color:#1c1c1e; }
+.cv-note.is-memo .nt-h1{ font-size:7.2cqw; font-weight:900; color:#16181d; margin-bottom:1.4cqw; letter-spacing:.1cqw; line-height:1.22; }
+/* 小节标题：去掉橙色竖条，改成 emoji 引导（emoji 由 AI 写进文案）；更密、更粗，像真备忘录的分节标题 */
+.cv-note.is-memo .nt-sec{ font-size:4.7cqw; font-weight:800; color:#16181d; margin:2.4cqw 0 1.2cqw; gap:1.4cqw; }
+.cv-note.is-memo .nt-sec .nt-dot{ display:none; }
 /* 小节之间加细虚线分隔（真备忘录最显眼的特征之一）：每个小节标题上方一条横虚线，首个标题前不画 */
-.cv-note.is-memo .nt-sec:not(:first-child){ position:relative; border-top:.35cqw dashed rgba(60,80,120,.28); margin-top:4cqw; padding-top:3.4cqw; }
+.cv-note.is-memo .nt-sec:not(:first-child){ position:relative; border-top:.35cqw dashed rgba(60,80,120,.28); margin-top:3.2cqw; padding-top:2.8cqw; }
+/* 绿色 ✅ 总结框（参考图底部"核心就是…"的高亮总结块） */
+.cv-note.is-memo .nt-box{ margin:3.4cqw 0 1cqw; padding:2.8cqw 3cqw; background:rgba(52,199,89,.10); border:.4cqw solid rgba(52,199,89,.55); border-radius:2.4cqw; }
+.cv-note.is-memo .nt-box .nt-box-li{ font-size:3.6cqw; line-height:1.5; color:#1c1c1e; font-weight:600; margin:1cqw 0; display:flex; align-items:flex-start; gap:1.4cqw; }
+.cv-note.is-memo .nt-box .nt-box-li::before{ content:"✅"; font-size:3.4cqw; flex:none; line-height:1.5; }
 .cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ color:#2c2c2e; }
 /* 高亮改成饱满荧光笔：覆盖大半个字高（.66em）、上移到字身中部（.34em），更贴近真备忘录手写马克笔感 */
 .cv-note.is-memo .hl{ background-size:100% .66em; background-position:0 .34em; padding:0 .12em; border-radius:.06em; }
@@ -266,6 +272,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-clock{ position:absolute; left:7.5cqw; top:0; height:6cqw; display:flex; align-items:center; font-size:3.5cqw; font-weight:700; color:#000; letter-spacing:.03em; line-height:1; }
 .cv-note.is-memo .nt-stat-r{ position:absolute; right:6cqw; top:0; height:6cqw; display:flex; align-items:center; gap:1.5cqw; }
 .cv-note.is-memo .nt-si{ height:2.9cqw; width:auto; fill:#000; display:block; }
+.cv-note.is-memo .nt-batpct{ font-size:3cqw; font-weight:600; color:#000; margin-right:.4cqw; letter-spacing:0; }
 .cv-note.is-memo .nt-bat{ height:3.2cqw; width:auto; fill:#000; color:#000; display:block; }
 .cv-note.is-memo .nt-ios-nav{ position:relative; height:9cqw; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
 /* 用 flex align-items:center 几何居中（实测：140px 缩略图与 360px 预览都 0px 对齐，360px 导出 0.33px 对齐）。
@@ -275,7 +282,9 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-nav-back-label{ font-size:4cqw; font-weight:500; line-height:1; display:block; }
 .cv-note.is-memo .nt-nav-date{ position:absolute; left:0; right:0; top:0; height:9cqw; display:flex; align-items:center; justify-content:center; color:#8a8a90; font-size:2.85cqw; font-weight:600; white-space:nowrap; letter-spacing:.01em; line-height:1; pointer-events:none; }
 /* 右侧纯图标区：用 flex（图标是 SVG，不受 html2canvas 文字掉位影响），避免 inline-block 右对齐被 html2canvas 算错而裁掉「...」 */
-.cv-note.is-memo .nt-nav-r{ position:absolute; right:4.5cqw; top:0; height:9cqw; display:flex; align-items:center; gap:3.4cqw; z-index:1; }
+.cv-note.is-memo .nt-nav-r{ position:absolute; right:4.5cqw; top:0; height:9cqw; display:flex; align-items:center; gap:3.2cqw; z-index:1; }
+/* 描边图标（撤销/重做/分享，带 stroke 属性）：fill 必须 none，否则会被基础 .nt-ny 的 fill 填成实心球 */
+.cv-note.is-memo .nt-nav-r .nt-ny[stroke]{ fill:none; }
 .cv-note.is-memo .nt-ny{ height:5cqw; width:auto; fill:#e8a400; color:#e8a400; display:block; }
 /* 底部：工具栏 + Home 指示条 */
 .cv-note.is-memo .nt-ios-bottom{ position:absolute; bottom:0; left:0; right:0; z-index:4; background:var(--nt-bg,#fff); }
