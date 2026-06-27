@@ -673,10 +673,15 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.textContent = webOk ? '🔄 网页已出，社区笔记加载中…' : '🔄 查小红书相关笔记中…（约 10–30 秒）';
     // 2) 小红书社区笔记（始终补充；网页失败时作为唯一来源）
     try {
-      const r = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: q, sort: 'popular' }) })).json();
+      // 社区笔记改用「朱砂助手」插件搜索 —— 用用户自己浏览器登录的小红书账号抓，不走服务器账号、不掉线
+      let r;
+      if (window.xhsExt && window.xhsExt.available) r = await window.xhsExt.search(q, 'popular');
+      else r = { ok: false, _noext: true };
       const ns = (r.notes || []).slice(0, 6);
       const part = box.querySelector('#xhsLivePart');
-      if (!r.ok || !ns.length) {
+      if (r._noext || (r && r.needLogin)) {
+        if (part) part.outerHTML = '<div style="font-size:11px;color:var(--ink-soft,#999);margin:6px 0 4px">' + (r._noext ? '装「朱砂助手」插件并在浏览器登录小红书后，这里会用<b>你自己的账号</b>显示社区相关笔记。' : '请先在浏览器登录小红书后重试。') + '</div>';
+      } else if (!r.ok || !ns.length) {
         if (part) part.outerHTML = webOk ? '' : '<div style="font-size:11px;color:var(--ink-soft,#999);margin:6px 0 4px">（暂未搜到相关内容，可换个关键词）</div>';
       } else {
         const html = '<div style="font-size:11px;color:var(--ink-soft,#999);margin:8px 0 4px">📌 小红书相关笔记（社区内容·点开看详情，规则以官方最新为准）：</div>'

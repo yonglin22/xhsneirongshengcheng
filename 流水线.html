@@ -94,7 +94,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=49"></script>
+<script src="/assets/app.js?v=50"></script>
 <script>
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
@@ -1853,7 +1853,10 @@ async function grabBenchmarkNotes(searches) {
         j = await window.xhsExt.search(kws[i], benchFetchSort, benchFetchType);
         if (j && j.needLogin) { if (st) st.textContent = '⚠ 请先在浏览器里登录小红书，再回来抓（插件用你自己的账号，不限次）'; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
       } else {
-        j = await (await fetch('/api/xhs-search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i], sort: benchFetchSort, type: benchFetchType }) })).json();
+        // 不再用服务器采集登录账号兜底：引导用户装「朱砂助手」插件 + 在浏览器登录小红书，用自己的账号抓
+        if (st) st.textContent = '⚠ 找对标需安装「朱砂助手」插件并在浏览器登录小红书（用你自己的账号抓，不限次、不掉线）。装好后刷新本页重试。';
+        if (btn) { btn.disabled = false; btn.textContent = o; }
+        return;
       }
       if (!j) j = { ok: false };
       // 命中每日抓取上限 → 停止并友好提示
