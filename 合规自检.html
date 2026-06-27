@@ -157,9 +157,9 @@ function coverLinesForTpl(){ const c=($('#cCover')&&$('#cCover').value||'').trim
 function ratioCssV(){ return ({'2:3':'2/3','3:4':'3/4','9:16':'9/16'})[window.__ratio||'3:4']||'3/4'; }
 // 单个缩略：note:// / tpl:// / ctpl:// → CSS 卡；普通 URL/data → 图片
 function imgCellHTML(u, wpx){ u=u||'';
-  if(u.startsWith('ctpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;box-shadow:none;border:1px solid var(--line)">${coverTemplateHTML(u.slice(7), coverLinesForTpl())}</div>`;
+  if(u.startsWith('ctpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;aspect-ratio:${ratioCssV()};box-shadow:none;border:1px solid var(--line)">${coverTemplateHTML(u.slice(7), coverLinesForTpl())}</div>`;
   if(u.startsWith('note://')) return `<div class="cv-frame tpl note-zoom" data-note="${+u.slice(7)}" title="点击放大" style="width:${wpx}px;aspect-ratio:${ratioCssV()};box-shadow:none;border:1px solid var(--line);cursor:zoom-in">${noteCardHTML((window.__notePages||[])[+u.slice(7)])}</div>`;
-  if(u.startsWith('tpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;box-shadow:none;border:1px solid var(--line)"><div class="cv-tpl t0"></div></div>`;
+  if(u.startsWith('tpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;aspect-ratio:${ratioCssV()};box-shadow:none;border:1px solid var(--line)"><div class="cv-tpl t0"></div></div>`;
   return `<div class="out p-0" style="width:${wpx}px;aspect-ratio:${ratioCssV()};border-radius:8px;overflow:hidden"><img class="zoomable" title="点击放大" src="${imgSrc(u)}" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in"/></div>`; }
 // 长图笔记卡点击放大（CSS 卡不是图，用大号 cv-frame 弹层显示）
 function showNoteLightbox(page){ if(!page)return;
