@@ -152,6 +152,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 
 /* 封面预览（流水线 S6）：标题叠图 + 裁掉底部 AI 水印 */
 .cv-frame{ position:relative; width:248px; aspect-ratio:3/4; border-radius:14px; overflow:hidden; box-shadow:0 6px 18px -8px rgba(0,0,0,.35); container-type:inline-size; }
+/* AI 封面/配图图片填满画框（画框比例由 state.imgRatio 决定，2:3/3:4/9:16），按所选比例裁切显示 */
+.cv-frame > img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
 .cv-frame > img{ position:absolute; inset:0; width:100%; height:109%; object-fit:cover; object-position:top center; }
 .cv-scrim{ position:absolute; inset:0; background:radial-gradient(120% 80% at 50% 38%, rgba(0,0,0,.30), transparent 62%); }
 .cv-title{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; padding:0 18px;
