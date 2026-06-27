@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=68" />
+<link rel="stylesheet" href="/assets/atelier.css?v=69" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -820,10 +820,10 @@ async function genCoverFromCvTpl(i) {
   const a = loadCvTpls(); const tp = a[i]; if (!tp) return;
   const msg = document.querySelector('.cvtpl-msg[data-i="' + i + '"]');
   const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
-  // 不让 AI 把标题画进图（gpt-image 画中文会糊）→ 顶部留排版空位、画面零文字；标题由系统叠加。
-  const titleHint = '画面顶部留出大字标题的排版空位（上部约 1/3 干净留白）；画面内不要出现任何文字/汉字/字母/数字/水印（标题由系统叠加）；';
+  // 不让 AI 把标题画进图（gpt-image 画中文会糊）→ 画面零文字、标题由系统叠加；但背景必须铺满、不能留白（之前要求"留白"导致生成近乎空白的丑图）。
+  const titleHint = '【构图硬要求】整张画面都要铺满丰富的视觉内容——背景质感、光影、主体物、装饰元素层次分明，绝对不能出现纯色/灰白/大面积留白的空背景；上半部分用柔和、稍低对比的明亮区域（仍要有背景纹理与细节，不是空白），方便后期叠加标题；画面内不得出现任何文字、汉字、字母、数字或水印（标题由系统另行叠加）。';
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-  const prompt = tp.prompt + '。' + titleHint + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 ' + ratioWord() + '，画面要有明确主体与设计感（不要大面积空白），高清、版式精致。';
+  const prompt = tp.prompt + '。' + titleHint + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版爆款封面 ' + ratioWord() + '，高级时尚杂志编辑级质感、色彩饱满有氛围、主体清晰、细节精致、商业摄影打光，整图设计元素铺满，高清。';
   if (msg) { msg.textContent = '出图中…（约 30~60 秒）'; msg.style.color = 'var(--ink-soft)'; }
   try {
     // 关键：不传 init_image。对标封面多是文字密集的笔记图，拿它当参考再要求「无文字」会被模型擦成白图 →

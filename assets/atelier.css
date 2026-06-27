@@ -199,7 +199,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-card.theme-poster .cv-li.num::before{ display:none; }
 .cv-card.theme-poster .cv-li.num b{ flex:none; background:#1a1a1a; color:#fff; }
 /* 封面：大字黑体居中，干净简单 */
-.cv-card.theme-poster.is-cover .cv-card-t, .cv-card.theme-poster.lay-封面 .cv-card-t{ color:#1a1a1a; background:none; font-size:15.5cqw; text-align:center; }
+.cv-card.theme-poster.is-cover .cv-card-t, .cv-card.theme-poster.lay-封面 .cv-card-t{ color:#1a1a1a; background:none; font-size:15.5cqw; text-align:center; text-shadow:0 1px 12px rgba(255,255,255,.85),0 0 3cqw rgba(255,255,255,.7); }
 .cv-card.theme-poster.is-cover .cv-card-t::after, .cv-card.theme-poster.lay-封面 .cv-card-t::after{ margin:3cqw auto 0; }
 .cv-card.theme-poster.is-cover .cv-li, .cv-card.theme-poster.lay-封面 .cv-li{ color:#6b7178; padding-left:0; text-align:center; }
 .cv-card.theme-poster.is-cover .cv-li::before, .cv-card.theme-poster.lay-封面 .cv-li::before{ display:none; }
