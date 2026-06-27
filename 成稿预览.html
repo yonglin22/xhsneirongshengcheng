@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 <script src="/assets/jszip.min.js?v=1"></script>
-<link rel="stylesheet" href="/assets/atelier.css?v=66" />
+<link rel="stylesheet" href="/assets/atelier.css?v=67" />
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=52"></script>
 <style>
@@ -442,6 +442,8 @@ function importDraftData(d){
   if(d.topic) $('#topic').value=d.topic;
   render({ cover_lines:(d.cover&&d.cover.cover_lines)||d.cover_lines, title:d.best||d.title, body:d.body, tags:d.tags, platform:d.platform, summary:d.summary, coverImages:d.coverImages, coverImage:d.coverImage });
   window.__notePages = d.notePages || [];
+  window.__ratio = d.imgRatio || '3:4';
+  applyRatio();
   const imgs = d.coverImages || (d.coverImage?[d.coverImage]:[]);
   setCoverImages(imgs, d.coverCaptions || []);
   setStatus(imgs.length ? ('✓ 已导入（含 '+imgs.length+' 张生成图）') : '✓ 已导入成稿');
@@ -690,6 +692,9 @@ function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&
 function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fit) return; fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; if(need>avail+1&&avail>0){ const s=Math.max(0.45, avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } }
 function fitAllNotes(root){ (root||document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); }
 // 用多张图重建轮播（第1张为封面，每张都用干净叠字卡）
+// 出图比例（2:3 / 3:4 / 9:16）跟随流水线选择，作用到封面与轮播框，发布到后台也按此比例
+function ratioCssVal(){ return ({'2:3':'2/3','3:4':'3/4','9:16':'9/16'})[window.__ratio||'3:4']||'3/4'; }
+function applyRatio(){ const ar=ratioCssVal(); ['carousel','cover'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.aspectRatio=ar; }); }
 function setCoverImages(arr, caps){
   arr = (arr||[]).filter(Boolean); caps = caps || [];
   const isSpecial = u => (u||'').startsWith('tpl://') || (u||'').startsWith('note://') || (u||'').startsWith('ctpl://');
@@ -794,7 +799,7 @@ $('#exportBtn').addEventListener('click', async ()=>{
     const imgs = d.coverImages || (d.coverImage?[d.coverImage]:[]);
     // 逐张截轮播 slide（含叠字/标题、已裁水印），保证导出图=所见即所得
     const slides = $('#carTrack') ? [...$('#carTrack').children] : [];
-    const W=1080, H=1440; // 统一压成 1080P 竖版 3:4
+    const W=1080, H=Math.round(W*({'2:3':3/2,'3:4':4/3,'9:16':16/9}[window.__ratio||'3:4']||4/3)); // 1080P 竖版，高度随出图比例（2:3/3:4/9:16）
     for (let i=0; i<slides.length; i++){
       const cv = await html2canvas(slides[i], { scale:3, useCORS:true, backgroundColor:'#ffffff' });
       const oc = document.createElement('canvas'); oc.width=W; oc.height=H;

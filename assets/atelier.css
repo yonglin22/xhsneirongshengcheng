@@ -252,15 +252,15 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 纸面背景跟随 --nt-bg（可自定义颜色）；顶栏/底栏保持白色，像真 iOS UI */
 .cv-note.is-memo{ background:var(--nt-bg,#fff); padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
-.cv-note.is-memo .nt-h1{ font-size:7.2cqw; font-weight:900; color:#16181d; margin-bottom:1.4cqw; letter-spacing:.1cqw; line-height:1.22; }
+.cv-note.is-memo .nt-h1{ font-size:7cqw; font-weight:780; color:#1c1c1e; margin-bottom:1.4cqw; letter-spacing:.05cqw; line-height:1.24; }
 /* 小节标题：去掉橙色竖条，改成 emoji 引导（emoji 由 AI 写进文案）；更密、更粗，像真备忘录的分节标题 */
-.cv-note.is-memo .nt-sec{ font-size:4.7cqw; font-weight:800; color:#16181d; margin:2.4cqw 0 1.2cqw; gap:1.4cqw; }
+.cv-note.is-memo .nt-sec{ font-size:4.6cqw; font-weight:700; color:#1c1c1e; margin:2.4cqw 0 1.2cqw; gap:1.4cqw; }
 .cv-note.is-memo .nt-sec .nt-dot{ display:none; }
 /* 小节之间加细虚线分隔（真备忘录最显眼的特征之一）：每个小节标题上方一条横虚线，首个标题前不画 */
-.cv-note.is-memo .nt-sec:not(:first-child){ position:relative; border-top:.35cqw dashed rgba(60,80,120,.28); margin-top:3.2cqw; padding-top:2.8cqw; }
-/* 绿色 ✅ 总结框（参考图底部"核心就是…"的高亮总结块） */
-.cv-note.is-memo .nt-box{ margin:3.4cqw 0 1cqw; padding:2.8cqw 3cqw; background:rgba(52,199,89,.10); border:.4cqw solid rgba(52,199,89,.55); border-radius:2.4cqw; }
-.cv-note.is-memo .nt-box .nt-box-li{ font-size:3.6cqw; line-height:1.5; color:#1c1c1e; font-weight:600; margin:1cqw 0; display:flex; align-items:flex-start; gap:1.4cqw; }
+.cv-note.is-memo .nt-sec:not(:first-child){ position:relative; border-top:.3cqw solid rgba(60,60,67,.13); margin-top:3.2cqw; padding-top:2.8cqw; }
+/* ✅ 总结块：真 iOS 备忘录没有"带边框圆角卡片"，硬画一个就会很假。改成无边框、左侧细色条引导的高亮段落，像备忘录里手动高亮的一段文字 */
+.cv-note.is-memo .nt-box{ margin:3cqw 0 1cqw; padding:.4cqw 0 .4cqw 3cqw; background:none; border:none; border-left:.9cqw solid rgba(52,199,89,.7); border-radius:0; }
+.cv-note.is-memo .nt-box .nt-box-li{ font-size:3.7cqw; line-height:1.5; color:#1c1c1e; font-weight:500; margin:1cqw 0; display:flex; align-items:flex-start; gap:1.4cqw; }
 .cv-note.is-memo .nt-box .nt-box-li::before{ content:"✅"; font-size:3.4cqw; flex:none; line-height:1.5; }
 .cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ color:#2c2c2e; }
 /* 高亮改成饱满荧光笔：覆盖大半个字高（.66em）、上移到字身中部（.34em），更贴近真备忘录手写马克笔感 */
@@ -296,6 +296,13 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-tool.acc{ color:#e8a400; }
 .cv-note.is-memo .nt-home{ height:4cqw; display:flex; align-items:center; justify-content:center; }
 .cv-note.is-memo .nt-home::after{ content:""; width:33cqw; height:1.1cqw; border-radius:1cqw; background:#000; }
+
+/* 「更多封面玩法」展开器：展开后箭头标签变「收起 ▴」，让用户知道这里可点 */
+#moreCoverDetails[open] .mcd-arrow{ background:var(--ink-soft,#8a8a90); }
+#moreCoverDetails[open] .mcd-arrow::after{ content:""; }
+#moreCoverDetails .mcd-arrow{ white-space:nowrap; }
+#moreCoverDetails[open] summary .mcd-arrow{ font-size:0; }
+#moreCoverDetails[open] summary .mcd-arrow::before{ content:"收起 ▴"; font-size:12px; }
 
 /* ===== 自有封面模板库（CSS 排版渲染，文字精准、html2canvas 可导出；填 cover_lines）===== */
 .cv-ctpl{ position:absolute; inset:0; overflow:hidden; display:flex; flex-direction:column; font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;

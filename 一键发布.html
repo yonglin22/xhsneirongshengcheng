@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>一键发布 · 获客 Agent · 朱砂操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=66" />
+<link rel="stylesheet" href="/assets/atelier.css?v=67" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
@@ -99,8 +99,9 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
 function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&page.memo); const inner=((page&&page.blocks)||[]).map(noteBlock).join(''); if(memo){ const nav = MEMO_NAV; const top='<div class="nt-ios-top">'+MEMO_STATUS+nav+'</div>'; return `<div class="cv-note is-memo" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`; } return `<div class="cv-note${cover?' is-cover':''}" style="${noteStyleVars(page)}">${cover?inner:`<div class="cv-note-fit">${inner}</div>`}</div>`; }
 function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fit) return; fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; if(need>avail+1&&avail>0){ const s=Math.max(0.45, avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } }
 // note:// / ctpl:// → PNG（html2canvas）；http → 原样
-async function renderCardsToPng(coverImages, notePages, coverLines){
+async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio){
   const host=$('#renderHost'); const out=[];
+  const W=540, H=Math.round(W*({'2:3':3/2,'3:4':4/3,'9:16':16/9}[imgRatio||'3:4']||4/3)); // 画框高度随出图比例（发布/下载尺寸正确）
   for(const u of (coverImages||[])){
     if(/^https?:\/\//.test(u)){ out.push(u); continue; }
     if((u||'').startsWith('/')){ out.push(location.origin+u); continue; } // 同源相对图(如 /gen/x.png) → 补成绝对，否则插件在小红书域名下解析错域名
@@ -108,11 +109,11 @@ async function renderCardsToPng(coverImages, notePages, coverLines){
     if((u||'').startsWith('note://')) html=noteCardHTML((notePages||[])[+u.slice(7)]);
     else if((u||'').startsWith('ctpl://')) html=coverTemplateHTML(u.slice(7), coverLines);
     else continue;
-    host.innerHTML='<div class="cv-frame" style="width:540px;height:720px">'+html+'</div>';
+    host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+html+'</div>';
     const noteEl=host.querySelector('.cv-note:not(.is-cover)'); if(noteEl) fitNote(noteEl);
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
-    const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:540,height:720});
+    const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
     out.push(cv.toDataURL('image/jpeg',0.92));
   }
   host.innerHTML='';
@@ -129,7 +130,7 @@ $('#extPubBtn').addEventListener('click', async ()=>{
   const btn=$('#extPubBtn'); btn.disabled=true; const o=btn.textContent; btn.textContent='转图中…';
   $('#pubStatus').textContent='正在把封面/卡片转成图片…'; $('#pubStatus').style.color='var(--ink-soft)';
   try{
-    const images=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines);
+    const images=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines, WORK.imgRatio);
     if(!images.length){ $('#pubStatus').textContent='这篇没有可发布的图片'; $('#pubStatus').style.color='var(--cinnabar-deep)'; btn.disabled=false; btn.textContent=o; return; }
     btn.textContent='发送给插件…';
     window.postMessage({ type:'ZHUSHA_PUBLISH', payload:{ title:WORK.title, body:WORK.body, images, tags:WORK.tags||[] } }, '*');
@@ -141,7 +142,7 @@ window.addEventListener('message', e=>{ if(e.source===window && e.data && e.data
 // 把一篇成稿数据装进 WORK（草稿/云端历史共用）
 function buildWORK(data, id){
   const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
-  return { id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[], tags:(data.tags||[]).map(t=>String(t||'').trim().replace(/^#/,'')).filter(Boolean) };
+  return { id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[], imgRatio:data.imgRatio||'3:4', tags:(data.tags||[]).map(t=>String(t||'').trim().replace(/^#/,'')).filter(Boolean) };
 }
 function loadDraft(){ try{ return JSON.parse(localStorage.getItem('ag_draft')||'{}'); }catch{ return {}; } }
 async function loadWorks(){

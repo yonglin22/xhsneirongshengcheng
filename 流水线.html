@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=66" />
+<link rel="stylesheet" href="/assets/atelier.css?v=67" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -464,8 +464,12 @@ function outputHTML(st) {
         </div>
       </details>
       <!-- 更多封面玩法（默认收起）：封面文案 / 封面模板 / 解析对标爆款 -->
-      <details style="border-top:1px solid var(--line);padding-top:8px">
-        <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink)">🎨 更多封面玩法（封面模板 · 解析对标爆款 · 文案叠字）</summary>
+      <details id="moreCoverDetails" style="margin-top:4px">
+        <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;border:1.5px dashed var(--cinnabar);border-radius:10px;padding:10px 14px;background:linear-gradient(180deg,rgba(255,36,66,.06),rgba(255,36,66,.02));font-size:13px;font-weight:700;color:var(--cinnabar-deep)">
+          <span style="font-size:15px">🎨</span>
+          <span>更多封面玩法：封面模板 · 解析对标爆款 · 文案叠字</span>
+          <span class="mcd-arrow" style="margin-left:auto;font-size:12px;background:var(--cinnabar);color:#fff;border-radius:999px;padding:2px 10px;font-weight:600">点击展开 ▾</span>
+        </summary>
         <div class="mt-3 space-y-3">
           <div>
             <div class="text-[11px] text-[var(--ink-soft)] mb-1">封面文案（叠在图上，两行）</div>
@@ -1332,7 +1336,7 @@ function showNoteLightbox(page) {
   if (!page) return;
   let lb = document.getElementById('__noteLb');
   if (!lb) { lb = document.createElement('div'); lb.id = '__noteLb'; lb.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out'; document.body.appendChild(lb); lb.addEventListener('click', () => lb.style.display = 'none'); document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.style.display = 'none'; }); }
-  lb.innerHTML = '<div class="cv-frame" style="width:min(86vw,360px);box-shadow:0 12px 48px rgba(0,0,0,.55)">' + noteCardHTML(page) + '</div>';
+  lb.innerHTML = '<div class="cv-frame" style="width:min(86vw,360px);aspect-ratio:' + ratioCss() + ';box-shadow:0 12px 48px rgba(0,0,0,.55)">' + noteCardHTML(page) + '</div>';
   lb.style.display = 'flex'; requestAnimationFrame(() => requestAnimationFrame(() => fitAllNotes(lb)));
 }
 function bindNoteZoom(root) { (root || document).querySelectorAll('.cv-frame[data-note]').forEach(fr => fr.addEventListener('click', () => showNoteLightbox((state.notePages || [])[+fr.dataset.note]))); }
