@@ -645,7 +645,9 @@ const server = http.createServer(async (req, res) => {
               if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
               const fn = 'img' + Date.now() + Math.random().toString(36).slice(2, 8) + '.png';
               fs.writeFileSync(path.join(genDir, fn), Buffer.from(d.b64_json, 'base64'));
-              outUrl = '/gen/' + fn;
+              // 返回绝对地址（PUBLIC_BASE_URL）→ 一键发布(发给插件)、合规自检(img-proxy 只认 http)、导出 都能正确取到；没配则退回相对路径
+              const pubBase = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
+              outUrl = pubBase + '/gen/' + fn;
             } catch (e) { outUrl = 'data:image/png;base64,' + d.b64_json; } // 落地失败兜底，仍可显示
           }
         } catch {}

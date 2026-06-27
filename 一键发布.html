@@ -101,6 +101,7 @@ async function renderCardsToPng(coverImages, notePages, coverLines){
   const host=$('#renderHost'); const out=[];
   for(const u of (coverImages||[])){
     if(/^https?:\/\//.test(u)){ out.push(u); continue; }
+    if((u||'').startsWith('/')){ out.push(location.origin+u); continue; } // 同源相对图(如 /gen/x.png) → 补成绝对，否则插件在小红书域名下解析错域名
     let html='';
     if((u||'').startsWith('note://')) html=noteCardHTML((notePages||[])[+u.slice(7)]);
     else if((u||'').startsWith('ctpl://')) html=coverTemplateHTML(u.slice(7), coverLines);
@@ -161,7 +162,7 @@ async function loadWorks(){
       <span style="font-size:11px;color:var(--ink-soft)">${fmtD(w.ts)}</span>
     </label>`).join('') : (draftHtml?'':'<div class="text-[13px] text-[var(--ink-soft)] text-center py-6">还没有成稿，先去创作流水线生成。</div>'));
   function setStatus(WORK){
-    const n=(WORK.coverImages||[]).filter(u=>/^https?:\/\//.test(u)||/^(note|ctpl):\/\//.test(u)).length;
+    const n=(WORK.coverImages||[]).filter(u=>/^https?:\/\//.test(u)||/^\//.test(u)||/^(note|ctpl):\/\//.test(u)).length;
     $('#pubStatus').textContent = `✓ 已选「${(WORK.title||'').slice(0,16)}」· 共 ${n} 张图（CSS 卡发布时自动转 PNG）`;
     $('#pubStatus').style.color = n? '#00a152':'var(--cinnabar-deep)';
   }
