@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=75" />
+<link rel="stylesheet" href="/assets/atelier.css?v=76" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -770,6 +770,8 @@ function ratioCss() { return ({ '2:3': '2/3', '3:4': '3/4', '9:16': '9/16' })[cu
 // ===== 本赛道「爆款封面模板」：把对标爆款封面解析成可复制/改写的生图提示词（按赛道缓存）=====
 // 复用已抓到的对标封面(state.refImages)与现有视觉解析(/api/vision)，不改任何抓取逻辑。
 const CVTPL_VISION_PROMPT = `你是专业的 AI 生图提示词专家，擅长为 GPT image-1（OpenAI）撰写高质量中文提示词。请分析这张小红书爆款封面图，输出一段可直接用于重现其视觉风格与排版布局的中文生图提示词（主体/产品可后续替换）。
+
+【最重要】只分析「视觉风格 / 版式 / 配色 / 光影 / 装饰」。彻底忽略图中的所有文字、文案、知识点与内容含义——绝对不要复述、概括或解释图里写了什么，也不要出现"内容是…/讲述了…/知识点/考点/介绍"这类话。你的输出必须是一段「生图提示词」，不是图片内容简介。
 
 提示词必须按以下顺序涵盖：
 1. 整体风格与氛围（如"简洁极简产品平铺"、"韩系柔雾少女感"、"大字报式强冲击海报"）

@@ -184,6 +184,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 
 /* poster 主题（干净白底·干货笔记风：大黑标题 + 短色条 + 利落分点 + 克制强调） */
 .cv-card.theme-poster{ justify-content:flex-start; }
+/* AI 封面叠字：标题+副标题整体上下居中（更像设计封面，不再贴顶） */
+.cv-card.theme-poster.is-cover, .cv-card.theme-poster.lay-封面{ justify-content:center; }
 .cv-card.theme-poster .cv-card-t{ color:#1a1a1a; text-shadow:none; font-weight:900; font-size:11.5cqw; line-height:1.32; letter-spacing:.2px; }
 /* 内页标题下方一条短粗主题色条（简洁设计感，替代花哨高亮块）*/
 .cv-card.theme-poster:not(.is-cover):not(.lay-封面) .cv-card-t::after{ content:""; display:block; width:13cqw; height:1.5cqw; border-radius:1cqw; background:var(--tpl-acc,#ff7a59); margin-top:2.6cqw; }
@@ -268,7 +270,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo{ background:var(--nt-bg,#fff); padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 /* 字号整体向参考图（密集干货长图）看齐：标题更克制、正文更小更密 */
-.cv-note.is-memo .nt-h1{ font-size:7.2cqw; font-weight:900; color:#111316; margin-bottom:1.4cqw; letter-spacing:-.06cqw; line-height:1.2; -webkit-text-stroke:.6px #111316; }
+.cv-note.is-memo .nt-h1{ font-size:6.4cqw; font-weight:900; color:#111316; margin-bottom:1.4cqw; letter-spacing:-.08cqw; line-height:1.22; -webkit-text-stroke:.55px #111316; }
 /* 小节标题：emoji 引导、加粗，但比之前小一档，贴近参考图分节标题 */
 .cv-note.is-memo .nt-sec{ font-size:4.1cqw; font-weight:800; color:#1c1c1e; margin:1.6cqw 0 .9cqw; gap:1.1cqw; }
 /* 正文/列表统一缩到 3.35cqw、行距收紧，密度对齐参考图 */

@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>合规自检 · 第八步 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=75" />
+<link rel="stylesheet" href="/assets/atelier.css?v=76" />
 </head>
 <body class="stage grain min-h-screen" data-page="compliance">
 
@@ -371,6 +371,7 @@ async function regenS8Images(btn) {
     const urls = await generateCoverImagesCore(n, m => { btn.textContent = m; });
     cImages = urls.map((u, i) => ({ url: u, cap: GST.coverCaptions[i] || null }));
     window.__notePages = GST.notePages; window.__ratio = GST.imgRatio || window.__ratio || '3:4'; renderImgs();
+    window.__imgsFresh = true; // 图片已按改后文案重新出 → 可安全发布
     setStatus('✓ 已按改后内容重新出图 ' + urls.length + ' 张' + ((typeof agentImgStyle === 'function' && agentImgStyle()) ? '（画风：' + agentImgStyle() + '）' : '') + '。可去成稿预览看叠字效果。');
   } catch (e) { setStatus('出图失败：' + (e.message || e) + '（检查图像 key / 网络）', 'err'); }
   finally { btn.disabled = false; btn.textContent = old; }
@@ -522,10 +523,12 @@ function renderReport(r) {
         <button id="toPreviewBtn" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">去成稿预览 →</button>
         <button id="dlPackBtn" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">⬇ 下载图文包</button>
         <span class="text-[11px] text-[var(--ink-soft)] self-center w-full">重新出图＝按改后正文 + 你在「智能体」设的配图视觉风格生成</span>
+        <div class="w-full text-[11.5px] mt-1 leading-relaxed" style="background:#fff7e6;border:1px solid #ffd98a;border-radius:8px;padding:7px 10px;color:#8a5a00">⚠️ <b>友情提示</b>：长图笔记是把<b>文案排成图片</b>的。改了文案后，<b>务必先点「🔄 按改后内容重新出图」</b>，再发布/下载——否则发到后台的图里还是<b>旧文案</b>（文字内容更新了，但图片没更新）。</div>
       </div>
     </div>`;
     // 暂存终稿，供按钮使用
     window.__revised = { title: rwTitle, cover_lines: rwCover, body: rwBody, tags: rw.tags || [] };
+    window.__imgsFresh = false; // 刚生成/更新了改后文案，图片尚未按新文案重出 → 标记为"未刷新"
   }
 
   $('#report').outerHTML = `<section id="report">${html}</section>`;
@@ -550,13 +553,18 @@ function renderReport(r) {
       imgRatio: window.__ratio || cur.imgRatio || '3:4', // 出图比例随终稿带去预览/发布
     });
   }
+  // 发布/下载前校验：改了文案却没重新出图 → 提醒，避免发出旧文案的图
+  function confirmFreshImgs() {
+    if (window.__imgsFresh) return true;
+    return confirm('你改了文案后还没「🔄 按改后内容重新出图」。\n\n长图笔记是把文案排成图片的——不重新出图，发到后台/下载的图里仍是【旧文案】（只有文字内容更新了）。\n\n确定继续吗？（建议先点「按改后内容重新出图」）');
+  }
   const tp = document.querySelector('#toPreviewBtn');
-  if (tp) tp.addEventListener('click', () => { pushRevisedToDraft(); location.href = '/成稿预览.html'; });
+  if (tp) tp.addEventListener('click', () => { if (!confirmFreshImgs()) return; pushRevisedToDraft(); location.href = '/成稿预览.html'; });
   // 一键发布：先把「修改后的文案 + 配图」写回草稿，再去一键发布页（推到小红书草稿箱）
   const tpub = document.querySelector('#toPublishBtn');
-  if (tpub) tpub.addEventListener('click', () => { pushRevisedToDraft(); location.href = '/一键发布.html'; });
+  if (tpub) tpub.addEventListener('click', () => { if (!confirmFreshImgs()) return; pushRevisedToDraft(); location.href = '/一键发布.html'; });
   const dp = document.querySelector('#dlPackBtn');
-  if (dp) dp.addEventListener('click', () => { pushRevisedToDraft(); location.href = '/成稿预览.html?export=1'; });
+  if (dp) dp.addEventListener('click', () => { if (!confirmFreshImgs()) return; pushRevisedToDraft(); location.href = '/成稿预览.html?export=1'; });
   const rb = document.querySelector('#regenImgBtn');
   if (rb) rb.addEventListener('click', () => regenS8Images(rb));
 }
