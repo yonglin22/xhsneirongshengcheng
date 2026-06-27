@@ -639,12 +639,13 @@ function capCardHTML(cap, isCover, coverFallback){
   return `<div class="cv-card theme-${c.theme} ${isCover?'is-cover':''} lay-${lay}">${c.title?`<div class="cv-card-t">${mark(c.title)}</div>`:''}${body}</div>`;
 }
 // 长文笔记款渲染（与流水线一致）
+function olStr(x){ return typeof x==='string'?x:((x&&(x.text||x.content||x.title||x.name||x.desc))||''); }
 function noteBlock(b){ if(!b)return''; const t=b.t||'p';
   if(t==='title')return `<div class="nt-h1">${mark(b.text||'')}</div>`;
   if(t==='meta')return `<div class="nt-meta">${mark(b.text||'')}</div>`;
   if(t==='sec')return `<div class="nt-sec"><span class="nt-dot"></span>${mark(b.text||'')}</div>`;
   if(t==='sub')return `<div class="nt-sub">${mark(b.text||'')}</div>`;
-  if(t==='ol')return `<ul class="nt-ol">${(b.items||[]).map((x,k)=>`<li><svg class="nt-num" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#ff6a3d"/><text x="11" y="11.5" fill="#ffffff" font-size="12.5" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,PingFang SC,sans-serif">${k+1}</text></svg><span class="nt-tx">${mark(String(x).replace(/^\s*(?:[①-⑳⓪⓵-⓾]\s*|[(（]\d{1,2}[)）]\s*|\d{1,2}[)）、]\s*|\d{1,2}\.\s+)/,''))}</span></li>`).join('')}</ul>`;
+  if(t==='ol')return `<ul class="nt-ol">${(b.items||[]).map((x,k)=>`<li><svg class="nt-num" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#ff6a3d"/><text x="11" y="11.5" fill="#ffffff" font-size="12.5" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,PingFang SC,sans-serif">${k+1}</text></svg><span class="nt-tx">${mark(olStr(x).replace(/^\s*(?:[①-⑳⓪⓵-⓾]\s*|[(（]\d{1,2}[)）]\s*|\d{1,2}[)）、]\s*|\d{1,2}\.\s+)/,''))}</span></li>`).join('')}</ul>`;
   if(t==='tags')return ''; // 长图笔记图里不放话题标签
   return `<p class="nt-p">${mark(b.text||'')}</p>`; }
 function hexA(h,a){ const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim()); if(!m)return 'rgba(255,150,60,'+a+')'; const n=parseInt(m[1],16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
