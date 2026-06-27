@@ -627,9 +627,9 @@ const server = http.createServer(async (req, res) => {
           fd.append('prompt', prompt);
           fd.append('size', gptSize);
           fd.append('image', new Blob([Buffer.from(m[2], 'base64')], { type: m[1] || 'image/png' }), 'ref.png');
-          up = await fetch(base + '/images/edits', { signal: AbortSignal.timeout(90000), method: 'POST', headers: { authorization: 'Bearer ' + ikey }, body: fd });
+          up = await fetch(base + '/images/edits', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { authorization: 'Bearer ' + ikey }, body: fd });
         } else {
-          up = await fetch(base + '/images/generations', { signal: AbortSignal.timeout(90000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
+          up = await fetch(base + '/images/generations', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
         }
         text = await up.text();
         if (!up.ok) return send(res, up.status, text, { 'content-type': 'application/json' });
