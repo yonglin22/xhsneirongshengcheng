@@ -443,54 +443,63 @@ function outputHTML(st) {
   if (st.key === 'cover') {
     const cl = (v && v.cover_lines) || [];
     const _selTpls = COVER_TPLS.filter(([id])=>(state.coverImages||[]).some(u=>(u||'').startsWith('ctpl://')&&u.slice(7).split('|')[0]===id));
-    return `<div class="out p-4 space-y-2">
-        <div class="text-[11px] text-[var(--ink-soft)]">封面文案（叠在图上，两行）</div>
-        <input id="cl0" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[0])}" placeholder="第一行" />
-        <input id="cl1" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[1])}" placeholder="第二行" />
-      </div>
-      <div class="mt-3" style="position:relative">
-        <div class="flex items-center gap-2 flex-wrap">
-          <button id="cvTplDropBtn" style="border:1px solid var(--line);border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer;background:var(--paper);color:var(--ink);display:flex;align-items:center;gap:6px">
-            🎨 封面模板${_selTpls.length ? ` <span style="background:var(--cinnabar);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px">${_selTpls.length}</span>` : ''} <span style="font-size:10px;opacity:.5">▼</span>
-          </button>
-          <input id="ctplAdj" class="field rounded-lg px-3 py-1.5 text-[12px]" style="flex:1;min-width:200px" placeholder="调整：背景浅蓝 / 标题居中 / 字号大…" value="${esc((state.cover&&state.cover.tplAdjText)||'')}" />
-        </div>
-        <div id="cvTplDropPanel" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:60;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px -6px rgba(0,0,0,.18);padding:12px;width:min(480px,90vw)">
-          <div class="flex flex-wrap gap-1.5 mb-2">
-            ${COVER_TPLS.map(([id,name])=>{ const on=(state.coverImages||[]).some(u=>(u||'').startsWith('ctpl://')&&u.slice(7).split('|')[0]===id); return `<button class="cv-tpl-pick" data-tpl="${id}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:8px;padding:5px 11px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${on?'✓ ':''}${name}</button>`;}).join('')}
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="cv-tpl-pick" data-tpl="__none" style="border:1px dashed var(--line);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;background:transparent;color:var(--ink-soft)">清除全部</button>
-            <button id="cvTplDropClose" style="border:none;background:none;font-size:11px;color:var(--ink-soft);cursor:pointer;margin-left:auto">关闭 ✕</button>
-          </div>
-        </div>
-      </div>
-      <div class="mt-3" id="cvTplSection">
-        <div class="text-[11px] text-[var(--ink-soft)] mb-1.5">🔥 本篇爆款封面参考（解析本篇对标封面 → 套用同款<b>生图提示词</b>，可复制改写后一键出封面）</div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button id="cvTplGen" class="btn-go rounded-lg px-3.5 py-1.5 text-[12px]">🔍 解析对标爆款封面 → 出模板</button>
-          <button id="cvTplClear" class="rounded-lg px-3 py-1.5 text-[12px]" style="border:1px dashed var(--line);background:#fff;color:var(--ink-soft);cursor:pointer">清空</button>
-          <span id="cvTplStatus" class="text-[11px] text-[var(--ink-soft)]"></span>
-        </div>
-        <div id="cvTplWrap" class="mt-2"></div>
-      </div>
-      <div class="mt-3 flex items-center gap-2.5 flex-wrap">
-        <button id="genNote" style="border:1px solid var(--cinnabar);border-radius:12px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;background:var(--cinnabar);color:#fff">📒 生成长文笔记图（醇备忘录真字封面+内页）</button>
-        <button id="upImg" style="border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;cursor:pointer;background:var(--paper);color:var(--ink)">📎 上传真实图</button>
+    const _ratioBtns = ['2:3','3:4','9:16'].map(r=>{const on=((state.imgRatio||'3:4')===r);return `<button class="img-ratio" data-r="${r}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 10px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${r}</button>`;}).join('');
+    return `<div class="out p-4 space-y-3">
+      <!-- 主操作：一键出醇备忘录真字图（封面+内页） -->
+      <button id="genNote" style="width:100%;border:none;border-radius:12px;padding:13px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#ff4259,#ff2442);color:#fff;box-shadow:0 6px 18px -6px rgba(255,36,66,.5)">📒 生成长图笔记（醇备忘录真字 · 封面+内页）</button>
+      <!-- 紧凑副操作行：比例 + 上传真实图 -->
+      <div class="flex items-center gap-2 flex-wrap text-[12px]">
+        <span class="text-[var(--ink-soft)]">比例</span>${_ratioBtns}
+        <span style="width:1px;height:15px;background:var(--line);margin:0 2px"></span>
+        <button id="upImg" style="border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;background:var(--paper);color:var(--ink)">📎 上传真实图</button>
         <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
-        <span class="text-[11px] text-[var(--ink-soft)]">${(state.refImages||[]).length?('对标 '+state.refImages.length+' 张 → 生成 '+Math.min(Math.max(state.refImages.length,1),9)+' 张，按对标结构'):('默认 3 张；贴对标后按其张数')}${(typeof agentImgStyle==='function'&&agentImgStyle())?(' · 画风：'+agentImgStyle()):' · 未设画风（智能体页可设）'}</span>
         <span id="imgStatus" class="text-[12px]"></span>
       </div>
-      <div class="mt-2 flex items-center gap-2 flex-wrap">
-        <span class="text-[11px] text-[var(--ink-soft)]">出图比例</span>
-        ${['2:3','3:4','9:16'].map(r=>{const on=((state.imgRatio||'3:4')===r);return `<button class="img-ratio" data-r="${r}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:8px;padding:3px 11px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${r}</button>`;}).join('')}
-        <span class="text-[10px] text-[var(--ink-soft)]">默认 3:4（2:3 为模型原生最清晰）</span>
-      </div>
-      <div class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
-        📌 <b>建议</b>：产品实物 / 真人 / 宝宝等<b>实拍图</b>，点「📎 上传真实图」用你自己的照片——<b style="color:var(--cinnabar-deep)">真实素材质感远胜 AI</b>；AI 擅长做<b>封面、氛围底图、长图笔记</b>。<br>
-        📝 <b>长文笔记图（主推）</b>：内容来自 <b style="color:var(--cinnabar-deep)">S3 框架「配图规划」</b>，纯排版文字零乱码、最稳。
-        　·　🎨 想要 <b>AI 配图（封面/氛围底图）</b>？在每张卡下点「🔄 重排这页」，写提示词 / 传参考图即可出图（实拍类直接上传真实图最佳）。
-      </div>
+      <!-- 一句话提示，详情可展开 -->
+      <details class="text-[11px] text-[var(--ink-soft)]">
+        <summary style="cursor:pointer;list-style:none">📌 主推长图笔记（零乱码）；实拍点「上传真实图」；想 AI 配图在每张卡点「重排这页」。<span style="color:var(--cinnabar)">详情</span></summary>
+        <div class="mt-1.5 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
+          📝 <b>长文笔记图（主推）</b>：内容来自 <b style="color:var(--cinnabar-deep)">S3 框架「配图规划」</b>，纯排版文字零乱码、最稳。<br>
+          📎 产品实物 / 真人等<b>实拍图</b>用「上传真实图」——<b style="color:var(--cinnabar-deep)">真实素材远胜 AI</b>。　·　🎨 AI 配图在每张卡下点「🔄 重排这页」，写提示词 / 传参考图即可。
+        </div>
+      </details>
+      <!-- 更多封面玩法（默认收起）：封面文案 / 封面模板 / 解析对标爆款 -->
+      <details style="border-top:1px solid var(--line);padding-top:8px">
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink)">🎨 更多封面玩法（封面模板 · 解析对标爆款 · 文案叠字）</summary>
+        <div class="mt-3 space-y-3">
+          <div>
+            <div class="text-[11px] text-[var(--ink-soft)] mb-1">封面文案（叠在图上，两行）</div>
+            <input id="cl0" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[0])}" placeholder="第一行" />
+            <input id="cl1" class="field w-full rounded-lg px-3 py-2 text-[14px] mt-1.5" value="${esc(cl[1])}" placeholder="第二行" />
+          </div>
+          <div style="position:relative">
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="cvTplDropBtn" style="border:1px solid var(--line);border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer;background:var(--paper);color:var(--ink);display:flex;align-items:center;gap:6px">
+                🎨 封面模板${_selTpls.length ? ` <span style="background:var(--cinnabar);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px">${_selTpls.length}</span>` : ''} <span style="font-size:10px;opacity:.5">▼</span>
+              </button>
+              <input id="ctplAdj" class="field rounded-lg px-3 py-1.5 text-[12px]" style="flex:1;min-width:200px" placeholder="调整：背景浅蓝 / 标题居中 / 字号大…" value="${esc((state.cover&&state.cover.tplAdjText)||'')}" />
+            </div>
+            <div id="cvTplDropPanel" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:60;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px -6px rgba(0,0,0,.18);padding:12px;width:min(480px,90vw)">
+              <div class="flex flex-wrap gap-1.5 mb-2">
+                ${COVER_TPLS.map(([id,name])=>{ const on=(state.coverImages||[]).some(u=>(u||'').startsWith('ctpl://')&&u.slice(7).split('|')[0]===id); return `<button class="cv-tpl-pick" data-tpl="${id}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:8px;padding:5px 11px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${on?'✓ ':''}${name}</button>`;}).join('')}
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="cv-tpl-pick" data-tpl="__none" style="border:1px dashed var(--line);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;background:transparent;color:var(--ink-soft)">清除全部</button>
+                <button id="cvTplDropClose" style="border:none;background:none;font-size:11px;color:var(--ink-soft);cursor:pointer;margin-left:auto">关闭 ✕</button>
+              </div>
+            </div>
+          </div>
+          <div id="cvTplSection">
+            <div class="text-[11px] text-[var(--ink-soft)] mb-1.5">🔥 解析本篇对标封面 → 套用同款<b>生图提示词</b>，可复制改写后一键出封面</div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="cvTplGen" class="btn-go rounded-lg px-3.5 py-1.5 text-[12px]">🔍 解析对标爆款封面 → 出模板</button>
+              <button id="cvTplClear" class="rounded-lg px-3 py-1.5 text-[12px]" style="border:1px dashed var(--line);background:#fff;color:var(--ink-soft);cursor:pointer">清空</button>
+              <span id="cvTplStatus" class="text-[11px] text-[var(--ink-soft)]"></span>
+            </div>
+            <div id="cvTplWrap" class="mt-2"></div>
+          </div>
+        </div>
+      </details>
       <div id="imgWrap" class="mt-3"></div>`;
   }
   if (st.key === 'tags')
