@@ -58,14 +58,20 @@ function _pageExtract() {
         const img = card.querySelector('img'); const titleEl = card.querySelector('[class*="title"],.title');
         const nameEl = card.querySelector('[class*="name"],[class*="author"]'); const cntEl = card.querySelector('[class*="count"],[class*="like"]');
         const tm = href.match(/xsec_token=([^&]+)/);
+        // 关键补：从卡片里的「博主主页链接」扒出 userId（搜索卡的作者名是 <a href="/user/profile/XXX">），否则前端没法查粉丝
+        let userId = '', authorLink = '';
+        const au = card.querySelector('a[href*="/user/profile/"]');
+        if (au) { const um = (au.getAttribute('href') || '').match(/\/user\/profile\/([0-9a-zA-Z]+)/); if (um) { userId = um[1]; authorLink = 'https://www.xiaohongshu.com/user/profile/' + userId; } }
+        // 作者名优先取主页链接里的文本（干净，不含日期）；并把粘在名字后的「MM-DD / X天前」剥掉
+        let author = ((au && au.textContent) || (nameEl && nameEl.textContent) || '').trim().replace(/\s*\d{1,2}-\d{1,2}$/, '').replace(/\s*(?:今天|昨天|前天|\d+天前)$/, '').trim();
         notes.push({
           id, token: tm ? decodeURIComponent(tm[1]) : '',
           title: (titleEl ? titleEl.textContent : '').trim().slice(0, 80),
           cover: img ? (img.getAttribute('src') || img.getAttribute('data-src') || '') : '',
-          author: (nameEl ? nameEl.textContent : '').trim(), userId: '',
+          author, userId,
           likes: (cntEl ? cntEl.textContent : '').trim(), collects: '', comments: '',
           link: href.startsWith('http') ? href : ('https://www.xiaohongshu.com' + (href.startsWith('/') ? href : '/' + href)),
-          authorLink: '',
+          authorLink,
         });
         if (notes.length >= 24) break;
       }
