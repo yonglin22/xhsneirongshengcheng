@@ -267,7 +267,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo{ background:var(--nt-bg,#fff); padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 /* 字号整体向参考图（密集干货长图）看齐：标题更克制、正文更小更密 */
-.cv-note.is-memo .nt-h1{ font-size:5.7cqw; font-weight:900; color:#111316; margin-bottom:1.2cqw; letter-spacing:-.04cqw; line-height:1.24; }
+.cv-note.is-memo .nt-h1{ font-size:7.2cqw; font-weight:900; color:#111316; margin-bottom:1.4cqw; letter-spacing:-.06cqw; line-height:1.2; -webkit-text-stroke:.6px #111316; }
 /* 小节标题：emoji 引导、加粗，但比之前小一档，贴近参考图分节标题 */
 .cv-note.is-memo .nt-sec{ font-size:4.1cqw; font-weight:800; color:#1c1c1e; margin:1.6cqw 0 .9cqw; gap:1.1cqw; }
 /* 正文/列表统一缩到 3.35cqw、行距收紧，密度对齐参考图 */
@@ -275,7 +275,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-p{ margin:.7cqw 0; }
 .cv-note.is-memo .nt-ol li{ margin:.8cqw 0; }
 /* 编号圆圈跟随缩小并与首行 ✅/文字垂直居中（按行高居中算 margin） */
-.cv-note.is-memo .nt-num{ width:4.4cqw; height:4.4cqw; margin-top:.18cqw; }
+/* 序号圈撑满首行行高、margin 归零 → 圆圈中心=首行中心，跨平台(Mac/Linux)都稳，不再因字体度量偏移 */
+.cv-note.is-memo .nt-num{ width:4.7cqw; height:4.7cqw; margin-top:0; align-self:flex-start; }
 .cv-note.is-memo .nt-box-li{ font-size:3.35cqw; }
 .cv-note.is-memo .nt-p{ margin:.8cqw 0; line-height:1.45; }
 .cv-note.is-memo .nt-sec .nt-dot{ display:none; }
