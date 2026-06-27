@@ -263,12 +263,12 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-si{ height:2.9cqw; width:auto; fill:#000; display:block; }
 .cv-note.is-memo .nt-bat{ height:3.2cqw; width:auto; fill:#000; color:#000; display:block; }
 .cv-note.is-memo .nt-ios-nav{ position:relative; height:9cqw; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
-/* 关键：中文文字一律用「line-height = 栏高」直接居中（和日期同一套，html2canvas 导出与浏览器一致）。
-   绝不给中文用 inline-block+vertical-align:middle / line-height:1 —— 那会被 html2canvas 压低（备忘录三字往下掉的根因）。
-   只有 SVG 图标(chevron)用 vertical-align:middle（图标不掉位）。 */
-.cv-note.is-memo .nt-nav-back{ position:absolute; left:4.5cqw; top:0; height:9cqw; line-height:9cqw; white-space:nowrap; z-index:1; color:#e8a400; }
-.cv-note.is-memo .nt-nav-chev{ height:4cqw; width:auto; display:inline-block; vertical-align:middle; }
-.cv-note.is-memo .nt-nav-back-label{ font-size:4cqw; font-weight:500; line-height:9cqw; margin-left:.8cqw; }
+/* 根治「备忘录」往下掉：把 chevron 图标移出文字行（绝对定位、单独垂直居中），
+   让「备忘录」单独成行、用 line-height=栏高 居中——和日期完全同一套（日期永远是正的，因为它没有图标挤同一行的基线）。
+   chevron 是 SVG，绝对定位+translateY 居中不掉位。这样预览/导出都对齐。 */
+.cv-note.is-memo .nt-nav-back{ position:absolute; left:4.5cqw; top:0; height:9cqw; line-height:9cqw; white-space:nowrap; padding-left:3.6cqw; z-index:1; color:#e8a400; }
+.cv-note.is-memo .nt-nav-chev{ position:absolute; left:0; top:50%; transform:translateY(-50%); height:4cqw; width:auto; }
+.cv-note.is-memo .nt-nav-back-label{ font-size:4cqw; font-weight:500; line-height:9cqw; }
 .cv-note.is-memo .nt-nav-date{ position:absolute; left:0; right:0; top:0; height:9cqw; line-height:9cqw; text-align:center; color:#8a8a90; font-size:2.85cqw; font-weight:600; white-space:nowrap; letter-spacing:.01em; pointer-events:none; }
 /* 右侧纯图标区：用 flex（图标是 SVG，不受 html2canvas 文字掉位影响），避免 inline-block 右对齐被 html2canvas 算错而裁掉「...」 */
 .cv-note.is-memo .nt-nav-r{ position:absolute; right:4.5cqw; top:0; height:9cqw; display:flex; align-items:center; gap:3.4cqw; z-index:1; }
