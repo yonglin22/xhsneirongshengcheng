@@ -1215,7 +1215,7 @@ async function generateCoverImagesCore(n) {
     };
     let qi = 0;
     const worker = async () => { while (qi < planned.length) { await runOne(planned[qi++]); } };
-    await Promise.all(Array.from({ length: Math.min(3, planned.length) }, worker)); // 并发池 3
+    await Promise.all(Array.from({ length: Math.min(4, planned.length) }, worker)); // 并发池 4（提速）
     for (let i = 0; i < refSet.length; i++) { // 按对标顺序组装，保证封面/配图次序不乱
       const r = results[i]; if (!r) continue;
       if (r.kind === 'note') { urls.push('note://' + notePages.length); notePages.push(r.page); captions.push(null); }
@@ -2337,6 +2337,8 @@ async function autoRun() {
   if (autoRunning) return;
   if (!state.topic) { setAuto('请先在上方填写选题', true); return; }
   autoRunning = true; const ab = $('#autoBtn'); if (ab) { ab.disabled = true; ab.textContent = '⏳ 自动生成中…'; }
+  // 提速：AI 封面只需「主题」（开局已知），不必等后续步骤 → 现在就后台开跑，让 40s 出图与整条文字流水线并行，最后再取结果（几乎不额外耗时）
+  const aiCoverPromise = (autoAiCoverOn() && !isGzh()) ? genAiCoverUrl(null).catch(() => '') : null;
   try {
     for (let i = 0; i < STEPS.length; i++) {
       const st = STEPS[i];
@@ -2349,10 +2351,10 @@ async function autoRun() {
         const cn = coverCount();
         setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
         try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
-        // 一键全套同样默认双封面（受「默认出 AI 封面」开关控制）：AI 图封面放封面位(第一张)，原配图/备忘录卡顺移到第二张
-        if (autoAiCoverOn()) try {
-          setAuto('正在生成 AI 封面（放封面位，跟随智能体画风）…');
-          const aiUrl = await genAiCoverUrl(setAuto);
+        // 取开局就并行出好的 AI 封面，放封面位(第一张)，原配图/备忘录卡顺移第二张
+        if (aiCoverPromise) try {
+          setAuto('正在取并行生成的 AI 封面…');
+          const aiUrl = await aiCoverPromise;
           if (aiUrl) {
             state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
             state.coverImages.unshift(aiUrl); state.coverCaptions.unshift(aiCoverCaption());
