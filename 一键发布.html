@@ -44,6 +44,21 @@
 let WORK = null, sel = new Set();
 function fmtD(ts){ try{ const d=new Date(ts); return (d.getMonth()+1)+'/'+d.getDate(); }catch{ return ''; } }
 if(typeof window.mark!=='function') window.mark=s=>String(s||'').replace(/==(.+?)==/g,'$1');
+function asStr(x){ return typeof x==='string'?x:((x&&(x.text||x.title||x.name||x.desc))||''); }
+function imgSrc(u){ u=u||''; return (u.startsWith('data:')||u.startsWith('/')||u.startsWith(location.origin))?u:'/api/img-proxy?u='+encodeURIComponent(u); }
+// 叠字封面卡（与流水线/成稿预览一致）：把标题/要点叠在底图上，导出 PNG 时文字一并烤进图
+function normalizeCap(cap, coverFallback){ if(!cap) return {title:coverFallback||'',lines:[],layout:'封面',theme:'photo'}; if(typeof cap==='string') return {title:cap,lines:[],layout:'要点',theme:'photo'}; return {title:asStr(cap.title),lines:(Array.isArray(cap.lines)?cap.lines:[]).map(asStr).filter(Boolean),layout:cap.layout||'要点',theme:cap.theme==='poster'?'poster':'photo'}; }
+function capTheme(cap){ return (cap && cap.theme==='poster')?'poster':'photo'; }
+function capCardHTML(cap, isCover, coverFallback){
+  const c=normalizeCap(cap, coverFallback); if(!c.title && !c.lines.length) return '';
+  const lay=c.layout||(isCover?'封面':'要点'); const lines=c.lines.filter(Boolean); let body='';
+  if(lines.length){ body='<div class="cv-card-b">'+lines.map((s,k)=>{ let s2=s,cls='';
+    if(lay==='对比'){ if(/^[✅✓对]/.test(s)||/正解|正确/.test(s)) cls='ok'; else if(/^[❌✗错]/.test(s)||/误区|错误|别/.test(s)) cls='no'; }
+    if(lay==='编号'){ s2=s.replace(/^[①-⑩\d\.\、\s]+/,''); return `<div class="cv-li num"><b>${k+1}</b><span>${mark(s2)}</span></div>`; }
+    return `<div class="cv-li ${cls}">${mark(s2)}</div>`;
+  }).join('')+'</div>'; }
+  return `<div class="cv-card theme-${c.theme} ${isCover?'is-cover':''} lay-${lay}">${c.title?`<div class="cv-card-t">${mark(c.title)}</div>`:''}${body}</div>`;
+}
 // ===== 卡片渲染器（与成稿预览一致，用于把 note:// / ctpl:// CSS 卡转 PNG）=====
 function hexA(h,a){ const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim()); if(!m)return 'rgba(255,150,60,'+a+')'; const n=parseInt(m[1],16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
 function noteStyleVars(page){ const p=page||{}; const memo=!!p.memo;
@@ -99,22 +114,33 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
 function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&page.memo); const inner=((page&&page.blocks)||[]).map(noteBlock).join(''); if(memo){ const nav = MEMO_NAV; const top='<div class="nt-ios-top">'+MEMO_STATUS+nav+'</div>'; return `<div class="cv-note is-memo" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`; } return `<div class="cv-note${cover?' is-cover':''}" style="${noteStyleVars(page)}">${cover?inner:`<div class="cv-note-fit">${inner}</div>`}</div>`; }
 function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fit) return; fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; if(need>avail+1&&avail>0){ const s=Math.max(0.45, avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } }
 // note:// / ctpl:// → PNG（html2canvas）；http → 原样
-async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio){
-  const host=$('#renderHost'); const out=[];
+async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, coverCaptions, coverFallback){
+  const host=$('#renderHost'); const out=[]; const caps=coverCaptions||[]; let i=-1;
   const W=540, H=Math.round(W*({'2:3':3/2,'3:4':4/3,'9:16':16/9}[imgRatio||'3:4']||4/3)); // 画框高度随出图比例（发布/下载尺寸正确）
-  for(const u of (coverImages||[])){
-    if(/^https?:\/\//.test(u)){ out.push(u); continue; }
-    if((u||'').startsWith('/')){ out.push(location.origin+u); continue; } // 同源相对图(如 /gen/x.png) → 补成绝对，否则插件在小红书域名下解析错域名
+  const shot=async(html)=>{ host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+html+'</div>';
+    const noteEl=host.querySelector('.cv-note:not(.is-cover)'); if(noteEl) fitNote(noteEl);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
+    // 等底图加载完，否则截到空白
+    const im=host.querySelector('img'); if(im && !im.complete){ try{ await new Promise(r=>{im.onload=im.onerror=r;}); }catch{} }
+    const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
+    return cv.toDataURL('image/jpeg',0.92); };
+  for(const u of (coverImages||[])){ i++;
+    const cap=caps[i];
+    // 真图/AI 封面(http、data、同源 /gen)：若带叠字封面卡(非 raw 实拍)，把"底图+标题叠层"一起烤进 PNG，发布后才有封面样式；否则原样推链接
+    if(/^https?:\/\//.test(u) || (u||'').startsWith('data:') || (u||'').startsWith('/')){
+      const abs=(u||'').startsWith('/')?(location.origin+u):u;
+      if(cap && !cap.raw && (asStr(cap.title) || (Array.isArray(cap.lines)&&cap.lines.length))){
+        const overlay=(capTheme(cap)==='poster'?'':'<div class="cv-scrim"></div>')+capCardHTML(cap, i===0, coverFallback);
+        out.push(await shot('<img src="'+imgSrc(u)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>'+overlay));
+      } else { out.push(abs); }
+      continue;
+    }
     let html='';
     if((u||'').startsWith('note://')) html=noteCardHTML((notePages||[])[+u.slice(7)]);
     else if((u||'').startsWith('ctpl://')) html=coverTemplateHTML(u.slice(7), coverLines);
     else continue;
-    host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+html+'</div>';
-    const noteEl=host.querySelector('.cv-note:not(.is-cover)'); if(noteEl) fitNote(noteEl);
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
-    const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
-    out.push(cv.toDataURL('image/jpeg',0.92));
+    out.push(await shot(html));
   }
   host.innerHTML='';
   return out;
@@ -130,7 +156,7 @@ $('#extPubBtn').addEventListener('click', async ()=>{
   const btn=$('#extPubBtn'); btn.disabled=true; const o=btn.textContent; btn.textContent='转图中…';
   $('#pubStatus').textContent='正在把封面/卡片转成图片…'; $('#pubStatus').style.color='var(--ink-soft)';
   try{
-    const images=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines, WORK.imgRatio);
+    const images=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines, WORK.imgRatio, WORK.coverCaptions, WORK.coverFallback);
     if(!images.length){ $('#pubStatus').textContent='这篇没有可发布的图片'; $('#pubStatus').style.color='var(--cinnabar-deep)'; btn.disabled=false; btn.textContent=o; return; }
     btn.textContent='发送给插件…';
     window.postMessage({ type:'ZHUSHA_PUBLISH', payload:{ title:WORK.title, body:WORK.body, images, tags:WORK.tags||[] } }, '*');
@@ -142,7 +168,7 @@ window.addEventListener('message', e=>{ if(e.source===window && e.data && e.data
 // 把一篇成稿数据装进 WORK（草稿/云端历史共用）
 function buildWORK(data, id){
   const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);
-  return { id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[], imgRatio:data.imgRatio||'3:4', tags:(data.tags||[]).map(t=>String(t||'').trim().replace(/^#/,'')).filter(Boolean) };
+  return { id, title:(data.titles&&data.titles[0])||((data.cover&&(data.cover.cover_lines||[]).join(' '))||data.topic||''), body:(data.body||[]).join('\n\n'), coverImages:raw, notePages:data.notePages||[], coverLines:(data.cover&&data.cover.cover_lines)||[], imgRatio:data.imgRatio||'3:4', coverCaptions:data.coverCaptions||[], coverFallback:((data.cover&&data.cover.cover_lines)||[]).filter(Boolean).join(' '), tags:(data.tags||[]).map(t=>String(t||'').trim().replace(/^#/,'')).filter(Boolean) };
 }
 function loadDraft(){ try{ return JSON.parse(localStorage.getItem('ag_draft')||'{}'); }catch{ return {}; } }
 async function loadWorks(){
