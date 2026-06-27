@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>话术库 · 获客 Agent · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=51" />
+<style>
+  .field{ border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:13px; background:#fff; }
+  .qa-row{ display:flex; gap:8px; align-items:flex-start; margin-bottom:8px; }
+  .qa-row .qa-q{ width:34%; min-width:120px; }
+  .qa-row .qa-a{ flex:1; }
+  .qa-row textarea{ resize:vertical; min-height:38px; line-height:1.5; }
+  .qa-del{ flex:none; border:1px solid var(--line); background:#fff; color:var(--ink-soft); border-radius:8px; width:32px; height:34px; cursor:pointer; font-size:14px; }
+  .lib-card{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .cnt{ font-size:11px; color:var(--ink-soft); }
+  .cnt.warn{ color:var(--cinnabar-deep); }
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <a href="/账号矩阵.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 账号矩阵</a>
+  <a href="/获客计划.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4 ml-2">获客计划 →</a>
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">话术<span class="italic" style="color:var(--cinnabar)">库</span></h1>
+    <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-2xl">维护「问题 → 回答话术」问答库，供获客计划在养号/截流评论、私信回复时按需取词。单库最多 <b>1000</b> 条。</p>
+  </div>
+
+  <!-- 新建/编辑 话术库 -->
+  <div class="card p-5 mb-5">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="font-song font-bold text-[15px]">＋ 新建话术库</span>
+      <span id="libCount" class="cnt ml-auto">0 / 1000 条</span>
+    </div>
+    <div class="mb-3"><div class="text-[11px] text-[var(--ink-soft)] mb-1">* 话术库标题</div>
+      <input id="libTitle" class="field w-full" maxlength="60" placeholder="如：母婴号·评论引流话术" /></div>
+
+    <div class="text-[11px] text-[var(--ink-soft)] mb-1">问答列表（问题用于匹配场景，回答为实际话术）</div>
+    <div id="qaList"></div>
+    <div class="flex items-center gap-2 mt-1 flex-wrap">
+      <button id="qaAdd" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">＋ 加一条</button>
+      <button id="bulkToggle" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">📋 批量粘贴导入</button>
+    </div>
+
+    <div id="bulkBox" style="display:none" class="mt-2">
+      <div class="text-[11px] text-[var(--ink-soft)] mb-1">每行一条，用「｜」或 Tab 分隔问题与回答（只有回答也行）。例：<code>多少钱｜亲已私信报价啦~</code></div>
+      <textarea id="bulkText" class="field w-full" rows="5" placeholder="价格怎么样｜已私你详细报价~&#10;有没有优惠｜这两天刚好有活动，私聊告诉你"></textarea>
+      <div class="mt-2 flex items-center gap-2">
+        <button id="bulkImport" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">导入到上方列表</button>
+        <span id="bulkStatus" class="cnt"></span>
+      </div>
+    </div>
+
+    <div class="mt-4 flex items-center gap-3">
+      <button id="saveBtn" class="btn-go rounded-xl px-6 py-2.5 text-[13px] font-medium">保存话术库</button>
+      <button id="resetBtn" class="btn-ghost rounded-lg px-4 py-2.5 text-[13px]">清空</button>
+      <span id="saveStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
+    </div>
+  </div>
+
+  <div id="list" class="space-y-3"></div>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=49"></script>
+<script>
+const MAX=1000;
+let editId=null, items=[];
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function api(path, method, body){
+  const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),15000);
+  try { const r=await fetch('/api/script-libs'+path,{method:method||'GET',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined,signal:ctl.signal}); return await r.json(); }
+  catch { return { ok:false, error:'网络较慢或不稳定，请重试' }; }
+  finally { clearTimeout(to); }
+}
+function syncCount(){ const c=$('#libCount'); c.textContent=items.length+' / '+MAX+' 条'; c.classList.toggle('warn', items.length>=MAX); }
+function renderQa(){
+  const box=$('#qaList');
+  box.innerHTML = items.map((it,i)=>`
+    <div class="qa-row" data-i="${i}">
+      <input class="field qa-q" maxlength="200" placeholder="问题/场景（可空）" value="${esc(it.q)}" />
+      <textarea class="field qa-a" maxlength="1000" rows="1" placeholder="回答话术">${esc(it.a)}</textarea>
+      <button class="qa-del" title="删除这条">✕</button>
+    </div>`).join('') || '<div class="cnt" style="padding:4px 0">还没有条目，点「＋ 加一条」或「批量粘贴导入」。</div>';
+  box.querySelectorAll('.qa-row').forEach(row=>{
+    const i=+row.dataset.i;
+    row.querySelector('.qa-q').addEventListener('input',e=>{ items[i].q=e.target.value; });
+    row.querySelector('.qa-a').addEventListener('input',e=>{ items[i].a=e.target.value; });
+    row.querySelector('.qa-del').addEventListener('click',()=>{ items.splice(i,1); renderQa(); syncCount(); });
+  });
+  syncCount();
+}
+$('#qaAdd').addEventListener('click',()=>{ if(items.length>=MAX){ alert('单库最多 '+MAX+' 条'); return; } items.push({q:'',a:''}); renderQa(); const rows=$('#qaList').querySelectorAll('.qa-row'); const last=rows[rows.length-1]; last&&last.querySelector('.qa-q').focus(); });
+$('#bulkToggle').addEventListener('click',()=>{ const b=$('#bulkBox'); b.style.display=b.style.display==='none'?'':'none'; });
+$('#bulkImport').addEventListener('click',()=>{
+  const lines=($('#bulkText').value||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  let added=0;
+  for(const l of lines){
+    if(items.length>=MAX) break;
+    const parts=l.split(/\t|｜|\|/); const q=(parts.length>1?parts[0]:'').trim(); const a=(parts.length>1?parts.slice(1).join('|'):parts[0]).trim();
+    if(!q&&!a) continue;
+    items.push({q:q.slice(0,200),a:a.slice(0,1000)}); added++;
+  }
+  $('#bulkText').value='';
+  $('#bulkStatus').textContent='✓ 导入 '+added+' 条'+(items.length>=MAX?'（已达上限 '+MAX+'）':'');
+  renderQa();
+});
+function collect(){ return { title:$('#libTitle').value.trim(), items:items.filter(x=>(x.q||'').trim()||(x.a||'').trim()).slice(0,MAX) }; }
+$('#saveBtn').addEventListener('click', async ()=>{
+  const p=collect();
+  if(!p.title){ $('#saveStatus').textContent='请填话术库标题'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
+  if(!p.items.length){ $('#saveStatus').textContent='请至少加 1 条问答'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
+  if(editId) p.id=editId;
+  $('#saveBtn').disabled=true;
+  const r=await api('','POST',p);
+  $('#saveBtn').disabled=false;
+  if(r&&r.ok){ $('#saveStatus').textContent='✓ 已保存'; $('#saveStatus').style.color='#00a152'; reset(); load(); }
+  else { $('#saveStatus').textContent=(r&&r.error)||'保存失败，请重试'; $('#saveStatus').style.color='var(--cinnabar-deep)'; }
+});
+function reset(){ editId=null; items=[]; $('#libTitle').value=''; $('#bulkText').value=''; $('#bulkStatus').textContent=''; $('#saveBtn').textContent='保存话术库'; renderQa(); }
+$('#resetBtn').addEventListener('click', reset);
+
+let LIBS=[];
+async function load(){
+  const j=await api(''); LIBS=(j&&j.list)||[];
+  $('#list').innerHTML = LIBS.length ? LIBS.map(l=>`
+    <div class="card p-4 lib-card" data-id="${l.id}">
+      <span style="font-size:14px;font-weight:700;flex:1;min-width:140px">${esc(l.title)}</span>
+      <span class="cnt">${l.count||0} 条</span>
+      <button class="lb-edit btn-ghost rounded-md px-2.5 py-1 text-[11px]">编辑</button>
+      <button class="lb-del btn-ghost rounded-md px-2.5 py-1 text-[11px]">删除</button>
+    </div>`).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有话术库，上面新建一个。</div>';
+}
+$('#list').addEventListener('click', async e=>{
+  const card=e.target.closest('[data-id]'); if(!card) return;
+  const id=+card.dataset.id; const l=LIBS.find(x=>x.id===id); if(!l) return;
+  if(e.target.closest('.lb-del')){ if(!confirm('删除话术库「'+l.title+'」？'))return; const r=await api('/delete','POST',{id}); if(r&&r.ok) load(); else alert('删除失败，请重试'); return; }
+  if(e.target.closest('.lb-edit')){ loadIntoForm(l); return; }
+});
+function loadIntoForm(l){
+  editId=l.id; $('#libTitle').value=l.title||'';
+  items=(l.items||[]).map(x=>({q:x.q||'',a:x.a||''}));
+  $('#saveBtn').textContent='更新话术库';
+  renderQa();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+reset(); load();
+</script>
+</body>
+</html>

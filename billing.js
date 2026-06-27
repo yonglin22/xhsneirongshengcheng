@@ -120,6 +120,14 @@ function planAdd(uid, p){ const now=Date.now(); const r=db.prepare('INSERT INTO 
 function planUpdate(uid, id, p){ const cur=db.prepare('SELECT * FROM growth_plans WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; db.prepare('UPDATE growth_plans SET name=?,ptype=?,platform=?,config=?,status=?,updated_at=? WHERE id=? AND user_id=?').run(p.name!==undefined?String(p.name).slice(0,80):cur.name, p.ptype||cur.ptype, p.platform||cur.platform, p.config!==undefined?JSON.stringify(p.config):cur.config, p.status||cur.status, Date.now(), id, uid); return true; }
 function planRemove(uid, id){ db.prepare('DELETE FROM growth_plans WHERE id=? AND user_id=?').run(id,uid); return true; }
 
+// ===== 获客 Agent · 话术库（问答库：标题 + 问题/回答话术，单库≤1000 条，供养号/截流评论回复取词）=====
+try { db.exec("CREATE TABLE IF NOT EXISTS script_libs(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, items TEXT, created_at INTEGER, updated_at INTEGER)"); } catch {}
+function _normScriptItems(items){ return (Array.isArray(items)?items:[]).map(x=>({ q:String((x&&x.q)||'').slice(0,200).trim(), a:String((x&&x.a)||'').slice(0,1000).trim() })).filter(x=>x.q||x.a).slice(0,1000); }
+function scriptLibsList(uid){ return db.prepare('SELECT id,title,items,created_at,updated_at FROM script_libs WHERE user_id=? ORDER BY id DESC').all(uid).map(r=>{ let it=[]; try{it=JSON.parse(r.items||'[]');}catch{} return { id:r.id, title:r.title, items:Array.isArray(it)?it:[], count:(Array.isArray(it)?it:[]).length, created_at:r.created_at, updated_at:r.updated_at }; }); }
+function scriptLibAdd(uid, lib){ const now=Date.now(); const r=db.prepare('INSERT INTO script_libs(user_id,title,items,created_at,updated_at) VALUES(?,?,?,?,?)').run(uid, String(lib.title||'').slice(0,60).trim()||'未命名话术库', JSON.stringify(_normScriptItems(lib.items)), now, now); return r.lastInsertRowid; }
+function scriptLibUpdate(uid, id, lib){ const cur=db.prepare('SELECT * FROM script_libs WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; db.prepare('UPDATE script_libs SET title=?,items=?,updated_at=? WHERE id=? AND user_id=?').run(lib.title!==undefined?(String(lib.title).slice(0,60).trim()||'未命名话术库'):cur.title, lib.items!==undefined?JSON.stringify(_normScriptItems(lib.items)):cur.items, Date.now(), id, uid); return true; }
+function scriptLibRemove(uid, id){ db.prepare('DELETE FROM script_libs WHERE id=? AND user_id=?').run(id,uid); return true; }
+
 function txn(fn) { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; } }
 
 // ===== 会话 token（放 Cookie，HMAC 签名）=====
@@ -523,6 +531,7 @@ module.exports = {
   qaLogAdd, qaLogList, qaTopQuestions, qaStats,
   accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob,
   plansList, planAdd, planUpdate, planRemove,
+  scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
 };
 
