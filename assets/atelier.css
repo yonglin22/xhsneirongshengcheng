@@ -263,13 +263,13 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-si{ height:2.9cqw; width:auto; fill:#000; display:block; }
 .cv-note.is-memo .nt-bat{ height:3.2cqw; width:auto; fill:#000; color:#000; display:block; }
 .cv-note.is-memo .nt-ios-nav{ position:relative; height:9cqw; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
-/* 三个区块（返回/日期/右侧图标）统一用 absolute+translateY(-50%) 居中，避免嵌套 flex 交叉轴高度不一致导致的错位 */
-.cv-note.is-memo .nt-nav-back{ position:absolute; left:4.5cqw; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:.8cqw; color:#e8a400; }
+/* 三个区块（返回/日期/右侧图标）统一：满高 + flex 居中（align-items:center），不再用 translateY(-50%) 或任何 em 微调，
+   这样三块必然落在同一条水平中线上，互不影响。日期整行横向居中（标准 iOS 导航栏写法），不受左右宽度影响。 */
+.cv-note.is-memo .nt-nav-back{ position:absolute; left:4.5cqw; top:0; height:100%; z-index:1; display:flex; align-items:center; gap:.8cqw; color:#e8a400; }
 .cv-note.is-memo .nt-nav-chev{ height:4cqw; width:auto; display:block; }
-/* CJK 字形在 line-height:1 盒内偏下（PingFang/Noto CJK 度量），用 translateY(-0.06em) 把文字 ink 抬到与 SVG 图标几何中心齐平（已用 Noto CJK 实测校准，离散 <0.2px） */
-.cv-note.is-memo .nt-nav-back-label{ font-size:4cqw; font-weight:500; line-height:1; transform:translateY(-0.06em); }
-.cv-note.is-memo .nt-nav-date{ position:absolute; left:50%; top:50%; transform:translate(-50%,calc(-50% - 0.06em)); color:#8a8a90; font-size:2.85cqw; font-weight:600; white-space:nowrap; letter-spacing:.01em; line-height:1; }
-.cv-note.is-memo .nt-nav-r{ position:absolute; right:4.5cqw; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:3.4cqw; }
+.cv-note.is-memo .nt-nav-back-label{ font-size:4cqw; font-weight:500; line-height:1; }
+.cv-note.is-memo .nt-nav-date{ position:absolute; left:0; right:0; top:0; height:100%; display:flex; align-items:center; justify-content:center; color:#8a8a90; font-size:2.85cqw; font-weight:600; white-space:nowrap; letter-spacing:.01em; line-height:1; pointer-events:none; }
+.cv-note.is-memo .nt-nav-r{ position:absolute; right:4.5cqw; top:0; height:100%; z-index:1; display:flex; align-items:center; gap:3.4cqw; }
 .cv-note.is-memo .nt-ny{ height:5cqw; width:auto; fill:#e8a400; color:#e8a400; display:block; }
 /* 底部：工具栏 + Home 指示条 */
 .cv-note.is-memo .nt-ios-bottom{ position:absolute; bottom:0; left:0; right:0; z-index:4; background:#fff; }
