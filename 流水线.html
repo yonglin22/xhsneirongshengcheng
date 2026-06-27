@@ -832,13 +832,19 @@ async function genCoverFromCvTpl(i) {
     const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
     if (!u) throw new Error('上游无图');
-    // 「出封面」= 替换第一张（封面位 index 0），不新增位置。若原封面位是备忘录卡(note://)则解除其页绑定，干净替换成 AI 实物封面。
+    // 「出封面」= AI 图占封面位（index 0）。原封面位若是备忘录/模板卡(note:// / ctpl://) → 把它挪到第二张保留，不删；
+    // 若封面位已经是上一张 AI 封面图(http/data) → 直接替换它，避免反复点击无限堆叠。
     if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
-    if (!state.coverImages.length) state.coverImages.push(u); else state.coverImages[0] = u;
-    state.coverImage = state.coverImages[0];
-    // AI 出干净背景，系统把封面文案（来自 S3 第一张配图规划）叠上去——文字真实清晰，不再空白
     state.coverCaptions = state.coverCaptions || [];
-    state.coverCaptions[0] = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : { raw: true };
+    const cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : { raw: true };
+    const first = state.coverImages[0] || '';
+    const firstIsAiImg = /^https?:\/\//.test(first) || first.startsWith('data:');
+    if (!state.coverImages.length || firstIsAiImg) {
+      state.coverImages[0] = u; state.coverCaptions[0] = cap0;        // 空 / 已是 AI 图 → 替换封面位
+    } else {
+      state.coverImages.unshift(u); state.coverCaptions.unshift(cap0); // 备忘录/模板封面卡 → 卡片挪到第二张，两张都保留
+    }
+    state.coverImage = state.coverImages[0];
     persist();
     renderCoverImages();
     if (msg) { msg.textContent = lines.length ? '✓ 已生成（AI 背景 + 标题叠字）' : '✓ 已生成（无封面文案，纯图）'; msg.style.color = '#00a052'; }
