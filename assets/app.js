@@ -338,12 +338,20 @@ window.callClaude = async function ({ system, prompt, model, max_tokens = 2000, 
 /* 修复模型常吐的非法 JSON：转义字符串内的裸换行/制表符 + 在缺逗号处补逗号（状态机，逐字符判断） */
 window.repairJSON = function (s) {
   let out = '', inStr = false, esc = false, prev = '';
+  // 下一个非空白字符（用于判断引号是否真的在结束字符串）
+  const nextSig = (i) => { for (let j = i + 1; j < s.length; j++) { if (!/\s/.test(s[j])) return s[j]; } return ''; };
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
     if (inStr) {
       if (esc) { out += c; esc = false; continue; }
       if (c === '\\') { out += c; esc = true; continue; }
-      if (c === '"') { inStr = false; out += c; prev = '"'; continue; }
+      if (c === '"') {
+        // 只有当后面紧跟 , } ] : 或到结尾时，这个引号才是真的「字符串结束」；
+        // 否则是值里没转义的内层引号（AI 常见错误，如 …"美术考研红黑榜"…）→ 自动转义，继续留在字符串里
+        const nx = nextSig(i);
+        if (nx === ',' || nx === '}' || nx === ']' || nx === ':' || nx === '') { inStr = false; out += c; prev = '"'; continue; }
+        out += '\\"'; continue;
+      }
       if (c === '\n') { out += '\\n'; continue; }
       if (c === '\r') { out += '\\r'; continue; }
       if (c === '\t') { out += '\\t'; continue; }

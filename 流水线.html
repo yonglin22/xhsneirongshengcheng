@@ -94,7 +94,7 @@
 </div>
 
 <script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=51"></script>
+<script src="/assets/app.js?v=52"></script>
 <script>
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 const STEP_DISP = { S1:'第一步', S2:'第二步', S3:'第三步', S4:'第四步', S5:'第五步', S6:'第六步', S7:'第七步', S8:'第八步' };
@@ -2028,7 +2028,13 @@ async function genFinder() {
 "filter":{"months":"对标该看多近的：时效强/追热点→2，常规→3，长青干货→6（只填数字 2/3/6）","sort":"对标笔记列表默认按什么排：likes(互动高/找爆款) 或 date(追最新/蹭时效)","minEngage":"互动门槛=点赞+收藏的数字下限，用来自动筛掉互动太低的：电商起号找低粉爆款可设100，常规找爆款300，头部高互动可设1000；没有硬性要求填0（只填数字）"},
 "pick":"从搜索结果里怎么挑出最适合的那 1 篇来拆解。先点明系统已自动帮你筛好的两条：①近 N 月（已按时间筛）②互动量高=点赞+收藏≥minEngage（已标「达标」，优先从达标里挑）；再补充要你自己人工看一眼的三条：③博主粉丝量（按目标取舍：低粉爆款更可复制 / 头部高互动更稳）④可复刻性（选题/版式你能照做的）⑤与你选题的相关性。简洁分点说清，让我知道哪些系统标好了、哪些要我再判断一下。"}
 searches 给 6–8 个，覆盖核心词、长尾词、痛点词、人群词。filter 要和 dimension/pick 的逻辑自洽。`;
-    const d = extractJSON(await callClaude({ prompt, model: $('#model').value, max_tokens: 1400, json: true }));
+    // JSON 解析失败时自动重试一次（AI 偶尔吐出坏 JSON；repairJSON 兜不住时再要一遍通常就好）
+    let d;
+    try { d = extractJSON(await callClaude({ prompt, model: $('#model').value, max_tokens: 1400, json: true })); }
+    catch (e1) {
+      fst.textContent = '建议格式有误，正在重试…';
+      d = extractJSON(await callClaude({ prompt: prompt + '\n\n⚠️ 严格输出合法 JSON：所有字符串值里若有引号必须转义或改用「」，不要有未闭合括号。', model: $('#model').value, max_tokens: 1400, json: true }));
+    }
     state.refFinder = d; state.refGoal = goal; Draft.save(state); renderRail();
     // 列表筛选/排序默认跟随「对标建议」的 filter（与建议逻辑保持一致）；映射到下拉档位 3/6/12
     const fm = d.filter || {}; const mo = +fm.months; benchWindow = mo >= 12 ? 12 : mo === 6 ? 6 : 3; benchSort = (fm.sort === 'date') ? 'date' : 'likes';
