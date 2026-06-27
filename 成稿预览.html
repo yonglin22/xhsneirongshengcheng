@@ -649,7 +649,7 @@ function noteBlock(b){ if(!b)return''; const t=b.t||'p';
   if(t==='sec')return `<div class="nt-sec"><span class="nt-dot"></span>${mark(b.text||'')}</div>`;
   if(t==='sub')return `<div class="nt-sub">${mark(b.text||'')}</div>`;
   if(t==='ol')return `<ul class="nt-ol">${(b.items||[]).map((x,k)=>`<li><svg class="nt-num" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#ff6a3d"/><text x="11" y="11.5" fill="#ffffff" font-size="12.5" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,PingFang SC,sans-serif">${k+1}</text></svg><span class="nt-tx">${mark(olStr(x).replace(/^\s*(?:[①-⑳⓪⓵-⓾]\s*|[(（]\d{1,2}[)）]\s*|\d{1,2}[)）、]\s*|\d{1,2}\.\s+)/,''))}</span></li>`).join('')}</ul>`;
-  if(t==='box')return '<div class="nt-box">'+((b.items||[]).map(function(x){return '<div class="nt-box-li">'+mark(olStr(x).replace(/^\s*[✅✓√☑✔]\s*/, ''))+'</div>';}).join(''))+'</div>';
+  if(t==='box'){ var its=(b.items||[]).map(function(x){return olStr(x).replace(/^\s*[✅✓√☑✔]\s*/, '').trim();}).filter(Boolean); return its.length?'<div class="nt-box">'+its.map(function(s){return '<div class="nt-box-li">'+mark(s)+'</div>';}).join('')+'</div>':''; }
   if(t==='tags')return ''; // 长图笔记图里不放话题标签
   return `<p class="nt-p">${mark(b.text||'')}</p>`; }
 function hexA(h,a){ const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim()); if(!m)return 'rgba(255,150,60,'+a+')'; const n=parseInt(m[1],16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
