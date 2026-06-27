@@ -254,13 +254,15 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 .cv-note.is-memo .nt-h1{ font-size:7cqw; font-weight:780; color:#1c1c1e; margin-bottom:1.4cqw; letter-spacing:.05cqw; line-height:1.24; }
 /* 小节标题：去掉橙色竖条，改成 emoji 引导（emoji 由 AI 写进文案）；更密、更粗，像真备忘录的分节标题 */
-.cv-note.is-memo .nt-sec{ font-size:4.6cqw; font-weight:700; color:#1c1c1e; margin:2.4cqw 0 1.2cqw; gap:1.4cqw; }
+.cv-note.is-memo .nt-sec{ font-size:4.5cqw; font-weight:800; color:#1c1c1e; margin:1.8cqw 0 1cqw; gap:1.2cqw; }
+.cv-note.is-memo .nt-ol li{ margin:.9cqw 0; line-height:1.42; }
+.cv-note.is-memo .nt-p{ margin:.8cqw 0; line-height:1.45; }
 .cv-note.is-memo .nt-sec .nt-dot{ display:none; }
-/* 小节之间加细虚线分隔（真备忘录最显眼的特征之一）：每个小节标题上方一条横虚线，首个标题前不画 */
-.cv-note.is-memo .nt-sec:not(:first-child){ position:relative; border-top:.3cqw solid rgba(60,60,67,.13); margin-top:3.2cqw; padding-top:2.8cqw; }
-/* ✅ 总结块：真 iOS 备忘录没有"带边框圆角卡片"，硬画一个就会很假。改成无边框、左侧细色条引导的高亮段落，像备忘录里手动高亮的一段文字 */
-.cv-note.is-memo .nt-box{ margin:3cqw 0 1cqw; padding:.4cqw 0 .4cqw 3cqw; background:none; border:none; border-left:.9cqw solid rgba(52,199,89,.7); border-radius:0; }
-.cv-note.is-memo .nt-box .nt-box-li{ font-size:3.7cqw; line-height:1.5; color:#1c1c1e; font-weight:500; margin:1cqw 0; display:flex; align-items:flex-start; gap:1.4cqw; }
+/* 小节之间细虚线分隔（对齐参考图：灰蓝色横虚线，是这类干货长图最显眼的特征）；首个标题前不画 */
+.cv-note.is-memo .nt-sec:not(:first-child){ position:relative; border-top:.35cqw dashed rgba(96,108,130,.42); margin-top:2.6cqw; padding-top:2.4cqw; }
+/* ✅ 绿色总结块（对齐参考图右下角"核心就是…"）：浅绿底 + 绿边 + 圆角卡 */
+.cv-note.is-memo .nt-box{ margin:2.8cqw 0 1cqw; padding:2.6cqw 3cqw; background:rgba(52,199,89,.12); border:.35cqw solid rgba(52,199,89,.5); border-radius:2.6cqw; }
+.cv-note.is-memo .nt-box .nt-box-li{ font-size:3.5cqw; line-height:1.45; color:#1c1c1e; font-weight:600; margin:.9cqw 0; display:flex; align-items:flex-start; gap:1.2cqw; }
 .cv-note.is-memo .nt-box .nt-box-li::before{ content:"✅"; font-size:3.4cqw; flex:none; line-height:1.5; }
 .cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ color:#2c2c2e; }
 /* 高亮改成饱满荧光笔：覆盖大半个字高（.66em）、上移到字身中部（.34em），更贴近真备忘录手写马克笔感 */

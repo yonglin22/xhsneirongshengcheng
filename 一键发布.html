@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>一键发布 · 获客 Agent · 朱砂操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=67" />
+<link rel="stylesheet" href="/assets/atelier.css?v=68" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
@@ -81,8 +81,8 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
   const vars=`--c-bg:${bg};--c-ink:${ink};--c-accent:${acc}`;
   const tt=`<div class="ct-t">${title}</div>`, ss=sub?`<div class="ct-s">${sub}</div>`:'';
   let inner;
-  if(id==='memo') inner=`<div class="ct-memobar"><span class="l">&lsaquo; 备忘录</span><span class="c">${memoDateStr()}</span><span class="l">完成</span></div>${tt}${ss}`;
-  else if(id==='mag') inner=`<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
+  if(id==='memo') return `<div class="cv-note is-memo" style="--nt-bg:${bg};--nt-hl:rgba(255,221,77,.75)">${MEMO_STATUS}${MEMO_NAV}<div class="cv-note-fit"><div class="nt-h1">${title}</div>${sub?`<div class="nt-p">${sub}</div>`:''}</div>${MEMO_BOTTOM}</div>`;
+  if(id==='mag') inner=`<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
   else if(id==='block') inner=`<div class="ct-block">${tt}</div>${ss}`;
   else if(id==='split') inner=`<div class="ct-img"></div><div class="ct-cap">${tt}${ss}</div>`;
   else if(id==='grid') inner=`<div class="ct-kicker"><span>VERTICAL</span><span>NO.01</span></div>${tt}${ss}`;

@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=67" />
+<link rel="stylesheet" href="/assets/atelier.css?v=68" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -728,13 +728,14 @@ async function visionOne(imgUrl) {
 async function analyzeRefImageSet(setStatusFn) {
   const imgs = (state.refImages || []).slice(0, 8);
   if (!imgs.length) return [];
-  if (state.refVisions && state.refVisions.length >= imgs.length) return state.refVisions;
+  // 缓存命中必须校验来源签名：refVisions 必须对应「当前对标封面集」，否则换了对标还吃旧解析 → 串台
+  if (state.refVisions && state.refVisions.length >= imgs.length && state.refVisionsSig === cvTplSig()) return state.refVisions;
   const out = [];
   for (let i = 0; i < imgs.length; i++) {
     if (setStatusFn) setStatusFn('视觉解析对标第 ' + (i + 1) + '/' + imgs.length + ' 张…');
     try { out.push(await visionOne(imgs[i])); } catch { out.push(''); }
   }
-  state.refVisions = out; if (!state.refVision && out[0]) state.refVision = out[0]; persist();
+  state.refVisions = out; state.refVisionsSig = cvTplSig(); if (!state.refVision && out[0]) state.refVision = out[0]; persist();
   return out;
 }
 // 只重新解析某一张（GLM-4V 非确定性，重析常能纠正读偏）
@@ -1290,9 +1291,12 @@ function coverTemplateHTML(spec, lines, opt) {
   const ink = opt.ink || (isDark ? '#ffffff' : '#16181d');
   const vars = `--c-bg:${bg};--c-ink:${ink};--c-accent:${acc}`;
   const tt = `<div class="ct-t">${title}</div>`, ss = sub ? `<div class="ct-s">${sub}</div>` : '';
+  // 备忘录封面模板：直接用与内页一致的 is-memo 外壳（状态栏 + ‹备忘录 SVG 导航 + 底部工具栏），风格与长图内页完全统一
+  if (id === 'memo') {
+    return `<div class="cv-note is-memo" style="--nt-bg:${bg};--nt-hl:rgba(255,221,77,.75)">${MEMO_STATUS}${MEMO_NAV}<div class="cv-note-fit"><div class="nt-h1">${title}</div>${sub ? `<div class="nt-p">${sub}</div>` : ''}</div>${MEMO_BOTTOM}</div>`;
+  }
   let inner;
-  if (id === 'memo') inner = `<div class="ct-memobar"><span class="l">&lsaquo; 备忘录</span><span class="c">${memoDateStr()}</span><span class="l">完成</span></div>${tt}${ss}`;
-  else if (id === 'mag') inner = `<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
+  if (id === 'mag') inner = `<div class="ct-kicker"><span>FEATURE</span><span>VOL.01</span></div>${tt}${ss}<div class="ct-foot">朱砂·操盘台</div>`;
   else if (id === 'block') inner = `<div class="ct-block">${tt}</div>${ss}`;
   else if (id === 'split') { const im = opt.img || (state.cover && state.cover.img); inner = `<div class="ct-img" style="${im ? `background-image:url('${imgSrc(im)}')` : ''}"></div><div class="ct-cap">${tt}${ss}</div>`; }
   else if (id === 'grid') inner = `<div class="ct-kicker"><span>VERTICAL</span><span>NO.01</span></div>${tt}${ss}`;
