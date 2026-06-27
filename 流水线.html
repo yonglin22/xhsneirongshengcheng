@@ -460,6 +460,12 @@ function outputHTML(st) {
         <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
         <span id="imgStatus" class="text-[12px]"></span>
       </div>
+      <!-- 笔记底色：点一下全篇统一换色 -->
+      <div class="flex items-center gap-1.5 flex-wrap text-[12px]">
+        <span class="text-[var(--ink-soft)]">笔记底色</span>
+        ${NOTE_BG_PRESETS.map(([hex, name]) => { const on = (state.noteBg || '') === hex; return `<button class="note-bg-pick" data-bg="${hex}" title="${name}" style="width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid ${on ? 'var(--cinnabar)' : 'var(--line)'};background:${hex || 'repeating-linear-gradient(45deg,#fff,#fff 3px,#eee 3px,#eee 6px)'};box-shadow:${on ? '0 0 0 2px rgba(255,36,66,.18)' : 'none'}"></button>`; }).join('')}
+        <input id="noteBgCustom" type="color" value="${/^#[0-9a-f]{6}$/i.test(state.noteBg || '') ? state.noteBg : '#eaf1fb'}" title="自定义颜色" style="width:24px;height:24px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:none;padding:0" />
+      </div>
       <!-- 一句话提示，详情可展开 -->
       <details class="text-[11px] text-[var(--ink-soft)]">
         <summary style="cursor:pointer;list-style:none">📌 主推长图笔记（零乱码）；实拍点「上传真实图」；想 AI 配图在每张卡点「重排这页」。<span style="color:var(--cinnabar)">详情</span></summary>
@@ -766,6 +772,13 @@ function ratioWord() { return curRatio() + ' 竖版'; }
 // 「默认出 AI 封面」全局开关（localStorage 持久化、跨草稿生效）；默认开
 function autoAiCoverOn() { return localStorage.getItem('ag_auto_ai_cover') !== '0'; }
 function setAutoAiCover(on) { localStorage.setItem('ag_auto_ai_cover', on ? '1' : '0'); }
+// 笔记底色统一换色：预设色板 + 写进每页 bg（随草稿带到预览/发布）
+const NOTE_BG_PRESETS = [['', '跟随风格'], ['#ffffff', '白'], ['#fffdf5', '米白'], ['#eaf1fb', '浅蓝'], ['#fff8d6', '便签黄'], ['#f2f2f4', '浅灰'], ['#ebf6ee', '薄荷绿'], ['#fdeef0', '浅粉'], ['#f1ecfb', '浅紫'], ['#e2f4f3', '浅青']];
+function setNoteBg(hex) {
+  state.noteBg = hex || '';
+  (state.notePages || []).forEach(p => { if (p && p.memo) p.bg = hex || ''; }); // 统一改所有备忘录页底色
+  persist(); renderCoverImages();
+}
 function ratioCss() { return ({ '2:3': '2/3', '3:4': '3/4', '9:16': '9/16' })[curRatio()] || '3/4'; }
 // ===== 本赛道「爆款封面模板」：把对标爆款封面解析成可复制/改写的生图提示词（按赛道缓存）=====
 // 复用已抓到的对标封面(state.refImages)与现有视觉解析(/api/vision)，不改任何抓取逻辑。
@@ -801,7 +814,9 @@ async function genCvTplsFromBench() {
       const j = await (await fetch('/api/vision', { method: 'POST', signal: AbortSignal.timeout(45000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: imgs[i], prompt: CVTPL_VISION_PROMPT }) })).json();
       if (j.ok && j.desc) prompt = j.desc.trim().slice(0, 600);
     } catch {}
-    if (prompt) out.push({ url: imgs[i], prompt });
+    // B：判定这张对标是不是「文字密集笔记图」——模型若仍在讲内容/知识点而非视觉风格，标记 textNote，给友好提示而非没用的内容简介
+    const textNote = !!prompt && /内容(是|为|涉及|包括|提供|讲述)|讲述了|介绍了|知识点|考点|框架图|文字内容|聊天界面|对话记录|截图显示|图中(的)?文字|笔记截图|信息展示/.test(prompt);
+    if (prompt) out.push({ url: imgs[i], prompt, textNote });
   }
   if (btn) { btn.disabled = false; btn.textContent = old; }
   if (!out.length) { if (st) { st.textContent = '解析失败（视觉模型未配置或取图失败），可稍后重试。'; st.style.color = 'var(--cinnabar-deep)'; } return; }
@@ -817,6 +832,7 @@ function renderCvTpls() {
     <div class="cvtpl-card" style="display:flex;gap:10px;align-items:stretch;border:1px solid var(--line);border-radius:12px;padding:9px;margin-bottom:9px;background:var(--paper)">
       <img ${imgAttr(tp.url)} style="width:88px;height:118px;object-fit:cover;border-radius:8px;flex:none;background:var(--paper-2)" />
       <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+        ${tp.textNote ? `<div class="text-[11px]" style="background:#fff7e6;border:1px solid #ffd98a;border-radius:7px;padding:5px 8px;color:#8a5a00">📝 这张对标是<b>文字密集笔记图</b>，解析更像内容简介、不适合 AI 复刻。<b>建议直接用「备忘录真字封面卡」</b>（零乱码）；下面提示词仅供参考配色。</div>` : ''}
         <textarea class="cvtpl-prompt field rounded-lg px-2.5 py-1.5 text-[12px] leading-relaxed" data-i="${i}" rows="4" style="resize:vertical">${esc(tp.prompt)}</textarea>
         <div class="flex items-center gap-2 flex-wrap">
           <button class="cvtpl-copy rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper-2);color:var(--ink);cursor:pointer">📋 复制提示词</button>
@@ -881,12 +897,16 @@ async function genAiCoverUrl(setStatus) {
   const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
   const topic = (state.topic || lines[0] || '').replace(/[（(].*$/, '').slice(0, 40);
   const titleHint = '生成一张【纯视觉小红书封面背景图】（不是信息图、不是笔记截图、不是文字排版！画面里绝对不能出现任何文字、汉字、字母、数字、假字或排版栏）。主题：「' + topic + '」——用与主题相关的精致实拍或高级插画场景，整图铺满质感与细节、构图有主体、色彩高级，绝不能纯色或大面积留白；上半部留一块柔和明亮但仍带背景纹理的区域，方便后期叠加标题。';
-  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : ''); // 跟随智能体已设的「配图画风」
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : ''); // 跟随智能体已设的「配图画风」文字
+  // 跟随智能体「配图风格库」：取最匹配的一张风格参考图当垫图(init_image)，并把它的风格描述写进提示词 → 同账号出图风格统一
+  const sref = (typeof pickStyleRef === 'function') ? pickStyleRef({ scene: topic, layout: '封面', title: topic }) : null;
   const tps = loadCvTpls(); const colorRef = tps.length ? String(tps[0].prompt || '').replace(/\s+/g, '').slice(0, 120) : '';
-  const prompt = titleHint + (colorRef ? '仅参考其配色与整体氛围（不要复制其中任何文字或信息排版）：' + colorRef + '。' : '') + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 ' + ratioWord() + '，商业摄影或高级插画质感、色彩饱满有氛围、主体清晰、细节精致，整图铺满，高清，无任何文字。';
+  const prompt = titleHint + (sref && sref.prompt ? '严格贴合本账号配图风格库的风格：' + String(sref.prompt).replace(/\s+/g, '').slice(0, 160) + '。' : '') + (colorRef ? '配色与氛围可参考：' + colorRef + '。' : '') + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 ' + ratioWord() + '，商业摄影或高级插画质感、色彩饱满有氛围、主体清晰、细节精致，整图铺满，高清，无任何文字。';
+  const body = { provider: 'gptimage', prompt, action: 'cover', size: ratioSize() };
+  if (sref && sref.url) body.init_image = sref.url; // 配图风格库参考图当垫图，统一画风
   try {
-    if (setStatus) setStatus('正在生成 AI 封面备选（约 30~60 秒）…');
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, action: 'cover', size: ratioSize() }) });
+    if (setStatus) setStatus('正在生成 AI 封面备选' + (sref ? '（跟随配图风格库）' : '') + '（约 30~60 秒）…');
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const tx = await r.text(); if (!r.ok) return '';
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
     return u || '';
@@ -1793,6 +1813,9 @@ function renderPanel() {
   $('#genMemoCover')?.addEventListener('click', genMemoCover);
   $$('.img-ratio').forEach(b => b.addEventListener('click', () => { state.imgRatio = b.dataset.r; persist(); renderPanel(); }));
   $('#aiCoverChk')?.addEventListener('change', e => { setAutoAiCover(e.target.checked); renderPanel(); });
+  $$('.note-bg-pick').forEach(b => b.addEventListener('click', () => { setNoteBg(b.dataset.bg); renderPanel(); }));
+  $('#noteBgCustom')?.addEventListener('input', e => { setNoteBg(e.target.value); });
+  $('#noteBgCustom')?.addEventListener('change', () => renderPanel());
   $('#genImg')?.addEventListener('click', genCoverImage);
   $('#genGzhCover')?.addEventListener('click', genGzhCover);
   $('#upImg')?.addEventListener('click', () => $('#coverFile')?.click());
