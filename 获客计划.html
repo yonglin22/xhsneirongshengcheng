@@ -91,6 +91,7 @@
       <div class="gp-row"><label>* 评论</label><input id="nzComment" class="field pct" type="number" value="20" /><span class="gp-hint">%</span></div>
       <div class="gp-row"><label>评论来源</label><span class="seg" data-seg="csrc"><button data-v="ai" class="on">🤖 AI 智能</button><button data-v="lib">评论库</button><button data-v="preset">预设回复</button></span></div>
       <div class="gp-row"><span class="gp-hint" style="margin-left:84px">🤖 AI 智能＝按<b>当前智能体人设 + 笔记/评论上下文</b>实时生成回复，更自然、不易被判垃圾</span></div>
+      <div class="gp-row" id="nzLibRow" style="display:none"><label>选话术库</label><select id="nzLib" class="field" style="min-width:200px"></select><a href="/话术库.html" class="gp-hint" style="color:var(--cinnabar-deep)">去建/管理话术库 →</a></div>
       <div class="gp-row"><label>每日上限</label><input id="nzDaily" class="field pct" type="number" value="20" /><span class="gp-hint">篇 · 单账号每日处理上限（安全护栏）</span></div>
     </div>
 
@@ -102,6 +103,7 @@
       <div class="gp-row"><label>截流私信</label><input id="icDm" class="field pct" type="number" value="0" /><span class="gp-hint">次/天 · 给评论用户发私信（0=不做，最易被封慎用）</span></div>
       <div class="gp-row"><label>话术来源</label><span class="seg" data-seg="isrc"><button data-v="ai" class="on">🤖 AI 智能</button><button data-v="preset">预设话术</button><button data-v="lib">话术库</button></span></div>
       <div class="gp-row"><span class="gp-hint" style="margin-left:84px">🤖 AI 智能＝按智能体人设 + 对标笔记/该用户评论上下文，生成自然的引流回复/私信话术（合规、不硬广）</span></div>
+      <div class="gp-row" id="icLibRow" style="display:none"><label>选话术库</label><select id="icLib" class="field" style="min-width:200px"></select><a href="/话术库.html" class="gp-hint" style="color:var(--cinnabar-deep)">去建/管理话术库 →</a></div>
     </div>
 
     <div class="mt-4 flex items-center gap-3">
@@ -138,7 +140,13 @@ function addKw(){ const v=$('#kwInput').value.trim(); if(v&&!kws.includes(v)){ k
 $('#kwAdd').addEventListener('click', addKw);
 $('#kwInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addKw(); } });
 // 分段选择
-$$('.seg').forEach(seg=>{ seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); segs[seg.dataset.seg]=b.dataset.v; })); });
+$$('.seg').forEach(seg=>{ seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); segs[seg.dataset.seg]=b.dataset.v; toggleLib(); })); });
+// 话术库：来源选「话术库/评论库(lib)」时显示选择器；选项来自 /api/script-libs
+let LIBS=[];
+const escSel=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fillLibSel(id){ const el=$('#'+id); if(!el) return; const cur=el.value; el.innerHTML='<option value="">— 选择话术库 —</option>'+LIBS.map(l=>`<option value="${l.id}">${escSel(l.title)}（${l.count||0}条）</option>`).join(''); el.value=cur; }
+async function loadLibs(){ try{ const r=await fetch('/api/script-libs'); const j=await r.json(); LIBS=(j&&j.list)||[]; }catch{ LIBS=[]; } fillLibSel('nzLib'); fillLibSel('icLib'); }
+function toggleLib(){ const nr=$('#nzLibRow'), ir=$('#icLibRow'); if(nr) nr.style.display=(segs.csrc==='lib')?'':'none'; if(ir) ir.style.display=(segs.isrc==='lib')?'':'none'; }
 $('#icCollect').addEventListener('click', e=>{ collectOn=!collectOn; e.target.classList.toggle('on',collectOn); });
 function num(id){ return Math.max(0,Math.min(100, parseInt($('#'+id).value)||0)); }
 function collect(){
@@ -149,8 +157,8 @@ function collect(){
     linkActs:{ like:num('lkLike'), fav:num('lkFav'), follow:num('lkFollow'), comment:num('lkComment') },
     keywords:kws.slice(),
     filter:{ sort:segs.sort, ctype:segs.ctype, ptime:segs.ptime, scope:segs.scope },
-    nurture:{ love:num('nzLove'), like:num('nzLike'), fav:num('nzFav'), follow:num('nzFollow'), comment:num('nzComment'), csrc:segs.csrc, daily:parseInt($('#nzDaily').value)||20 },
-    intercept:{ collect:collectOn, reply:parseInt($('#icReply').value)||0, dm:parseInt($('#icDm').value)||0, isrc:segs.isrc }
+    nurture:{ love:num('nzLove'), like:num('nzLike'), fav:num('nzFav'), follow:num('nzFollow'), comment:num('nzComment'), csrc:segs.csrc, libId:($('#nzLib')&&$('#nzLib').value)||'', daily:parseInt($('#nzDaily').value)||20 },
+    intercept:{ collect:collectOn, reply:parseInt($('#icReply').value)||0, dm:parseInt($('#icDm').value)||0, isrc:segs.isrc, libId:($('#icLib')&&$('#icLib').value)||'' }
   }};
 }
 $('#saveBtn').addEventListener('click', async ()=>{
@@ -223,6 +231,7 @@ function loadIntoForm(p){
   collectOn=!!ic.collect; $('#icCollect').classList.toggle('on',collectOn);
   segs.sort=f.sort||'general';segs.ctype=f.ctype||'all';segs.ptime=f.ptime||'all';segs.scope=f.scope||'all';segs.csrc=nz.csrc||'ai';segs.isrc=ic.isrc||'ai';
   $$('.seg').forEach(seg=>{ const v=segs[seg.dataset.seg]; seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); });
+  fillLibSel('nzLib'); fillLibSel('icLib'); if($('#nzLib')) $('#nzLib').value=nz.libId||''; if($('#icLib')) $('#icLib').value=ic.libId||''; toggleLib();
   showSections(); $('#saveBtn').textContent='更新计划';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -253,7 +262,7 @@ function runPlan(p){
     alert(isIntercept?'已下发截流任务，插件将打开小红书自动浏览/回复，私信草稿会出现在插件弹窗里，右下角有进度条，可随时点「停止」。':'已下发养号任务，插件将打开小红书自动执行，右下角有进度条，可随时点「停止」。');
   });
 }
-showSections(); renderKw(); load();
+showSections(); renderKw(); load(); loadLibs(); toggleLib();
 </script>
 </body>
 </html>

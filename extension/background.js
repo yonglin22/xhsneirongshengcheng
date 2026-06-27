@@ -281,6 +281,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
+  // 拉取本账号话术库（供截流/养号「话术来源=话术库」取词，带 yonglin.chat 登录 cookie）
+  if (msg && msg.type === 'getScriptLibs') {
+    (async () => {
+      try {
+        const r = await fetch('https://yonglin.chat/api/script-libs', { credentials: 'include' });
+        const j = await r.json().catch(() => null);
+        sendResponse({ ok: !!(j && j.ok), list: (j && j.list) || [] });
+      } catch (e) { sendResponse({ ok: false, error: e.message || String(e) }); }
+    })();
+    return true;
+  }
   // 收集到的评论区潜客 → 上报到朱砂服务端「评论收集」列表（带 yonglin.chat 登录 cookie）
   if (msg && msg.type === 'reportLeads') {
     (async () => {

@@ -59,6 +59,21 @@
       });
     });
   }
+  // 话术库取词：拉一次本账号话术库（缓存），按 libId 找库，从其「回答」里随机取一条
+  let _libsCache = null;
+  function getLibs() {
+    if (_libsCache) return Promise.resolve(_libsCache);
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'getScriptLibs' }, resp => { _libsCache = (resp && resp.ok && resp.list) || []; resolve(_libsCache); });
+    });
+  }
+  async function libPick(libId) {
+    if (!libId) return '';
+    const libs = await getLibs();
+    const lib = libs.find(l => String(l.id) === String(libId));
+    const ans = ((lib && lib.items) || []).map(x => (x && x.a || '').trim()).filter(Boolean);
+    return ans.length ? ans[Math.floor(Math.random() * ans.length)] : '';
+  }
   function findCommentInput() { return document.querySelector('[class*="comment"] textarea, [class*="comment-box"] [contenteditable="true"], #content-textarea'); }
   async function postCommentReply(text) {
     const box = findCommentInput(); if (!box || !text) return false;
@@ -87,21 +102,25 @@
     }
     // isrc=预设/话术库 暂未接入素材库，目前只实现 AI 智能来源；非 AI 来源先跳过，避免话术与配置承诺不符
     const useAi = !ic.isrc || ic.isrc === 'ai';
+    const useLib = ic.isrc === 'lib';
     let replied = 0, queued = 0;
     for (const c of comments) {
       if (stopFlag || riskHit()) { ui.say('⚠ 触发验证，截流已停止'); break; }
-      if (useAi && ic.reply > 0 && replied < ic.reply) {
-        const draft = await aiText(persona, `笔记内容：${ctx}\n\n这位用户的评论：「${c.text}」\n请生成一条自然、不硬广、不站外导流的引流回复（≤40字，像真人随手回复，不要出现"AI"字样）。`);
+      if ((useAi || useLib) && ic.reply > 0 && replied < ic.reply) {
+        const draft = useLib ? await libPick(ic.libId)
+          : await aiText(persona, `笔记内容：${ctx}\n\n这位用户的评论：「${c.text}」\n请生成一条自然、不硬广、不站外导流的引流回复（≤40字，像真人随手回复，不要出现"AI"字样）。`);
         if (draft && await postCommentReply(draft)) { replied++; ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
       }
-      if (useAi && ic.dm > 0 && queued < ic.dm) {
-        const draft = await aiText(persona, `这位潜在客户的评论：「${c.text}」\n请生成一条自然、不硬广的私信开场话术（≤50字），用于后续人工确认发送。`);
+      if ((useAi || useLib) && ic.dm > 0 && queued < ic.dm) {
+        const draft = useLib ? await libPick(ic.libId)
+          : await aiText(persona, `这位潜在客户的评论：「${c.text}」\n请生成一条自然、不硬广的私信开场话术（≤50字），用于后续人工确认发送。`);
         if (draft) { chrome.runtime.sendMessage({ type: 'queueDM', item: { user: c.user, link: c.link, comment: c.text, draft, note: location.href } }); queued++; }
       }
       await sleep(rnd(1200, 2200));
     }
     if (replied || queued) ui.say(`截流：回复${replied}条 · 私信草稿待人工确认${queued}条`);
-    else if (!useAi) ui.say('话术来源暂只支持「AI智能」，预设/话术库尚未接入');
+    else if (!useAi && !useLib) ui.say('话术来源「预设」尚未接入，请选「AI智能」或「话术库」');
+    else if (useLib && !replied && !queued) ui.say('所选话术库为空或没取到回答，请去话术库补几条');
   }
 
   async function runPlan(plan) {
@@ -138,8 +157,10 @@
           if (chance(nz.like || 0) && doLike()) { liked++; await sleep(rnd(800, 1600)); }
           if (chance(nz.fav || 0) && doFav()) { faved++; await sleep(rnd(800, 1600)); }
           if (chance(nz.follow || 0) && doFollow()) { followed++; await sleep(rnd(800, 1600)); }
-          if (chance(nz.comment || 0) && nz.csrc === 'ai') {
-            const draft = await aiText(persona, `笔记内容：${noteContext()}\n请生成一条自然的真人感评论（≤30字，不硬广，不出现"AI"字样）。`);
+          if (chance(nz.comment || 0)) {
+            const draft = nz.csrc === 'lib' ? await libPick(nz.libId)
+              : (!nz.csrc || nz.csrc === 'ai') ? await aiText(persona, `笔记内容：${noteContext()}\n请生成一条自然的真人感评论（≤30字，不硬广，不出现"AI"字样）。`)
+              : '';
             if (draft && await postCommentReply(draft)) { commented++; await sleep(rnd(2000, 4000)); }
           }
         }
