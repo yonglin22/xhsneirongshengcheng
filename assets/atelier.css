@@ -280,7 +280,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 「< 备忘录」整块做成 SVG（chevron 路径 + <text> 文字，文字用 y 坐标定位）。
    原因：HTML 文字在 html2canvas 里垂直位置依赖字体度量，macOS(PingFang) 会把中文压低；
    SVG 里文字位置是绝对坐标，html2canvas 与浏览器、跨平台都按坐标画 → 永远居中、不掉。实测 html2canvas 输出验证。 */
-.cv-note.is-memo svg.nt-nav-back{ position:absolute; left:4.5cqw; top:0; height:9cqw; width:calc(9cqw * 88 / 26); z-index:1; overflow:visible; }
+.cv-note.is-memo svg.nt-nav-back{ position:absolute; left:2.4cqw; top:0; height:9cqw; width:calc(9cqw * 88 / 26); z-index:1; overflow:visible; }
 .cv-note.is-memo .nt-nav-date{ position:absolute; left:0; right:0; top:0; height:9cqw; display:flex; align-items:center; justify-content:center; color:#8a8a90; font-size:2.85cqw; font-weight:600; white-space:nowrap; letter-spacing:.01em; line-height:1; pointer-events:none; }
 /* 右侧纯图标区：用 flex（图标是 SVG，不受 html2canvas 文字掉位影响），避免 inline-block 右对齐被 html2canvas 算错而裁掉「...」 */
 .cv-note.is-memo .nt-nav-r{ position:absolute; right:4.5cqw; top:0; height:9cqw; display:flex; align-items:center; gap:3.2cqw; z-index:1; }
