@@ -14,6 +14,38 @@ const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
 
+// ===== 纯 Node 打 ZIP（不依赖系统 zip 命令）：用于 /api/ext-download 打包插件目录 =====
+const _ZIP_CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+function _crc32(buf) { let c = ~0; for (let i = 0; i < buf.length; i++) c = _ZIP_CRC[(c ^ buf[i]) & 0xff] ^ (c >>> 8); return (~c) >>> 0; }
+function makeZip(files) {
+  const chunks = [], central = []; let offset = 0;
+  for (const f of files) {
+    const nameBuf = Buffer.from(f.name, 'utf8');
+    const crc = _crc32(f.data);
+    const comp = zlib.deflateRawSync(f.data);
+    const useStore = comp.length >= f.data.length; // 压不动就直接存
+    const body = useStore ? f.data : comp; const method = useStore ? 0 : 8;
+    const lh = Buffer.alloc(30);
+    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(0x0800, 6); // UTF-8 标志
+    lh.writeUInt16LE(method, 8); lh.writeUInt16LE(0, 10); lh.writeUInt16LE(0, 12);
+    lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(body.length, 18); lh.writeUInt32LE(f.data.length, 22);
+    lh.writeUInt16LE(nameBuf.length, 26); lh.writeUInt16LE(0, 28);
+    chunks.push(lh, nameBuf, body);
+    const ch = Buffer.alloc(46);
+    ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6); ch.writeUInt16LE(0x0800, 8);
+    ch.writeUInt16LE(method, 10); ch.writeUInt16LE(0, 12); ch.writeUInt16LE(0, 14);
+    ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(body.length, 20); ch.writeUInt32LE(f.data.length, 24);
+    ch.writeUInt16LE(nameBuf.length, 28); ch.writeUInt32LE(offset, 42);
+    central.push(ch, nameBuf);
+    offset += lh.length + nameBuf.length + body.length;
+  }
+  const centralBuf = Buffer.concat(central); const centralOff = offset;
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralBuf.length, 12); end.writeUInt32LE(centralOff, 16);
+  return Buffer.concat([...chunks, centralBuf, end]);
+}
+
 // ===== 可灵 Kling：JWT 鉴权 + 异步出图（提交 → 轮询）=====
 function b64url(x) { return Buffer.from(x).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_'); }
 function klingToken() {
@@ -565,19 +597,22 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/ext-download' && req.method === 'GET') {
     if (!authUid(req)) return send(res, 401, '请先登录', { 'content-type': 'text/plain; charset=utf-8' });
     const extDir = path.join(__dirname, 'extension');
-    const tmp = path.join(require('os').tmpdir(), 'zhusha-ext-' + Date.now() + '.zip');
     try {
-      await new Promise((resolve, reject) => {
-        const p = _spawn('zip', ['-r', '-q', '-X', tmp, '.'], { cwd: extDir });
-        p.on('error', reject);
-        p.on('close', code => code === 0 ? resolve() : reject(new Error('zip 退出码 ' + code)));
-      });
-      const buf = fs.readFileSync(tmp); fs.unlink(tmp, () => {});
+      // 纯 Node 打 zip（不依赖系统 zip 命令）：递归收集 extension/ 下所有文件 → deflate → 拼 ZIP
+      const files = [];
+      (function walk(dir, rel) {
+        for (const name of fs.readdirSync(dir)) {
+          const full = path.join(dir, name), r = rel ? rel + '/' + name : name;
+          const stt = fs.statSync(full);
+          if (stt.isDirectory()) walk(full, r);
+          else files.push({ name: r, data: fs.readFileSync(full) });
+        }
+      })(extDir, '');
+      const buf = makeZip(files);
       res.writeHead(200, { 'content-type': 'application/zip', 'content-disposition': 'attachment; filename="zhusha-helper-extension.zip"', 'content-length': buf.length });
       return res.end(buf);
     } catch (err) {
-      try { fs.unlinkSync(tmp); } catch {}
-      return send(res, 500, '打包失败（服务器可能未装 zip：apt install zip）：' + (err.message || String(err)), { 'content-type': 'text/plain; charset=utf-8' });
+      return send(res, 500, '打包失败：' + (err.message || String(err)), { 'content-type': 'text/plain; charset=utf-8' });
     }
   }
 
