@@ -481,7 +481,13 @@ function renderWorks(filter) {
     </div>`; }).join('');
   grid.querySelectorAll('.hm-work').forEach(c => c.addEventListener('click', e => { if (e.target.closest('.hm-wacts')) return; openWork(c.dataset.id, '/流水线.html'); }));
   grid.querySelectorAll('.wk-export').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openWork(b.dataset.id, '/成稿预览.html'); }));
-  grid.querySelectorAll('.wk-del').forEach(b => b.addEventListener('click', async e => { e.stopPropagation(); if (!confirm('删除这个作品？')) return; try { await Cloud.del(b.dataset.id); } catch {} _works = _works.filter(x => x.id !== b.dataset.id); renderWorks(($('#worksSearch') || {}).value || ''); }));
+  grid.querySelectorAll('.wk-del').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation(); const id = b.dataset.id; if (!confirm('删除这个作品？')) return;
+    try { await Cloud.del(id); } catch {}
+    // 若删的是「当前正在编辑的草稿」，本地 ag_draft 也清掉——否则下次进流水线会被自动回存到云端，看起来「删不掉」
+    try { const cur = Draft.load(); if (cur && cur._runId === id) Draft.clear(); } catch {}
+    _works = _works.filter(x => x.id !== id); renderWorks(($('#worksSearch') || {}).value || '');
+  }));
 }
 async function openWork(id, dest) { try { const d = await Cloud.get(id); if (d) { Draft.clear(); d._runId = id; Draft.save(d); } } catch {} location.href = dest; }
 async function loadWorks() { try { _works = await Cloud.list(); } catch { _works = []; } renderWorks(); }

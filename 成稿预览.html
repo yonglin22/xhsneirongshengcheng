@@ -198,6 +198,7 @@
           <button id="exportBtn" class="btn-go flex-1 rounded-xl py-2.5 text-[13px] font-medium tracking-wide flex items-center justify-center gap-2"><span>⬇</span><span>导出图文包</span></button>
           <button id="copyTextBtn" class="btn-ghost rounded-xl px-4 py-2.5 text-[13px] whitespace-nowrap">复制文案</button>
         </div>
+        <button id="toPublishBtn" class="rounded-xl w-full py-2.5 text-[13px] font-medium mt-2.5" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🚀 一键发布 → 推到小红书草稿箱</button>
         <p class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed">导出含封面轮播当前页 + 正文标签的整图 PNG；复制文案把标题 + 正文 + 标签一键进剪贴板。</p>
       </div>
     </section>
@@ -815,6 +816,8 @@ $('#exportBtn').addEventListener('click', async ()=>{
 });
 
 // ===== 复制文案 =====
+// 一键发布：成稿预览已基于当前草稿渲染，直接进一键发布页（推到小红书草稿箱）
+$('#toPublishBtn')?.addEventListener('click', ()=>{ location.href='/一键发布.html'; });
 $('#copyTextBtn').addEventListener('click', async ()=>{
   if (window.__isGzhStage) { // 公众号：标题 + 长文全文（含小标题），无标签
     const title = $('#gzhTitle').textContent.trim();

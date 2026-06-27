@@ -514,6 +514,7 @@ function renderReport(r) {
       </div>
       <div class="flex flex-wrap gap-2.5 mt-4 pt-3 border-t hairline">
         <button id="regenImgBtn" class="btn-go rounded-lg px-4 py-2 text-[12.5px] font-medium">🔄 按改后内容重新出图</button>
+        <button id="toPublishBtn" class="rounded-lg px-4 py-2 text-[12.5px] font-medium" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🚀 一键发布 →</button>
         <button id="toPreviewBtn" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">去成稿预览 →</button>
         <button id="dlPackBtn" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">⬇ 下载图文包</button>
         <span class="text-[11px] text-[var(--ink-soft)] self-center w-full">重新出图＝按改后正文 + 你在「智能体」设的配图视觉风格生成</span>
@@ -546,6 +547,9 @@ function renderReport(r) {
   }
   const tp = document.querySelector('#toPreviewBtn');
   if (tp) tp.addEventListener('click', () => { pushRevisedToDraft(); location.href = '/成稿预览.html'; });
+  // 一键发布：先把「修改后的文案 + 配图」写回草稿，再去一键发布页（推到小红书草稿箱）
+  const tpub = document.querySelector('#toPublishBtn');
+  if (tpub) tpub.addEventListener('click', () => { pushRevisedToDraft(); location.href = '/一键发布.html'; });
   const dp = document.querySelector('#dlPackBtn');
   if (dp) dp.addEventListener('click', () => { pushRevisedToDraft(); location.href = '/成稿预览.html?export=1'; });
   const rb = document.querySelector('#regenImgBtn');
