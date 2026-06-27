@@ -1479,16 +1479,15 @@ async function genNoteImages() {
     persist(); renderCoverImages();
     if (st) { st.textContent = '✓ 已排成 ' + finalPages.length + ' 页长图笔记' + (splitN > 0 ? '（含 ' + splitN + ' 页因内容多自动拆分）' : '') + '（去成稿预览导 1080P）'; st.style.color = '#00a152'; }
     await resplitTooSmallNotes(st); // 再按实际缩放比例兜底拆分被缩太小的页（在纯 note:// 集上做）
-    // 默认两种封面都出：备忘录真字封面卡(note://0) 留在封面位；再生成一张 AI 图封面作为「封面备选」插到第二张，封面位可一键切换
+    // 默认两种封面都出：AI 图封面放到封面位(第一张)，备忘录真字封面卡(note://0)挪到第二张；封面位点「⇄ 换封面」可一键切换
     const aiUrl = await genAiCoverUrl(m => { if (st) { st.textContent = m; st.style.color = 'var(--ink-soft)'; } });
     if (aiUrl) {
       state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
-      state.coverImages.splice(1, 0, aiUrl);          // AI 封面插到第二张，备忘录卡仍在封面位
-      state.coverCaptions[0] = state.coverCaptions[0] || null;
-      state.coverCaptions.splice(1, 0, aiCoverCaption());
+      state.coverImages.unshift(aiUrl);               // AI 封面放封面位，备忘录卡顺移到第二张
+      state.coverCaptions.unshift(aiCoverCaption());
       state.coverImage = state.coverImages[0];
       persist(); renderCoverImages();
-      if (st) { st.textContent = '✓ 备忘录真字封面卡 + AI 图封面 都已生成 —— 封面位点「⇄ 换封面」一键切换'; st.style.color = '#00a152'; }
+      if (st) { st.textContent = '✓ AI 图封面（封面位）+ 备忘录真字封面卡（第二张）都已生成 —— 点「⇄ 换封面」可一键切换'; st.style.color = '#00a152'; }
     } else if (st) { st.textContent = '✓ 备忘录长图已生成（AI 封面这次没出来，可在封面卡点「🔄」重试）'; st.style.color = '#00a152'; }
   } catch (e) { if (st) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
   finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
