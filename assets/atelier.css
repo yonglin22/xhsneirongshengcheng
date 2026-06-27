@@ -254,11 +254,13 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 .cv-note.is-memo .nt-h1{ font-size:6.6cqw; font-weight:800; color:#1c1c1e; margin-bottom:1.4cqw; letter-spacing:0; }
 .cv-note.is-memo .nt-sec{ font-weight:800; color:#1c1c1e; }
+/* 小节之间加细虚线分隔（真备忘录最显眼的特征之一）：每个小节标题上方一条横虚线，首个标题前不画 */
+.cv-note.is-memo .nt-sec:not(:first-child){ position:relative; border-top:.35cqw dashed rgba(60,80,120,.28); margin-top:4cqw; padding-top:3.4cqw; }
 .cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ color:#2c2c2e; }
 /* 高亮改成饱满荧光笔：覆盖大半个字高（.66em）、上移到字身中部（.34em），更贴近真备忘录手写马克笔感 */
 .cv-note.is-memo .hl{ background-size:100% .66em; background-position:0 .34em; padding:0 .12em; border-radius:.06em; }
-/* 顶部：状态栏 + 导航栏 */
-.cv-note.is-memo .nt-ios-top{ position:absolute; top:0; left:0; right:0; z-index:4; background:#fff; }
+/* 顶部：状态栏 + 导航栏。背景跟随纸面色（真 iOS 备忘录顶栏与纸面同色，白色顶栏一看就假）；底部加极淡分隔线 */
+.cv-note.is-memo .nt-ios-top{ position:absolute; top:0; left:0; right:0; z-index:4; background:var(--nt-bg,#fff); }
 .cv-note.is-memo .nt-ios-status{ position:relative; height:6cqw; padding:0 6cqw 0 7.5cqw; }
 /* 时钟用 line-height=栏高 居中（html2canvas 对 translateY(-50%) 的文字会算偏→被裁，line-height 两边一致）；右侧纯图标用 flex 即可 */
 .cv-note.is-memo .nt-clock{ position:absolute; left:7.5cqw; top:0; height:6cqw; display:flex; align-items:center; font-size:3.5cqw; font-weight:700; color:#000; letter-spacing:.03em; line-height:1; }
@@ -276,7 +278,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-nav-r{ position:absolute; right:4.5cqw; top:0; height:9cqw; display:flex; align-items:center; gap:3.4cqw; z-index:1; }
 .cv-note.is-memo .nt-ny{ height:5cqw; width:auto; fill:#e8a400; color:#e8a400; display:block; }
 /* 底部：工具栏 + Home 指示条 */
-.cv-note.is-memo .nt-ios-bottom{ position:absolute; bottom:0; left:0; right:0; z-index:4; background:#fff; }
+.cv-note.is-memo .nt-ios-bottom{ position:absolute; bottom:0; left:0; right:0; z-index:4; background:var(--nt-bg,#fff); }
 .cv-note.is-memo .nt-ios-tools{ height:9cqw; display:flex; align-items:center; justify-content:space-between; padding:0 7cqw; border-top:.3cqw solid rgba(0,0,0,.09); }
 .cv-note.is-memo .nt-tool{ height:4.7cqw; width:auto; color:#48484a; fill:none; }
 .cv-note.is-memo .nt-tool.acc{ color:#e8a400; }
