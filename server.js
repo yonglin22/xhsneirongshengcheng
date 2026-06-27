@@ -635,7 +635,19 @@ const server = http.createServer(async (req, res) => {
         if (!up.ok) return send(res, up.status, text, { 'content-type': 'application/json' });
         try {
           const j = JSON.parse(text);
-          outUrl = (j.data && j.data[0] && (j.data[0].url || (j.data[0].b64_json && 'data:image/png;base64,' + j.data[0].b64_json))) || '';
+          const d = j.data && j.data[0];
+          if (d && d.url) outUrl = d.url;
+          else if (d && d.b64_json) {
+            // gpt-image 多返回 b64（无 url）。整段 base64 塞进前端 localStorage 草稿(ag_draft)会超 ~5MB 配额报错，
+            // 因此服务端把它落地成静态文件、只回短链 /gen/xxx.png，前端只存链接，彻底避开配额问题。
+            try {
+              const genDir = path.join(__dirname, 'gen');
+              if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
+              const fn = 'img' + Date.now() + Math.random().toString(36).slice(2, 8) + '.png';
+              fs.writeFileSync(path.join(genDir, fn), Buffer.from(d.b64_json, 'base64'));
+              outUrl = '/gen/' + fn;
+            } catch (e) { outUrl = 'data:image/png;base64,' + d.b64_json; } // 落地失败兜底，仍可显示
+          }
         } catch {}
         if (!outUrl) return send(res, 502, JSON.stringify({ error: '上游未返回图片：' + text.slice(0, 200) }), { 'content-type': 'application/json' });
       } else {

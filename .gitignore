@@ -16,6 +16,9 @@ billing.db-wal
 # 交付物 / 打包产物
 _deliverables/
 
+# 服务端落地的生成图（gpt-image 等返回 base64 → 存成静态文件，不进仓库）
+gen/
+
 # 依赖与系统文件
 node_modules/
 .DS_Store
