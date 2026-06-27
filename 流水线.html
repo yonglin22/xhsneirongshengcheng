@@ -1787,37 +1787,64 @@ function renderFinder(d) {
   if (benchNotes.length) renderBenchNotes();
 }
 // 按当前排序渲染对标笔记列表（点赞/最新切换，仅重排已抓到的，不再请求）
+// 从笔记的多个字段（含作者名里粘连的日期、相对时间）提取发布日期 → 数字 YYYYMMDD（0=确实拿不到）
+// xhs 常见格式：2025-07-22 / 2025.07.22 / 07-22(无年) / 今天/昨天/前天 / X天前/X周前/X个月前/X小时前 / M月D日 / 编辑于…
+function noteDateNum(n) {
+  if (!n) return 0;
+  const today = new Date(); const yNow = today.getFullYear();
+  const toNum = d => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const fromDaysAgo = days => { const d = new Date(); d.setDate(d.getDate() - days); return toNum(d); };
+  // 把候选字段拼起来一起扫（日期常被塞进作者名/描述里）
+  const s = [n.date, n.time, n.publishTime, n.publish_time, n.createTime, n.author, n.authorName, n.nickname, n.desc, n.title].map(x => String(x || '')).join('  ');
+  let m;
+  if ((m = s.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/))) return +m[1] * 10000 + +m[2] * 100 + +m[3]; // 完整日期
+  if (/刚刚|今天|分钟前|小时前/.test(s)) return toNum(today);
+  if (/昨天/.test(s)) return fromDaysAgo(1);
+  if (/前天/.test(s)) return fromDaysAgo(2);
+  if ((m = s.match(/(\d{1,3})\s*天前/))) return fromDaysAgo(+m[1]);
+  if ((m = s.match(/(\d{1,2})\s*周前/))) return fromDaysAgo(+m[1] * 7);
+  if ((m = s.match(/(\d{1,2})\s*个?月前/))) return fromDaysAgo(Math.round(+m[1] * 30.4));
+  if ((m = s.match(/(\d{1,2})\s*年前/))) return fromDaysAgo(+m[1] * 365);
+  if ((m = s.match(/(\d{1,2})月(\d{1,2})日?/))) { // M月D日（无年）→ 取不晚于今天的最近那年
+    let y = yNow, num = y * 10000 + +m[1] * 100 + +m[2]; if (num > toNum(today)) num = (y - 1) * 10000 + +m[1] * 100 + +m[2]; return num;
+  }
+  if ((m = s.match(/(?:^|\D)(\d{1,2})[-/](\d{1,2})(?:\D|$)/))) { // MM-DD（无年）→ 同上取最近那年
+    let num = yNow * 10000 + +m[1] * 100 + +m[2]; if (num > toNum(today)) num = (yNow - 1) * 10000 + +m[1] * 100 + +m[2]; return num;
+  }
+  return 0;
+}
 function renderBenchNotes() {
   const box = $('#benchList'), st = $('#benchStatus'); if (!box) return;
-  const dateNum = s => { const m = String(s || '').match(/(\d{4})-(\d{1,2})-(\d{1,2})/); return m ? (+m[1] * 10000 + +m[2] * 100 + +m[3]) : 0; };
   // 时间窗 benchWindow（月，0=全部）；保留无日期的（无法确认，不臆断），只剔除明确早于该窗口的
   const winLabel = benchWindow === 0 ? '全部' : (benchWindow === 12 ? '近1年' : benchWindow === 6 ? '近半年' : '近' + benchWindow + '月');
   const cut = new Date(Date.now() - benchWindow * 30.4 * 86400000); const cutNum = cut.getFullYear() * 10000 + (cut.getMonth() + 1) * 100 + cut.getDate();
   let list = benchNotes.slice();
-  const total = list.length, hidden = benchWindow ? list.filter(n => { const dn = dateNum(n.date); return dn && dn < cutNum; }).length : 0;
-  if (benchWindow) list = list.filter(n => { const dn = dateNum(n.date); return !dn || dn >= cutNum; });
-  // 互动门槛：点赞+收藏 ≥ benchMinEngage 算「达标」。只对列表里有的数字筛（粉丝数/内容形式拿不到，不做）
+  const total = list.length, hidden = benchWindow ? list.filter(n => { const dn = noteDateNum(n); return dn && dn < cutNum; }).length : 0;
+  if (benchWindow) list = list.filter(n => { const dn = noteDateNum(n); return !dn || dn >= cutNum; });
+  // 「达标」=「怎么挑」承诺的两条都满足：① 确认在时间窗内（近 N 月，日期拿不到的不算达标，避免把老笔记误标）② 互动量 点赞+收藏≥benchMinEngage
   const engOf = n => parseCount(n.likes) + parseCount(n.collects);
-  const qualified = benchMinEngage > 0 ? list.filter(n => engOf(n) >= benchMinEngage).length : 0;
-  if (benchMinEngage > 0 && benchOnlyQualified) list = list.filter(n => engOf(n) >= benchMinEngage);
+  const inWin = n => !benchWindow || (() => { const dn = noteDateNum(n); return dn > 0 && dn >= cutNum; })();
+  const qualOf = n => benchMinEngage > 0 && engOf(n) >= benchMinEngage && inWin(n);
+  const qualified = benchMinEngage > 0 ? list.filter(qualOf).length : 0;
+  if (benchMinEngage > 0 && benchOnlyQualified) list = list.filter(qualOf);
   // 排序：先按是否达标（达标的排前），再按所选维度
-  const cmp = (a, b) => benchSort === 'date' ? (dateNum(b.date) - dateNum(a.date)) : benchSort === 'comments' ? (parseCount(b.comments) - parseCount(a.comments)) : (parseCount(b.likes) - parseCount(a.likes));
-  list.sort((a, b) => { if (benchMinEngage > 0 && !benchOnlyQualified) { const qa = engOf(a) >= benchMinEngage ? 1 : 0, qb = engOf(b) >= benchMinEngage ? 1 : 0; if (qa !== qb) return qb - qa; } return cmp(a, b); });
+  const cmp = (a, b) => benchSort === 'date' ? (noteDateNum(b) - noteDateNum(a)) : benchSort === 'comments' ? (parseCount(b.comments) - parseCount(a.comments)) : (parseCount(b.likes) - parseCount(a.likes));
+  list.sort((a, b) => { if (benchMinEngage > 0 && !benchOnlyQualified) { const qa = qualOf(a) ? 1 : 0, qb = qualOf(b) ? 1 : 0; if (qa !== qb) return qb - qa; } return cmp(a, b); });
   const sortLabel = benchSort === 'date' ? '最新' : benchSort === 'comments' ? '评论' : '点赞';
   if (st) {
     let html = `✓ ${list.length} 篇 · ${winLabel} · 按${sortLabel}` + (hidden ? `（隐藏 ${hidden} 篇更早的）` : '');
     if (benchMinEngage > 0) {
-      html += ` · <b style="color:var(--cinnabar-deep)">${qualified} 篇达标</b>(点赞+收藏≥${benchMinEngage})`;
+      html += ` · <b style="color:var(--cinnabar-deep)">${qualified} 篇达标</b>(${winLabel}内发布·点赞+收藏≥${benchMinEngage})`;
       html += ` <a id="benchQualToggle" href="javascript:void(0)" style="color:var(--cinnabar-deep);text-decoration:underline">${benchOnlyQualified ? '显示全部' : '只看达标'}</a>`;
     }
     html += '，挑 1 篇点「用这篇拆解」';
     st.innerHTML = html;
     const qt = $('#benchQualToggle'); if (qt) qt.addEventListener('click', () => { benchOnlyQualified = !benchOnlyQualified; renderBenchNotes(); });
   }
-  if (!list.length) { box.innerHTML = `<div class="text-[11px] text-[var(--ink-soft)] mt-1">${benchOnlyQualified ? '没有达标的笔记（点赞+收藏≥' + benchMinEngage + '）。点上方「显示全部」看所有。' : winLabel + '内没有结果（共 ' + total + ' 篇）。把时间筛选改成「全部」可看全部。'}</div>`; return; }
+  if (!list.length) { box.innerHTML = `<div class="text-[11px] text-[var(--ink-soft)] mt-1">${benchOnlyQualified ? '没有达标的笔记（' + winLabel + '内发布 且 点赞+收藏≥' + benchMinEngage + '）。点上方「显示全部」看所有，或把时间筛选放宽。' : winLabel + '内没有结果（共 ' + total + ' 篇）。把时间筛选改成「全部」可看全部。'}</div>`; return; }
   box.innerHTML = '<div class="grid gap-2 mt-1" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">' + list.map(n => {
     const stats = [n.likes ? '❤' + n.likes : '', n.collects ? '⭐' + n.collects : '', n.comments ? '💬' + n.comments : ''].filter(Boolean).join(' ');
-    const isQual = benchMinEngage > 0 && engOf(n) >= benchMinEngage;
+    const isQual = qualOf(n);
     const dim = benchMinEngage > 0 && !isQual && !benchOnlyQualified; // 未达标的淡化显示
     return `<div class="out p-1.5" style="display:flex;flex-direction:column;position:relative${dim ? ';opacity:0.45' : ''}">
       ${isQual ? '<div style="position:absolute;top:4px;left:4px;z-index:1;background:var(--cinnabar);color:#fff;font-size:9px;padding:1px 5px;border-radius:5px">🔥达标</div>' : ''}
