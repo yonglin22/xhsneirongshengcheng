@@ -1822,9 +1822,7 @@ function renderBenchNotes() {
   const total = list.length, hidden = benchWindow ? list.filter(n => { const dn = noteDateNum(n); return dn && dn < cutNum; }).length : 0;
   if (benchWindow) list = list.filter(n => { const dn = noteDateNum(n); return !dn || dn >= cutNum; });
   // 「达标」=「怎么挑」承诺的两条都满足：① 确认在时间窗内（近 N 月，日期拿不到的不算达标，避免把老笔记误标）② 互动量 点赞+收藏≥benchMinEngage
-  const engOf = n => parseCount(n.likes) + parseCount(n.collects);
-  const inWin = n => !benchWindow || (() => { const dn = noteDateNum(n); return dn > 0 && dn >= cutNum; })();
-  const qualOf = n => benchMinEngage > 0 && engOf(n) >= benchMinEngage && inWin(n);
+  const engOf = benchEng, inWin = benchInWin, qualOf = benchQual; // 复用全局（fillBenchFans/paintFans 也用同一套）
   const qualified = benchMinEngage > 0 ? list.filter(qualOf).length : 0;
   if (benchMinEngage > 0 && benchOnlyQualified) list = list.filter(qualOf);
   // 排序：先按是否达标（达标的排前），再按所选维度
@@ -1837,7 +1835,7 @@ function renderBenchNotes() {
       html += ` · <b style="color:var(--cinnabar-deep)">${qualified} 篇达标</b>(${winLabel}内发布·点赞+收藏≥${benchMinEngage})`;
       html += ` <a id="benchQualToggle" href="javascript:void(0)" style="color:var(--cinnabar-deep);text-decoration:underline">${benchOnlyQualified ? '显示全部' : '只看达标'}</a>`;
     }
-    html += '，挑 1 篇点「用这篇拆解」';
+    html += '，挑 1 篇点「用这篇拆解」<span id="benchFansProg" style="color:var(--ink-soft)"></span>';
     st.innerHTML = html;
     const qt = $('#benchQualToggle'); if (qt) qt.addEventListener('click', () => { benchOnlyQualified = !benchOnlyQualified; renderBenchNotes(); });
   }
@@ -1864,6 +1862,14 @@ function renderBenchNotes() {
   }));
   fillBenchFans(); // 笔记已即时渲染；粉丝数随后用插件逐个补上（只显示、不筛选）
 }
+// ===== 达标/互动/粉丝 的全局判定（renderBenchNotes / fillBenchFans / paintFans 共用一套，口径一致）=====
+function benchCutNum() { const cut = new Date(Date.now() - benchWindow * 30.4 * 86400000); return cut.getFullYear() * 10000 + (cut.getMonth() + 1) * 100 + cut.getDate(); }
+function benchEng(n) { return parseCount(n.likes) + parseCount(n.collects); }
+function benchInWin(n) { if (!benchWindow) return true; const dn = noteDateNum(n); return dn > 0 && dn >= benchCutNum(); }
+function benchQual(n) { return benchMinEngage > 0 && benchEng(n) >= benchMinEngage && benchInWin(n); }
+// 粉丝字符串（"1.2k"/"6.3万"/"78"）→ 数字，用于判「低粉<1万」
+function parseFansNum(v) { if (v == null) return NaN; const s = String(v).trim(); if (!s || s === '—') return NaN; const m = s.match(/([\d.]+)\s*(万|w|k|千)?/i); if (!m) return NaN; let n = parseFloat(m[1]); const u = (m[2] || '').toLowerCase(); if (u === '万') n *= 10000; else if (u === 'k' || u === '千') n *= 1000; return n; }
+const LOW_FANS = 10000; // 低粉爆款门槛：粉丝 < 1万
 // 粉丝数格式化：纯数字→万/千；已是"3.2万"等字符串原样显示
 function fmtFans(v) {
   if (v == null || v === '') return '—';
@@ -1880,14 +1886,15 @@ async function fillBenchFans() {
   _fansFilling = true;
   try {
     paintFans();
-    // 循环到「所有有 userId 的博主都抓过」为止——这样边抓边来的笔记、后到的批次也能补上，不会被一次性快照漏掉
+    // 循环到「所有有 userId 的博主都抓过」为止——边抓边来的、后到批次也能补上，不会被一次性快照漏掉。
+    // 优先级：达标的博主先抓（你主要从达标里挑），同级按互动量高的先抓。
     while (true) {
-      // 找下一个：有 userId、还没抓过粉丝、缓存里也没有的
-      let next = null;
+      let next = null, bestScore = -1;
       for (const n of benchNotes) {
         if (!n || !n.userId || n.fans != null) continue;
         if (_benchFansCache[n.userId] != null) { n.fans = _benchFansCache[n.userId]; continue; }
-        next = n; break;
+        const score = (benchQual(n) ? 1e9 : 0) + benchEng(n);
+        if (score > bestScore) { bestScore = score; next = n; }
       }
       if (!next) { paintFans(); break; }
       const url = next.authorLink || ('https://www.xiaohongshu.com/user/profile/' + next.userId);
@@ -1900,16 +1907,29 @@ async function fillBenchFans() {
     }
   } finally { _fansFilling = false; }
 }
-// 把粉丝数刷到对应卡片（按 userId）：已抓到显示数字；在抓的显示「加载中…」；没插件提示装插件
+// 把粉丝数刷到对应卡片（按 userId）：已抓到显示数字；达标+低粉(<1万)加「💎低粉」；在抓的显示「加载中…」；没插件提示装插件
 function paintFans() {
   const box = $('#benchList'); if (!box) return;
   const noExt = !(window.xhsExt && window.xhsExt.available);
   box.querySelectorAll('.bench-fans').forEach(el => {
     const uid = el.dataset.uid; const n = benchNotes.find(x => x.userId === uid);
-    if (n && n.fans != null) { el.textContent = '· 粉丝 ' + fmtFans(n.fans); el.style.color = 'var(--ink-soft)'; }
-    else if (noExt) { el.textContent = '· 粉丝(装插件后显示)'; el.style.color = '#c9ced6'; }
+    if (n && n.fans != null) {
+      const fn = parseFansNum(n.fans);
+      const lowHot = benchQual(n) && !isNaN(fn) && fn < LOW_FANS; // 达标 且 低粉 = 低粉爆款
+      el.innerHTML = '· 粉丝 ' + fmtFans(n.fans) + (lowHot ? ' <b style="color:var(--cinnabar-deep)">💎低粉</b>' : '');
+      el.style.color = 'var(--ink-soft)';
+    } else if (noExt) { el.textContent = '· 粉丝(装插件后显示)'; el.style.color = '#c9ced6'; }
     else { el.textContent = '· 粉丝 加载中…'; el.style.color = '#b6bbc2'; }
   });
+  // 进度：已抓 / 总唯一博主数
+  const prog = document.getElementById('benchFansProg');
+  if (prog) {
+    const uids = new Set(), done = new Set();
+    for (const n of benchNotes) { if (n && n.userId) { uids.add(n.userId); if (n.fans != null) done.add(n.userId); } }
+    if (!uids.size || noExt) prog.textContent = '';
+    else if (done.size >= uids.size) prog.textContent = ' · 粉丝已加载 ' + uids.size + '/' + uids.size;
+    else prog.textContent = ' · 粉丝加载中 ' + done.size + '/' + uids.size + '…';
+  }
 }
 // 解析"1.2万/3000+"等为数字，用于排序
 function parseCount(v) {
