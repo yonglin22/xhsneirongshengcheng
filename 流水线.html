@@ -1207,7 +1207,7 @@ function olStr(x){ return typeof x === 'string' ? x : ((x && (x.text || x.conten
 function noteBlock(b) {
   if (!b) return '';
   const t = b.t || 'p';
-  if (t === 'title') return `<div class="nt-h1">${mark(b.text || '')}</div>`;
+  if (t === 'title') return `<div class="nt-h1">${mark(b.text || '').replace(/([；;])(?=.)/, '$1<br>')}</div>`;
   if (t === 'meta') return `<div class="nt-meta">${mark(b.text || '')}</div>`;
   if (t === 'sec') return `<div class="nt-sec"><span class="nt-dot"></span>${mark(b.text || '')}</div>`;
   if (t === 'sub') return `<div class="nt-sub">${mark(b.text || '')}</div>`;
