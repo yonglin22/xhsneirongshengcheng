@@ -555,6 +555,26 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ---- 获客 Agent · 脚本（朱砂助手插件）下载：把 extension 目录现打成 zip 给已登录客户下载 ----
+  if (pathname === '/api/ext-download' && req.method === 'GET') {
+    if (!authUid(req)) return send(res, 401, '请先登录', { 'content-type': 'text/plain; charset=utf-8' });
+    const extDir = path.join(__dirname, 'extension');
+    const tmp = path.join(require('os').tmpdir(), 'zhusha-ext-' + Date.now() + '.zip');
+    try {
+      await new Promise((resolve, reject) => {
+        const p = _spawn('zip', ['-r', '-q', '-X', tmp, '.'], { cwd: extDir });
+        p.on('error', reject);
+        p.on('close', code => code === 0 ? resolve() : reject(new Error('zip 退出码 ' + code)));
+      });
+      const buf = fs.readFileSync(tmp); fs.unlink(tmp, () => {});
+      res.writeHead(200, { 'content-type': 'application/zip', 'content-disposition': 'attachment; filename="zhusha-helper-extension.zip"', 'content-length': buf.length });
+      return res.end(buf);
+    } catch (err) {
+      try { fs.unlinkSync(tmp); } catch {}
+      return send(res, 500, '打包失败（服务器可能未装 zip：apt install zip）：' + (err.message || String(err)), { 'content-type': 'text/plain; charset=utf-8' });
+    }
+  }
+
   // ---- 图像生成：多家适配（封面=Seedream/ark，内页=可灵/kling，其余=CogView/SiliconFlow/OpenAI）----
   if (pathname === '/api/image' && req.method === 'POST') {
     try {

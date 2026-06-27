@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>脚本下载 · 使用教程 · 获客 Agent · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=51" />
+<style>
+  .step{ display:flex; gap:12px; padding:12px 0; border-bottom:1px solid #f0eae0; }
+  .step:last-child{ border-bottom:none; }
+  .step .n{ flex:none; width:26px; height:26px; border-radius:50%; background:var(--cinnabar); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .step .c{ font-size:13.5px; line-height:1.65; }
+  .step code{ background:#f6f1e7; border:1px solid var(--line); border-radius:5px; padding:1px 6px; font-size:12.5px; }
+  .sec-title{ font-size:15px; font-weight:700; margin:2px 0 4px; }
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <a href="/账号矩阵.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 账号矩阵</a>
+  <a href="/获客计划.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4 ml-2">获客计划 →</a>
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">脚本<span class="italic" style="color:var(--cinnabar)">下载</span></h1>
+    <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-2xl">获客脚本即「朱砂助手」浏览器插件，装在电脑版 <b>Chrome / Edge</b> 上，在你<b>已登录的小红书网页</b>里按获客计划保守拟真地执行。下载安装后即可在「获客计划」里建计划并执行。</p>
+  </div>
+
+  <!-- 下载 -->
+  <div class="card p-5 mb-5">
+    <div class="sec-title">① 下载脚本</div>
+    <p class="text-[13px] text-[var(--ink-soft)] mb-3">点击下载插件压缩包，解压到一个<b>固定文件夹</b>（别放临时目录，删了插件会失效）。</p>
+    <a id="dlBtn" href="/api/ext-download" class="btn-go rounded-xl px-6 py-2.5 text-[13px] font-medium inline-flex items-center gap-2">⬇ 下载朱砂助手插件（.zip）</a>
+    <span id="dlHint" class="ml-3 text-[12px] text-[var(--ink-soft)]"></span>
+  </div>
+
+  <!-- 安装 -->
+  <div class="card p-5 mb-5">
+    <div class="sec-title">② 安装到浏览器（电脑版 Chrome / Edge）</div>
+    <div class="mt-1">
+      <div class="step"><div class="n">1</div><div class="c">把下载的 <code>zhusha-helper-extension.zip</code> <b>解压</b>，得到一个文件夹（里面有 <code>manifest.json</code> 等文件）。</div></div>
+      <div class="step"><div class="n">2</div><div class="c">浏览器地址栏输入 <code>chrome://extensions</code>（Edge 用 <code>edge://extensions</code>）回车。</div></div>
+      <div class="step"><div class="n">3</div><div class="c">打开右上角 <b>「开发者模式」</b> 开关。</div></div>
+      <div class="step"><div class="n">4</div><div class="c">点 <b>「加载已解压的扩展程序」</b>，选中第 1 步解压出来的<b>文件夹</b> → 列表里出现「朱砂助手」即安装成功。</div></div>
+      <div class="step"><div class="n">5</div><div class="c">建议点扩展栏的拼图图标，把「朱砂助手」<b>固定</b>到工具栏，方便看运行状态与私信草稿。</div></div>
+    </div>
+  </div>
+
+  <!-- 使用 -->
+  <div class="card p-5 mb-5">
+    <div class="sec-title">③ 使用教程</div>
+    <div class="mt-1">
+      <div class="step"><div class="n">1</div><div class="c">在<b>同一个浏览器</b>里打开 <code>xiaohongshu.com</code> 并<b>登录你要养/截流的小红书账号</b>（脚本就在这个登录态里执行）。</div></div>
+      <div class="step"><div class="n">2</div><div class="c">回到本站 <a href="/话术库.html" style="color:var(--cinnabar-deep)">话术库</a> 先建好回复话术（可选，截流回复会用到）。</div></div>
+      <div class="step"><div class="n">3</div><div class="c">去 <a href="/获客计划.html" style="color:var(--cinnabar-deep)">获客计划</a> 新建计划：选类型（养号 / 截流）、填关键词、设各项互动比例 → 保存。</div></div>
+      <div class="step"><div class="n">4</div><div class="c">在计划列表点 <b>▶ 执行</b>，插件会自动打开小红书按计划跑，右下角有进度条，可随时点「停止」。</div></div>
+      <div class="step"><div class="n">5</div><div class="c">截流收集到的潜客评论会汇总到 <a href="/评论收集.html" style="color:var(--cinnabar-deep)">评论收集</a>；私信草稿存在插件弹窗里，<b>需你人工确认后发送</b>（不自动私信）。</div></div>
+    </div>
+    <div class="text-[12px] mt-3" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 12px;color:#9a3412">⚠️ 自动化互动属平台灰色操作，请<b>保守低频</b>使用：默认只做养号、截流回复/私信尽量 0 或极低频。出现验证码脚本会自动停止。账号安全第一。</div>
+  </div>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=49"></script>
+<script>
+  // 下载点击：给个反馈（浏览器会直接下载 zip）
+  $('#dlBtn').addEventListener('click', ()=>{ const h=$('#dlHint'); if(h){ h.textContent='正在打包下载…若没反应请稍等或重试'; setTimeout(()=>{ h.textContent=''; }, 6000); } });
+</script>
+</body>
+</html>
