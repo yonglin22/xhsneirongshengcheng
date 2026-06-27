@@ -266,12 +266,17 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 纸面背景跟随 --nt-bg（可自定义颜色）；顶栏/底栏保持白色，像真 iOS UI */
 .cv-note.is-memo{ background:var(--nt-bg,#fff); padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
-.cv-note.is-memo .nt-h1{ font-size:7cqw; font-weight:780; color:#1c1c1e; margin-bottom:1.4cqw; letter-spacing:.05cqw; line-height:1.24; }
-/* 小节标题：去掉橙色竖条，改成 emoji 引导（emoji 由 AI 写进文案）；更密、更粗，像真备忘录的分节标题 */
-.cv-note.is-memo .nt-sec{ font-size:4.5cqw; font-weight:800; color:#1c1c1e; margin:1.8cqw 0 1cqw; gap:1.2cqw; }
-.cv-note.is-memo .nt-ol li{ margin:.9cqw 0; line-height:1.42; }
-/* 编号圆圈与首行 ✅/文字垂直居中对齐（之前偏低）：圆圈缩到接近行高、上边距按行高居中算 */
-.cv-note.is-memo .nt-num{ width:5cqw; height:5cqw; margin-top:.12cqw; }
+/* 字号整体向参考图（密集干货长图）看齐：标题更克制、正文更小更密 */
+.cv-note.is-memo .nt-h1{ font-size:5.7cqw; font-weight:800; color:#1c1c1e; margin-bottom:1.2cqw; letter-spacing:-.04cqw; line-height:1.24; }
+/* 小节标题：emoji 引导、加粗，但比之前小一档，贴近参考图分节标题 */
+.cv-note.is-memo .nt-sec{ font-size:4.1cqw; font-weight:800; color:#1c1c1e; margin:1.6cqw 0 .9cqw; gap:1.1cqw; }
+/* 正文/列表统一缩到 3.35cqw、行距收紧，密度对齐参考图 */
+.cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ font-size:3.35cqw; line-height:1.4; }
+.cv-note.is-memo .nt-p{ margin:.7cqw 0; }
+.cv-note.is-memo .nt-ol li{ margin:.8cqw 0; }
+/* 编号圆圈跟随缩小并与首行 ✅/文字垂直居中（按行高居中算 margin） */
+.cv-note.is-memo .nt-num{ width:4.4cqw; height:4.4cqw; margin-top:.18cqw; }
+.cv-note.is-memo .nt-box-li{ font-size:3.35cqw; }
 .cv-note.is-memo .nt-p{ margin:.8cqw 0; line-height:1.45; }
 .cv-note.is-memo .nt-sec .nt-dot{ display:none; }
 /* 小节之间细虚线分隔（对齐参考图：灰蓝色横虚线，是这类干货长图最显眼的特征）；首个标题前不画 */
