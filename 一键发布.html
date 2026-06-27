@@ -73,7 +73,7 @@ function noteBlock(b){ if(!b)return''; const t=b.t||'p';
   if(t==='meta')return `<div class="nt-meta">${mark(b.text||'')}</div>`;
   if(t==='sec')return `<div class="nt-sec"><span class="nt-dot"></span>${mark(b.text||'')}</div>`;
   if(t==='sub')return `<div class="nt-sub">${mark(b.text||'')}</div>`;
-  if(t==='ol')return `<ul class="nt-ol">${(b.items||[]).map((x,k)=>`<li><svg class="nt-num" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#ff6a3d"/><text x="11" y="11.5" fill="#ffffff" font-size="12.5" font-weight="800" text-anchor="middle" dominant-baseline="central">${k+1}</text></svg><span class="nt-tx">${mark(olStr(x))}</span></li>`).join('')}</ul>`;
+  if(t==='ol')return `<ul class="nt-ol">${(b.items||[]).map((x,k)=>`<li><svg class="nt-num" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#ff6a3d"/><text x="11" y="11.5" fill="#ffffff" font-size="12.5" font-weight="800" text-anchor="middle" dominant-baseline="central">${k+1}</text></svg><span class="nt-tx">${mark(olStr(x).replace(/^\s*(?:[①-⑳⓪⓵-⓾]\s*|[(（]\d{1,2}[)）]\s*|\d{1,2}[)）、]\s*|\d{1,2}\.\s+)/, ''))}</span></li>`).join('')}</ul>`;
   if(t==='box')return '<div class="nt-box">'+((b.items||[]).map(function(x){return '<div class="nt-box-li">'+mark(olStr(x))+'</div>';}).join(''))+'</div>';
   if(t==='tags')return '';
   return `<p class="nt-p">${mark(b.text||'')}</p>`; }
