@@ -1,3 +1,5 @@
+/* 内嵌「阿里巴巴普惠体 Heavy」——长图笔记标题专用，匹配参考图黑体字形；全平台/html2canvas 导出一致 */
+@font-face{ font-family:"AlibabaHeavy"; src:url("/assets/fonts/AlibabaPuHuiTi-Heavy.woff2") format("woff2"); font-weight:400 900; font-display:swap; }
 /* ===== 赛道智能体操盘台 · 共享设计系统（小红书风） ===== */
 :root{
   --ink:#222226; --ink-soft:#9499a0; --paper:#ffffff; --paper-2:#f5f6f8;
@@ -270,7 +272,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo{ background:var(--nt-bg,#fff); padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 /* 字号整体向参考图（密集干货长图）看齐：标题更克制、正文更小更密 */
-.cv-note.is-memo .nt-h1{ font-size:7.2cqw; font-weight:900; color:#111316; margin-bottom:1.4cqw; letter-spacing:-.1cqw; line-height:1.2; -webkit-text-stroke:.6px #111316; }
+.cv-note.is-memo .nt-h1{ font-family:"AlibabaHeavy",-apple-system,"PingFang SC","Noto Sans SC",sans-serif; font-size:7.2cqw; font-weight:900; color:#111316; margin-bottom:1.4cqw; letter-spacing:-.06cqw; line-height:1.22; }
 /* 小节标题：emoji 引导、加粗，但比之前小一档，贴近参考图分节标题 */
 .cv-note.is-memo .nt-sec{ font-size:4.1cqw; font-weight:800; color:#1c1c1e; margin:1.6cqw 0 .9cqw; gap:1.1cqw; }
 /* 正文/列表统一缩到 3.35cqw、行距收紧，密度对齐参考图 */
