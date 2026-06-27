@@ -793,13 +793,15 @@ async function genCoverFromCvTpl(i) {
   const a = loadCvTpls(); const tp = a[i]; if (!tp) return;
   const msg = document.querySelector('.cvtpl-msg[data-i="' + i + '"]');
   const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
-  // 不让 AI 把标题画进图（gpt-image 画中文会糊成乱码，且系统已在图上叠加清晰标题）→ 只留排版空位、画面零文字
-  const titleHint = '画面顶部留出大字标题的排版空位（上部约 1/3 干净留白）；画面内绝对不要出现任何文字/汉字/字母/数字/水印（标题由系统叠加，不要 AI 画字）；';
+  // 不让 AI 把标题画进图（gpt-image 画中文会糊）→ 顶部留排版空位、画面零文字；标题由系统叠加。
+  const titleHint = '画面顶部留出大字标题的排版空位（上部约 1/3 干净留白）；画面内不要出现任何文字/汉字/字母/数字/水印（标题由系统叠加）；';
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-  const prompt = tp.prompt + '。' + titleHint + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 3:4，高清、有设计感、版式精致。';
-  if (msg) { msg.textContent = '出图中…（约 30 秒）'; msg.style.color = 'var(--ink-soft)'; }
+  const prompt = tp.prompt + '。' + titleHint + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 3:4，画面要有明确主体与设计感（不要大面积空白），高清、版式精致。';
+  if (msg) { msg.textContent = '出图中…（约 30~60 秒）'; msg.style.color = 'var(--ink-soft)'; }
   try {
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, init_image: tp.url, action: 'cover' }) });
+    // 关键：不传 init_image。对标封面多是文字密集的笔记图，拿它当参考再要求「无文字」会被模型擦成白图 →
+    // 改为纯文生图（提示词里已含版式描述），出真正的设计封面。
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, action: 'cover' }) });
     const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
     if (!u) throw new Error('上游无图');
