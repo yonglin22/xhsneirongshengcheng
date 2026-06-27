@@ -793,7 +793,8 @@ async function genCoverFromCvTpl(i) {
   const a = loadCvTpls(); const tp = a[i]; if (!tp) return;
   const msg = document.querySelector('.cvtpl-msg[data-i="' + i + '"]');
   const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
-  const titleHint = lines.length ? '封面主标题文字为「' + lines.join('；') + '」，按提示词描述的版式排上去；' : '主标题位置留出大字标题排版位；';
+  // 不让 AI 把标题画进图（gpt-image 画中文会糊成乱码，且系统已在图上叠加清晰标题）→ 只留排版空位、画面零文字
+  const titleHint = '画面顶部留出大字标题的排版空位（上部约 1/3 干净留白）；画面内绝对不要出现任何文字/汉字/字母/数字/水印（标题由系统叠加，不要 AI 画字）；';
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
   const prompt = tp.prompt + '。' + titleHint + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 3:4，高清、有设计感、版式精致。';
   if (msg) { msg.textContent = '出图中…（约 30 秒）'; msg.style.color = 'var(--ink-soft)'; }
