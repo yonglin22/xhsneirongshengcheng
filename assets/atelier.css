@@ -273,7 +273,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-stat-r{ position:absolute; right:6cqw; top:0; height:6cqw; display:flex; align-items:center; gap:1.5cqw; }
 /* 状态栏右侧元素：统一视觉高度（信号/wifi/电池同高），100 字号贴近图标，整体更像真 iOS 状态栏、不显错位 */
 .cv-note.is-memo .nt-si{ height:3.1cqw; width:auto; fill:#000; display:block; }
-.cv-note.is-memo .nt-batpct{ font-size:3.1cqw; font-weight:600; color:#000; margin-right:.5cqw; letter-spacing:0; line-height:1; }
+/* 「100」改 SVG（文字 y 坐标写死，html2canvas 跨平台一致，不再因 macOS 字体度量偏移）；其余信号/电池本就是 SVG */
+.cv-note.is-memo svg.nt-batpct{ height:3.1cqw; width:auto; display:block; margin-right:.5cqw; overflow:visible; }
 .cv-note.is-memo .nt-bat{ height:3.1cqw; width:auto; fill:#000; color:#000; display:block; }
 .cv-note.is-memo .nt-ios-nav{ position:relative; height:9cqw; padding:0 4.5cqw; border-bottom:.3cqw solid rgba(0,0,0,.09); }
 /* 用 flex align-items:center 几何居中（实测：140px 缩略图与 360px 预览都 0px 对齐，360px 导出 0.33px 对齐）。
