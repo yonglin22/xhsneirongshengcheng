@@ -293,7 +293,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-box .nt-box-li::before{ content:"✅"; font-size:3.4cqw; flex:none; line-height:1.5; }
 .cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ color:#2c2c2e; }
 /* 高亮改成饱满荧光笔：覆盖大半个字高（.66em）、上移到字身中部（.34em），更贴近真备忘录手写马克笔感 */
-.cv-note.is-memo .hl{ background-size:100% .66em; background-position:0 .34em; padding:0 .12em; border-radius:.06em; }
+/* 荧光带位置随收紧后的行距(1.4)重新对齐：盖在字身上、居中，不再偏高 */
+.cv-note.is-memo .hl{ background-size:100% .62em; background-position:0 .5em; padding:0 .12em; border-radius:.06em; }
 /* 顶部：状态栏 + 导航栏。背景跟随纸面色（真 iOS 备忘录顶栏与纸面同色，白色顶栏一看就假）；底部加极淡分隔线 */
 .cv-note.is-memo .nt-ios-top{ position:absolute; top:0; left:0; right:0; z-index:4; background:var(--nt-bg,#fff); }
 .cv-note.is-memo .nt-ios-status{ position:relative; height:6cqw; padding:0 6cqw 0 7.5cqw; }
