@@ -820,10 +820,14 @@ async function genCoverFromCvTpl(i) {
   const a = loadCvTpls(); const tp = a[i]; if (!tp) return;
   const msg = document.querySelector('.cvtpl-msg[data-i="' + i + '"]');
   const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
-  // 不让 AI 把标题画进图（gpt-image 画中文会糊）→ 画面零文字、标题由系统叠加；但背景必须铺满、不能留白（之前要求"留白"导致生成近乎空白的丑图）。
-  const titleHint = '【构图硬要求】整张画面都要铺满丰富的视觉内容——背景质感、光影、主体物、装饰元素层次分明，绝对不能出现纯色/灰白/大面积留白的空背景；上半部分用柔和、稍低对比的明亮区域（仍要有背景纹理与细节，不是空白），方便后期叠加标题；画面内不得出现任何文字、汉字、字母、数字或水印（标题由系统另行叠加）。';
+  // 关键修正：对标多是“密集文字笔记”，若把它的解析文字直接喂给画图模型 + 强行“无文字”，模型会画出一堆模仿排版的糊假字（就是之前那张鬼图）。
+  // 改为：按【主题】出一张纯视觉封面背景，只从对标借“配色/氛围”，明确禁止画文字/笔记/信息图/排版栏。
+  const topic = (state.topic || lines[0] || '美术考研').replace(/[（(].*$/, '').slice(0, 40);
+  const titleHint = '生成一张【纯视觉小红书封面背景图】（不是信息图、不是笔记截图、不是文字排版！画面里绝对不能出现任何文字、汉字、字母、数字、假字或排版栏）。主题：「' + topic + '」——用与主题相关的精致实拍或高级插画场景（如书桌书本、画材静物、相关物件、光影氛围），整图铺满质感与细节、构图有主体、色彩高级，绝不能纯色或大面积留白；上半部留一块柔和明亮但仍带背景纹理的区域，方便后期叠加标题。';
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-  const prompt = tp.prompt + '。' + titleHint + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版爆款封面 ' + ratioWord() + '，高级时尚杂志编辑级质感、色彩饱满有氛围、主体清晰、细节精致、商业摄影打光，整图设计元素铺满，高清。';
+  // 只截取对标解析里关于颜色/风格的提示当“配色参考”，不复制其内容
+  const colorRef = String(tp.prompt || '').replace(/\s+/g, '').slice(0, 120);
+  const prompt = titleHint + (colorRef ? '仅参考其配色与整体氛围（不要复制其中任何文字或信息排版）：' + colorRef + '。' : '') + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 ' + ratioWord() + '，商业摄影或高级插画质感、色彩饱满有氛围、主体清晰、细节精致，整图铺满，高清，无任何文字。';
   if (msg) { msg.textContent = '出图中…（约 30~60 秒）'; msg.style.color = 'var(--ink-soft)'; }
   try {
     // 关键：不传 init_image。对标封面多是文字密集的笔记图，拿它当参考再要求「无文字」会被模型擦成白图 →
