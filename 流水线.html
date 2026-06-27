@@ -2315,6 +2315,16 @@ async function autoRun() {
         const cn = coverCount();
         setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
         try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
+        // 一键全套同样默认双封面：AI 图封面放封面位(第一张)，原配图/备忘录卡顺移到第二张
+        try {
+          setAuto('正在生成 AI 封面（放封面位，跟随智能体画风）…');
+          const aiUrl = await genAiCoverUrl(setAuto);
+          if (aiUrl) {
+            state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
+            state.coverImages.unshift(aiUrl); state.coverCaptions.unshift(aiCoverCaption());
+            state.coverImage = state.coverImages[0]; persist();
+          }
+        } catch (e) { setAuto('AI 封面没出来（不影响其它）：' + (e.message || e)); }
       }
       renderRail(); renderPanel();
     }
