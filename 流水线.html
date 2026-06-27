@@ -743,18 +743,26 @@ async function visionOne(imgUrl) {
   const j = await (await fetch('/api/vision', { method: 'POST', signal: AbortSignal.timeout(45000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageUrl: imgUrl, prompt: REF_VISION_PROMPT }) })).json();
   return (j.ok && j.desc) ? j.desc.trim().slice(0, 360) : '';
 }
+let _refVisInflight = null, _refVisInflightSig = '';
 async function analyzeRefImageSet(setStatusFn) {
   const imgs = (state.refImages || []).slice(0, 8);
   if (!imgs.length) return [];
   // 缓存命中必须校验来源签名：refVisions 必须对应「当前对标封面集」，否则换了对标还吃旧解析 → 串台
   if (state.refVisions && state.refVisions.length >= imgs.length && state.refVisionsSig === cvTplSig()) return state.refVisions;
-  const out = [];
-  for (let i = 0; i < imgs.length; i++) {
-    if (setStatusFn) setStatusFn('视觉解析对标第 ' + (i + 1) + '/' + imgs.length + ' 张…');
-    try { out.push(await visionOne(imgs[i])); } catch { out.push(''); }
-  }
+  // 同一对标集若已有解析在飞行中（如开局预取），后续调用复用同一 Promise，避免重复解析浪费时间/积分
+  if (_refVisInflight && _refVisInflightSig === cvTplSig()) return _refVisInflight;
+  _refVisInflightSig = cvTplSig();
+  _refVisInflight = (async () => {
+  // 提速：多张对标并发解析（原来逐张串行 ~5×5s；并发后约等于单张耗时）
+  if (setStatusFn) setStatusFn('视觉解析对标 ' + imgs.length + ' 张（并发）…');
+  let _done = 0;
+  const out = await Promise.all(imgs.map(im => visionOne(im)
+    .then(r => { _done++; if (setStatusFn) setStatusFn('视觉解析对标 ' + _done + '/' + imgs.length + ' …'); return r; })
+    .catch(() => { _done++; return ''; })));
   state.refVisions = out; state.refVisionsSig = cvTplSig(); if (!state.refVision && out[0]) state.refVision = out[0]; persist();
   return out;
+  })();
+  try { return await _refVisInflight; } finally { _refVisInflight = null; }
 }
 // 只重新解析某一张（GLM-4V 非确定性，重析常能纠正读偏）
 async function reanalyzeOne(i) {
@@ -2339,6 +2347,8 @@ async function autoRun() {
   autoRunning = true; const ab = $('#autoBtn'); if (ab) { ab.disabled = true; ab.textContent = '⏳ 自动生成中…'; }
   // 提速：AI 封面只需「主题」（开局已知），不必等后续步骤 → 现在就后台开跑，让 40s 出图与整条文字流水线并行，最后再取结果（几乎不额外耗时）
   const aiCoverPromise = (autoAiCoverOn() && !isGzh()) ? genAiCoverUrl(null).catch(() => '') : null;
+  // 提速：对标视觉解析（5 张 vision）也开局并行预取并写进缓存，到 S6 直接命中、不再等
+  if ((state.refImages || []).length) analyzeRefImageSet(null).catch(() => {});
   try {
     for (let i = 0; i < STEPS.length; i++) {
       const st = STEPS[i];
