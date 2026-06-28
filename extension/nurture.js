@@ -74,6 +74,30 @@
     const ans = ((lib && lib.items) || []).map(x => (x && x.a || '').trim()).filter(Boolean);
     return ans.length ? ans[Math.floor(Math.random() * ans.length)] : '';
   }
+  // 关键词匹配校验（PRD：标题/描述命中关键词→直接感兴趣；不命中→按好感率）
+  function kwMatch(text, kws) { if (!kws || !kws.length) return false; const t = (text || '').toLowerCase(); return kws.some(k => k && t.includes(String(k).toLowerCase())); }
+  // 识别广告/直播（PRD：识别到直播/广告需尽快划走，不互动）
+  function isAdOrLive() { const t = (document.body.innerText || '').slice(0, 800); return /直播中|正在直播|广告|赞助|品牌合作|领券|立即购买|下单/.test(t); }
+  // 抓评论 + 点赞数（用于"复刻最高赞/重复评论"）
+  function collectCommentsRich(max) {
+    const nodes = [...document.querySelectorAll('[class*="comment-item"], [class*="parent-comment"]')].slice(0, max || 20);
+    return nodes.map(n => {
+      const text = ((n.querySelector('[class*="content"], [class*="note-text"]') || {}).textContent || '').trim();
+      const likeTx = ((n.querySelector('[class*="like-count"], [class*="like"] [class*="count"]') || {}).textContent || '').trim();
+      const likes = parseInt((likeTx.match(/\d+/) || [0])[0], 10) || 0;
+      return { text, likes };
+    }).filter(c => c.text && c.text.length <= 40);
+  }
+  // PRD 评论优先级：评论区重复出现(≥2)的评论 > 点赞最高的评论 → 取它当"参考范本"（再让 AI 仿写，避免照抄被判无效）
+  function pickModelComment(comments) {
+    if (!comments || !comments.length) return '';
+    const norm = t => (t || '').replace(/\s+/g, '').toLowerCase();
+    const cnt = {}; comments.forEach(c => { const k = norm(c.text); if (k.length >= 2 && k.length <= 18) cnt[k] = (cnt[k] || 0) + 1; });
+    const dup = Object.entries(cnt).filter(([, v]) => v >= 2).sort((a, b) => b[1] - a[1])[0];
+    if (dup) { const c = comments.find(x => norm(x.text) === dup[0]); if (c) return c.text; }
+    const top = [...comments].sort((a, b) => b.likes - a.likes)[0];
+    return (top && top.likes > 0) ? top.text : '';
+  }
   function findCommentInput() { return document.querySelector('[class*="comment"] textarea, [class*="comment-box"] [contenteditable="true"], #content-textarea'); }
   async function postCommentReply(text) {
     const box = findCommentInput(); if (!box || !text) return false;
@@ -149,20 +173,31 @@
         const link = links[Math.floor(rnd(0, Math.min(links.length, 10)))];
         if (!link) { ui.say('刷信息流中…'); await sleep(rnd(2000, 3500)); continue; }
         opened++; ui.say(`浏览 ${opened}/${cap} 篇 · 阅读中…`);
-        link.click(); await sleep(rnd(6000, 13000));
+        link.click(); await sleep(rnd(4000, 8000));
+        // 广告/直播 → 不互动，尽快返回（PRD）
+        if (isAdOrLive()) { ui.say('跳过 广告/直播'); await sleep(rnd(1500, 4000)); history.back(); await sleep(rnd(2000, 3500)); continue; }
         for (let s = 0; s < 2 && !stopFlag; s++) { window.scrollBy({ top: rnd(200, 500), behavior: 'smooth' }); await sleep(rnd(1500, 2800)); }
         if (riskHit()) { ui.say('⚠ 触发验证，已停止'); break; }
-        // 好感率 → 是否互动；命中后按 点赞%/收藏%/关注%/评论% 操作
-        if (chance(nz.love != null ? nz.love : 70)) {
+        // 关键词匹配 → 直接感兴趣；不匹配 → 按好感率（PRD）
+        const ctxTxt = noteContext();
+        const interested = kwMatch(ctxTxt, cfg.keywords) || chance(nz.love != null ? nz.love : 70);
+        if (interested) {
+          // 拟人多停留一会儿（PRD：感兴趣内容停留更久）
+          await sleep(rnd(2000, 6000));
           if (chance(nz.like || 0) && doLike()) { liked++; await sleep(rnd(800, 1600)); }
           if (chance(nz.fav || 0) && doFav()) { faved++; await sleep(rnd(800, 1600)); }
           if (chance(nz.follow || 0) && doFollow()) { followed++; await sleep(rnd(800, 1600)); }
           if (chance(nz.comment || 0)) {
-            const draft = nz.csrc === 'lib' ? await libPick(nz.libId)
-              : (!nz.csrc || nz.csrc === 'ai') ? await aiText(persona, `笔记内容：${noteContext()}\n请生成一条自然的真人感评论（≤30字，不硬广，不出现"AI"字样）。`)
-              : '';
+            // PRD 评论优先级：复刻评论区重复/最高赞评论(AI 仿写) > 话术库 > AI 从笔记生成
+            const model = pickModelComment(collectCommentsRich(20));
+            const draft = model
+              ? await aiText(persona, `评论区有一条受欢迎的评论：「${model}」。仿照它的角度和口吻，换个说法写一条自然的真人感评论（≤25字，别照抄、不硬广、不出现"AI"）。`)
+              : nz.csrc === 'lib' ? await libPick(nz.libId)
+              : await aiText(persona, `笔记内容：${ctxTxt}\n请生成一条自然的真人感评论（≤30字，不硬广，不出现"AI"字样）。`);
             if (draft && await postCommentReply(draft)) { commented++; await sleep(rnd(2000, 4000)); }
           }
+          // 随机访问博主主页后退出（拟人，PRD）
+          if (chance(25)) { const a = document.querySelector('a[href*="/user/profile/"]'); if (a) { a.click(); await sleep(rnd(3000, 7000)); window.scrollBy({ top: rnd(300, 800), behavior: 'smooth' }); await sleep(rnd(1500, 3000)); history.back(); await sleep(rnd(1500, 2500)); } }
         }
         // 截流计划：评论区抓取 + AI 引流回复（自动，有上限）；私信只生成草稿，存库待人工确认发送
         if (/_intercept$/.test(plan.ptype || '') && !stopFlag) { try { await runIntercept(plan, ui); } catch (e) { ui.say('截流出错：' + (e.message || e)); } }
