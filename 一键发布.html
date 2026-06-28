@@ -147,8 +147,11 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
   };
   // 根治导出错乱：html2canvas 不支持长图笔记用的 transform:scale 自适应（会把内容按 100/s% 宽度不缩放地画出来→溢出/裁切/错位）。
   // 改为：内容溢出时在「加高的画框」里按自然尺寸渲染（不缩放、不裁切），再用 canvas 把整张位图等比缩到目标 W×H（边距用卡片底色填，无缝）。
+  // html2canvas 渲染 CJK 比浏览器约宽 3~5%，长行末字会溢出 overflow:hidden 画框被裁（标题/正文右侧切字）。
+  // 导出时给内页文字容器多留右内边距 → 文字提前换行，html2canvas 略宽也不出框。封面(居中)不加，避免偏移。
+  const FIX='<style>.cv-frame .cv-note:not(.is-cover){padding-right:9.5cqw!important}</style>';
   const shot=async(html)=>{
-    host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+html+'</div>';
+    host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+FIX+html+'</div>';
     await prep();
     let s=1; const noteEl=host.querySelector('.cv-note:not(.is-cover)'); const fit=noteEl&&noteEl.querySelector('.cv-note-fit');
     if(fit){ fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; if(need>avail+1&&avail>0) s=Math.max(0.45, avail/need); }
@@ -156,16 +159,14 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
       const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
       return cv.toDataURL('image/jpeg',0.92);
     }
-    // 溢出页：加高画框 → 自然渲染 → 位图等比缩小到 W×H
-    const Hb=Math.round(H/s);
-    host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+Hb+'px">'+html+'</div>';
+    // 溢出页：按 1/s 整框等比放大(宽高同放大，比例仍=W:H)自然渲染 → 整张位图等比缩到 W×H。
+    // 内容满幅、无侧边留白，cqw 字号同比放大再缩回，与预览 transform:scale(s)+width:(100/s)% 视觉一致。
+    const Wb=Math.round(W/s), Hb=Math.round(H/s);
+    host.innerHTML='<div class="cv-frame" style="width:'+Wb+'px;height:'+Hb+'px">'+FIX+html+'</div>';
     await prep();
-    const bgEl=host.querySelector('.cv-note,.cv-coverx,.cv-card'); const bg=(bgEl&&getComputedStyle(bgEl).backgroundColor)||'#ffffff';
-    const cap=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:Hb});
-    const o=document.createElement('canvas'); o.width=W*2; o.height=H*2; const ctx=o.getContext('2d');
-    ctx.fillStyle=(bg&&bg!=='rgba(0, 0, 0, 0)')?bg:'#ffffff'; ctx.fillRect(0,0,o.width,o.height);
-    const dw=Math.round(cap.width*s), dh=Math.round(cap.height*s);
-    ctx.drawImage(cap,0,0,cap.width,cap.height,Math.round((o.width-dw)/2),0,dw,dh);
+    const cap=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:Wb,height:Hb});
+    const o=document.createElement('canvas'); o.width=W*2; o.height=H*2; const ctx=o.getContext('2d'); ctx.imageSmoothingQuality='high';
+    ctx.drawImage(cap,0,0,cap.width,cap.height,0,0,o.width,o.height); // 满幅填充：Wb:Hb=W:H 等比，无变形无侧边
     return o.toDataURL('image/jpeg',0.92);
   };
   for(const u of (coverImages||[])){ i++;

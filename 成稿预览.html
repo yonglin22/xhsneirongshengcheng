@@ -814,11 +814,27 @@ $('#exportBtn').addEventListener('click', async ()=>{
       const du = await urlToDataURL(im.dataset.direct || src); if(du) im.src=du;
     }));
     const W=1080, H=Math.round(W*({'2:3':3/2,'3:4':4/3,'9:16':16/9}[window.__ratio||'3:4']||4/3)); // 1080P 竖版，高度随出图比例（2:3/3:4/9:16）
+    // 截一张 slide → 1080×H 画布。html2canvas 不认 transform:scale，溢出页(预览用 scale 缩过)会按未缩放尺寸渲染→裁切错乱；
+    // 故溢出页改为：克隆去掉 scale、放进 1/s 等比放大的离屏框自然渲染，再整张等比缩到 W×H（满幅、无错位）。
+    // html2canvas 不认预览用的 transform:scale，且渲染 CJK 比浏览器宽 3~5% 会裁字。
+    // 故统一：克隆 slide → 去掉 scale、按 1/s 等比放大离屏渲染、内页多留右内边距防裁，再整张缩到 W×H。
+    const FIXP='<style>.cv-note:not(.is-cover){padding-right:9.5cqw!important}</style>';
+    const cap=(el,w,h)=>Promise.race([ html2canvas(el,{scale:3,useCORS:true,backgroundColor:'#ffffff',imageTimeout:8000,width:w,height:h}), new Promise((_,rej)=>setTimeout(()=>rej(new Error('单张渲染超时')),20000)) ]);
+    const shotSlide=async(slide)=>{
+      const fit=slide.querySelector('.cv-note-fit'); let s=1;
+      if(fit){ const m=/scale\(([\d.]+)\)/.exec(fit.style.transform||''); if(m) s=parseFloat(m[1])||1; }
+      const r=slide.getBoundingClientRect(); const sw=Math.round(r.width)||540, sh=Math.round(r.height)||720;
+      const Wb=Math.round(sw/s), Hb=Math.round(sh/s);
+      const wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-99999px;top:0;width:'+Wb+'px;height:'+Hb+'px;overflow:hidden';
+      wrap.innerHTML=FIXP;
+      const clone=slide.cloneNode(true); clone.style.width=Wb+'px'; clone.style.height=Hb+'px'; clone.style.transform='none';
+      const cf=clone.querySelector('.cv-note-fit'); if(cf){ cf.style.transform='none'; cf.style.width='100%'; }
+      wrap.appendChild(clone); document.body.appendChild(wrap);
+      try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
+      const cv=await cap(clone,Wb,Hb); wrap.remove(); return cv;
+    };
     for (let i=0; i<slides.length; i++){
-      const cv = await Promise.race([
-        html2canvas(slides[i], { scale:3, useCORS:true, backgroundColor:'#ffffff', imageTimeout:8000 }),
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error('单张渲染超时')),20000))
-      ]);
+      const cv = await shotSlide(slides[i]);
       const oc = document.createElement('canvas'); oc.width=W; oc.height=H;
       const ctx=oc.getContext('2d'); ctx.imageSmoothingQuality='high'; ctx.drawImage(cv,0,0,W,H);
       const b = await new Promise(r=>oc.toBlob(r,'image/jpeg',0.9)); // 1080P JPEG，约 ~200KB
