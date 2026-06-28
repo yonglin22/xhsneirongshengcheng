@@ -1350,6 +1350,17 @@ ${refBlock()}
     }
   }
   if (!urls.length) throw new Error('未生成任何图片');
+  // 一键全套若整组都是长图笔记 → 跑密度装满(packThinPages)，避免出现内容少、下半部留白(看着像9:16)的页
+  if (urls.every(u => (u || '').startsWith('note://')) && notePages.length > 1 && typeof packThinPages === 'function') {
+    try {
+      const packed = packThinPages(notePages);
+      if (packed && packed.length) {
+        packed.forEach(p => { if (p) p.memo = true; });
+        state.notePages = packed; state.coverImages = packed.map((_, i) => 'note://' + i); state.coverImage = state.coverImages[0]; state.coverCaptions = []; persist();
+        return state.coverImages;
+      }
+    } catch {}
+  }
   state.coverImages = urls; state.coverImage = urls[0]; state.coverCaptions = captions; state.notePages = notePages; persist();
   return urls;
 }
