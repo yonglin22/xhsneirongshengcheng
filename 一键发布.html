@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>一键发布 · 获客 Agent · 朱砂操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=83" />
+<link rel="stylesheet" href="/assets/atelier.css?v=84" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
@@ -131,6 +131,7 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
     // 等底图加载完，否则截到空白
     const im=host.querySelector('img'); if(im && !im.complete){ try{ await new Promise(r=>{im.onload=im.onerror=r;}); }catch{} }
     host.querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t, .cv-coverx .cx-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }); // AI 封面标题自适应
+    host.querySelectorAll('.cv-coverx .cx-py').forEach(function(p){ p.style.letterSpacing=''; p.style.fontSize=''; var ls=parseFloat(getComputedStyle(p).letterSpacing)||0,g=0; while(p.scrollWidth>p.clientWidth+1&&ls>0&&g++<40){ls-=0.5;p.style.letterSpacing=ls+'px';} var fs=parseFloat(getComputedStyle(p).fontSize); g=0; while(p.scrollWidth>p.clientWidth+1&&fs>6&&g++<40){fs-=0.3;p.style.fontSize=fs+'px';} });
     const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
     return cv.toDataURL('image/jpeg',0.92); };
   for(const u of (coverImages||[])){ i++;

@@ -192,12 +192,12 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-card.theme-poster:not(.is-cover):not(.lay-封面) .cv-card-t::after{ content:""; display:block; width:13cqw; height:1.5cqw; border-radius:1cqw; background:var(--tpl-acc,#ff7a59); margin-top:2.6cqw; }
 .cv-card.theme-poster .cv-card-b{ gap:3cqw; }
 /* ===== 稿定风 AI 封面（1:1 复刻参考：顶部拼音 + 大号白标题 + 黄色副标题条 + 底部竖线分隔标签）===== */
-.cv-card.cv-coverx{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; text-align:center; padding:14cqw 8cqw; gap:0; background:none; box-shadow:none; }
+.cv-card.cv-coverx{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; text-align:center; padding:11cqw 7cqw; gap:0; background:none; box-shadow:none; }
 .cv-card.cv-coverx::before{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,.12) 26%,rgba(0,0,0,.04) 50%,rgba(0,0,0,.30) 78%,rgba(0,0,0,.58) 100%); }
 .cv-card.cv-coverx>*{ position:relative; z-index:1; }
-.cv-coverx .cx-py{ color:rgba(255,255,255,.92); font-size:3cqw; font-weight:600; letter-spacing:.5em; text-indent:.5em; margin-bottom:3.4cqw; text-shadow:0 1px 6px rgba(0,0,0,.55); white-space:nowrap; overflow:hidden; text-overflow:clip; max-width:100%; }
-.cv-coverx .cx-t{ color:#fff; font-size:13cqw; font-weight:900; line-height:1.18; letter-spacing:.5px; text-shadow:0 2px 16px rgba(0,0,0,.55); }
-.cv-coverx .cx-sub{ margin-top:4.2cqw; color:#1a1a1a; background:#ffd24a; font-size:4.2cqw; font-weight:800; padding:1.5cqw 4.4cqw; border-radius:1.4cqw; box-shadow:0 3px 12px rgba(0,0,0,.28); }
+.cv-coverx .cx-py{ color:rgba(255,255,255,.92); font-size:3cqw; font-weight:600; letter-spacing:.42em; text-indent:.42em; margin-bottom:2.4cqw; text-shadow:0 1px 6px rgba(0,0,0,.55); white-space:nowrap; max-width:100%; }
+.cv-coverx .cx-t{ color:#fff; font-size:13cqw; font-weight:900; line-height:1.16; letter-spacing:.5px; text-shadow:0 2px 16px rgba(0,0,0,.55); }
+.cv-coverx .cx-sub{ margin-top:2.4cqw; color:#1a1a1a; background:#ffd24a; font-size:4.2cqw; font-weight:800; padding:1.5cqw 4.4cqw; border-radius:1.4cqw; box-shadow:0 3px 12px rgba(0,0,0,.28); }
 .cv-coverx .cx-tags{ position:absolute; left:0; right:0; bottom:7cqw; z-index:1; display:flex; align-items:center; justify-content:center; gap:2.4cqw; flex-wrap:wrap; color:#fff; font-size:3.4cqw; font-weight:600; text-shadow:0 1px 6px rgba(0,0,0,.65); padding:0 6cqw; }
 .cv-coverx .cx-tags i{ opacity:.55; font-style:normal; }
 /* 条目：干净段落，深字，左侧小色点 */

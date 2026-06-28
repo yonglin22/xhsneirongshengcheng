@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 <script src="/assets/jszip.min.js?v=1"></script>
-<link rel="stylesheet" href="/assets/atelier.css?v=83" />
+<link rel="stylesheet" href="/assets/atelier.css?v=84" />
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/pinyin.js?v=1"></script>
 <script src="/assets/app.js?v=52"></script>
@@ -695,7 +695,7 @@ function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&
 function fitMemoTitle(noteEl){ if(!noteEl.classList.contains('is-memo'))return; const h=noteEl.querySelector('.nt-h1'); if(!h)return; h.style.fontSize=''; if(/<br/i.test(h.innerHTML))return; const cs=getComputedStyle(h); let fs=parseFloat(cs.fontSize); const lh=parseFloat(cs.lineHeight)||fs*1.22; let g=0; while(h.scrollHeight>lh*1.45&&fs>9&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }
 function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fit) return; fitMemoTitle(noteEl); fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; let s=1; if(need>avail+1&&avail>0){ s=Math.max(0.45, avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } noteEl.dataset.fitScale=String(s); }
 function unifyNotes(notes){ if(!notes||notes.length<2)return; let minTitle=Infinity; notes.forEach(n=>{ const h=n.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML)){ const fs=parseFloat(getComputedStyle(h).fontSize); if(fs<minTitle)minTitle=fs; }}); if(!isFinite(minTitle))return; notes.forEach(n=>{ const h=n.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML))h.style.fontSize=minTitle+'px'; }); }
-function fitCoverTitle(root){ (root||document).querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t, .cv-coverx .cx-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }); }
+function fitCoverTitle(root){ (root||document).querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t, .cv-coverx .cx-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }); (root||document).querySelectorAll('.cv-coverx .cx-py').forEach(function(p){ p.style.letterSpacing=''; p.style.fontSize=''; var ls=parseFloat(getComputedStyle(p).letterSpacing)||0,g=0; while(p.scrollWidth>p.clientWidth+1&&ls>0&&g++<40){ls-=0.5;p.style.letterSpacing=ls+'px';} var fs=parseFloat(getComputedStyle(p).fontSize); g=0; while(p.scrollWidth>p.clientWidth+1&&fs>6&&g++<40){fs-=0.3;p.style.fontSize=fs+'px';} }); }
 function fitAllNotes(root){ const notes=[...(root||document).querySelectorAll('.cv-note:not(.is-cover)')]; notes.forEach(fitNote); unifyNotes(notes); fitCoverTitle(root); }
 // 用多张图重建轮播（第1张为封面，每张都用干净叠字卡）
 // 出图比例（2:3 / 3:4 / 9:16）跟随流水线选择，作用到封面与轮播框，发布到后台也按此比例
