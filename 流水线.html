@@ -1191,8 +1191,11 @@ ${isCover ? '⓪【手帐标注风·本封面卡专用】重点名词/数字用 
       if (kws.length) { const hb = j.blocks.find(b => b.t === 'title' || b.t === 'sec'); if (hb) hb.text = forceHighlight(hb.text, kws); }
       const s = j.style || {};
       // 备忘录背景：封面可自定义（优先跟 S3 规划的 s.bg，否则统一色）；配图统一用 memoBg（留空＝白底）
-      const pageBg = memo ? (isCover ? (s.bg || memoBg || '') : (memoBg || '')) : s.bg;
-      return { blocks: j.blocks, bg: pageBg, accent: s.accent, hl: s.hl, dark: !!s.dark, memo };
+      let pageBg = memo ? (isCover ? (s.bg || memoBg || '') : (memoBg || '')) : s.bg;
+      // 备忘录纸面永远是浅色：AI 偶尔给封面页返回深色 bg / dark:true → 卡片变全黑。memo 卡强制不深色、深色 bg 丢弃回白底
+      const isDarkHex = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) < 150; };
+      if (memo && isDarkHex(pageBg)) pageBg = '';
+      return { blocks: j.blocks, bg: pageBg, accent: s.accent, hl: s.hl, dark: memo ? false : !!s.dark, memo };
     }
   } catch {}
   }   // —— 两次都失败才到这 ——
@@ -1354,10 +1357,12 @@ function hexA(h, a) { const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '').trim()
 function noteStyleVars(page) {
   const p = page || {};
   const memo = !!p.memo; // 备忘录风：用 iOS 备忘录调性（米白纸、黄色荧光、近黑字、橙黄编号）
-  const bg = /^#?[0-9a-f]{6}$/i.test(p.bg || '') ? (p.bg[0] === '#' ? p.bg : '#' + p.bg) : ('#ffffff');
+  let bg = /^#?[0-9a-f]{6}$/i.test(p.bg || '') ? (p.bg[0] === '#' ? p.bg : '#' + p.bg) : ('#ffffff');
+  // 备忘录纸面永远浅色：若 bg 是深色直接回白底（防全黑卡）
+  if (memo) { const mm = /^#([0-9a-f]{6})$/i.exec(bg); if (mm) { const n = parseInt(mm[1], 16); if ((0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) < 150) bg = '#ffffff'; } }
   const acc = /^#?[0-9a-f]{6}$/i.test(p.accent || '') ? (p.accent[0] === '#' ? p.accent : '#' + p.accent) : (memo ? '#ffb300' : '#ff6a3d');
   const hl = /^#?[0-9a-f]{6}$/i.test(p.hl || '') ? (p.hl[0] === '#' ? p.hl : '#' + p.hl) : (memo ? '#ffe14d' : '#ff8a3d');
-  const dark = !!p.dark; // 深色背景 → 浅色文字
+  const dark = memo ? false : !!p.dark; // 备忘录恒浅色；其它风格深色背景→浅色文字
   const ink = dark ? '#ffffff' : '#16181d', ink2 = dark ? 'rgba(255,255,255,.88)' : '#33373d';
   const meta = dark ? 'rgba(255,255,255,.62)' : '#b6bbc2', tag = dark ? 'rgba(255,255,255,.78)' : '#3a5a8c';
   return `--nt-bg:${bg};--nt-ink:${ink};--nt-ink2:${ink2};--nt-meta:${meta};--nt-tag:${tag};--nt-accent:${acc};--nt-hl:${hexA(hl, .42)};--nt-hl-line:${hl}`;
