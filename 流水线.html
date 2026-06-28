@@ -1366,6 +1366,30 @@ function splitHeavyPage(page) {
   const p2 = Object.assign({}, page, { blocks: rest.slice(cut) });
   return splitHeavyPage(p1).concat(splitHeavyPage(p2)); // 递归：还重就继续拆
 }
+// 把内容页「重新装满」：85% 是每页的下限不是上限——尽量少分页、每页填到接近容量，杜绝大片留白。
+// 封面页(第0页)保持不动；其余内容页的块拉成一条流，按"最少页数 + 均匀填满"重新分页。
+function packThinPages(pages) {
+  if (!Array.isArray(pages) || pages.length < 2) return pages || [];
+  const cap = notePageCap();
+  const cover = pages[0], rest = pages.slice(1);
+  // 收集所有内容块（tags 块单独留到最后一页）
+  let blocks = [], tagsBlock = null;
+  rest.forEach(p => (p.blocks || []).forEach(b => { if (!b) return; if (b.t === 'tags') tagsBlock = tagsBlock || b; else blocks.push(b); }));
+  if (!blocks.length) return pages;
+  const total = noteWeight(blocks);
+  // 页数取「四舍五入」而非向上取整 → 偏向更少更满的页（内容不够时宁可一页略密，也不留半页空白）
+  const n = Math.max(1, Math.round(total / cap));
+  const target = total / n; // 每页目标重量（均匀），保证没有某一页特别空
+  const out = []; let cur = [], w = 0;
+  for (const b of blocks) {
+    cur.push(b); w += noteWeight([b]);
+    if (out.length < n - 1 && w >= target) { out.push(cur); cur = []; w = 0; }
+  }
+  if (cur.length) out.push(cur);
+  if (tagsBlock) (out[out.length - 1] = out[out.length - 1] || []).push(tagsBlock);
+  const tmpl = rest[0] || cover;
+  return [cover].concat(out.map(bl => Object.assign({}, tmpl, { blocks: bl })));
+}
 // 自有封面模板：把封面文案(cover_lines)填进 CSS 版式，文字精准、可导出
 const COVER_TPLS = [['bold', '大字冲击'], ['memo', '备忘录'], ['mag', '杂志风'], ['block', '色块'], ['tape', '手账胶带'], ['split', '上图下字'], ['quote', '金句'], ['grid', '网格杂志'], ['clash', '撞色'], ['glow', '弥散渐变'], ['frame', '艺术边框'], ['ribbon', '斜角丝带'], ['stamp', '复古印章'], ['ticket', '票根风'], ['neon', '暗夜霓虹'], ['paper', '撕纸层叠']];
 // 调整提示词 → {位置 pos, 对齐 align, 字号 size, 背景 bg(6位hex无#)}
@@ -1497,7 +1521,8 @@ async function resplitTooSmallNotes(st) {
     box.querySelectorAll('.cv-frame[data-note]').forEach(fr => {
       const idx = +fr.getAttribute('data-note'); const note = fr.querySelector('.cv-note'); if (!note || isNaN(idx)) return;
       const s = parseFloat(note.dataset.fitScale || '1'); const page = (state.notePages || [])[idx];
-      if (s < 0.8 && page && !isCoverPage(page) && (page.blocks || []).length >= 3) toSplit.add(idx);
+      // 只在「严重溢出」(缩到 <0.6) 才拆，避免把刚装满(85%下限)的页又拆成两个半空页
+      if (s < 0.6 && page && !isCoverPage(page) && (page.blocks || []).length >= 3) toSplit.add(idx);
     });
     if (!toSplit.size) return;
     const np = []; (state.notePages || []).forEach((p, i) => { if (toSplit.has(i)) splitPageInTwo(p).forEach(x => np.push(x)); else np.push(p); });
@@ -1567,8 +1592,9 @@ async function genNoteImages() {
       (j.pages || []).forEach(p => { if (p && p.blocks && p.blocks.length) pages.push(p); });
     }
     if (!pages.length) throw new Error('没排出内容，重试一次');
-    // 内容过重的页 → 自动拆成两页（避免被缩得太小）；其余 auto-fit 兜底
-    const finalPages = pages.reduce((acc, p) => acc.concat(splitHeavyPage(p)), []);
+    // 把内容页重新装满（85% 是下限）→ 每页填到接近容量、杜绝大片留白。pack 已统一控制分页，
+    // 不再跑 splitHeavyPage（否则会把刚装满、略超容量的页又拆成两个半空页）。
+    const finalPages = packThinPages(pages);
     const splitN = finalPages.length - pages.length;
     finalPages.forEach(p => { if (p) p.memo = true; }); // 默认全部排成「醇备忘录真字」风（封面卡 + 长文笔记同款）
     state.notePages = finalPages;
