@@ -184,8 +184,9 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 
 /* poster 主题（干净白底·干货笔记风：大黑标题 + 短色条 + 利落分点 + 克制强调） */
 .cv-card.theme-poster{ justify-content:flex-start; }
-/* AI 封面叠字：标题+副标题整体上下居中（更像设计封面，不再贴顶） */
-.cv-card.theme-poster.is-cover, .cv-card.theme-poster.lay-封面{ justify-content:center; }
+/* AI 封面叠字（参考小红书设计封面：底部暗角蒙版 + 大白标题 + 副标题条，靠下排版） */
+.cv-card.theme-poster.is-cover, .cv-card.theme-poster.lay-封面{ justify-content:flex-end; align-items:center; padding:10cqw 7cqw 13cqw; }
+.cv-card.theme-poster.is-cover::before, .cv-card.theme-poster.lay-封面::before{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.14) 0%,rgba(0,0,0,.06) 38%,rgba(0,0,0,.34) 70%,rgba(0,0,0,.62) 100%); }
 .cv-card.theme-poster .cv-card-t{ color:#1a1a1a; text-shadow:none; font-weight:900; font-size:11.5cqw; line-height:1.32; letter-spacing:.2px; }
 /* 内页标题下方一条短粗主题色条（简洁设计感，替代花哨高亮块）*/
 .cv-card.theme-poster:not(.is-cover):not(.lay-封面) .cv-card-t::after{ content:""; display:block; width:13cqw; height:1.5cqw; border-radius:1cqw; background:var(--tpl-acc,#ff7a59); margin-top:2.6cqw; }
@@ -201,22 +202,21 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-card.theme-poster .cv-li.num::before{ display:none; }
 .cv-card.theme-poster .cv-li.num b{ flex:none; background:#1a1a1a; color:#fff; }
 /* 封面：大字黑体居中，干净简单 */
-/* AI 封面叠字标题：居中 + 半透明深色玻璃底板 + 白字（任意背景都清晰=自适应），去掉白色光晕，更有设计感 */
+/* 标题：大号白字 + 强阴影（靠暗角蒙版保证任意底图清晰），居中、自适应缩放防溢出 */
 .cv-card.theme-poster.is-cover .cv-card-t, .cv-card.theme-poster.lay-封面 .cv-card-t{
-  color:#fff; text-shadow:none; text-align:center; align-self:center;
-  font-size:13.5cqw; line-height:1.24; font-weight:900; letter-spacing:.2px;
-  display:inline-block; max-width:90%;
-  background:linear-gradient(180deg,rgba(20,22,30,.52),rgba(20,22,30,.34));
-  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
-  padding:3.4cqw 5.5cqw; border-radius:4cqw;
-  box-shadow:0 6cqw 20cqw -9cqw rgba(0,0,0,.6), inset 0 0 0 .35cqw rgba(255,255,255,.16);
+  position:relative; color:#fff; text-align:center; align-self:center; max-width:96%;
+  font-size:11.5cqw; line-height:1.18; font-weight:900; letter-spacing:.3px;
+  text-shadow:0 2px 12px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.85);
+  background:none; -webkit-backdrop-filter:none; backdrop-filter:none; padding:0; border-radius:0; box-shadow:none;
 }
-.cv-card.theme-poster.is-cover .cv-card-t::after, .cv-card.theme-poster.lay-封面 .cv-card-t::after{ margin:2.6cqw auto 0; background:#ff3f5c; }
-/* 副标题做成强调小药丸 badge，居中、突出 */
+/* 标题下短色条（设计感） */
+.cv-card.theme-poster.is-cover .cv-card-t::after, .cv-card.theme-poster.lay-封面 .cv-card-t::after{ content:""; display:block; width:16cqw; height:1.3cqw; border-radius:1cqw; background:#ff3f5c; margin:3cqw auto 0; }
+/* 副标题：半透明深色条，居中（像参考图的副标题栏） */
 .cv-card.theme-poster.is-cover .cv-li, .cv-card.theme-poster.lay-封面 .cv-li{
-  color:#fff; padding:1.5cqw 4.2cqw; text-align:center; align-self:center; display:inline-block;
-  background:#ff3f5c; border-radius:99cqw; font-weight:800; font-size:5.4cqw;
-  box-shadow:0 4cqw 12cqw -6cqw rgba(0,0,0,.45);
+  position:relative; color:#fff; padding:1.8cqw 5cqw; text-align:center; align-self:center; display:inline-block;
+  background:rgba(18,20,28,.5); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+  border-radius:2cqw; font-weight:700; font-size:5.2cqw; margin-top:.6cqw;
+  text-shadow:0 1px 4px rgba(0,0,0,.5);
 }
 .cv-card.theme-poster.is-cover .cv-li::before, .cv-card.theme-poster.lay-封面 .cv-li::before{ display:none; }
 /* 强调高亮：mark() 把 ==文字== 渲染成橙色 highlighter */

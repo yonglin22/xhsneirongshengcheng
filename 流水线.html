@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=80" />
+<link rel="stylesheet" href="/assets/atelier.css?v=81" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -1426,7 +1426,9 @@ function fitNote(noteEl) {
   if (need > avail + 1 && avail > 0) { s = Math.max(0.45, avail / need); fit.style.transform = 'scale(' + s + ')'; fit.style.width = (100 / s) + '%'; }
   noteEl.dataset.fitScale = String(s); return s;
 }
-function fitAllNotes(root) { (root || document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); }
+function fitAllNotes(root) { (root || document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); fitCoverTitle(root); }
+// AI 封面叠字标题自适应：超过 ~2 行就逐档缩小，避免长标题溢出封面
+function fitCoverTitle(root) { (root || document).querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t').forEach(h => { h.style.fontSize = ''; const cs = getComputedStyle(h); let fs = parseFloat(cs.fontSize); const lh = parseFloat(cs.lineHeight) || fs * 1.2; let g = 0; while (h.scrollHeight > lh * 2.3 && fs > 10 && g++ < 60) { fs -= 0.5; h.style.fontSize = fs + 'px'; } }); }
 // 长图笔记卡点击放大（CSS 卡不是图，用大号 cv-frame 弹层显示）
 function showNoteLightbox(page) {
   if (!page) return;
