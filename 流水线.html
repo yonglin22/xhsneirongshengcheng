@@ -1450,7 +1450,17 @@ function fitNote(noteEl) {
   if (need > avail + 1 && avail > 0) { s = Math.max(0.45, avail / need); fit.style.transform = 'scale(' + s + ')'; fit.style.width = (100 / s) + '%'; }
   noteEl.dataset.fitScale = String(s); return s;
 }
-function fitAllNotes(root) { (root || document).querySelectorAll('.cv-note:not(.is-cover)').forEach(fitNote); fitCoverTitle(root); }
+// 统一所有备忘录页的「缩放」与「标题字号」，避免一页大一页小（取各页里最小值，保证最挤的一页也放得下）
+function unifyNotes(notes) {
+  if (!notes || notes.length < 2) return;
+  let minS = 1; notes.forEach(n => { const s = parseFloat(n.dataset.fitScale || '1'); if (s < minS) minS = s; });
+  let minTitle = Infinity; notes.forEach(n => { const h = n.querySelector('.nt-h1'); if (h && !/<br/i.test(h.innerHTML)) { const fs = parseFloat(getComputedStyle(h).fontSize); if (fs < minTitle) minTitle = fs; } });
+  notes.forEach(n => {
+    const h = n.querySelector('.nt-h1'); if (h && !/<br/i.test(h.innerHTML) && isFinite(minTitle)) h.style.fontSize = minTitle + 'px';
+    const fit = n.querySelector('.cv-note-fit'); if (fit) { if (minS < 0.999) { fit.style.transform = 'scale(' + minS + ')'; fit.style.width = (100 / minS) + '%'; } else { fit.style.transform = ''; fit.style.width = '100%'; } n.dataset.fitScale = String(minS); }
+  });
+}
+function fitAllNotes(root) { const notes = [...(root || document).querySelectorAll('.cv-note:not(.is-cover)')]; notes.forEach(fitNote); unifyNotes(notes); fitCoverTitle(root); }
 // AI 封面叠字标题自适应：超过 ~2 行就逐档缩小，避免长标题溢出封面
 function fitCoverTitle(root) { (root || document).querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t').forEach(h => { h.style.fontSize = ''; const cs = getComputedStyle(h); let fs = parseFloat(cs.fontSize); const lh = parseFloat(cs.lineHeight) || fs * 1.2; let g = 0; while (h.scrollHeight > lh * 2.3 && fs > 10 && g++ < 60) { fs -= 0.5; h.style.fontSize = fs + 'px'; } }); }
 // 长图笔记卡点击放大（CSS 卡不是图，用大号 cv-frame 弹层显示）
