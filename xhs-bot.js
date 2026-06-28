@@ -150,17 +150,13 @@ async function startQrLogin() {
   }
 }
 
+// 登录判定：扫码确认后 www 上下文会写入 web_session（域 .xiaohongshu.com，对 creator 子域同样有效）。
+// 直接读 cookie 判定，不跳创作中心（创作中心常二次跳登录导致永远取不到 → 卡“等待确认”）。
 async function _grabIfLoggedIn(s) {
-  const p = s.page;
-  if (!s.checking) {
-    s.checking = true;
-    try { await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 30000 }); await p.waitForTimeout(2800); } catch {}
-    s.checking = false;
-  }
-  if (/\/login/i.test(p.url())) return null;
   const cks = await s.ctx.cookies();
   const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
-  if (!xhs.length) return null;
+  const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
+  if (!sess) return null;
   return xhs.map(c => c.name + '=' + c.value).join('; ');
 }
 // 检测短信验证 UI（扫码后风控触发）
