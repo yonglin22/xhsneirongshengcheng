@@ -1299,6 +1299,7 @@ async function generateCoverImagesCore(n) {
     let done = 0; const total = planned.length;
     const runOne = async (p) => {
       try {
+        if (typeof autoGate === 'function') await autoGate(); // 暂停闸：暂停时不再开新图，已在跑的跑完
         if (p.isNote) {
           const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
           if (page) page.memo = true; // 一键生成全套：长图笔记默认醇备忘录真字风
@@ -1345,6 +1346,7 @@ ${refBlock()}
     while (items.length < n) items.push({ theme: 'poster', scene: '柔和米白纸张质感，大面积留白', title: '', lines: [], layout: '要点' });
     if (items[0] && !items[0].title && coverTitle) { items[0].title = coverTitle; items[0].layout = '封面'; }
     for (let i = 0; i < items.length; i++) {
+      if (typeof autoGate === 'function') await autoGate(); // 暂停闸：暂停时停在下一张图前
       const it = items[i]; let theme = it.theme === 'poster' ? 'poster' : 'photo';
       let u;
       if (theme === 'poster') { u = 'tpl://poster'; }
@@ -2541,7 +2543,14 @@ function setAutoUI(on) {
   const pb = $('#autoPauseBtn');
   if (pb) { pb.style.display = on ? 'block' : 'none'; if (on) { autoPaused = false; pb.textContent = '⏸ 暂停'; } }
 }
-$('#autoPauseBtn')?.addEventListener('click', () => { if (!autoRunning) return; autoPaused = !autoPaused; const pb = $('#autoPauseBtn'); if (pb) pb.textContent = autoPaused ? '▶ 继续' : '⏸ 暂停'; if (!autoPaused) setAuto('▶ 已继续…'); else setAuto('⏸ 已暂停（当前步跑完即停住，点「继续」恢复）'); });
+$('#autoPauseBtn')?.addEventListener('click', () => {
+  if (!autoRunning) return;
+  autoPaused = !autoPaused;
+  const pb = $('#autoPauseBtn'); if (pb) pb.textContent = autoPaused ? '▶ 继续' : '⏸ 暂停';
+  // 暂停 → 解除置灰，页面可正常点击操作；继续 → 恢复置灰防误触。暂停按钮始终在，方便恢复。
+  document.body.classList.toggle('auto-running', !autoPaused);
+  setAuto(autoPaused ? '⏸ 已暂停（当前步跑完即停，页面可操作；点「继续」接着跑）' : '▶ 已继续…');
+});
 async function autoRun() {
   if (autoRunning) return;
   if (!state.topic) { setAuto('请先在上方填写选题', true); return; }
@@ -2601,7 +2610,7 @@ async function autoRun() {
     }
     setAuto('✓ 已自动跑完（从 ' + dispNo(STEPS[startIdx].no) + ' 至末步' + (startIdx === 0 && !state.ref ? '，未贴对标已跳过 S2' : '') + '，含封面图）。可去成稿预览 →');
   } catch (e) { setAuto('中断于 ' + (STEPS[cur] ? STEPS[cur].no : '') + '：' + (e.message || e), true); }
-  finally { autoRunning = false; const ab2 = $('#autoBtn'); if (ab2) { ab2.disabled = false; ab2.textContent = '▶ 一键按对标生成全套（图文+封面图）'; } }
+  finally { autoRunning = false; autoPaused = false; setAutoUI(false); const ab2 = $('#autoBtn'); if (ab2) { ab2.disabled = false; ab2.textContent = '▶ 一键按对标生成全套（图文+封面图）'; } }
 }
 $('#autoBtn')?.addEventListener('click', autoRun);
 
