@@ -108,10 +108,15 @@
       </div>
       <div id="codeHint" class="text-[11.5px] text-[var(--ink-soft)] min-h-[18px] mb-4"></div>
 
+      <label id="agreeWrap" class="flex items-start gap-2 text-[11.5px] text-[var(--ink-soft)] leading-relaxed mb-3 cursor-pointer select-none">
+        <input id="agreeChk" type="checkbox" class="mt-0.5 shrink-0" style="accent-color:var(--cinnabar)" />
+        <span>我已阅读并同意 <a href="/用户协议.html" target="_blank" rel="noopener" class="text-[var(--cinnabar-deep)]">《用户协议》</a> 与 <a href="/隐私政策.html" target="_blank" rel="noopener" class="text-[var(--cinnabar-deep)]">《隐私政策》</a></span>
+      </label>
+
       <button id="loginBtn" class="btn-go rounded-xl w-full py-3.5 text-[15px] font-medium">登录 / 注册</button>
 
       <div class="text-[11.5px] text-[var(--ink-soft)] mt-4 leading-relaxed">
-        📩 验证码由短信下发，<b>可能需 10~30 秒</b>，请耐心等待勿重复点；5 分钟内有效。登录即代表同意服务条款。遇到问题可 <a href="/帮助.html" class="text-[var(--cinnabar-deep)]">联系客服</a>。
+        📩 验证码由短信下发，<b>可能需 10~30 秒</b>，请耐心等待勿重复点；5 分钟内有效。遇到问题可 <a href="/帮助.html" class="text-[var(--cinnabar-deep)]">联系客服</a>。
       </div>
     </div>
   </section>
@@ -184,6 +189,7 @@ $('#sendCode').addEventListener('click', async () => {
 async function doLogin() {
   const phone = $('#phone').value.trim(), code = $('#code').value.trim();
   if (!phone || !code) { $('#codeHint').textContent = '请填手机号和验证码'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; return; }
+  if (!$('#agreeChk').checked) { $('#codeHint').textContent = '请先勾选同意《用户协议》与《隐私政策》'; $('#codeHint').style.color = 'var(--cinnabar-deep)'; const w = $('#agreeWrap'); if (w) { w.style.color = 'var(--cinnabar-deep)'; setTimeout(() => w.style.color = '', 1500); } return; }
   const ref = (new URLSearchParams(location.search).get('ref') || localStorage.getItem('ag_ref') || '').trim();
   $('#loginBtn').disabled = true; const old = $('#loginBtn').textContent; $('#loginBtn').textContent = '登录中…';
   const { j } = await api('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone, code, invite_code: ref }) });
