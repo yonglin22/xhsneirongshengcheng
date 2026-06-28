@@ -127,15 +127,30 @@
     // isrc=预设/话术库 暂未接入素材库，目前只实现 AI 智能来源；非 AI 来源先跳过，避免话术与配置承诺不符
     const useAi = !ic.isrc || ic.isrc === 'ai';
     const useLib = ic.isrc === 'lib';
-    let replied = 0, queued = 0;
+    // 间隔（分钟→毫秒），最小 1 分钟，避免高频触发风控
+    const replyGap = Math.max(1, ic.replyInt || 1) * 60000;
+    const dmGap = Math.max(1, ic.dmInt || 1) * 60000;
+    let replied = 0, queued = 0, lastReplyAt = 0, lastDmAt = 0;
     for (const c of comments) {
       if (stopFlag || riskHit()) { ui.say('⚠ 触发验证，截流已停止'); break; }
+      // 多模态识别开启时：用 AI 先判断是否高质量潜客，非潜客跳过
+      if (ic.aiMatch !== false && (ic.reply > 0 || ic.dm > 0) && (useAi || useLib)) {
+        const verdict = await aiText(persona, `笔记内容：${ctx}\n\n用户评论：「${c.text}」\n这条评论是否来自一个对该内容/产品有真实兴趣的潜在客户？只回答「是」或「否」。`);
+        if (verdict && /否|no/i.test(verdict) && !/是/.test(verdict)) { await sleep(rnd(600, 1200)); continue; }
+      }
       if ((useAi || useLib) && ic.reply > 0 && replied < ic.reply) {
+        const wait = lastReplyAt ? Math.max(0, replyGap - (Date.now() - lastReplyAt)) : 0;
+        if (wait > 0) { ui.say(`引流回复间隔等待 ${Math.ceil(wait/60000)} 分钟…`); await sleep(wait); }
+        if (stopFlag) break;
         const draft = useLib ? await libPick(ic.libId)
           : await aiText(persona, `笔记内容：${ctx}\n\n这位用户的评论：「${c.text}」\n请生成一条自然、不硬广、不站外导流的引流回复（≤40字，像真人随手回复，不要出现"AI"字样）。`);
-        if (draft && await postCommentReply(draft)) { replied++; ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
+        if (draft && await postCommentReply(draft)) { replied++; lastReplyAt = Date.now(); ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
       }
       if ((useAi || useLib) && ic.dm > 0 && queued < ic.dm) {
+        const wait = lastDmAt ? Math.max(0, dmGap - (Date.now() - lastDmAt)) : 0;
+        if (wait > 0) await sleep(wait);
+        if (stopFlag) break;
+        lastDmAt = Date.now();
         const draft = useLib ? await libPick(ic.libId)
           : await aiText(persona, `这位潜在客户的评论：「${c.text}」\n请生成一条自然、不硬广的私信开场话术（≤50字），用于后续人工确认发送。`);
         if (draft) { chrome.runtime.sendMessage({ type: 'queueDM', item: { user: c.user, link: c.link, comment: c.text, draft, note: location.href } }); queued++; }
