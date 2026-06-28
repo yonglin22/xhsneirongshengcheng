@@ -1394,7 +1394,7 @@ const server = http.createServer(async (req, res) => {
         const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
         const fn = 'cd' + Date.now() + Math.random().toString(36).slice(2, 8) + '.' + ext;
         fs.writeFileSync(path.join(genDir, fn), buf);
-        const pubBase = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
+        const pubBase = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '') || ('https://' + (req.headers.host || 'yonglin.chat'));
         return sendJSON(res, 200, { ok: true, url: pubBase + '/gen/' + fn });
       } catch (e) { return sendJSON(res, 200, { ok: false, error: '落地失败：' + (e.message || '').slice(0, 80) }); }
     }

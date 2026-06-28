@@ -70,9 +70,14 @@
   // 小红书图文最多 18 张。data: 直接转 blob；http(s) 先直连，失败再用朱砂 img-proxy 兜底
   // （AI 出图的签名链常带防盗链/CORS，从小红书域名直连会失败被丢图 → 必须代理回源）
   async function fetchBlob(u) {
+    if (/^data:/.test(u)) { try { const r = await fetch(u); return await r.blob(); } catch (e) {} }
+    // http(s) 链接：内容脚本跨域 fetch 会被 CORS 挡 → 先让后台下载（有主机权限不受限）转 data URL
+    if (/^https?:\/\//.test(u)) {
+      try { const resp = await chrome.runtime.sendMessage({ type: 'fetchImg', url: u }); if (resp && resp.ok && resp.dataUrl) { const r = await fetch(resp.dataUrl); return await r.blob(); } } catch (e) {}
+    }
     try { const r = await fetch(u); if (r.ok) return await r.blob(); } catch (e) {}
     if (/^https?:\/\//.test(u)) {
-      try { const r = await fetch('https://yonglin.chat/api/img-proxy?u=' + encodeURIComponent(u)); if (r.ok) return await r.blob(); } catch (e) {}
+      try { const resp = await chrome.runtime.sendMessage({ type: 'fetchImg', url: 'https://yonglin.chat/api/img-proxy?u=' + encodeURIComponent(u) }); if (resp && resp.ok && resp.dataUrl) { const r = await fetch(resp.dataUrl); return await r.blob(); } } catch (e) {}
     }
     return null;
   }

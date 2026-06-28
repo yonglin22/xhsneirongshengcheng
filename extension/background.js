@@ -564,6 +564,19 @@ setTimeout(zsPollContentDispatch, 12000);
 // 网页下发成功后即时触发本机领取（不必等 1 分钟定时器）
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'pullContentNow') { zsPollContentDispatch(); try { sendResponse({ ok: true }); } catch (e) {} return true; }
+  // 后台下载图片转 data URL（内容脚本跨域 fetch 会被 CORS 挡，后台有主机权限不受限）
+  if (msg && msg.type === 'fetchImg') {
+    (async () => {
+      try {
+        const r = await fetch(msg.url, { cache: 'no-store' });
+        if (!r.ok) { sendResponse({ ok: false, error: 'HTTP ' + r.status }); return; }
+        const buf = new Uint8Array(await r.arrayBuffer());
+        let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+        sendResponse({ ok: true, dataUrl: 'data:' + (r.headers.get('content-type') || 'image/png') + ';base64,' + btoa(bin) });
+      } catch (e) { sendResponse({ ok: false, error: e.message || String(e) }); }
+    })();
+    return true;
+  }
 });
 
 // ===== 设备心跳：让本机出现在网页「设备看板」，上报在线/工作状态，并接收 stop 指令 =====
