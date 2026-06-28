@@ -118,6 +118,7 @@
 
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=55"></script>
+<script src="/assets/ui-dialog.js?v=1"></script>
 <script>
 let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'ai', isrc:'ai' }, collectOn=false, aiMatchOn=true;
 const TYPE_NAME={ link:'口令刷量', home_nurture:'首页养号', home_intercept:'首页截流', search_nurture:'搜索养号', search_intercept:'搜索截流' };
@@ -199,7 +200,7 @@ async function load(){
 $('#list').addEventListener('click', async e=>{
   const card=e.target.closest('[data-id]'); if(!card) return;
   const id=+card.dataset.id; const p=PLANS.find(x=>x.id===id); if(!p) return;
-  if(e.target.closest('.pl-del')){ if(!confirm('删除这个计划？'))return; const r=await api('/delete','POST',{id}); if(r&&r.ok) load(); else alert('删除失败，请重试'); return; }
+  if(e.target.closest('.pl-del')){ if(!await zConfirm('删除这个计划？',{okText:'删除'}))return; const r=await api('/delete','POST',{id}); if(r&&r.ok) load(); else zToast('删除失败，请重试','err'); return; }
   if(e.target.closest('.pl-view')){ showPreview(p); return; }
   if(e.target.closest('.pl-edit')){ loadIntoForm(p); return; }
   if(e.target.closest('.pl-run')){ runPlan(p); return; }
@@ -233,11 +234,12 @@ async function showDispatch(p){
   $('#dzClear')?.addEventListener('click',async()=>{ await fetch('/api/dispatch/cancel',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:'all'})}); showDispatch(p); });
   $('#dzGo')?.addEventListener('click',async()=>{
     const chosen=[...document.querySelectorAll('.dz-acc:checked')].map(c=>({id:+c.value,name:c.dataset.name}));
-    if(!chosen.length){ alert('请至少勾选一个已登录账号'); return; }
+    if(!chosen.length){ zToast('请至少勾选一个已登录账号','err'); return; }
     const r=await fetch('/api/dispatch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({planId:p.id,accounts:chosen})});
     const j=await r.json().catch(()=>null);
     $('#plModal')?.remove();
-    alert(j&&j.ok?('✓ 已下发 '+(j.created||chosen.length)+' 个账号任务，设备上的插件会自动领取执行（约 1 分钟内）。'):('下发失败：'+((j&&j.error)||'请重试')));
+    if(j&&j.ok) zToast('✓ 已下发 '+(j.created||chosen.length)+' 个账号任务，设备插件约 1 分钟内自动领取执行','ok');
+    else zAlert('下发失败：'+((j&&j.error)||'请重试'),{title:'下发失败'});
     load();
   });
 }
@@ -303,10 +305,10 @@ function runPlan(p){
   setTimeout(()=>{ const s=$('#extStat'); if(s) s.textContent=EXT_READY?'✅ 已连接':'❌ 未检测到（请确认已安装并启用插件）'; },1200);
   $('#plCancel')?.addEventListener('click',()=>$('#plModal')?.remove());
   $('#plGo')?.addEventListener('click',()=>{
-    if(!EXT_READY){ alert('未检测到「朱砂助手」插件，请先安装并启用（chrome://extensions），刷新本页后重试。'); return; }
+    if(!EXT_READY){ zAlert('未检测到「朱砂助手」插件，请先安装并启用（chrome://extensions），刷新本页后重试。',{title:'缺少插件'}); return; }
     window.postMessage({ type:'ZHUSHA_NURTURE_PLAN', plan:payload },'*');
     $('#plModal')?.remove();
-    alert(isIntercept?'已下发截流任务，插件将打开小红书自动浏览/回复，私信草稿会出现在插件弹窗里，右下角有进度条，可随时点「停止」。':'已下发养号任务，插件将打开小红书自动执行，右下角有进度条，可随时点「停止」。');
+    zToast(isIntercept?'已下发截流任务，插件将打开小红书自动执行，可随时点右下角「停止」':'已下发养号任务，插件将打开小红书自动执行，可随时点右下角「停止」','ok');
   });
 }
 showSections(); renderKw(); load(); loadLibs(); toggleLib();

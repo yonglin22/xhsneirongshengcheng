@@ -78,6 +78,7 @@
 
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=55"></script>
+<script src="/assets/ui-dialog.js?v=1"></script>
 <script src="/assets/xlsx-lite.js?v=1"></script>
 <script>
 const MAX=1000;
@@ -106,7 +107,7 @@ function renderQa(){
   });
   syncCount();
 }
-$('#qaAdd').addEventListener('click',()=>{ if(items.length>=MAX){ alert('单库最多 '+MAX+' 条'); return; } items.push({q:'',a:''}); renderQa(); const rows=$('#qaList').querySelectorAll('.qa-row'); const last=rows[rows.length-1]; last&&last.querySelector('.qa-q').focus(); });
+$('#qaAdd').addEventListener('click',()=>{ if(items.length>=MAX){ zToast('单库最多 '+MAX+' 条','err'); return; } items.push({q:'',a:''}); renderQa(); const rows=$('#qaList').querySelectorAll('.qa-row'); const last=rows[rows.length-1]; last&&last.querySelector('.qa-q').focus(); });
 $('#bulkToggle').addEventListener('click',()=>{ const b=$('#bulkBox'); b.style.display=b.style.display==='none'?'':'none'; });
 $('#bulkImport').addEventListener('click',()=>{
   const lines=($('#bulkText').value||'').split('\n').map(l=>l.trim()).filter(Boolean);
@@ -191,7 +192,7 @@ $('#searchType').addEventListener('change', renderList);
 $('#list').addEventListener('click', async e=>{
   const card=e.target.closest('[data-id]'); if(!card) return;
   const id=+card.dataset.id; const l=LIBS.find(x=>x.id===id); if(!l) return;
-  if(e.target.closest('.lb-del')){ if(!confirm('删除话术库「'+l.title+'」？'))return; const r=await api('/delete','POST',{id}); if(r&&r.ok) load(); else alert('删除失败，请重试'); return; }
+  if(e.target.closest('.lb-del')){ if(!await zConfirm('删除话术库「'+l.title+'」？',{okText:'删除'}))return; const r=await api('/delete','POST',{id}); if(r&&r.ok) load(); else zToast('删除失败，请重试','err'); return; }
   if(e.target.closest('.lb-edit')){ loadIntoForm(l); return; }
 });
 function loadIntoForm(l){

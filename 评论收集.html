@@ -48,6 +48,7 @@
 
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=55"></script>
+<script src="/assets/ui-dialog.js?v=1"></script>
 <script>
 let LEADS=[], filter='all';
 const PLAT={ xhs:'📕 小红书', dy:'🎵 抖音', sph:'🎬 视频号' };
@@ -94,9 +95,9 @@ $('#list').addEventListener('click', async e=>{
 });
 document.querySelectorAll('.filt').forEach(f=>f.addEventListener('click',()=>{ document.querySelectorAll('.filt').forEach(x=>x.classList.remove('on')); f.classList.add('on'); filter=f.dataset.f; render(); }));
 $('#refreshBtn').addEventListener('click', load);
-$('#clearBtn').addEventListener('click', async ()=>{ if(!LEADS.length) return; if(!confirm('清空全部 '+LEADS.length+' 条潜客？此操作不可撤销。')) return; const r=await api('/delete','POST',{all:true}); if(r&&r.ok){ LEADS=[]; render(); } });
+$('#clearBtn').addEventListener('click', async ()=>{ if(!LEADS.length) return; if(!await zConfirm('清空全部 '+LEADS.length+' 条潜客？此操作不可撤销。',{okText:'清空'})) return; const r=await api('/delete','POST',{all:true}); if(r&&r.ok){ LEADS=[]; render(); } });
 $('#exportBtn').addEventListener('click', ()=>{
-  const arr=shown(); if(!arr.length){ alert('没有可导出的数据'); return; }
+  const arr=shown(); if(!arr.length){ zToast('没有可导出的数据','err'); return; }
   const head=['平台','潜客','评论内容','主页链接','来源笔记','来源链接','状态','收集时间'];
   const rows=arr.map(l=>[PLAT[l.platform]||l.platform||'',l.lead_user||'',l.lead_text||'',l.lead_link||'',l.note_title||'',l.note_url||'',l.status==='done'?'已联系':'待联系',fmtTime(l.created_at)]);
   const csv=[head,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
