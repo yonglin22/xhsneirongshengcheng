@@ -145,7 +145,9 @@
       const saved = await waitAndClick(['暂存离开', '存草稿', '保存草稿', '存为草稿', '暂存'], 90000, (s) => say('正在自动识别「暂存离开」… ' + s + 's'));
       if (saved) {
         say('✓ 已点「暂存离开」，存入草稿箱。去小红书 App / 创作中心「草稿箱」确认');
+        if (payload._contentDispatchId) { try { chrome.runtime.sendMessage({ type: 'contentDispatchDone', dispatchId: payload._contentDispatchId, result: '✓ 已存草稿箱' }); } catch (e) {} }
       } else {
+        if (payload._contentDispatchId) { try { chrome.runtime.sendMessage({ type: 'contentDispatchDone', dispatchId: payload._contentDispatchId, result: '⚠ 已填好内容，需手动点暂存离开' }); } catch (e) {} }
         const btns = [...document.querySelectorAll('button,[role=button],div,span')]
           .map(e => (e.textContent || '').trim())
           .filter(t => t && t.length >= 2 && t.length <= 8 && /[一-龥]/.test(t) && /存|草稿|发布|保存|离开|确定|完成/.test(t));

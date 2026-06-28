@@ -1237,7 +1237,7 @@ const server = http.createServer(async (req, res) => {
   // ============ 账号 / 钱包 / 订单 / 支付 / 管理（计费）============
   if (pathname.startsWith('/api/auth/') || pathname === '/api/wallet' || pathname === '/api/price'
     || pathname.startsWith('/api/order') || pathname.startsWith('/api/pay/') || pathname.startsWith('/api/admin/')
-    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts') || pathname.startsWith('/api/growth-plans') || pathname.startsWith('/api/script-libs') || pathname.startsWith('/api/collected-leads') || pathname.startsWith('/api/dispatch')) {
+    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts') || pathname.startsWith('/api/growth-plans') || pathname.startsWith('/api/script-libs') || pathname.startsWith('/api/collected-leads') || pathname.startsWith('/api/dispatch') || pathname.startsWith('/api/content-dispatch') || pathname === '/api/media-put') {
     if (!billing) return sendJSON(res, 503, { error: '计费模块未启用（需 Node ≥ 22 的内置 node:sqlite）' });
 
     // 智能体配置（人设/KB/skills/配图风格，按账号存，跨设备）
@@ -1378,6 +1378,50 @@ const server = http.createServer(async (req, res) => {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       const b = JSON.parse((await readBody(req)) || '{}');
       return sendJSON(res, 200, { ok: billing.dispatchCancel(uid, b.id) });
+    }
+
+    // 内容分发：把一张 PNG(data URL) 落地成短链（复用 gen/ 静态目录），供分发任务存 URL 而非大体积 base64
+    if (pathname === '/api/media-put' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      const m = String(b.png || '').match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!m) return sendJSON(res, 200, { ok: false, error: '需要 data:image/png;base64 数据' });
+      try {
+        const buf = Buffer.from(m[2], 'base64');
+        if (buf.length > 4.5 * 1024 * 1024) return sendJSON(res, 200, { ok: false, error: '单图过大（上限 4.5MB）' });
+        const genDir = path.join(__dirname, 'gen');
+        if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
+        const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+        const fn = 'cd' + Date.now() + Math.random().toString(36).slice(2, 8) + '.' + ext;
+        fs.writeFileSync(path.join(genDir, fn), buf);
+        const pubBase = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
+        return sendJSON(res, 200, { ok: true, url: pubBase + '/gen/' + fn });
+      } catch (e) { return sendJSON(res, 200, { ok: false, error: '落地失败：' + (e.message || '').slice(0, 80) }); }
+    }
+    // 内容矩阵分发队列（一稿多发到各账号草稿箱）
+    if (pathname === '/api/content-dispatch' && req.method === 'GET') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      return sendJSON(res, 200, { ok: true, list: billing.cdispList(uid) });
+    }
+    if (pathname === '/api/content-dispatch' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, billing.cdispAdd(uid, b.accounts || [], b.payload || {}));
+    }
+    if (pathname === '/api/content-dispatch/pull' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, billing.cdispPull(uid, b.device));
+    }
+    if (pathname === '/api/content-dispatch/done' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.cdispDone(uid, b.id, b.result) });
+    }
+    if (pathname === '/api/content-dispatch/cancel' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.cdispCancel(uid, b.id) });
     }
 
     // 获客 Agent · 话术库（问答库：标题 + 问答，单库≤1000 条）

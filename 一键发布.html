@@ -32,6 +32,17 @@
     <div id="extHint" class="mt-2 text-[12px]" style="display:none"></div>
     <div id="pubLog" class="mt-3 space-y-1.5"></div>
     <div id="renderHost" style="position:fixed;left:-99999px;top:0"></div>
+
+    <!-- 一稿多发：分发到矩阵多账号草稿箱（各设备本机已登录小红书执行，避开机房IP风控） -->
+    <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+      <div class="flex items-center gap-2 flex-wrap mb-2">
+        <button id="distBtn" class="btn-ghost rounded-xl px-5 py-2.5 text-[13px] font-medium" style="border-color:var(--cinnabar);color:var(--cinnabar)">📤 一稿多发到矩阵草稿箱</button>
+        <span id="distStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
+      </div>
+      <div class="text-[11px] text-[var(--ink-soft)] leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
+        把当前成稿一键下发到所选账号——每台开了「本机作为执行设备」开关、登录了对应小红书的设备会自动领取并存草稿箱。图片先转 PNG 上传服务器转短链，设备再下载发布。
+      </div>
+    </div>
     <div class="text-[11px] text-[var(--ink-soft)] mt-3 leading-relaxed" style="background:var(--paper-2);border-radius:var(--r-sm);padding:8px 11px">
       ⚠️ 小红书图文草稿需<b>至少 1 张图片</b>。长图笔记卡（CSS）需先在「成稿预览」导出 PNG；含 AI 封面 / 实拍上传图的成稿可直接发。发布为<b>实验功能</b>，依赖账号登录态有效，首次请小批量验证。
     </div>
@@ -205,6 +216,51 @@ $('#extPubBtn').addEventListener('click', async ()=>{
   btn.disabled=false; btn.textContent=o;
 });
 window.addEventListener('message', e=>{ if(e.source===window && e.data && e.data.type==='ZHUSHA_PUBLISH_ACK'){ $('#pubStatus').textContent=(e.data.ok?'✓ ':'✗ ')+(e.data.msg||''); $('#pubStatus').style.color=e.data.ok?'#00a152':'var(--cinnabar-deep)'; } });
+
+// 一稿多发到矩阵草稿箱：转图 → 上传转短链 → 选账号 → 建分发任务，各设备插件自动领取存草稿
+async function mediaPut(dataUrl){
+  try{ const r=await fetch('/api/media-put',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({png:dataUrl})}); const j=await r.json(); return (j&&j.ok)?j.url:''; }catch{ return ''; }
+}
+$('#distBtn').addEventListener('click', async ()=>{
+  if(!WORK){ $('#distStatus').textContent='请先选一篇成稿'; $('#distStatus').style.color='var(--cinnabar-deep)'; return; }
+  const btn=$('#distBtn'); btn.disabled=true; const o=btn.textContent;
+  // 1) 拉账号
+  let accs=[]; try{ const r=await fetch('/api/accounts'); const j=await r.json(); accs=((j&&j.list)||[]).filter(a=>(a.platform||'xhs')==='xhs'); }catch{}
+  if(!accs.length){ btn.disabled=false; btn.textContent=o; if(window.zAlert) zAlert('还没有小红书账号，请先到「账号矩阵」添加。',{title:'无账号'}); else alert('还没有账号'); return; }
+  // 2) 选账号弹框
+  const pick=await pickAccounts(accs);
+  if(!pick||!pick.length){ btn.disabled=false; btn.textContent=o; return; }
+  try{
+    btn.textContent='转图中…'; $('#distStatus').textContent='正在把封面/卡片转成图片…'; $('#distStatus').style.color='var(--ink-soft)';
+    const dataUrls=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines, WORK.imgRatio, WORK.coverCaptions, WORK.coverFallback, WORK.tags);
+    if(!dataUrls.length){ $('#distStatus').textContent='这篇没有可发布的图片'; $('#distStatus').style.color='var(--cinnabar-deep)'; btn.disabled=false; btn.textContent=o; return; }
+    btn.textContent='上传图片…'; $('#distStatus').textContent='上传图片到服务器（'+dataUrls.length+' 张）…';
+    const urls=[]; for(const d of dataUrls){ const u=await mediaPut(d); if(u) urls.push(u); }
+    if(!urls.length){ $('#distStatus').textContent='图片上传失败，请重试'; $('#distStatus').style.color='var(--cinnabar-deep)'; btn.disabled=false; btn.textContent=o; return; }
+    const payload={ title:WORK.title, body:WORK.body, images:urls, tags:WORK.tags||[] };
+    const r=await fetch('/api/content-dispatch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accounts:pick, payload})});
+    const j=await r.json().catch(()=>null);
+    if(j&&j.ok){ $('#distStatus').textContent='✓ 已下发 '+(j.created||pick.length)+' 个账号，设备插件约 1 分钟内自动领取存草稿箱'; $('#distStatus').style.color='#00a152'; }
+    else { $('#distStatus').textContent='下发失败：'+((j&&j.error)||'请重试'); $('#distStatus').style.color='var(--cinnabar-deep)'; }
+  }catch(e){ $('#distStatus').textContent='出错：'+(e.message||e); $('#distStatus').style.color='var(--cinnabar-deep)'; }
+  btn.disabled=false; btn.textContent=o;
+});
+// 简易账号选择弹框，返回 [{id,name}]
+function pickAccounts(accs){
+  return new Promise(resolve=>{
+    const m=document.createElement('div'); m.style.cssText='position:fixed;inset:0;z-index:100020;background:rgba(20,16,14,.45);display:flex;align-items:center;justify-content:center;padding:20px';
+    const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    m.innerHTML='<div class="card" style="max-width:440px;width:100%;padding:20px"><b style="font-size:15px">选择要分发的账号</b>'
+      +'<div style="font-size:12px;color:var(--ink-soft);margin:6px 0 10px">勾选账号 → 每台登录了该账号且开了执行开关的设备会领取并存草稿箱。</div>'
+      +'<div style="max-height:260px;overflow:auto">'+accs.map(a=>`<label style="display:flex;gap:8px;align-items:center;padding:6px 2px;font-size:13px;cursor:pointer"><input type="checkbox" class="dk" value="${a.id}" data-name="${esc(a.nickname||'')}"/><b>${esc(a.nickname||'(未命名)')}</b><span style="font-size:11px;color:var(--ink-soft)">${a.grp?esc(a.grp)+' · ':''}${a.status==='active'?'已登录':'未接入'}</span></label>`).join('')+'</div>'
+      +'<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button id="dkCancel" class="btn-ghost rounded-md px-3 py-1.5 text-[12px]">取消</button><button id="dkGo" class="rounded-md px-3 py-1.5 text-[12px]" style="background:var(--cinnabar);color:#fff;border:none">下发</button></div></div>';
+    document.body.appendChild(m);
+    const close=v=>{ m.remove(); resolve(v); };
+    m.addEventListener('click',e=>{ if(e.target===m) close(null); });
+    m.querySelector('#dkCancel').onclick=()=>close(null);
+    m.querySelector('#dkGo').onclick=()=>{ const sel=[...m.querySelectorAll('.dk:checked')].map(c=>({id:+c.value,name:c.dataset.name})); close(sel.length?sel:null); };
+  });
+}
 // 把一篇成稿数据装进 WORK（草稿/云端历史共用）
 function buildWORK(data, id){
   const raw=(data.coverImages||(data.coverImage?[data.coverImage]:[])).filter(Boolean);

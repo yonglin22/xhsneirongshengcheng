@@ -524,3 +524,40 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 setTimeout(zsPollDispatch, 8000); // 启动后先探一次
+
+// ===== 内容矩阵分发：轮询领取「一稿多发」任务，在本机已登录的小红书里存草稿箱 =====
+let _zsContentBusy = false;
+async function zsPollContentDispatch() {
+  if (_zsContentBusy || _zsDispatchBusy) return; // 同一时刻只跑一个任务，避免多标签打架
+  const { id, enabled } = await _zsDeviceId();
+  if (!enabled) return;
+  let task = null;
+  try {
+    const r = await fetch(ZS_DISPATCH_BASE + '/api/content-dispatch/pull', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ device: id }) });
+    const j = await r.json().catch(() => null);
+    task = j && j.task;
+  } catch (e) { return; }
+  if (!task || !task.payload) return;
+  _zsContentBusy = true;
+  try {
+    pending = Object.assign({}, task.payload, { _contentDispatchId: task.dispatchId });
+    chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/publish/publish?source=official', active: false });
+    setTimeout(() => { _zsContentBusy = false; }, 5 * 60000); // 兜底解锁
+  } catch (e) { _zsContentBusy = false; }
+}
+chrome.alarms && chrome.alarms.create('zsContentPoll', { periodInMinutes: 1 });
+chrome.alarms && chrome.alarms.onAlarm.addListener(a => { if (a && a.name === 'zsContentPoll') zsPollContentDispatch(); });
+// xhs.js 存完草稿回报 → 标记完成 + 解锁
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === 'contentDispatchDone') {
+    _zsContentBusy = false;
+    (async () => {
+      try {
+        await fetch(ZS_DISPATCH_BASE + '/api/content-dispatch/done', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: msg.dispatchId, result: msg.result || '' }) });
+        sendResponse({ ok: true });
+      } catch (e) { sendResponse({ ok: false }); }
+    })();
+    return true;
+  }
+});
+setTimeout(zsPollContentDispatch, 12000);

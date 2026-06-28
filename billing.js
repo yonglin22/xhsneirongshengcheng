@@ -183,6 +183,31 @@ function dispatchPull(uid, device){
 function dispatchDone(uid, id, result){ const r=db.prepare("UPDATE plan_dispatch SET status='done', result=?, done_at=? WHERE id=? AND user_id=?").run(String(result||'').slice(0,300), Date.now(), id, uid); return r.changes>0; }
 function dispatchCancel(uid, id){ if(id==='all'||id===0){ db.prepare("DELETE FROM plan_dispatch WHERE user_id=? AND status IN('pending','done')").run(uid); return true; } db.prepare("DELETE FROM plan_dispatch WHERE id=? AND user_id=?").run(id,uid); return true; }
 
+// ===== 内容矩阵分发：一稿多发到各账号草稿箱（B方案=走各设备本机已登录小红书，避开机房IP风控）=====
+// payload 只存「标题/正文/图片URL/标签」（图片先传 /api/media-put 转短链，避免大体积）。
+try { db.exec("CREATE TABLE IF NOT EXISTS content_dispatch(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, account_id INTEGER, account_name TEXT, device TEXT, title TEXT, payload TEXT, status TEXT DEFAULT 'pending', result TEXT, created_at INTEGER, picked_at INTEGER, done_at INTEGER)"); } catch {}
+const _CD_TTL = 1000*60*10; // 领取 10 分钟没回报→可重新领取
+function cdispAdd(uid, accounts, payload){
+  const list=(Array.isArray(accounts)?accounts:[]).slice(0,50); if(!list.length) return { ok:false, error:'未选择账号' };
+  const pl=JSON.stringify(payload||{}); const title=String((payload&&payload.title)||'').slice(0,80); const now=Date.now();
+  const ins=db.prepare("INSERT INTO content_dispatch(user_id,account_id,account_name,title,payload,status,created_at) VALUES(?,?,?,?,?,'pending',?)");
+  let n=0; const run=()=>{ for(const a of list){ ins.run(uid, parseInt(a&&a.id)||null, String((a&&a.name)||'').slice(0,80), title, pl, now); n++; } };
+  try{ txn(run); }catch{ run(); }
+  return { ok:true, created:n };
+}
+function cdispList(uid){ return db.prepare('SELECT id,account_id,account_name,device,title,status,result,created_at,picked_at,done_at FROM content_dispatch WHERE user_id=? ORDER BY id DESC LIMIT 200').all(uid); }
+function cdispPull(uid, device){
+  const now=Date.now();
+  db.prepare("UPDATE content_dispatch SET status='pending', device=NULL WHERE user_id=? AND status='running' AND picked_at IS NOT NULL AND picked_at < ?").run(uid, now-_CD_TTL);
+  const row=db.prepare("SELECT * FROM content_dispatch WHERE user_id=? AND status='pending' ORDER BY id ASC LIMIT 1").get(uid);
+  if(!row) return { ok:true, task:null };
+  db.prepare("UPDATE content_dispatch SET status='running', device=?, picked_at=? WHERE id=? AND status='pending'").run(String(device||'').slice(0,60), now, row.id);
+  let payload={}; try{ payload=JSON.parse(row.payload||'{}'); }catch{}
+  return { ok:true, task:{ dispatchId:row.id, accountId:row.account_id, accountName:row.account_name, payload } };
+}
+function cdispDone(uid, id, result){ const r=db.prepare("UPDATE content_dispatch SET status='done', result=?, done_at=? WHERE id=? AND user_id=?").run(String(result||'').slice(0,300), Date.now(), id, uid); return r.changes>0; }
+function cdispCancel(uid, id){ if(id==='all'||id===0){ db.prepare("DELETE FROM content_dispatch WHERE user_id=? AND status IN('pending','done')").run(uid); return true; } db.prepare("DELETE FROM content_dispatch WHERE id=? AND user_id=?").run(id,uid); return true; }
+
 function txn(fn) { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; } }
 
 // ===== 会话 token（放 Cookie，HMAC 签名）=====
@@ -590,6 +615,7 @@ module.exports = {
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
   leadsList, leadsAdd, leadRemove, leadsClear, leadStatus,
   dispatchAdd, dispatchList, dispatchPull, dispatchDone, dispatchCancel,
+  cdispAdd, cdispList, cdispPull, cdispDone, cdispCancel,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
 };
 
