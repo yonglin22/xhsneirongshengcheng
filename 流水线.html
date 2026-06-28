@@ -70,6 +70,12 @@
 
 <!-- 悬浮：一键按对标生成全套 -->
 <button id="autoBtn" class="btn-go font-medium" style="position:fixed;right:26px;bottom:90px;z-index:40;border-radius:999px;padding:14px 24px;font-size:14px;box-shadow:0 10px 30px -6px rgba(255,36,66,.55);white-space:nowrap">▶ 一键按对标生成全套</button>
+<button id="autoPauseBtn" style="display:none;position:fixed;right:26px;bottom:148px;z-index:41;border-radius:999px;padding:11px 20px;font-size:13px;font-weight:600;background:#fff;color:var(--ink);border:1.5px solid var(--cinnabar);box-shadow:0 8px 24px -8px rgba(0,0,0,.35);white-space:nowrap;cursor:pointer">⏸ 暂停</button>
+<style>
+/* 自动生成中：除「暂停/继续」「停止」外，全站按钮置灰不可点，防误触打断流程 */
+body.auto-running button:not(#autoPauseBtn):not(#autoBtn), body.auto-running .btn-go:not(#autoBtn), body.auto-running .img-ratio, body.auto-running input[type=file]+*, body.auto-running .cv-tpl-pick { opacity:.45 !important; pointer-events:none !important; filter:grayscale(.4); }
+body.auto-running #autoBtn { opacity:.7; }
+</style>
 
 <!-- 生成选题方向弹窗（嵌入原版选题智能体，三层漏斗/热点）-->
 <div id="topicModal" style="display:none;position:fixed;inset:0;z-index:140;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px">
@@ -1722,6 +1728,18 @@ async function remoteToDataURL(u) {
     return await new Promise(res => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = () => res(u); rd.readAsDataURL(b); });
   } catch { return u; }
 }
+// 把图（data:/远程）落到服务器 /gen 换同源短链：体积小→localStorage 存得下→预览/自检/返回都不丢。
+// （根因：data: 大图占满 localStorage，Draft.save 的配额保护会剔除 coverImages 里的 data: 图→首图持久化失败）
+async function persistImgUrl(u) {
+  if (!u) return u;
+  try {
+    let dataUrl = u.startsWith('data:') ? u : await remoteToDataURL(u);
+    if (!dataUrl.startsWith('data:')) return u; // 取不到 data → 退回原链（远程链至少能临时显示）
+    const r = await fetch('/api/media-put', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ png: dataUrl }) });
+    const j = await r.json().catch(() => null);
+    return (j && j.ok && j.url) ? j.url : dataUrl;
+  } catch { return u; }
+}
 // S2 上传对标图：下采样 → 存进 refImages → 立即逐张自动解析（不依赖小红书抓取）
 async function onRefUpload(e) {
   const files = [...e.target.files]; if (!files.length) { e.target.value = ''; return; }
@@ -1746,18 +1764,19 @@ function errMsg(tx) {
 function renderGzhCover() {
   const w = $('#imgWrap'); if (!w) return;
   const u = (state.coverImages || [])[0];
-  // 首图必须横版（宽>高）。竖版/方图（小红书 3:4 封面误带）不当首图 → 清掉、显示「生成首图」
+  if (!u) { w.innerHTML = ''; return; }
+  // 首图建议横版（宽>高）。竖版/方图（小红书 3:4 封面误带）只提示、不删图 → 图保留，用户可自行重生成
   if (typeof u === 'string' && (/^https?:\/\//.test(u) || u.startsWith('data:'))) {
     const probe = new Image();
-    probe.onload = () => { if (probe.naturalWidth < probe.naturalHeight * 1.2) { state.coverImages = []; state.coverImage = ''; persist(); const ww = $('#imgWrap'); if (ww) ww.innerHTML = ''; } };
+    probe.onload = () => { if (probe.naturalWidth < probe.naturalHeight * 1.2) { const tip = $('#gzhRatioTip'); if (tip) tip.style.display = 'block'; } };
     probe.src = u;
   }
-  if (!u) { w.innerHTML = ''; return; }
   w.innerHTML = `<div style="position:relative;width:100%;max-width:520px;aspect-ratio:2.35/1;border-radius:10px;overflow:hidden;border:1px solid var(--line)">
       <img ${imgAttr(u)} style="width:100%;height:100%;object-fit:cover;display:block" alt="公众号首图"/>
       <button id="gzhCoverDel" title="删除重做" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:999px;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:12px">✕</button>
     </div>
-    <a href="${u}" target="_blank" rel="noopener" download="公众号首图.png" style="color:var(--cinnabar);display:inline-block;margin-top:6px;font-size:11px">⬇ 下载首图</a>`;
+    <a href="${u}" target="_blank" rel="noopener" download="公众号首图.png" style="color:var(--cinnabar);display:inline-block;margin-top:6px;font-size:11px">⬇ 下载首图</a>
+    <div id="gzhRatioTip" style="display:none;margin-top:6px;font-size:11px;color:var(--cinnabar-deep)">⚠ 这张是竖版图，公众号首图建议横版 2.35:1。可点上面「🎨 生成首图」重出横版（当前图不会自动删除）。</div>`;
   $('#gzhCoverDel')?.addEventListener('click', () => { state.coverImages = []; state.coverImage = ''; persist(); renderGzhCover(); });
 }
 async function genGzhCover() {
@@ -1775,7 +1794,7 @@ async function genGzhCover() {
   }
   try {
     let u; try { u = await once(); } catch (e1) { if (stx) stx.textContent = '出图失败，重试中…'; await new Promise(r => setTimeout(r, 1200)); u = await once(); }
-    u = await remoteToDataURL(u); // 持久化为同源 data: URL：防过期/跨域导致预览或导出丢图
+    u = await persistImgUrl(u); // 落服务器换同源短链：小体积可持久化（data: 大图会被配额保护剔除→首图丢失）
     state.coverImages = [u]; state.coverImage = u; state.coverCaptions = [{ theme: 'photo', raw: true }]; persist(); renderGzhCover();
     if (stx) { stx.textContent = '✓ 首图已生成'; stx.style.color = '#00a152'; }
   } catch (e) { if (stx) { stx.textContent = '生成失败：' + (e && e.message || e) + '（可再点一次）'; stx.style.color = 'var(--cinnabar-deep)'; } }
@@ -1785,8 +1804,8 @@ async function onCoverUpload(e) {
   const files = [...e.target.files]; if (!files.length) { e.target.value = ''; return; }
   if (isGzh()) { // 公众号：单张横版首图，替换
     const st0 = $('#imgStatus'); if (st0) st0.textContent = '处理图片中…';
-    const d = await downscaleImage(files[0], 1600);
-    if (d) { state.coverImages = [d]; state.coverImage = d; state.coverCaptions = [{ theme: 'photo', raw: true }]; persist(); renderGzhCover(); if (st0) st0.textContent = '✓ 首图已上传'; }
+    let d = await downscaleImage(files[0], 1600);
+    if (d) { d = await persistImgUrl(d); state.coverImages = [d]; state.coverImage = d; state.coverCaptions = [{ theme: 'photo', raw: true }]; persist(); renderGzhCover(); if (st0) st0.textContent = '✓ 首图已上传'; }
     e.target.value = ''; return;
   }
   state.coverImages = state.coverImages || (state.coverImage ? [state.coverImage] : []);
@@ -2513,8 +2532,16 @@ async function genStep(st) {
 }
 
 // 自动：依次跑完 S2–S7（未贴对标则自动跳过 S2）
-let autoRunning = false;
+let autoRunning = false, autoPaused = false;
 function setAuto(msg, err) { const el = $('#autoStatus'); if (el) { el.textContent = msg || ''; el.style.color = err ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; } }
+// 暂停闸：autoRun 每步前/后调用，暂停时在此停住，点「继续」才往下走
+async function autoGate() { if (!autoPaused) return; setAuto('⏸ 已暂停，点右下角「继续」恢复…'); while (autoPaused && autoRunning) { await new Promise(r => setTimeout(r, 200)); } if (autoRunning) setAuto('▶ 已继续…'); }
+function setAutoUI(on) {
+  document.body.classList.toggle('auto-running', on);
+  const pb = $('#autoPauseBtn');
+  if (pb) { pb.style.display = on ? 'block' : 'none'; if (on) { autoPaused = false; pb.textContent = '⏸ 暂停'; } }
+}
+$('#autoPauseBtn')?.addEventListener('click', () => { if (!autoRunning) return; autoPaused = !autoPaused; const pb = $('#autoPauseBtn'); if (pb) pb.textContent = autoPaused ? '▶ 继续' : '⏸ 暂停'; if (!autoPaused) setAuto('▶ 已继续…'); else setAuto('⏸ 已暂停（当前步跑完即停住，点「继续」恢复）'); });
 async function autoRun() {
   if (autoRunning) return;
   if (!state.topic) { setAuto('请先在上方填写选题', true); return; }
@@ -2532,7 +2559,7 @@ async function autoRun() {
     const s2i = STEPS.findIndex(st => st.no === 'S2'); cur = s2i < 0 ? 0 : s2i;
     renderRail(); renderPanel();
   }
-  autoRunning = true; const ab = $('#autoBtn'); if (ab) { ab.disabled = true; ab.textContent = '⏳ 自动生成中…'; }
+  autoRunning = true; setAutoUI(true); const ab = $('#autoBtn'); if (ab) { ab.disabled = true; ab.textContent = '⏳ 自动生成中…'; }
   // 提速：AI 封面只需「主题」（开局已知），不必等后续步骤 → 现在就后台开跑，让 40s 出图与整条文字流水线并行，最后再取结果（几乎不额外耗时）
   const aiCoverPromise = (autoAiCoverOn() && !isGzh()) ? genAiCoverUrl(null).catch(() => '') : null;
   // 提速：对标视觉解析（5 张 vision）也开局并行预取并写进缓存，到 S6 直接命中、不再等
@@ -2540,6 +2567,7 @@ async function autoRun() {
   const startIdx = Math.min(Math.max(cur | 0, 0), STEPS.length - 1); // 从「当前所在步」开始，不回到第二步从头跑
   try {
     for (let i = startIdx; i < STEPS.length; i++) {
+      await autoGate(); if (!autoRunning) break; // 暂停闸：暂停时停在这里
       const st = STEPS[i];
       if (st.input === 'ref' && !state.ref) continue; // 没贴对标就跳过 S2
       cur = i; renderRail(); renderPanel();

@@ -561,7 +561,7 @@ async function genGzhCoverNow(){
   }
   try{
     let u; try{ u=await once(); }catch(e1){ if(st) st.textContent='重试中…'; await new Promise(r=>setTimeout(r,1200)); u=await once(); }
-    const du=await urlToDataURL(u)||u;
+    const du=await persistImgUrl(u);
     d.coverImages=[du]; d.coverImage=du; d.coverCaptions=[{theme:'photo',raw:true}];
     try{ localStorage.setItem('ag_draft',JSON.stringify(d)); }catch{}
     render(d);
@@ -789,6 +789,17 @@ async function urlToDataURL(u){
   };
   try{ return await grab('/api/img-proxy?u='+encodeURIComponent(u)); }
   catch{ try{ return await grab(u); }catch{ return null; } }
+}
+// 把图落到服务器 /gen 换同源短链：小体积可持久化（data: 大图会撑爆 localStorage 存不下→首图丢失）
+async function persistImgUrl(u){
+  if(!u) return u;
+  try{
+    let dataUrl = u.startsWith('data:') ? u : (await urlToDataURL(u));
+    if(!dataUrl || !dataUrl.startsWith('data:')) return u;
+    const r = await fetch('/api/media-put',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({png:dataUrl})});
+    const j = await r.json().catch(()=>null);
+    return (j && j.ok && j.url) ? j.url : dataUrl;
+  }catch{ return u; }
 }
 
 // 把一张图（生成图裁掉底部水印、上传图不裁）画成 blob
