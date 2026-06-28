@@ -175,15 +175,24 @@ async function pollQrLogin(token) {
   if (!s) return { ok: false, expired: true, reason: '二维码会话已过期，请重新获取' };
   try {
     const p = s.page;
-    if ((await p.locator('img.qrcode-img').count()) > 0) return { ok: false, pending: true }; // 还没扫/确认
-    // 扫码确认后：先看是否要短信验证（风控）
+    // ① 最权威信号：登录 cookie(web_session) 是否已写入（扫码确认后会有）。
+    //    放最前面——小红书扫码后 qrcode-img 元素仍留在 DOM（只盖一层“扫描成功”），不能拿它判断。
+    let cookie = await _grabIfLoggedIn(s);
+    if (cookie) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; }
+    // ② 没 cookie：扫码确认后页面有时不自动刷新 → 主动刷一次再取一次
+    if (!s._reloadedOnce && (await p.locator('img.qrcode-img').count()) === 0) {
+      s._reloadedOnce = true;
+      try { await p.goto('https://www.xiaohongshu.com/explore', { waitUntil: 'domcontentloaded', timeout: 25000 }); await p.waitForTimeout(2500); } catch {}
+      cookie = await _grabIfLoggedIn(s);
+      if (cookie) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; }
+      s._reloadedOnce = false; // 允许后续再试
+    }
+    // ③ 仍未登录：还显示二维码 → 还没扫/确认
+    if ((await p.locator('img.qrcode-img').count()) > 0) return { ok: false, pending: true };
+    // ④ 二维码没了又没 cookie → 可能触发短信验证
     const ver = await _detectVerify(p);
     if (ver.need) return { ok: false, needSms: true, info: ver };
-    // 无验证 → 创作中心确认 + 取 cookie
-    const cookie = await _grabIfLoggedIn(s);
-    if (!cookie) return { ok: false, pending: true };
-    try { await s.browser.close(); } catch {} _qr.delete(token);
-    return { ok: true, cookie };
+    return { ok: false, pending: true };
   } catch (e) { return { ok: false, pending: true }; }
 }
 // 触发发送验证码（必要时先填手机号）
