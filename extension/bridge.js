@@ -1,7 +1,7 @@
 // 注入到朱砂(yonglin.chat)：把"插件已安装"告诉页面，并把页面的发布请求转给后台
 (function () {
   // 告知页面插件就绪（页面据此显示「插件发布」按钮可用）
-  const announce = () => window.postMessage({ __zhusha_ext: 'ready', v: '0.1.0' }, '*');
+  const announce = () => window.postMessage({ __zhusha_ext: 'ready', v: '0.9.1' }, '*');
   announce();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { announce(); syncPersona(); } });
 

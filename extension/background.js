@@ -534,10 +534,13 @@ setTimeout(zsPollDispatch, 8000); // 启动后先探一次
 
 // ===== 内容矩阵分发：轮询领取「一稿多发」任务，在本机已登录的小红书里存草稿箱 =====
 let _zsContentBusy = false;
-async function zsPollContentDispatch() {
-  if (_zsContentBusy) return; // 内容发布到创作中心，与养号(www)不同站点，不互锁
+async function zsPollContentDispatch(opts) {
+  opts = opts || {};
+  // force=网页上「一稿多发」按钮显式触发本机领取：绕过忙锁与「执行设备」开关，并把创作中心标签前台打开让用户看见跳转。
+  // 定时轮询(非 force)仍按原规则：忙锁+开关，后台静默执行。
+  if (_zsContentBusy && !opts.force) return; // 内容发布到创作中心，与养号(www)不同站点，不互锁
   const { id, enabled } = await _zsDeviceId();
-  if (!enabled) return;
+  if (!enabled && !opts.force) return;
   let task = null;
   try {
     const r = await fetch(ZS_DISPATCH_BASE + '/api/content-dispatch/pull', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ device: id }) });
@@ -551,7 +554,7 @@ async function zsPollContentDispatch() {
     pending = payload;
     // 持久化兜底：SW 被回收后内存 pending 会丢，xhs.js 从 storage 取
     await new Promise(res => chrome.storage.local.set({ pendingPublish: payload }, res));
-    chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/publish/publish?source=official', active: false });
+    chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/publish/publish?source=official', active: !!opts.force });
     setTimeout(() => { _zsContentBusy = false; }, 5 * 60000); // 兜底解锁
   } catch (e) { _zsContentBusy = false; }
 }
@@ -573,7 +576,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 setTimeout(zsPollContentDispatch, 12000);
 // 网页下发成功后即时触发本机领取（不必等 1 分钟定时器）
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg && msg.type === 'pullContentNow') { zsPollContentDispatch(); try { sendResponse({ ok: true }); } catch (e) {} return true; }
+  if (msg && msg.type === 'pullContentNow') { zsPollContentDispatch({ force: true }); try { sendResponse({ ok: true }); } catch (e) {} return true; }
   // 后台下载图片转 data URL（内容脚本跨域 fetch 会被 CORS 挡，后台有主机权限不受限）
   if (msg && msg.type === 'fetchImg') {
     (async () => {
