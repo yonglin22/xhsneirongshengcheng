@@ -397,7 +397,23 @@ window.mark = function (t) {
 
 /* ---- 跨页草稿（流水线 → 成稿/合规 互通）---- */
 window.Draft = {
-  save(obj) { const cur = this.load(); localStorage.setItem('ag_draft', JSON.stringify({ ...cur, ...obj, _ts: Date.now() })); },
+  // 配额安全：localStorage 上限约 5MB，data: 图（base64）很容易撑爆 → setItem 抛 QuotaExceeded 会中断生成流程。
+  // 这里捕获后逐步剔除最重的 data: 图片再存（只影响"持久化"，内存里的 state 不动，本次会话照常用），绝不抛错。
+  save(obj) {
+    const cur = this.load();
+    const full = { ...cur, ...obj, _ts: Date.now() };
+    const setit = o => localStorage.setItem('ag_draft', JSON.stringify(o));
+    try { setit(full); return; } catch (e) {}
+    const slim = (() => { try { return JSON.parse(JSON.stringify(full)); } catch { return full; } })();
+    const stripData = a => Array.isArray(a) ? a.map(u => (typeof u === 'string' && u.startsWith('data:')) ? '' : u) : a;
+    // 1) 剔除封面里的 data: 大图（保留 note:// / ctpl:// / 普通链接 与全部文字排版）
+    try { slim.coverImages = stripData(slim.coverImages); if (typeof slim.coverImage === 'string' && slim.coverImage.startsWith('data:')) slim.coverImage = ''; setit(slim); return; } catch (e) {}
+    // 2) 再剔除对标图 data:
+    try { slim.refImages = stripData(slim.refImages); setit(slim); return; } catch (e) {}
+    // 3) 实在存不下 → 丢弃图片字段只保文字（不抛错，避免中断生成）
+    try { delete slim.coverImages; delete slim.coverImage; delete slim.refImages; setit(slim); return; } catch (e) {}
+    try { console.warn('Draft.save: storage quota exceeded, persist skipped'); } catch {}
+  },
   load() { try { return JSON.parse(localStorage.getItem('ag_draft') || '{}'); } catch { return {}; } },
   clear() { localStorage.removeItem('ag_draft'); },
 };

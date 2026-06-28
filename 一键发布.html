@@ -40,7 +40,7 @@
 
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/pinyin.js?v=1"></script>
-<script src="/assets/app.js?v=52"></script>
+<script src="/assets/app.js?v=53"></script>
 <script>
 let WORK = null, sel = new Set();
 function fmtD(ts){ try{ const d=new Date(ts); return (d.getMonth()+1)+'/'+d.getDate(); }catch{ return ''; } }
@@ -118,7 +118,7 @@ function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&
 function fitMemoTitle(noteEl){ if(!noteEl.classList.contains('is-memo'))return; const h=noteEl.querySelector('.nt-h1'); if(!h)return; h.style.fontSize=''; if(/<br/i.test(h.innerHTML))return; const cs=getComputedStyle(h); let fs=parseFloat(cs.fontSize); const lh=parseFloat(cs.lineHeight)||fs*1.22; let g=0; while(h.scrollHeight>lh*1.45&&fs>9&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }
 function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fit) return; fitMemoTitle(noteEl); fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; let s=1; if(need>avail+1&&avail>0){ s=Math.max(0.45, avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } noteEl.dataset.fitScale=String(s); }
 // note:// / ctpl:// → PNG（html2canvas）；http → 原样
-async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, coverCaptions, coverFallback){
+async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, coverCaptions, coverFallback, tags){
   const host=$('#renderHost'); const out=[]; const caps=coverCaptions||[]; let i=-1;
   const W=540, H=Math.round(W*({'2:3':3/2,'3:4':4/3,'9:16':16/9}[imgRatio||'3:4']||4/3)); // 画框高度随出图比例（发布/下载尺寸正确）
   // 只统一各页标题字号（不动每页自身的内容缩放，避免写满的页被一起缩小显得很空）：先扫一遍取最小标题
@@ -161,7 +161,8 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
     let cap=caps[i];
     // 封面位(第1张)是 AI 图但叠字缺失时 → 用 coverLines 重建稿定风封面叠字，避免封面变成无样式裸图或被丢
     if(i===0 && (!cap || (!asStr(cap.title) && !(Array.isArray(cap.lines)&&cap.lines.length))) && (coverLines||[]).filter(Boolean).length){
-      const cl=(coverLines||[]).filter(Boolean); cap={ title:cl[0], lines:cl.slice(1), layout:'封面', theme:'poster' };
+      const cl=(coverLines||[]).filter(Boolean); const tg=(tags||[]).map(t=>String(t||'').replace(/^#/,'').trim()).filter(Boolean).slice(0,3);
+      cap={ title:cl[0], lines:[cl[1]||'', ...tg], layout:'封面', theme:'poster' }; // 与生成时 aiCoverCaption 一致：副标题=第2行，底部=话题标签
     }
     // 真图/AI 封面(http、data、同源 /gen)：若带叠字封面卡(非 raw 实拍)，把"底图+标题叠层"一起烤进 PNG，发布后才有封面样式；否则原样推链接
     if(/^https?:\/\//.test(u) || (u||'').startsWith('data:') || (u||'').startsWith('/')){
@@ -195,7 +196,7 @@ $('#extPubBtn').addEventListener('click', async ()=>{
   const btn=$('#extPubBtn'); btn.disabled=true; const o=btn.textContent; btn.textContent='转图中…';
   $('#pubStatus').textContent='正在把封面/卡片转成图片…'; $('#pubStatus').style.color='var(--ink-soft)';
   try{
-    const images=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines, WORK.imgRatio, WORK.coverCaptions, WORK.coverFallback);
+    const images=await renderCardsToPng(WORK.coverImages, WORK.notePages, WORK.coverLines, WORK.imgRatio, WORK.coverCaptions, WORK.coverFallback, WORK.tags);
     if(!images.length){ $('#pubStatus').textContent='这篇没有可发布的图片'; $('#pubStatus').style.color='var(--cinnabar-deep)'; btn.disabled=false; btn.textContent=o; return; }
     btn.textContent='发送给插件…';
     window.postMessage({ type:'ZHUSHA_PUBLISH', payload:{ title:WORK.title, body:WORK.body, images, tags:WORK.tags||[] } }, '*');
