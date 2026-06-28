@@ -3,6 +3,26 @@ document.getElementById('planNew').addEventListener('click', () => {
   chrome.tabs.create({ url: 'https://yonglin.chat/获客计划.html', active: true });
   window.close();
 });
+// 本机作为执行设备开关（控制 background 是否轮询领取「下发」任务）
+(function () {
+  const sw = document.getElementById('devSw'), knob = document.getElementById('devKnob'), meta = document.getElementById('devMeta');
+  function paint(on, id) {
+    sw.style.background = on ? '#00a152' : '#ccc';
+    knob.style.left = on ? '20px' : '2px';
+    meta.textContent = on ? ('本机已待命领取下发任务 · 设备号 ' + (id || '生成中…')) : '已关闭，本机不会自动领取下发任务。';
+  }
+  chrome.storage.local.get(['zsDispatchEnabled', 'zsDeviceId'], st => {
+    let id = st.zsDeviceId;
+    if (!id) { id = 'dev-' + Math.random().toString(36).slice(2, 8); chrome.storage.local.set({ zsDeviceId: id }); }
+    paint(st.zsDispatchEnabled !== false, id);
+    sw.addEventListener('click', () => {
+      chrome.storage.local.get(['zsDispatchEnabled', 'zsDeviceId'], s2 => {
+        const next = !(s2.zsDispatchEnabled !== false);
+        chrome.storage.local.set({ zsDispatchEnabled: next }, () => paint(next, s2.zsDeviceId || id));
+      });
+    });
+  });
+})();
 const TYPE_NAME = { home_nurture: '首页养号', home_intercept: '首页截流', search_nurture: '搜索养号', search_intercept: '搜索截流' };
 function escH2(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 async function fetchPlans() {
