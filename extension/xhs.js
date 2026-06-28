@@ -15,8 +15,17 @@
     });
   }
   // 在全页面找按钮：先精确等于，再包含；可见优先。labels 顺序=优先级
+  // 穿透 shadow DOM 收集元素（小红书创作页底部「暂存离开/发布」常在 web component 的 shadowRoot 里）
+  function deepEls(sel, root, out, depth) {
+    out = out || []; root = root || document; depth = depth || 0;
+    if (depth > 8) return out;
+    try { root.querySelectorAll(sel).forEach(e => out.push(e)); } catch (e) {}
+    let all = []; try { all = root.querySelectorAll('*'); } catch (e) {}
+    for (const el of all) { if (el.shadowRoot) deepEls(sel, el.shadowRoot, out, depth + 1); }
+    return out;
+  }
   function findBtn(labels) {
-    const els = [...document.querySelectorAll('button,[role=button],a,div,span')];
+    const els = deepEls('button,[role=button],a,div,span');
     for (const lab of labels) {
       let el = els.find(e => norm(e.textContent) === lab && visible(e));
       if (!el) el = els.find(e => { const tx = norm(e.textContent); return tx && tx.length <= lab.length + 4 && tx.includes(lab) && visible(e); });
@@ -148,7 +157,7 @@
         if (payload._contentDispatchId) { try { chrome.runtime.sendMessage({ type: 'contentDispatchDone', dispatchId: payload._contentDispatchId, result: '✓ 已存草稿箱' }); } catch (e) {} }
       } else {
         if (payload._contentDispatchId) { try { chrome.runtime.sendMessage({ type: 'contentDispatchDone', dispatchId: payload._contentDispatchId, result: '⚠ 已填好内容，需手动点暂存离开' }); } catch (e) {} }
-        const btns = [...document.querySelectorAll('button,[role=button],div,span')]
+        const btns = deepEls('button,[role=button],div,span')
           .map(e => (e.textContent || '').trim())
           .filter(t => t && t.length >= 2 && t.length <= 8 && /[一-龥]/.test(t) && /存|草稿|发布|保存|离开|确定|完成/.test(t));
         const uniq = [...new Set(btns)].slice(0, 12);
