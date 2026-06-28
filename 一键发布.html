@@ -124,16 +124,39 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
   // 只统一各页标题字号（不动每页自身的内容缩放，避免写满的页被一起缩小显得很空）：先扫一遍取最小标题
   let uniTitle=Infinity; const noteUs=(coverImages||[]).filter(u=>(u||'').startsWith('note://'));
   if(noteUs.length>1){ for(const u of noteUs){ host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+noteCardHTML((notePages||[])[+u.slice(7)])+'</div>'; const ne=host.querySelector('.cv-note:not(.is-cover)'); if(ne){ fitNote(ne); const h=ne.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML)){ const fs=parseFloat(getComputedStyle(h).fontSize); if(fs<uniTitle)uniTitle=fs; } } } }
-  const shot=async(html)=>{ host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+html+'</div>';
-    const noteEl=host.querySelector('.cv-note:not(.is-cover)'); if(noteEl){ fitNote(noteEl); if(noteUs.length>1&&isFinite(uniTitle)){ const h=noteEl.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML))h.style.fontSize=uniTitle+'px'; } }
+  // 标题/拼音叠字自适应 + 等资源就绪（每次渲染都要跑）
+  const prep=async()=>{
+    const noteEl=host.querySelector('.cv-note:not(.is-cover)');
+    if(noteEl&&noteUs.length>1&&isFinite(uniTitle)){ const h=noteEl.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML))h.style.fontSize=uniTitle+'px'; }
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
-    // 等底图加载完，否则截到空白
     const im=host.querySelector('img'); if(im && !im.complete){ try{ await new Promise(r=>{im.onload=im.onerror=r;}); }catch{} }
-    host.querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t, .cv-coverx .cx-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }); // AI 封面标题自适应
+    host.querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t, .cv-coverx .cx-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} });
     host.querySelectorAll('.cv-coverx .cx-py').forEach(function(p){ p.style.letterSpacing=''; p.style.fontSize=''; var ls=parseFloat(getComputedStyle(p).letterSpacing)||0,g=0; while(p.scrollWidth>p.clientWidth+1&&ls>0&&g++<40){ls-=0.5;p.style.letterSpacing=ls+'px';} var fs=parseFloat(getComputedStyle(p).fontSize); g=0; while(p.scrollWidth>p.clientWidth+1&&fs>6&&g++<40){fs-=0.3;p.style.fontSize=fs+'px';} });
-    const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
-    return cv.toDataURL('image/jpeg',0.92); };
+  };
+  // 根治导出错乱：html2canvas 不支持长图笔记用的 transform:scale 自适应（会把内容按 100/s% 宽度不缩放地画出来→溢出/裁切/错位）。
+  // 改为：内容溢出时在「加高的画框」里按自然尺寸渲染（不缩放、不裁切），再用 canvas 把整张位图等比缩到目标 W×H（边距用卡片底色填，无缝）。
+  const shot=async(html)=>{
+    host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+html+'</div>';
+    await prep();
+    let s=1; const noteEl=host.querySelector('.cv-note:not(.is-cover)'); const fit=noteEl&&noteEl.querySelector('.cv-note-fit');
+    if(fit){ fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; if(need>avail+1&&avail>0) s=Math.max(0.45, avail/need); }
+    if(s>=0.999){
+      const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
+      return cv.toDataURL('image/jpeg',0.92);
+    }
+    // 溢出页：加高画框 → 自然渲染 → 位图等比缩小到 W×H
+    const Hb=Math.round(H/s);
+    host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+Hb+'px">'+html+'</div>';
+    await prep();
+    const bgEl=host.querySelector('.cv-note,.cv-coverx,.cv-card'); const bg=(bgEl&&getComputedStyle(bgEl).backgroundColor)||'#ffffff';
+    const cap=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:Hb});
+    const o=document.createElement('canvas'); o.width=W*2; o.height=H*2; const ctx=o.getContext('2d');
+    ctx.fillStyle=(bg&&bg!=='rgba(0, 0, 0, 0)')?bg:'#ffffff'; ctx.fillRect(0,0,o.width,o.height);
+    const dw=Math.round(cap.width*s), dh=Math.round(cap.height*s);
+    ctx.drawImage(cap,0,0,cap.width,cap.height,Math.round((o.width-dw)/2),0,dw,dh);
+    return o.toDataURL('image/jpeg',0.92);
+  };
   for(const u of (coverImages||[])){ i++;
     const cap=caps[i];
     // 真图/AI 封面(http、data、同源 /gen)：若带叠字封面卡(非 raw 实拍)，把"底图+标题叠层"一起烤进 PNG，发布后才有封面样式；否则原样推链接
