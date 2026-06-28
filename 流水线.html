@@ -1386,6 +1386,8 @@ function packThinPages(pages) {
     if (out.length < n - 1 && w >= target) { out.push(cur); cur = []; w = 0; }
   }
   if (cur.length) out.push(cur);
+  // 末页太空（<55% 容量）→ 并回上一页底部，避免出现"只有一个小框"的半空尾页（略超容量也没关系，会自适应缩一点）
+  if (out.length > 1 && noteWeight(out[out.length - 1]) < cap * 0.55) { const last = out.pop(); out[out.length - 1] = out[out.length - 1].concat(last); }
   if (tagsBlock) (out[out.length - 1] = out[out.length - 1] || []).push(tagsBlock);
   const tmpl = rest[0] || cover;
   return [cover].concat(out.map(bl => Object.assign({}, tmpl, { blocks: bl })));
