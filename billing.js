@@ -122,10 +122,15 @@ function planRemove(uid, id){ db.prepare('DELETE FROM growth_plans WHERE id=? AN
 
 // ===== 获客 Agent · 话术库（问答库：标题 + 问题/回答话术，单库≤1000 条，供养号/截流评论回复取词）=====
 try { db.exec("CREATE TABLE IF NOT EXISTS script_libs(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, items TEXT, created_at INTEGER, updated_at INTEGER)"); } catch {}
+// 对齐原型「话术题库」：type=话术类型(comment评论话术/reply回复话术/intercept截流话术)、descr=话术描述。老库无此列→ALTER 补，已存在则忽略。
+try { db.exec("ALTER TABLE script_libs ADD COLUMN type TEXT DEFAULT 'comment'"); } catch {}
+try { db.exec("ALTER TABLE script_libs ADD COLUMN descr TEXT DEFAULT ''"); } catch {}
+const _SCRIPT_TYPES = ['comment', 'reply', 'intercept'];
+function _normScriptType(t){ return _SCRIPT_TYPES.includes(t) ? t : 'comment'; }
 function _normScriptItems(items){ return (Array.isArray(items)?items:[]).map(x=>({ q:String((x&&x.q)||'').slice(0,200).trim(), a:String((x&&x.a)||'').slice(0,1000).trim() })).filter(x=>x.q||x.a).slice(0,1000); }
-function scriptLibsList(uid){ return db.prepare('SELECT id,title,items,created_at,updated_at FROM script_libs WHERE user_id=? ORDER BY id DESC').all(uid).map(r=>{ let it=[]; try{it=JSON.parse(r.items||'[]');}catch{} return { id:r.id, title:r.title, items:Array.isArray(it)?it:[], count:(Array.isArray(it)?it:[]).length, created_at:r.created_at, updated_at:r.updated_at }; }); }
-function scriptLibAdd(uid, lib){ const now=Date.now(); const r=db.prepare('INSERT INTO script_libs(user_id,title,items,created_at,updated_at) VALUES(?,?,?,?,?)').run(uid, String(lib.title||'').slice(0,60).trim()||'未命名话术库', JSON.stringify(_normScriptItems(lib.items)), now, now); return r.lastInsertRowid; }
-function scriptLibUpdate(uid, id, lib){ const cur=db.prepare('SELECT * FROM script_libs WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; db.prepare('UPDATE script_libs SET title=?,items=?,updated_at=? WHERE id=? AND user_id=?').run(lib.title!==undefined?(String(lib.title).slice(0,60).trim()||'未命名话术库'):cur.title, lib.items!==undefined?JSON.stringify(_normScriptItems(lib.items)):cur.items, Date.now(), id, uid); return true; }
+function scriptLibsList(uid){ return db.prepare('SELECT id,title,type,descr,items,created_at,updated_at FROM script_libs WHERE user_id=? ORDER BY id DESC').all(uid).map(r=>{ let it=[]; try{it=JSON.parse(r.items||'[]');}catch{} return { id:r.id, title:r.title, type:r.type||'comment', descr:r.descr||'', items:Array.isArray(it)?it:[], count:(Array.isArray(it)?it:[]).length, created_at:r.created_at, updated_at:r.updated_at }; }); }
+function scriptLibAdd(uid, lib){ const now=Date.now(); const r=db.prepare('INSERT INTO script_libs(user_id,title,type,descr,items,created_at,updated_at) VALUES(?,?,?,?,?,?,?)').run(uid, String(lib.title||'').slice(0,60).trim()||'未命名话术库', _normScriptType(lib.type), String(lib.descr||'').slice(0,300), JSON.stringify(_normScriptItems(lib.items)), now, now); return r.lastInsertRowid; }
+function scriptLibUpdate(uid, id, lib){ const cur=db.prepare('SELECT * FROM script_libs WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; db.prepare('UPDATE script_libs SET title=?,type=?,descr=?,items=?,updated_at=? WHERE id=? AND user_id=?').run(lib.title!==undefined?(String(lib.title).slice(0,60).trim()||'未命名话术库'):cur.title, lib.type!==undefined?_normScriptType(lib.type):(cur.type||'comment'), lib.descr!==undefined?String(lib.descr).slice(0,300):(cur.descr||''), lib.items!==undefined?JSON.stringify(_normScriptItems(lib.items)):cur.items, Date.now(), id, uid); return true; }
 function scriptLibRemove(uid, id){ db.prepare('DELETE FROM script_libs WHERE id=? AND user_id=?').run(id,uid); return true; }
 
 // ===== 获客 Agent · 评论收集（潜客列表）：截流时收集到的评论区用户，存为系统列表，供人工跟进 =====

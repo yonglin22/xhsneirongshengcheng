@@ -35,8 +35,14 @@
       <span class="font-song font-bold text-[15px]">＋ 新建话术库</span>
       <span id="libCount" class="cnt ml-auto">0 / 1000 条</span>
     </div>
-    <div class="mb-3"><div class="text-[11px] text-[var(--ink-soft)] mb-1">* 话术库标题</div>
-      <input id="libTitle" class="field w-full" maxlength="60" placeholder="如：母婴号·评论引流话术" /></div>
+    <div class="flex gap-3 mb-3 flex-wrap">
+      <div style="flex:2;min-width:200px"><div class="text-[11px] text-[var(--ink-soft)] mb-1">* 话术库标题</div>
+        <input id="libTitle" class="field w-full" maxlength="60" placeholder="如：母婴号·评论引流话术" /></div>
+      <div style="flex:1;min-width:130px"><div class="text-[11px] text-[var(--ink-soft)] mb-1">话术类型</div>
+        <select id="libType" class="field w-full"><option value="comment">评论话术</option><option value="reply">回复话术</option><option value="intercept">截流话术</option></select></div>
+    </div>
+    <div class="mb-3"><div class="text-[11px] text-[var(--ink-soft)] mb-1">话术描述（可选）</div>
+      <input id="libDesc" class="field w-full" maxlength="300" placeholder="一句话说明这套话术用在什么场景" /></div>
 
     <div class="text-[11px] text-[var(--ink-soft)] mb-1">问答列表（问题用于匹配场景，回答为实际话术）</div>
     <div id="qaList"></div>
@@ -61,6 +67,10 @@
     </div>
   </div>
 
+  <div class="flex items-center gap-2 mb-3 flex-wrap">
+    <input id="searchKw" class="field" style="flex:1;min-width:180px" placeholder="🔍 搜索：编号 / 话术名称" />
+    <select id="searchType" class="field"><option value="">全部类型</option><option value="comment">评论话术</option><option value="reply">回复话术</option><option value="intercept">截流话术</option></select>
+  </div>
   <div id="list" class="space-y-3"></div>
 </main>
 
@@ -108,7 +118,9 @@ $('#bulkImport').addEventListener('click',()=>{
   $('#bulkStatus').textContent='✓ 导入 '+added+' 条'+(items.length>=MAX?'（已达上限 '+MAX+'）':'');
   renderQa();
 });
-function collect(){ return { title:$('#libTitle').value.trim(), items:items.filter(x=>(x.q||'').trim()||(x.a||'').trim()).slice(0,MAX) }; }
+const TYPE_LABEL={ comment:'评论话术', reply:'回复话术', intercept:'截流话术' };
+function libNo(id){ return 'HS'+String(id).padStart(6,'0'); }
+function collect(){ return { title:$('#libTitle').value.trim(), type:$('#libType').value, descr:$('#libDesc').value.trim(), items:items.filter(x=>(x.q||'').trim()||(x.a||'').trim()).slice(0,MAX) }; }
 $('#saveBtn').addEventListener('click', async ()=>{
   const p=collect();
   if(!p.title){ $('#saveStatus').textContent='请填话术库标题'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
@@ -120,20 +132,32 @@ $('#saveBtn').addEventListener('click', async ()=>{
   if(r&&r.ok){ $('#saveStatus').textContent='✓ 已保存'; $('#saveStatus').style.color='#00a152'; reset(); load(); }
   else { $('#saveStatus').textContent=(r&&r.error)||'保存失败，请重试'; $('#saveStatus').style.color='var(--cinnabar-deep)'; }
 });
-function reset(){ editId=null; items=[]; $('#libTitle').value=''; $('#bulkText').value=''; $('#bulkStatus').textContent=''; $('#saveBtn').textContent='保存话术库'; renderQa(); }
+function reset(){ editId=null; items=[]; $('#libTitle').value=''; $('#libType').value='comment'; $('#libDesc').value=''; $('#bulkText').value=''; $('#bulkStatus').textContent=''; $('#saveBtn').textContent='保存话术库'; renderQa(); }
 $('#resetBtn').addEventListener('click', reset);
 
 let LIBS=[];
-async function load(){
-  const j=await api(''); LIBS=(j&&j.list)||[];
-  $('#list').innerHTML = LIBS.length ? LIBS.map(l=>`
+function renderList(){
+  const kw=($('#searchKw').value||'').trim().toLowerCase();
+  const ty=$('#searchType').value;
+  const rows=LIBS.filter(l=>{
+    if(ty && (l.type||'comment')!==ty) return false;
+    if(kw){ const hay=(libNo(l.id)+' '+(l.title||'')).toLowerCase(); if(!hay.includes(kw)) return false; }
+    return true;
+  });
+  $('#list').innerHTML = rows.length ? rows.map(l=>`
     <div class="card p-4 lib-card" data-id="${l.id}">
-      <span style="font-size:14px;font-weight:700;flex:1;min-width:140px">${esc(l.title)}</span>
+      <span class="cnt" style="font-family:monospace;min-width:74px">${libNo(l.id)}</span>
+      <span style="font-size:14px;font-weight:700;flex:1;min-width:120px">${esc(l.title)}</span>
+      <span style="font-size:11px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:2px 8px;flex:none">${TYPE_LABEL[l.type||'comment']}</span>
+      ${l.descr?`<span class="cnt" style="flex-basis:100%;color:var(--ink-soft)">${esc(l.descr)}</span>`:''}
       <span class="cnt">${l.count||0} 条</span>
       <button class="lb-edit btn-ghost rounded-md px-2.5 py-1 text-[11px]">编辑</button>
       <button class="lb-del btn-ghost rounded-md px-2.5 py-1 text-[11px]">删除</button>
-    </div>`).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有话术库，上面新建一个。</div>';
+    </div>`).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">'+(LIBS.length?'没有匹配的话术库。':'还没有话术库，上面新建一个。')+'</div>';
 }
+async function load(){ const j=await api(''); LIBS=(j&&j.list)||[]; renderList(); }
+$('#searchKw').addEventListener('input', renderList);
+$('#searchType').addEventListener('change', renderList);
 $('#list').addEventListener('click', async e=>{
   const card=e.target.closest('[data-id]'); if(!card) return;
   const id=+card.dataset.id; const l=LIBS.find(x=>x.id===id); if(!l) return;
@@ -141,7 +165,7 @@ $('#list').addEventListener('click', async e=>{
   if(e.target.closest('.lb-edit')){ loadIntoForm(l); return; }
 });
 function loadIntoForm(l){
-  editId=l.id; $('#libTitle').value=l.title||'';
+  editId=l.id; $('#libTitle').value=l.title||''; $('#libType').value=l.type||'comment'; $('#libDesc').value=l.descr||'';
   items=(l.items||[]).map(x=>({q:x.q||'',a:x.a||''}));
   $('#saveBtn').textContent='更新话术库';
   renderQa();
