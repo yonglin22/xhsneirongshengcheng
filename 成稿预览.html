@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 <script src="/assets/jszip.min.js?v=1"></script>
-<link rel="stylesheet" href="/assets/atelier.css?v=87" />
+<link rel="stylesheet" href="/assets/atelier.css?v=89" />
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/pinyin.js?v=1"></script>
 <script src="/assets/app.js?v=56"></script>
@@ -643,7 +643,7 @@ function capCardHTML(cap, isCover, coverFallback){
   if(c.theme==='poster'&&(isCover||lay==='封面')) return coverxHTML(c, lines);
   return `<div class="cv-card theme-${c.theme} ${isCover?'is-cover':''} lay-${lay}">${c.title?`<div class="cv-card-t">${mark(c.title)}</div>`:''}${body}</div>`;
 }
-function coverxHTML(c, lines){ const py=(typeof window.cnPinyin==='function'?(window.cnPinyin(c.title||'')||''):'').trim().toUpperCase(); const sub=lines[0]||'', tags=lines.slice(1); return `<div class="cv-card cv-coverx">${py?`<div class="cx-py">${py}</div>`:''}<div class="cx-t">${mark(c.title)}</div>${sub?`<div class="cx-sub">${mark(sub)}</div>`:''}${tags.length?`<div class="cx-tags">${tags.map(t=>`<span>${mark(t)}</span>`).join('<i>|</i>')}</div>`:''}</div>`; }
+function coverxHTML(c, lines){ const py=(typeof window.cnPinyin==='function'?(window.cnPinyin(c.title||'')||''):'').trim().toUpperCase(); const sub=lines[0]||'', tags=lines.slice(1); return `<div class="cv-card cv-coverx"><div class="cx-mid">${py?`<div class="cx-py">${py}</div>`:''}<div class="cx-t">${mark(c.title)}</div>${sub?`<div class="cx-sub">${mark(sub)}</div>`:''}</div>${tags.length?`<div class="cx-tags">${tags.map(t=>`<span>${mark(t)}</span>`).join('<i>|</i>')}</div>`:''}</div>`; }
 // 长文笔记款渲染（与流水线一致）
 function olStr(x){ return typeof x==='string'?x:((x&&(x.text||x.content||x.title||x.name||x.desc))||''); }
 function noteBlock(b){ if(!b)return''; const t=b.t||'p';
@@ -691,7 +691,7 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
   else inner=`${tt}${ss}`;
   return `<div class="cv-ctpl ctpl-${id} ${adj}" style="${vars}">${inner}</div>`;
 }
-function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&page.memo); const inner=((page&&page.blocks)||[]).map(noteBlock).join(''); if(memo){ const nav = MEMO_NAV; const top='<div class="nt-ios-top">'+MEMO_STATUS+nav+'</div>'; return `<div class="cv-note is-memo${page&&page.tz?' is-tiezhan':''}" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`; } return `<div class="cv-note${cover?' is-cover':''}" style="${noteStyleVars(page)}">${cover?inner:`<div class="cv-note-fit">${inner}</div>`}</div>`; }
+function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&page.memo); const tz=!!(page&&page.tz); let _secN=0; const inner=((page&&page.blocks)||[]).map(b=>{ if(tz&&b&&(b.t||'p')==='sec'){ _secN++; return `<div class="nt-sec"><span class="nt-no">${_secN}</span>${mark(b.text||'')}</div>`; } return noteBlock(b); }).join(''); if(memo){ const nav = MEMO_NAV; const top='<div class="nt-ios-top">'+MEMO_STATUS+nav+'</div>'; return `<div class="cv-note is-memo${page&&page.tz?' is-tiezhan':''}" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`; } return `<div class="cv-note${cover?' is-cover':''}" style="${noteStyleVars(page)}">${cover?inner:`<div class="cv-note-fit">${inner}</div>`}</div>`; }
 function fitMemoTitle(noteEl){ if(!noteEl.classList.contains('is-memo'))return; const h=noteEl.querySelector('.nt-h1'); if(!h)return; h.style.fontSize=''; if(/<br/i.test(h.innerHTML))return; const cs=getComputedStyle(h); let fs=parseFloat(cs.fontSize); const lh=parseFloat(cs.lineHeight)||fs*1.22; let g=0; while(h.scrollHeight>lh*1.45&&fs>9&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }
 function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fit) return; fitMemoTitle(noteEl); fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; let s=1; if(need>avail+1&&avail>0){ s=Math.max(0.45, avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } noteEl.dataset.fitScale=String(s); }
 function unifyNotes(notes){ if(!notes||notes.length<2)return; let minTitle=Infinity; notes.forEach(n=>{ const h=n.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML)){ const fs=parseFloat(getComputedStyle(h).fontSize); if(fs<minTitle)minTitle=fs; }}); if(!isFinite(minTitle))return; notes.forEach(n=>{ const h=n.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML))h.style.fontSize=minTitle+'px'; }); }

@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=87" />
+<link rel="stylesheet" href="/assets/atelier.css?v=89" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -586,7 +586,7 @@ function capCardHTML(cap, isCover, coverFallback) {
 function coverxHTML(c, lines) {
   const py = (typeof window.cnPinyin === 'function' ? (window.cnPinyin(c.title || '') || '') : '').trim().toUpperCase();
   const sub = lines[0] || '', tags = lines.slice(1);
-  return `<div class="cv-card cv-coverx">${py ? `<div class="cx-py">${py}</div>` : ''}<div class="cx-t">${mark(c.title)}</div>${sub ? `<div class="cx-sub">${mark(sub)}</div>` : ''}${tags.length ? `<div class="cx-tags">${tags.map(t => `<span>${mark(t)}</span>`).join('<i>|</i>')}</div>` : ''}</div>`;
+  return `<div class="cv-card cv-coverx"><div class="cx-mid">${py ? `<div class="cx-py">${py}</div>` : ''}<div class="cx-t">${mark(c.title)}</div>${sub ? `<div class="cx-sub">${mark(sub)}</div>` : ''}</div>${tags.length ? `<div class="cx-tags">${tags.map(t => `<span>${mark(t)}</span>`).join('<i>|</i>')}</div>` : ''}</div>`;
 }
 function capTheme(cap) { return (cap && cap.theme === 'poster') ? 'poster' : 'photo'; }
 // 渲染封面+配图多图（每张都用干净叠字卡，文字不进图里 → 不再乱码）
@@ -1521,7 +1521,8 @@ function coverTemplateHTML(spec, lines, opt) {
 function noteCardHTML(page) {
   const cover = isCoverPage(page);
   const memo = !!(page && page.memo);
-  const inner = ((page && page.blocks) || []).map(noteBlock).join('');
+  const tz = !!(page && page.tz); let _secN = 0;
+  const inner = ((page && page.blocks) || []).map(b => { if (tz && b && (b.t || 'p') === 'sec') { _secN++; return `<div class="nt-sec"><span class="nt-no">${_secN}</span>${mark(b.text || '')}</div>`; } return noteBlock(b); }).join('');
   if (memo) {
     // 仿真 iPhone 备忘录截图：状态栏 + 黄色导航栏(日期居中) + 内容 + 底部工具栏 + Home条
     const nav = MEMO_NAV;
