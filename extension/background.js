@@ -528,7 +528,7 @@ setTimeout(zsPollDispatch, 8000); // 启动后先探一次
 // ===== 内容矩阵分发：轮询领取「一稿多发」任务，在本机已登录的小红书里存草稿箱 =====
 let _zsContentBusy = false;
 async function zsPollContentDispatch() {
-  if (_zsContentBusy || _zsDispatchBusy) return; // 同一时刻只跑一个任务，避免多标签打架
+  if (_zsContentBusy) return; // 内容发布到创作中心，与养号(www)不同站点，不互锁
   const { id, enabled } = await _zsDeviceId();
   if (!enabled) return;
   let task = null;
@@ -561,6 +561,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 setTimeout(zsPollContentDispatch, 12000);
+// 网页下发成功后即时触发本机领取（不必等 1 分钟定时器）
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === 'pullContentNow') { zsPollContentDispatch(); try { sendResponse({ ok: true }); } catch (e) {} return true; }
+});
 
 // ===== 设备心跳：让本机出现在网页「设备看板」，上报在线/工作状态，并接收 stop 指令 =====
 async function zsHeartbeat() {

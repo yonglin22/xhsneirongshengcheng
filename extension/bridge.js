@@ -19,6 +19,7 @@
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data) return;
     if (e.data.type === 'ZHUSHA_EXT_PING') { announce(); return; }
+    if (e.data.type === 'ZHUSHA_PULL_CONTENT') { chrome.runtime.sendMessage({ type: 'pullContentNow' }, () => void chrome.runtime.lastError); return; }
     if (e.data.type === 'ZHUSHA_PUBLISH') {
       const payload = e.data.payload || {};
       chrome.runtime.sendMessage({ type: 'publish', payload }, (resp) => {

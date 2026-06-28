@@ -240,7 +240,7 @@ $('#distBtn').addEventListener('click', async ()=>{
     const payload={ title:WORK.title, body:WORK.body, images:urls, tags:WORK.tags||[] };
     const r=await fetch('/api/content-dispatch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accounts:pick, payload})});
     const j=await r.json().catch(()=>null);
-    if(j&&j.ok){ $('#distStatus').textContent='✓ 已下发 '+(j.created||pick.length)+' 个账号，设备插件约 1 分钟内自动领取存草稿箱'; $('#distStatus').style.color='#00a152'; }
+    if(j&&j.ok){ $('#distStatus').textContent='✓ 已下发 '+(j.created||pick.length)+' 个账号，正在通知本机插件领取…'; $('#distStatus').style.color='#00a152'; try{ window.postMessage({type:'ZHUSHA_PULL_CONTENT'},'*'); }catch(e){} }
     else { $('#distStatus').textContent='下发失败：'+((j&&j.error)||'请重试'); $('#distStatus').style.color='var(--cinnabar-deep)'; }
   }catch(e){ $('#distStatus').textContent='出错：'+(e.message||e); $('#distStatus').style.color='var(--cinnabar-deep)'; }
   btn.disabled=false; btn.textContent=o;
