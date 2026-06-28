@@ -561,3 +561,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 setTimeout(zsPollContentDispatch, 12000);
+
+// ===== 设备心跳：让本机出现在网页「设备看板」，上报在线/工作状态，并接收 stop 指令 =====
+async function zsHeartbeat() {
+  const { id } = await _zsDeviceId();
+  const st = await chrome.storage.local.get(['zsDeviceName']);
+  const status = (_zsDispatchBusy || _zsContentBusy) ? 'working' : 'idle';
+  try {
+    const r = await fetch(ZS_DISPATCH_BASE + '/api/devices/heartbeat', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: id, status, name: st.zsDeviceName || id }) });
+    const j = await r.json().catch(() => null);
+    if (j && j.cmd === 'stop') { _zsDispatchBusy = false; _zsContentBusy = false; } // 收到停止指令：解锁，不再领新任务（运行中的标签用户可自行关闭）
+  } catch (e) {}
+}
+chrome.alarms && chrome.alarms.create('zsHeartbeat', { periodInMinutes: 1 });
+chrome.alarms && chrome.alarms.onAlarm.addListener(a => { if (a && a.name === 'zsHeartbeat') zsHeartbeat(); });
+setTimeout(zsHeartbeat, 5000);

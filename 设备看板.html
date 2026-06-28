@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>设备看板 · agent 工作室 · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=87" />
+<style>
+  .dev-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+  .dev-card{ border:1px solid var(--line); border-radius:14px; padding:14px; background:var(--paper-2); display:flex; flex-direction:column; }
+  .dev-title{ font-size:13px; font-weight:800; }
+  .dev-name{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .dev-stat{ font-size:12px; font-weight:700; margin-top:4px; }
+  .s-work{ color:#2563eb; } .s-idle{ color:#00a152; } .s-off{ color:#b6291f; }
+  .dev-screen{ margin:10px 0; aspect-ratio:9/16; max-height:230px; background:repeating-linear-gradient(45deg,#f3efe7,#f3efe7 10px,#efe9df 10px,#efe9df 20px); border:1px solid var(--line); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:11px; text-align:center; padding:8px; }
+  .dev-btns{ display:flex; flex-wrap:wrap; gap:6px; margin-top:auto; }
+  .db{ font-size:11px; border:1px solid var(--line); background:#fff; border-radius:7px; padding:4px 9px; cursor:pointer; color:var(--ink); }
+  .db.go{ border-color:var(--cinnabar); color:var(--cinnabar); } .db.stop{ color:#b6291f; border-color:#f0c9c0; }
+  .db:hover{ background:rgba(0,0,0,.04); }
+  .dd-wrap{ position:relative; }
+  .dd-menu{ position:absolute; left:0; bottom:120%; z-index:20; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 12px 30px -8px rgba(0,0,0,.25); min-width:150px; padding:5px; display:none; }
+  .dd-menu.open{ display:block; }
+  .dd-menu a{ display:block; padding:8px 11px; font-size:12.5px; color:var(--ink); text-decoration:none; border-radius:7px; }
+  .dd-menu a:hover{ background:rgba(0,0,0,.05); }
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT · 工作室</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">设备<span class="italic" style="color:var(--cinnabar)">看板</span></h1>
+    <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-2xl">每台装了「朱砂助手」插件、登录了朱砂账号的设备会显示在这里。<b style="color:#00a152">休息中</b>＝在线空闲可接任务，<b style="color:#2563eb">工作中</b>＝正在执行，<b style="color:#b6291f">无</b>＝离线。实时投屏需真机 App，建设中。</p>
+  </div>
+  <div class="card p-3 mb-4 flex items-center gap-3 flex-wrap">
+    <span class="text-[13px]">共 <b id="cnt">0</b> 台设备</span>
+    <span class="text-[11px] text-[var(--ink-soft)]">在线 <b id="onCnt" style="color:#00a152">0</b></span>
+    <button id="refreshBtn" class="db" style="margin-left:auto">↻ 刷新</button>
+  </div>
+  <div id="grid" class="dev-grid"></div>
+  <div id="empty" class="card p-8 text-center text-[13px] text-[var(--ink-soft)]" style="display:none">
+    还没有设备上线。在要做执行机的电脑上安装并启用「朱砂助手」插件、登录朱砂账号，打开插件弹窗里的「本机作为执行设备」开关，约 1 分钟后会出现在这里。
+  </div>
+</main>
+
+<script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/app.js?v=56"></script>
+<script src="/assets/ui-dialog.js?v=1"></script>
+<script>
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let DEVS=[];
+async function api(path, method, body){
+  try{ const r=await fetch('/api/devices'+path,{method:method||'GET',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined}); return await r.json(); }
+  catch{ return { ok:false }; }
+}
+function statOf(d){ if(!d.online) return ['无','s-off']; if(d.status==='working') return ['工作中','s-work']; return ['休息中','s-idle']; }
+function render(){
+  const on=DEVS.filter(d=>d.online).length;
+  $('#cnt').textContent=DEVS.length; $('#onCnt').textContent=on;
+  $('#empty').style.display=DEVS.length?'none':'';
+  $('#grid').innerHTML=DEVS.map((d,i)=>{
+    const [st,cls]=statOf(d); const busy=d.online&&d.status==='working';
+    return `<div class="dev-card" data-id="${d.id}">
+      <div class="dev-title">${i+1}号智能体</div>
+      <div class="dev-name">名称：${esc(d.name||d.device_key)}</div>
+      <div class="dev-stat ${cls}">状态：${st}</div>
+      <div class="dev-screen">实时屏幕<br>（真机投屏建设中）</div>
+      <div class="dev-btns">
+        <button class="db dv-rename">编辑名称</button>
+        <button class="db dv-zoom">放大查看</button>
+        <span class="dd-wrap"><button class="db go dv-start" ${busy?'disabled style=opacity:.5':''}>开始工作 ▾</button>
+          <span class="dd-menu">
+            <a href="/流水线.html?new=1">创作内容</a>
+            <a href="/一键发布.html">内容发布</a>
+            <a href="/获客计划.html">矩阵 agent</a>
+            <a href="#" class="dv-wx">微信 AI</a>
+          </span></span>
+        <button class="db stop dv-stop" ${busy?'':'disabled style=opacity:.5'}>停止工作</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+$('#grid').addEventListener('click', async e=>{
+  const card=e.target.closest('[data-id]'); if(!card) return;
+  const id=+card.dataset.id; const d=DEVS.find(x=>x.id===id); if(!d) return;
+  if(e.target.closest('.dv-rename')){
+    const name=await zPrompt('设备名称', d.name||d.device_key);
+    if(name!=null && name.trim()){ await api('/rename','POST',{id,name:name.trim()}); load(); }
+    return;
+  }
+  if(e.target.closest('.dv-zoom')){ zAlert('实时屏幕投屏需要真机农场 + 安卓 App + 投屏服务，属独立工程，正在规划中。当前网页看板可管理设备状态、改名、开始/停止工作。',{title:'实时投屏 · 建设中'}); return; }
+  if(e.target.closest('.dv-start')){ const menu=card.querySelector('.dd-menu'); document.querySelectorAll('.dd-menu.open').forEach(m=>{ if(m!==menu) m.classList.remove('open'); }); menu.classList.toggle('open'); return; }
+  if(e.target.closest('.dv-wx')){ e.preventDefault(); zAlert('微信 AI 模块规划中。',{title:'微信 AI'}); return; }
+  if(e.target.closest('.dv-stop')){
+    if(!await zConfirm('确定要停止该设备工作么？设备会停止领取新任务。',{okText:'停止工作'})) return;
+    const r=await api('/cmd','POST',{id,cmd:'stop'}); if(r&&r.ok) zToast('已发送停止指令，设备下次心跳生效','ok'); load();
+    return;
+  }
+});
+document.addEventListener('click', e=>{ if(!e.target.closest('.dd-wrap')) document.querySelectorAll('.dd-menu.open').forEach(m=>m.classList.remove('open')); });
+// 简易输入弹框（编辑名称）
+function zPrompt(title, val){
+  return new Promise(resolve=>{
+    const m=document.createElement('div'); m.style.cssText='position:fixed;inset:0;z-index:100020;background:rgba(20,16,14,.45);display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML='<div class="card" style="max-width:380px;width:100%;padding:20px"><b style="font-size:15px">'+esc(title)+'</b>'
+      +'<input id="zpIn" class="field w-full" style="border:1px solid var(--line);border-radius:8px;padding:8px 11px;margin:12px 0;font-size:13px" maxlength="20" value="'+esc(val||'')+'"/>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end"><button id="zpC" class="db">取消</button><button id="zpO" class="db go">保存</button></div></div>';
+    document.body.appendChild(m);
+    const inp=m.querySelector('#zpIn'); inp.focus(); inp.select();
+    const done=v=>{ m.remove(); resolve(v); };
+    m.addEventListener('click',e=>{ if(e.target===m) done(null); });
+    m.querySelector('#zpC').onclick=()=>done(null);
+    m.querySelector('#zpO').onclick=()=>done(inp.value);
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter') done(inp.value); if(e.key==='Escape') done(null); });
+  });
+}
+async function load(){ const j=await api(''); DEVS=(j&&j.list)||[]; render(); }
+$('#refreshBtn').addEventListener('click', load);
+load(); setInterval(load, 8000);
+</script>
+</body>
+</html>

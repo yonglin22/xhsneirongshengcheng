@@ -208,6 +208,24 @@ function cdispPull(uid, device){
 function cdispDone(uid, id, result){ const r=db.prepare("UPDATE content_dispatch SET status='done', result=?, done_at=? WHERE id=? AND user_id=?").run(String(result||'').slice(0,300), Date.now(), id, uid); return r.changes>0; }
 function cdispCancel(uid, id){ if(id==='all'||id===0){ db.prepare("DELETE FROM content_dispatch WHERE user_id=? AND status IN('pending','done')").run(uid); return true; } db.prepare("DELETE FROM content_dispatch WHERE id=? AND user_id=?").run(id,uid); return true; }
 
+// ===== 设备看板（agent 工作室）：装了插件的设备心跳上报，网页可视化网格 + 改名 + 下发指令 =====
+try { db.exec("CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, device_key TEXT, name TEXT, status TEXT DEFAULT 'idle', cmd TEXT, last_seen INTEGER, created_at INTEGER)"); } catch {}
+try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_dev_uk ON devices(user_id, device_key)"); } catch {}
+// 心跳：upsert 设备，更新状态/last_seen，并返回一次性待执行指令（如 stop）
+function deviceHeartbeat(uid, key, info){
+  key=String(key||'').slice(0,60); if(!key) return { ok:false }; info=info||{}; const now=Date.now();
+  const cur=db.prepare('SELECT * FROM devices WHERE user_id=? AND device_key=?').get(uid,key);
+  const status=String(info.status||'idle').slice(0,16);
+  if(!cur){ db.prepare("INSERT INTO devices(user_id,device_key,name,status,last_seen,created_at) VALUES(?,?,?,?,?,?)").run(uid,key,String(info.name||key).slice(0,40),status,now,now); return { ok:true, cmd:'' }; }
+  db.prepare('UPDATE devices SET status=?, last_seen=? WHERE id=?').run(status, now, cur.id);
+  let cmd=cur.cmd||''; if(cmd) db.prepare("UPDATE devices SET cmd='' WHERE id=?").run(cur.id);
+  return { ok:true, cmd };
+}
+function devicesList(uid){ const now=Date.now(); return db.prepare('SELECT id,device_key,name,status,last_seen,created_at FROM devices WHERE user_id=? ORDER BY id ASC').all(uid).map(d=>({ id:d.id, device_key:d.device_key, name:d.name, status:d.status, last_seen:d.last_seen, online:(now-(d.last_seen||0) < 90000) })); }
+function deviceRename(uid,id,name){ db.prepare('UPDATE devices SET name=? WHERE id=? AND user_id=?').run(String(name||'').slice(0,40), id, uid); return true; }
+function deviceCmd(uid,id,cmd){ db.prepare('UPDATE devices SET cmd=? WHERE id=? AND user_id=?').run(String(cmd||'').slice(0,40), id, uid); return true; }
+function deviceRemove(uid,id){ db.prepare('DELETE FROM devices WHERE id=? AND user_id=?').run(id,uid); return true; }
+
 function txn(fn) { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; } }
 
 // ===== 会话 token（放 Cookie，HMAC 签名）=====
@@ -616,6 +634,7 @@ module.exports = {
   leadsList, leadsAdd, leadRemove, leadsClear, leadStatus,
   dispatchAdd, dispatchList, dispatchPull, dispatchDone, dispatchCancel,
   cdispAdd, cdispList, cdispPull, cdispDone, cdispCancel,
+  deviceHeartbeat, devicesList, deviceRename, deviceCmd, deviceRemove,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
 };
 
