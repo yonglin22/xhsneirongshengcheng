@@ -158,13 +158,20 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
     return o.toDataURL('image/jpeg',0.92);
   };
   for(const u of (coverImages||[])){ i++;
-    const cap=caps[i];
+    let cap=caps[i];
+    // 封面位(第1张)是 AI 图但叠字缺失时 → 用 coverLines 重建稿定风封面叠字，避免封面变成无样式裸图或被丢
+    if(i===0 && (!cap || (!asStr(cap.title) && !(Array.isArray(cap.lines)&&cap.lines.length))) && (coverLines||[]).filter(Boolean).length){
+      const cl=(coverLines||[]).filter(Boolean); cap={ title:cl[0], lines:cl.slice(1), layout:'封面', theme:'poster' };
+    }
     // 真图/AI 封面(http、data、同源 /gen)：若带叠字封面卡(非 raw 实拍)，把"底图+标题叠层"一起烤进 PNG，发布后才有封面样式；否则原样推链接
     if(/^https?:\/\//.test(u) || (u||'').startsWith('data:') || (u||'').startsWith('/')){
       const abs=(u||'').startsWith('/')?(location.origin+u):u;
       if(cap && !cap.raw && (asStr(cap.title) || (Array.isArray(cap.lines)&&cap.lines.length))){
         const overlay=(capTheme(cap)==='poster'?'':'<div class="cv-scrim"></div>')+capCardHTML(cap, i===0, coverFallback);
         out.push(await shot('<img src="'+imgSrc(u)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>'+overlay));
+      } else if(/^https?:\/\//.test(u)){
+        // 跨域裸图（实拍/无叠字 AI 图）→ 烤成 data: PNG，避免插件因跨域取不到而丢图（封面消失的根因）
+        out.push(await shot('<img src="'+imgSrc(u)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>'));
       } else { out.push(abs); }
       continue;
     }
