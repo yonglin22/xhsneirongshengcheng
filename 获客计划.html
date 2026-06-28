@@ -28,10 +28,6 @@
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
 <main class="ag-page">
-  <a href="/账号矩阵.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 账号矩阵</a>
-  <a href="/话术库.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4 ml-2">🗂 话术库管理</a>
-  <a href="/评论收集.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4 ml-2">👥 评论收集（潜客）</a>
-  <a href="/脚本下载.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4 ml-2">⬇ 脚本下载/教程</a>
   <div class="mb-5">
     <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT</div>
     <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">获客<span class="italic" style="color:var(--cinnabar)">计划</span></h1>
@@ -122,6 +118,7 @@
 
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=54"></script>
+<script src="/assets/agent-nav.js?v=1"></script>
 <script>
 let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'ai', isrc:'ai' }, collectOn=false, aiMatchOn=true;
 const TYPE_NAME={ link:'口令刷量', home_nurture:'首页养号', home_intercept:'首页截流', search_nurture:'搜索养号', search_intercept:'搜索截流' };
@@ -176,19 +173,28 @@ function reset(){ editId=null; kws=[]; collectOn=false; $('#icCollect').classLis
 $('#resetBtn').addEventListener('click', reset);
 let PLANS=[];
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function fmtRun(t){ if(!t) return ''; const d=new Date(t),n=new Date(),p=x=>String(x).padStart(2,'0'); const sameDay=d.toDateString()===n.toDateString(); return sameDay?`今天 ${p(d.getHours())}:${p(d.getMinutes())}`:`${d.getMonth()+1}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 async function load(){
   const j=await api(''); PLANS=(j&&j.list)||[];
-  $('#list').innerHTML = PLANS.length ? PLANS.map(p=>`
+  $('#list').innerHTML = PLANS.length ? PLANS.map(p=>{
+    const st=p.stats||{}; const isIc=/_intercept$/.test(p.ptype);
+    const statCell=(n,v,extra)=>`<span style="text-align:center;min-width:52px"><b style="font-size:15px;${extra||''}">${v||0}</b><span style="display:block;font-size:10px;color:var(--ink-soft)">${n}</span></span>`;
+    return `
     <div class="card p-4 flex items-center gap-3 flex-wrap" data-id="${p.id}">
       <span style="font-size:11px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:2px 8px">${TYPE_NAME[p.ptype]||p.ptype}</span>
       <span style="font-size:14px;font-weight:700;flex:1;min-width:140px">${esc(p.name)}</span>
-      <span class="text-[11px] text-[var(--ink-soft)]">${(p.config&&p.config.keywords||[]).slice(0,3).join('、')||(p.config&&p.config.link?'口令链接':'')}</span>
-      <span class="text-[11px] text-[var(--ink-soft)]">${p.status==='draft'?'草稿':esc(p.status)}</span>
+      <span class="text-[11px] text-[var(--ink-soft)]" style="min-width:90px">${(p.config&&p.config.keywords||[]).slice(0,3).join('、')||(p.config&&p.config.link?'口令链接':'')}</span>
+      ${isIc?statCell('收集',st.collected):''}
+      ${isIc?statCell('回复',st.replied):''}
+      ${isIc?statCell('私信',st.dmed):''}
+      <span style="text-align:center;min-width:74px"><b style="font-size:11px;font-weight:600;color:var(--ink-soft)">${st.lastRunAt?fmtRun(st.lastRunAt):'未执行'}</b><span style="display:block;font-size:10px;color:var(--ink-soft)">最近执行</span></span>
+      ${isIc&&st.collected?`<a class="btn-ghost rounded-md px-2.5 py-1 text-[11px]" href="/评论收集.html?plan=${p.id}" style="text-decoration:none">👥 潜客</a>`:''}
       ${/_(nurture|intercept)$/.test(p.ptype)?`<button class="pl-run btn-ghost rounded-md px-2.5 py-1 text-[11px]" style="border-color:var(--cinnabar);color:var(--cinnabar)">▶ 执行</button>`:''}
+      ${/_(nurture|intercept)$/.test(p.ptype)?`<button class="pl-dispatch btn-ghost rounded-md px-2.5 py-1 text-[11px]">📤 下发</button>`:''}
       <button class="pl-view btn-ghost rounded-md px-2.5 py-1 text-[11px]">👁 查看</button>
       <button class="pl-edit btn-ghost rounded-md px-2.5 py-1 text-[11px]">编辑</button>
       <button class="pl-del btn-ghost rounded-md px-2.5 py-1 text-[11px]">删除</button>
-    </div>`).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有计划，上面新建一个。</div>';
+    </div>`; }).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有计划，上面新建一个。</div>';
 }
 // 事件委托：删除/查看/编辑/执行 都挂在 #list 上，重渲染也不丢
 $('#list').addEventListener('click', async e=>{
@@ -198,7 +204,44 @@ $('#list').addEventListener('click', async e=>{
   if(e.target.closest('.pl-view')){ showPreview(p); return; }
   if(e.target.closest('.pl-edit')){ loadIntoForm(p); return; }
   if(e.target.closest('.pl-run')){ runPlan(p); return; }
+  if(e.target.closest('.pl-dispatch')){ showDispatch(p); return; }
 });
+// 多设备/多账号下发：选账号 → 生成待领取任务（任一登录同账号的设备插件可领取执行）
+const DST={ pending:['待领取','#e8a400'], running:['执行中','#2563eb'], done:['已完成','#00875a'] };
+async function showDispatch(p){
+  let accs=[]; try{ const r=await fetch('/api/accounts'); const j=await r.json(); accs=((j&&j.list)||[]).filter(a=>(a.platform||'xhs')===(p.platform||'xhs')); }catch{}
+  let recs=[]; try{ const r=await fetch('/api/dispatch?plan='+p.id); const j=await r.json(); recs=(j&&j.list)||[]; }catch{}
+  const accHtml = accs.length ? accs.map(a=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:13px;cursor:pointer">
+      <input type="checkbox" class="dz-acc" value="${a.id}" data-name="${esc(a.nickname||'')}" ${a.status==='active'?'':'disabled'} />
+      <b>${esc(a.nickname||'(未命名)')}</b>
+      <span style="font-size:11px;color:var(--ink-soft)">${a.grp?esc(a.grp)+' · ':''}${a.status==='active'?'已登录':'未接入（不可下发）'}</span>
+    </label>`).join('') : '<div style="font-size:12px;color:var(--ink-soft)">还没有账号。先去「账号矩阵」添加并接入登录态。</div>';
+  const recHtml = recs.length ? `<div style="margin-top:14px;border-top:1px solid #f0eae0;padding-top:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px">下发记录</div>
+      ${recs.map(r=>{ const [t,c]=DST[r.status]||['—','#888']; return `<div style="display:flex;gap:8px;align-items:center;font-size:12px;padding:3px 0">
+        <b style="min-width:90px">${esc(r.account_name||'账号#'+(r.account_id||''))}</b>
+        <span style="color:${c};font-weight:600">${t}</span>
+        ${r.device?`<span style="font-size:10px;color:var(--ink-soft)">${esc(r.device)}</span>`:''}
+        ${r.result?`<span style="font-size:10px;color:var(--ink-soft)">${esc(r.result)}</span>`:''}
+      </div>`; }).join('')}
+      <a id="dzClear" style="font-size:11px;color:var(--cinnabar-deep);cursor:pointer">清理待领取/已完成记录</a>
+    </div>` : '';
+  modal('📤 下发「'+esc(p.name)+'」到设备/账号',
+    `<div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">勾选要执行此计划的账号，下发后<b>任一登录了你朱砂账号的设备</b>上的「朱砂助手」插件会自动领取并在对应小红书里执行。仅<b>已登录</b>账号可下发。</div>
+     <div style="max-height:240px;overflow:auto">${accHtml}</div>${recHtml}`,
+    `<button id="dzCancel" class="btn-ghost rounded-md px-3 py-1.5 text-[12px]">取消</button><button id="dzGo" class="rounded-md px-3 py-1.5 text-[12px]" style="background:var(--cinnabar);color:#fff;border:none">下发所选账号</button>`);
+  $('#dzCancel')?.addEventListener('click',()=>$('#plModal')?.remove());
+  $('#dzClear')?.addEventListener('click',async()=>{ await fetch('/api/dispatch/cancel',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:'all'})}); showDispatch(p); });
+  $('#dzGo')?.addEventListener('click',async()=>{
+    const chosen=[...document.querySelectorAll('.dz-acc:checked')].map(c=>({id:+c.value,name:c.dataset.name}));
+    if(!chosen.length){ alert('请至少勾选一个已登录账号'); return; }
+    const r=await fetch('/api/dispatch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({planId:p.id,accounts:chosen})});
+    const j=await r.json().catch(()=>null);
+    $('#plModal')?.remove();
+    alert(j&&j.ok?('✓ 已下发 '+(j.created||chosen.length)+' 个账号任务，设备上的插件会自动领取执行（约 1 分钟内）。'):('下发失败：'+((j&&j.error)||'请重试')));
+    load();
+  });
+}
 // 预览弹窗
 function showPreview(p){
   const c=p.config||{}; const nz=c.nurture||{}; const ic=c.intercept||{}; const f=c.filter||{};
@@ -248,7 +291,7 @@ function runPlan(p){
   const mins=Math.max(5,Math.min(40,Math.round((((p.config||{}).nurture||{}).daily||8)*1.5)));
   let persona='';
   try{ const tid=localStorage.getItem('ag_track'); if(tid) persona=(window.getAgentConfig&&window.getAgentConfig(tid).persona)||''; }catch{}
-  const payload={ ptype:p.ptype, config:{ ...(p.config||{}), persona }, _minutes:mins };
+  const payload={ ptype:p.ptype, config:{ ...(p.config||{}), persona }, _minutes:mins, _planId:p.id };
   const nz=(p.config||{}).nurture||{};
   const ic=(p.config||{}).intercept||{};
   const warnHtml=isIntercept

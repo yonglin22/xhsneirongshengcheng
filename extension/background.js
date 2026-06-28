@@ -387,6 +387,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
+  // 跑完一轮上报统计（收集/回复/私信增量）→ 任务列表统计列
+  if (msg && msg.type === 'reportStat') {
+    (async () => {
+      try {
+        const r = await fetch('https://yonglin.chat/api/growth-plans/stat', {
+          method: 'POST', credentials: 'include',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: msg.planId, collected: msg.collected || 0, replied: msg.replied || 0, dmed: msg.dmed || 0 }),
+        });
+        const j = await r.json().catch(() => null);
+        sendResponse({ ok: !!(j && j.ok) });
+      } catch (e) { sendResponse({ ok: false, error: e.message || String(e) }); }
+    })();
+    return true;
+  }
   // 待发私信草稿入库（人工确认发送，不自动发，降低高风险灰色操作的封号风险）
   if (msg && msg.type === 'queueDM') {
     chrome.storage.local.get(['zsPendingDM'], st => {
@@ -454,3 +469,58 @@ chrome.alarms && chrome.alarms.onAlarm.addListener((a) => { if (a && a.name === 
 // 弹窗打开时催一次检查
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { if (msg && msg.type === 'zsCheckUpdate') { zsCheckUpdate(); try { sendResponse({ ok: true }); } catch {} } });
 zsCheckUpdate();
+
+// ===== 多设备/多账号任务下发：本设备插件每分钟轮询服务端待领取任务，领到就打开小红书自动执行 =====
+const ZS_DISPATCH_BASE = 'https://yonglin.chat';
+async function _zsDeviceId() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(['zsDeviceId', 'zsDispatchEnabled'], st => {
+      let id = st.zsDeviceId;
+      if (!id) { id = 'dev-' + Math.random().toString(36).slice(2, 8); chrome.storage.local.set({ zsDeviceId: id }); }
+      resolve({ id, enabled: st.zsDispatchEnabled !== false });
+    });
+  });
+}
+let _zsDispatchBusy = false;
+async function zsPollDispatch() {
+  if (_zsDispatchBusy) return;
+  const { id, enabled } = await _zsDeviceId();
+  if (!enabled) return;
+  let task = null;
+  try {
+    const r = await fetch(ZS_DISPATCH_BASE + '/api/dispatch/pull', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ device: id }) });
+    const j = await r.json().catch(() => null);
+    task = j && j.task;
+  } catch (e) { return; } // 未登录/网络问题：静默跳过，下次再试
+  if (!task || !task.plan) return;
+  _zsDispatchBusy = true;
+  try {
+    const p = task.plan; const cfg = p.config || {};
+    const mins = Math.max(5, Math.min(40, Math.round(((cfg.nurture || {}).daily || 8) * 1.5)));
+    const plan = { ptype: p.ptype, config: cfg, _minutes: mins, _planId: p.id, _dispatchId: task.dispatchId };
+    const kw = (cfg.keywords || [])[0] || '';
+    const url = /^search_/.test(p.ptype || '') && kw
+      ? ('https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(kw))
+      : 'https://www.xiaohongshu.com/explore';
+    await new Promise(res => chrome.storage.local.set({ nurturePlan: plan }, res));
+    chrome.tabs.create({ url, active: false }); // 后台标签执行，nurture.js 载入后自动从 storage 取计划运行
+    // 兜底：6 分钟内没收到 dispatchDone 就解锁，避免卡死（任务实际跑完会更早解锁）
+    setTimeout(() => { _zsDispatchBusy = false; }, 6 * 60000);
+  } catch (e) { _zsDispatchBusy = false; }
+}
+chrome.alarms && chrome.alarms.create('zsDispatchPoll', { periodInMinutes: 1 });
+chrome.alarms && chrome.alarms.onAlarm.addListener(a => { if (a && a.name === 'zsDispatchPoll') zsPollDispatch(); });
+// nurture.js 跑完下发任务后回报 → 标记服务端完成 + 解锁本设备
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === 'dispatchDone') {
+    _zsDispatchBusy = false;
+    (async () => {
+      try {
+        await fetch(ZS_DISPATCH_BASE + '/api/dispatch/done', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: msg.dispatchId, result: msg.result || '' }) });
+        sendResponse({ ok: true });
+      } catch (e) { sendResponse({ ok: false }); }
+    })();
+    return true;
+  }
+});
+setTimeout(zsPollDispatch, 8000); // 启动后先探一次

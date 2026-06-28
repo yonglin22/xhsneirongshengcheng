@@ -109,7 +109,9 @@
   }
   // 截流执行：评论区抓评论 → AI（按人设+笔记上下文+该评论）生成自然引流回复，命中上限就发；
   // 私信只生成草稿存库，由人在 popup 里人工确认发送——不自动私信，规避高风险灰色操作。
-  async function runIntercept(plan, ui) {
+  async function runIntercept(plan, ui, stat) {
+    stat = stat || {};
+    const planId = plan._planId || null;
     const ic = ((plan.config || {}).intercept) || {};
     const persona = (plan.config && plan.config.persona) || '你是资深小红书内容操盘手，第一人称真人感、绝不AI腔；自然、不硬广、不站外导流。';
     if (!ic.collect && !ic.reply && !ic.dm) return;
@@ -121,7 +123,8 @@
     if (ic.collect) {
       try {
         const noteTitle = (ctx.split('\n')[0] || '').slice(0, 120);
-        chrome.runtime.sendMessage({ type: 'reportLeads', items: comments.map(c => ({ platform: 'xhs', note_title: noteTitle, note_url: location.href, lead_user: c.user, lead_text: c.text, lead_link: c.link })) });
+        chrome.runtime.sendMessage({ type: 'reportLeads', items: comments.map(c => ({ platform: 'xhs', note_title: noteTitle, note_url: location.href, lead_user: c.user, lead_text: c.text, lead_link: c.link, plan_id: planId })) });
+        stat.collected = (stat.collected || 0) + comments.length;
       } catch (e) {}
     }
     // isrc=预设/话术库 暂未接入素材库，目前只实现 AI 智能来源；非 AI 来源先跳过，避免话术与配置承诺不符
@@ -144,7 +147,7 @@
         if (stopFlag) break;
         const draft = useLib ? await libPick(ic.libId)
           : await aiText(persona, `笔记内容：${ctx}\n\n这位用户的评论：「${c.text}」\n请生成一条自然、不硬广、不站外导流的引流回复（≤40字，像真人随手回复，不要出现"AI"字样）。`);
-        if (draft && await postCommentReply(draft)) { replied++; lastReplyAt = Date.now(); ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
+        if (draft && await postCommentReply(draft)) { replied++; stat.replied = (stat.replied || 0) + 1; lastReplyAt = Date.now(); ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
       }
       if ((useAi || useLib) && ic.dm > 0 && queued < ic.dm) {
         const wait = lastDmAt ? Math.max(0, dmGap - (Date.now() - lastDmAt)) : 0;
@@ -153,7 +156,7 @@
         lastDmAt = Date.now();
         const draft = useLib ? await libPick(ic.libId)
           : await aiText(persona, `这位潜在客户的评论：「${c.text}」\n请生成一条自然、不硬广的私信开场话术（≤50字），用于后续人工确认发送。`);
-        if (draft) { chrome.runtime.sendMessage({ type: 'queueDM', item: { user: c.user, link: c.link, comment: c.text, draft, note: location.href } }); queued++; }
+        if (draft) { chrome.runtime.sendMessage({ type: 'queueDM', item: { user: c.user, link: c.link, comment: c.text, draft, note: location.href } }); queued++; stat.dmed = (stat.dmed || 0) + 1; }
       }
       await sleep(rnd(1200, 2200));
     }
@@ -173,6 +176,7 @@
     const kw = (cfg.keywords || [])[0] || '';
     const persona = cfg.persona || '你是资深小红书内容操盘手，第一人称真人感、绝不AI腔；自然、不硬广、不站外导流。';
     let opened = 0, liked = 0, faved = 0, followed = 0, commented = 0;
+    const stat = { collected: 0, replied: 0, dmed: 0 };
     let filtered = !(isSearch && cfg.filter);
     try {
       // 定位到目标列表
@@ -215,11 +219,15 @@
           if (chance(25)) { const a = document.querySelector('a[href*="/user/profile/"]'); if (a) { a.click(); await sleep(rnd(3000, 7000)); window.scrollBy({ top: rnd(300, 800), behavior: 'smooth' }); await sleep(rnd(1500, 3000)); history.back(); await sleep(rnd(1500, 2500)); } }
         }
         // 截流计划：评论区抓取 + AI 引流回复（自动，有上限）；私信只生成草稿，存库待人工确认发送
-        if (/_intercept$/.test(plan.ptype || '') && !stopFlag) { try { await runIntercept(plan, ui); } catch (e) { ui.say('截流出错：' + (e.message || e)); } }
+        if (/_intercept$/.test(plan.ptype || '') && !stopFlag) { try { await runIntercept(plan, ui, stat); } catch (e) { ui.say('截流出错：' + (e.message || e)); } }
         history.back(); await sleep(rnd(2500, 4500));
       }
       ui.say(stopFlag ? `已停止 · 浏览${opened} 赞${liked} 藏${faved} 关注${followed} 评论${commented}` : `✓ 完成：浏览 ${opened} 篇 · 点赞 ${liked} · 收藏 ${faved} · 关注 ${followed} · 评论 ${commented}`);
     } catch (e) { ui.say('养号出错：' + (e.message || e)); }
+    // 跑完上报本轮统计（收集/回复/私信）到任务列表
+    try { if (plan._planId && (stat.collected || stat.replied || stat.dmed)) chrome.runtime.sendMessage({ type: 'reportStat', planId: plan._planId, collected: stat.collected, replied: stat.replied, dmed: stat.dmed }); } catch (e) {}
+    // 若是「多设备下发」领取的任务 → 回报完成，让该设备解锁并领下一条
+    try { if (plan._dispatchId) chrome.runtime.sendMessage({ type: 'dispatchDone', dispatchId: plan._dispatchId, result: `浏览${opened}·赞${liked}·藏${faved}·关注${followed}·评论${commented}` + (stat.collected ? `·收集${stat.collected}` : '') }); } catch (e) {}
     ui.done();
   }
 })();

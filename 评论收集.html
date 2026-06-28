@@ -23,8 +23,6 @@
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
 <main class="ag-page">
-  <a href="/账号矩阵.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 账号矩阵</a>
-  <a href="/获客计划.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4 ml-2">获客计划 →</a>
   <div class="mb-5">
     <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT</div>
     <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">评论<span class="italic" style="color:var(--cinnabar)">收集</span></h1>
@@ -50,6 +48,7 @@
 
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=54"></script>
+<script src="/assets/agent-nav.js?v=1"></script>
 <script>
 let LEADS=[], filter='all';
 const PLAT={ xhs:'📕 小红书', dy:'🎵 抖音', sph:'🎬 视频号' };
@@ -105,7 +104,9 @@ $('#exportBtn').addEventListener('click', ()=>{
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='潜客列表_'+Date.now()+'.csv'; a.click(); URL.revokeObjectURL(a.href);
 });
-async function load(){ const j=await api('?limit=500'); LEADS=(j&&j.list)||[]; render(); }
+const PLAN_ID=new URLSearchParams(location.search).get('plan')||'';
+async function load(){ const j=await api('?limit=500'+(PLAN_ID?'&plan='+encodeURIComponent(PLAN_ID):'')); LEADS=(j&&j.list)||[]; render(); }
+if(PLAN_ID){ const b=document.createElement('div'); b.className='card p-3 mb-4 text-[12px]'; b.style.cssText='background:#fff7ed;border-color:#fed7aa;color:#9a3412'; b.innerHTML='正在查看「计划 #'+esc(PLAN_ID)+'」收集到的潜客 · <a href="/评论收集.html" style="color:var(--cinnabar-deep);font-weight:600">查看全部 →</a>'; document.querySelector('main').insertBefore(b, document.querySelector('main .card')); }
 load();
 </script>
 </body>

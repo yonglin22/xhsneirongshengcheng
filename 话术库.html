@@ -21,8 +21,6 @@
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
 <main class="ag-page">
-  <a href="/账号矩阵.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4">← 账号矩阵</a>
-  <a href="/获客计划.html" class="btn-ghost rounded-lg px-3.5 py-2 text-[13px] inline-flex items-center gap-1.5 mb-4 ml-2">获客计划 →</a>
   <div class="mb-5">
     <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT</div>
     <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">话术<span class="italic" style="color:var(--cinnabar)">库</span></h1>
@@ -49,6 +47,10 @@
     <div class="flex items-center gap-2 mt-1 flex-wrap">
       <button id="qaAdd" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">＋ 加一条</button>
       <button id="bulkToggle" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">📋 批量粘贴导入</button>
+      <button id="excelBtn" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">📊 Excel/CSV 导入</button>
+      <a id="tplBtn" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]" style="text-decoration:none" href="#">⬇ 模板</a>
+      <input id="excelFile" type="file" accept=".xlsx,.csv,.txt,.tsv" style="display:none" />
+      <span id="excelStatus" class="cnt"></span>
     </div>
 
     <div id="bulkBox" style="display:none" class="mt-2">
@@ -76,6 +78,8 @@
 
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/app.js?v=54"></script>
+<script src="/assets/agent-nav.js?v=1"></script>
+<script src="/assets/xlsx-lite.js?v=1"></script>
 <script>
 const MAX=1000;
 let editId=null, items=[];
@@ -117,6 +121,33 @@ $('#bulkImport').addEventListener('click',()=>{
   $('#bulkText').value='';
   $('#bulkStatus').textContent='✓ 导入 '+added+' 条'+(items.length>=MAX?'（已达上限 '+MAX+'）':'');
   renderQa();
+});
+// Excel / CSV 文件导入：第一列=问题/场景，第二列=回答话术；自动跳过表头行
+$('#excelBtn').addEventListener('click',()=>$('#excelFile').click());
+$('#excelFile').addEventListener('change', async e=>{
+  const file=e.target.files&&e.target.files[0]; if(!file) return;
+  $('#excelStatus').textContent='解析中…'; $('#excelStatus').style.color='var(--ink-soft)';
+  try{
+    const rows=await window.parseSheet(file);
+    let list=rows.map(r=>({ q:String((r[0]==null?'':r[0])).trim(), a:String((r[1]==null?'':r[1])).trim() })).filter(x=>x.q||x.a);
+    // 跳过表头（第一行像「问题/回答」「question/answer」「场景/话术」）
+    if(list.length && /问|场景|关键|question|q$|话题/i.test(list[0].q) && /答|话术|回复|answer|reply|内容/i.test(list[0].a)) list=list.slice(1);
+    let added=0;
+    for(const it of list){ if(items.length>=MAX) break;
+      // 只有一列时当作纯回答
+      const q=it.a?it.q:''; const a=it.a||it.q;
+      if(!q&&!a) continue; items.push({q:q.slice(0,200),a:a.slice(0,1000)}); added++; }
+    $('#excelStatus').textContent='✓ 导入 '+added+' 条'+(items.length>=MAX?'（已达上限 '+MAX+'）':'');
+    $('#excelStatus').style.color='#00a152'; renderQa(); syncCount();
+  }catch(err){ $('#excelStatus').textContent='✗ '+(err.message||'解析失败，请检查文件或改用 CSV'); $('#excelStatus').style.color='var(--cinnabar-deep)'; }
+  e.target.value='';
+});
+// 下载导入模板（CSV，可用 Excel 打开另存为 xlsx）
+$('#tplBtn').addEventListener('click', ev=>{
+  ev.preventDefault();
+  const csv='问题/场景,回答话术\r\n多少钱,亲已私信报价啦~\r\n有没有优惠,这两天刚好有活动，私聊告诉你\r\n,只有回答也可以（第一列留空）';
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='话术导入模板.csv'; a.click(); URL.revokeObjectURL(a.href);
 });
 const TYPE_LABEL={ comment:'评论话术', reply:'回复话术', intercept:'截流话术' };
 function libNo(id){ return 'HS'+String(id).padStart(6,'0'); }

@@ -1237,7 +1237,7 @@ const server = http.createServer(async (req, res) => {
   // ============ 账号 / 钱包 / 订单 / 支付 / 管理（计费）============
   if (pathname.startsWith('/api/auth/') || pathname === '/api/wallet' || pathname === '/api/price'
     || pathname.startsWith('/api/order') || pathname.startsWith('/api/pay/') || pathname.startsWith('/api/admin/')
-    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts') || pathname.startsWith('/api/growth-plans') || pathname.startsWith('/api/script-libs') || pathname.startsWith('/api/collected-leads')) {
+    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts') || pathname.startsWith('/api/growth-plans') || pathname.startsWith('/api/script-libs') || pathname.startsWith('/api/collected-leads') || pathname.startsWith('/api/dispatch')) {
     if (!billing) return sendJSON(res, 503, { error: '计费模块未启用（需 Node ≥ 22 的内置 node:sqlite）' });
 
     // 智能体配置（人设/KB/skills/配图风格，按账号存，跨设备）
@@ -1348,6 +1348,37 @@ const server = http.createServer(async (req, res) => {
       const { id } = JSON.parse((await readBody(req)) || '{}');
       return sendJSON(res, 200, { ok: billing.planRemove(uid, id) });
     }
+    // 执行端跑完一轮上报统计（收集/回复/私信增量），用于任务列表统计列
+    if (pathname === '/api/growth-plans/stat' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.planStat(uid, b.id || b.planId, b) });
+    }
+    // 多设备/多账号任务下发队列
+    if (pathname === '/api/dispatch' && req.method === 'GET') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      return sendJSON(res, 200, { ok: true, list: billing.dispatchList(uid, url.searchParams.get('plan')) });
+    }
+    if (pathname === '/api/dispatch' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, billing.dispatchAdd(uid, b.planId, b.accounts || []));
+    }
+    if (pathname === '/api/dispatch/pull' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, billing.dispatchPull(uid, b.device));
+    }
+    if (pathname === '/api/dispatch/done' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.dispatchDone(uid, b.id, b.result) });
+    }
+    if (pathname === '/api/dispatch/cancel' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.dispatchCancel(uid, b.id) });
+    }
 
     // 获客 Agent · 话术库（问答库：标题 + 问答，单库≤1000 条）
     if (pathname === '/api/script-libs' && req.method === 'GET') {
@@ -1369,7 +1400,7 @@ const server = http.createServer(async (req, res) => {
     // 获客 Agent · 评论收集（潜客列表）：GET 查看 / POST 由执行端(插件)上报收集到的评论用户 / 删除 / 改状态
     if (pathname === '/api/collected-leads' && req.method === 'GET') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
-      return sendJSON(res, 200, { ok: true, ...billing.leadsList(uid, { limit: url.searchParams.get('limit'), offset: url.searchParams.get('offset') }) });
+      return sendJSON(res, 200, { ok: true, ...billing.leadsList(uid, { limit: url.searchParams.get('limit'), offset: url.searchParams.get('offset'), planId: url.searchParams.get('plan') }) });
     }
     if (pathname === '/api/collected-leads' && req.method === 'POST') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });

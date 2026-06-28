@@ -115,7 +115,14 @@ function accountRemove(uid, id){ db.prepare('DELETE FROM social_accounts WHERE i
 function accountAuthBlob(uid, id){ const r=db.prepare('SELECT auth_blob,platform,nickname FROM social_accounts WHERE id=? AND user_id=?').get(id,uid); return r||null; } // 服务端取登录态(敏感,仅本人)
 // 获客 Agent · 养号/截流计划
 try { db.exec("CREATE TABLE IF NOT EXISTS growth_plans(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, ptype TEXT, platform TEXT, config TEXT, status TEXT DEFAULT 'draft', created_at INTEGER, updated_at INTEGER)"); } catch {}
-function plansList(uid){ return db.prepare('SELECT id,name,ptype,platform,config,status,created_at,updated_at FROM growth_plans WHERE user_id=? ORDER BY id DESC').all(uid).map(r=>{ let c={}; try{c=JSON.parse(r.config||'{}');}catch{} return {...r, config:c}; }); }
+// 对齐原型「任务列表」统计列：累计收集潜客/已回复/已私信 + 最近执行时间（执行端跑完上报）
+try { db.exec("ALTER TABLE growth_plans ADD COLUMN stat_collected INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE growth_plans ADD COLUMN stat_replied INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE growth_plans ADD COLUMN stat_dmed INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE growth_plans ADD COLUMN last_run_at INTEGER"); } catch {}
+function plansList(uid){ return db.prepare('SELECT id,name,ptype,platform,config,status,stat_collected,stat_replied,stat_dmed,last_run_at,created_at,updated_at FROM growth_plans WHERE user_id=? ORDER BY id DESC').all(uid).map(r=>{ let c={}; try{c=JSON.parse(r.config||'{}');}catch{} return {...r, config:c, stats:{ collected:r.stat_collected||0, replied:r.stat_replied||0, dmed:r.stat_dmed||0, lastRunAt:r.last_run_at||0 } }; }); }
+// 执行端跑完一轮，累加统计（delta，可为 0）
+function planStat(uid, id, d){ const cur=db.prepare('SELECT id FROM growth_plans WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; d=d||{}; const add=(k)=>Math.max(0,parseInt(d[k])||0); db.prepare('UPDATE growth_plans SET stat_collected=COALESCE(stat_collected,0)+?, stat_replied=COALESCE(stat_replied,0)+?, stat_dmed=COALESCE(stat_dmed,0)+?, last_run_at=? WHERE id=? AND user_id=?').run(add('collected'), add('replied'), add('dmed'), Date.now(), id, uid); return true; }
 function planAdd(uid, p){ const now=Date.now(); const r=db.prepare('INSERT INTO growth_plans(user_id,name,ptype,platform,config,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').run(uid, String(p.name||'').slice(0,80), p.ptype||'', p.platform||'xhs', JSON.stringify(p.config||{}), p.status||'draft', now, now); return r.lastInsertRowid; }
 function planUpdate(uid, id, p){ const cur=db.prepare('SELECT * FROM growth_plans WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; db.prepare('UPDATE growth_plans SET name=?,ptype=?,platform=?,config=?,status=?,updated_at=? WHERE id=? AND user_id=?').run(p.name!==undefined?String(p.name).slice(0,80):cur.name, p.ptype||cur.ptype, p.platform||cur.platform, p.config!==undefined?JSON.stringify(p.config):cur.config, p.status||cur.status, Date.now(), id, uid); return true; }
 function planRemove(uid, id){ db.prepare('DELETE FROM growth_plans WHERE id=? AND user_id=?').run(id,uid); return true; }
@@ -136,11 +143,41 @@ function scriptLibRemove(uid, id){ db.prepare('DELETE FROM script_libs WHERE id=
 // ===== 获客 Agent · 评论收集（潜客列表）：截流时收集到的评论区用户，存为系统列表，供人工跟进 =====
 try { db.exec("CREATE TABLE IF NOT EXISTS collected_leads(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, platform TEXT, note_title TEXT, note_url TEXT, lead_user TEXT, lead_text TEXT, lead_link TEXT, status TEXT DEFAULT 'new', dkey TEXT, created_at INTEGER)"); } catch {}
 try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_uniq ON collected_leads(user_id, dkey)"); } catch {}
-function leadsList(uid, opt){ opt=opt||{}; const lim=Math.min(500,Math.max(1,parseInt(opt.limit)||200)); const off=Math.max(0,parseInt(opt.offset)||0); const total=db.prepare('SELECT COUNT(*) n FROM collected_leads WHERE user_id=?').get(uid).n; const list=db.prepare('SELECT id,platform,note_title,note_url,lead_user,lead_text,lead_link,status,created_at FROM collected_leads WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?').all(uid,lim,off); return { list, total }; }
-function leadsAdd(uid, batch){ const items=(Array.isArray(batch)?batch:[]).slice(0,200); if(!items.length) return { added:0 }; const now=Date.now(); const ins=db.prepare("INSERT OR IGNORE INTO collected_leads(user_id,platform,note_title,note_url,lead_user,lead_text,lead_link,status,dkey,created_at) VALUES(?,?,?,?,?,?,?,'new',?,?)"); let added=0; const run=()=>{ for(const it of items){ const lead_user=String((it&&it.lead_user)||'').slice(0,80).trim(); const lead_text=String((it&&it.lead_text)||'').slice(0,500).trim(); const lead_link=String((it&&it.lead_link)||'').slice(0,300).trim(); if(!lead_text&&!lead_user) continue; const dkey=(lead_link||(lead_user+'|'+lead_text)).slice(0,300); const r=ins.run(uid, String((it&&it.platform)||'xhs').slice(0,16), String((it&&it.note_title)||'').slice(0,120), String((it&&it.note_url)||'').slice(0,300), lead_user, lead_text, lead_link, dkey, now); if(r.changes) added++; } }; try{ txn(run); }catch{ run(); } return { added }; }
+// 潜客归属计划：便于「任务列表」按计划统计/「评论收集」按计划筛选
+try { db.exec("ALTER TABLE collected_leads ADD COLUMN plan_id INTEGER"); } catch {}
+function leadsList(uid, opt){ opt=opt||{}; const lim=Math.min(500,Math.max(1,parseInt(opt.limit)||200)); const off=Math.max(0,parseInt(opt.offset)||0); const planId=parseInt(opt.planId)||0; const where=planId?' AND plan_id=?':''; const args=planId?[uid,planId]:[uid]; const total=db.prepare('SELECT COUNT(*) n FROM collected_leads WHERE user_id=?'+where).get(...args).n; const list=db.prepare('SELECT id,platform,note_title,note_url,lead_user,lead_text,lead_link,status,plan_id,created_at FROM collected_leads WHERE user_id=?'+where+' ORDER BY id DESC LIMIT ? OFFSET ?').all(...args,lim,off); return { list, total }; }
+function leadsAdd(uid, batch){ const items=(Array.isArray(batch)?batch:[]).slice(0,200); if(!items.length) return { added:0 }; const now=Date.now(); const ins=db.prepare("INSERT OR IGNORE INTO collected_leads(user_id,platform,note_title,note_url,lead_user,lead_text,lead_link,status,dkey,plan_id,created_at) VALUES(?,?,?,?,?,?,?,'new',?,?,?)"); let added=0; const run=()=>{ for(const it of items){ const lead_user=String((it&&it.lead_user)||'').slice(0,80).trim(); const lead_text=String((it&&it.lead_text)||'').slice(0,500).trim(); const lead_link=String((it&&it.lead_link)||'').slice(0,300).trim(); if(!lead_text&&!lead_user) continue; const dkey=(lead_link||(lead_user+'|'+lead_text)).slice(0,300); const pid=parseInt(it&&it.plan_id)||null; const r=ins.run(uid, String((it&&it.platform)||'xhs').slice(0,16), String((it&&it.note_title)||'').slice(0,120), String((it&&it.note_url)||'').slice(0,300), lead_user, lead_text, lead_link, dkey, pid, now); if(r.changes) added++; } }; try{ txn(run); }catch{ run(); } return { added }; }
 function leadRemove(uid, id){ db.prepare('DELETE FROM collected_leads WHERE id=? AND user_id=?').run(id,uid); return true; }
 function leadsClear(uid){ db.prepare('DELETE FROM collected_leads WHERE user_id=?').run(uid); return true; }
 function leadStatus(uid, id, status){ db.prepare('UPDATE collected_leads SET status=? WHERE id=? AND user_id=?').run(String(status||'new').slice(0,16), id, uid); return true; }
+
+// ===== 获客 Agent · 多设备/多账号任务下发队列 =====
+// 把一个计划下发给多个账号，生成待领取任务；任一登录了同一朱砂账号的设备(插件)可拉取并执行，跑完回报。
+try { db.exec("CREATE TABLE IF NOT EXISTS plan_dispatch(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, plan_id INTEGER, account_id INTEGER, account_name TEXT, device TEXT, status TEXT DEFAULT 'pending', result TEXT, created_at INTEGER, picked_at INTEGER, done_at INTEGER)"); } catch {}
+const _DISPATCH_TTL = 1000*60*30; // 领取后 30 分钟没回报，视为可重新领取（设备掉线兜底）
+function dispatchAdd(uid, planId, accounts){
+  const plan=db.prepare('SELECT id,name FROM growth_plans WHERE id=? AND user_id=?').get(planId,uid); if(!plan) return { ok:false, error:'计划不存在' };
+  const list=(Array.isArray(accounts)?accounts:[]).slice(0,50); const now=Date.now();
+  const ins=db.prepare("INSERT INTO plan_dispatch(user_id,plan_id,account_id,account_name,status,created_at) VALUES(?,?,?,?,'pending',?)");
+  let n=0; const run=()=>{ for(const a of list){ ins.run(uid, planId, parseInt(a&&a.id)||null, String((a&&a.name)||'').slice(0,80), now); n++; } };
+  try{ txn(run); }catch{ run(); }
+  return { ok:true, created:n };
+}
+function dispatchList(uid, planId){ const where=planId?' AND plan_id=?':''; const args=planId?[uid,parseInt(planId)]:[uid]; return db.prepare('SELECT id,plan_id,account_id,account_name,device,status,result,created_at,picked_at,done_at FROM plan_dispatch WHERE user_id=?'+where+' ORDER BY id DESC LIMIT 200').all(...args); }
+// 设备拉取一条待执行任务（claim：pending→running，附带计划完整配置）。也回收超时 running。
+function dispatchPull(uid, device){
+  const now=Date.now();
+  db.prepare("UPDATE plan_dispatch SET status='pending', device=NULL WHERE user_id=? AND status='running' AND picked_at IS NOT NULL AND picked_at < ?").run(uid, now-_DISPATCH_TTL);
+  const row=db.prepare("SELECT * FROM plan_dispatch WHERE user_id=? AND status='pending' ORDER BY id ASC LIMIT 1").get(uid);
+  if(!row) return { ok:true, task:null };
+  db.prepare("UPDATE plan_dispatch SET status='running', device=?, picked_at=? WHERE id=? AND status='pending'").run(String(device||'').slice(0,60), now, row.id);
+  const plan=db.prepare('SELECT id,name,ptype,platform,config FROM growth_plans WHERE id=? AND user_id=?').get(row.plan_id,uid);
+  if(!plan){ db.prepare("UPDATE plan_dispatch SET status='done', result='计划已删除', done_at=? WHERE id=?").run(now,row.id); return { ok:true, task:null }; }
+  let cfg={}; try{ cfg=JSON.parse(plan.config||'{}'); }catch{}
+  return { ok:true, task:{ dispatchId:row.id, accountId:row.account_id, accountName:row.account_name, plan:{ id:plan.id, name:plan.name, ptype:plan.ptype, platform:plan.platform, config:cfg } } };
+}
+function dispatchDone(uid, id, result){ const r=db.prepare("UPDATE plan_dispatch SET status='done', result=?, done_at=? WHERE id=? AND user_id=?").run(String(result||'').slice(0,300), Date.now(), id, uid); return r.changes>0; }
+function dispatchCancel(uid, id){ if(id==='all'||id===0){ db.prepare("DELETE FROM plan_dispatch WHERE user_id=? AND status IN('pending','done')").run(uid); return true; } db.prepare("DELETE FROM plan_dispatch WHERE id=? AND user_id=?").run(id,uid); return true; }
 
 function txn(fn) { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; } }
 
@@ -544,9 +581,10 @@ module.exports = {
   partnerMemberOrders, partnerTransfer, hasPaidPack,
   qaLogAdd, qaLogList, qaTopQuestions, qaStats,
   accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob,
-  plansList, planAdd, planUpdate, planRemove,
+  plansList, planAdd, planUpdate, planRemove, planStat,
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
   leadsList, leadsAdd, leadRemove, leadsClear, leadStatus,
+  dispatchAdd, dispatchList, dispatchPull, dispatchDone, dispatchCancel,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
 };
 
