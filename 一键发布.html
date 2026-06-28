@@ -121,11 +121,11 @@ function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fi
 async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, coverCaptions, coverFallback){
   const host=$('#renderHost'); const out=[]; const caps=coverCaptions||[]; let i=-1;
   const W=540, H=Math.round(W*({'2:3':3/2,'3:4':4/3,'9:16':16/9}[imgRatio||'3:4']||4/3)); // 画框高度随出图比例（发布/下载尺寸正确）
-  // 统一所有备忘录页的缩放与标题字号（导出图也不会一大一小）：先扫一遍取最小值
-  let uniS=1, uniTitle=Infinity; const noteUs=(coverImages||[]).filter(u=>(u||'').startsWith('note://'));
-  if(noteUs.length>1){ for(const u of noteUs){ host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+noteCardHTML((notePages||[])[+u.slice(7)])+'</div>'; const ne=host.querySelector('.cv-note:not(.is-cover)'); if(ne){ fitNote(ne); const s=parseFloat(ne.dataset.fitScale||'1'); if(s<uniS)uniS=s; const h=ne.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML)){ const fs=parseFloat(getComputedStyle(h).fontSize); if(fs<uniTitle)uniTitle=fs; } } } }
+  // 只统一各页标题字号（不动每页自身的内容缩放，避免写满的页被一起缩小显得很空）：先扫一遍取最小标题
+  let uniTitle=Infinity; const noteUs=(coverImages||[]).filter(u=>(u||'').startsWith('note://'));
+  if(noteUs.length>1){ for(const u of noteUs){ host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+noteCardHTML((notePages||[])[+u.slice(7)])+'</div>'; const ne=host.querySelector('.cv-note:not(.is-cover)'); if(ne){ fitNote(ne); const h=ne.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML)){ const fs=parseFloat(getComputedStyle(h).fontSize); if(fs<uniTitle)uniTitle=fs; } } } }
   const shot=async(html)=>{ host.innerHTML='<div class="cv-frame" style="width:'+W+'px;height:'+H+'px">'+html+'</div>';
-    const noteEl=host.querySelector('.cv-note:not(.is-cover)'); if(noteEl){ fitNote(noteEl); if(noteUs.length>1){ const h=noteEl.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML)&&isFinite(uniTitle))h.style.fontSize=uniTitle+'px'; const fit=noteEl.querySelector('.cv-note-fit'); if(fit){ if(uniS<0.999){fit.style.transform='scale('+uniS+')';fit.style.width=(100/uniS)+'%';}else{fit.style.transform='';fit.style.width='100%';} } } }
+    const noteEl=host.querySelector('.cv-note:not(.is-cover)'); if(noteEl){ fitNote(noteEl); if(noteUs.length>1&&isFinite(uniTitle)){ const h=noteEl.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML))h.style.fontSize=uniTitle+'px'; } }
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
     // 等底图加载完，否则截到空白
