@@ -50,6 +50,37 @@ async function verifyLogin(cookieStr) {
   } finally { try { if (b) await b.close(); } catch {} }
 }
 
+// 会话保活：用现有 cookie 静默访问小红书，保持会话活跃，并把轮换后的最新 cookie 回传（小红书会定期换 cookie，不回写=过期）。
+// 返回 { ok, cookie?(轮换后), nickname?, reason? }
+async function refreshSession(cookieStr) {
+  const cookies = parseCookie(cookieStr);
+  if (!cookies.length) return { ok: false, reason: 'cookie 为空' };
+  let b;
+  try {
+    b = await launch();
+    const ctx = await b.newContext({ userAgent: UA, viewport: { width: 1280, height: 800 }, locale: 'zh-CN' });
+    await ctx.addCookies(cookies);
+    const p = await ctx.newPage();
+    // 访问已登录页（www 个人主页 + 创作中心），触发服务端续期/换 cookie
+    try { await p.goto('https://www.xiaohongshu.com/explore', { waitUntil: 'domcontentloaded', timeout: 30000 }); await p.waitForTimeout(2500); } catch {}
+    try { await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 30000 }); await p.waitForTimeout(2500); } catch {}
+    const url = p.url();
+    const info = await p.evaluate(() => {
+      const t = (document.body && document.body.innerText) || '';
+      return { loginUI: /扫码登录|手机号登录|登录后即可|登录创作|二维码登录/.test(t),
+               nick: ((document.querySelector('[class*=nickname],[class*=name],.user-info .name') || {}).textContent || '').trim() };
+    });
+    if (/\/login/i.test(url) || info.loginUI) return { ok: false, reason: '会话已失效' };
+    const fresh = await ctx.cookies();
+    const xhs = fresh.filter(c => /xiaohongshu/.test(c.domain || ''));
+    const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
+    if (!sess) return { ok: false, reason: '未取到登录 cookie' };
+    return { ok: true, cookie: xhs.map(c => c.name + '=' + c.value).join('; '), nickname: (info.nick || '').slice(0, 30) };
+  } catch (e) {
+    return { ok: false, reason: '保活失败：' + (e.message || String(e)).slice(0, 120) };
+  } finally { try { if (b) await b.close(); } catch {} }
+}
+
 // 下载图片到临时文件（小红书上传需本地文件）
 async function dlImages(images) {
   const fs = require('fs'); const os = require('os'); const path = require('path');
@@ -224,4 +255,4 @@ async function qrSubmitSms(token, code) {
   } catch (e) { return { ok: false, reason: (e.message || '').slice(0, 100) }; }
 }
 
-module.exports = { verifyLogin, publishDraft, parseCookie, startQrLogin, pollQrLogin, qrSendSms, qrSubmitSms };
+module.exports = { verifyLogin, refreshSession, publishDraft, parseCookie, startQrLogin, pollQrLogin, qrSendSms, qrSubmitSms };

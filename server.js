@@ -1715,3 +1715,32 @@ if (process.env.XHS_KEEPALIVE !== '0') {
   }, 6 * 3600 * 1000);
   if (ka.unref) ka.unref();
 }
+
+// 账号矩阵·小红书登录态保活：每 6 小时给每个「已登录」账号用其 cookie 静默访问一次小红书，
+// 触发服务端续期并回写轮换后的新 cookie（不回写=cookie 老化失效），把时效拉到一周以上。
+// 失效则标记 expired，前端「登录失效」提醒重扫。设 XHS_ACCT_KEEPALIVE=0 关闭。
+async function keepAliveAccounts() {
+  if (!billing) return;
+  let bot; try { bot = require('./xhs-bot'); } catch { return; } // 没装 Playwright 直接跳过
+  let accts = []; try { accts = billing.accountsActiveXhs() || []; } catch { return; }
+  for (const a of accts) {
+    let cookie = '';
+    try { const blob = JSON.parse(a.auth_blob || '{}'); cookie = blob.cookie || ''; } catch { cookie = a.auth_blob || ''; }
+    if (!cookie) continue;
+    try {
+      const r = await bot.refreshSession(cookie);
+      if (r.ok && r.cookie) {
+        billing.accountSetAuthById(a.id, JSON.stringify({ cookie: r.cookie, via: 'keepalive', ts: Date.now() }), 'active', '✓ 保活续期 ' + new Date().toLocaleString('zh-CN'));
+      } else if (!r.ok && /失效|未取到|未登录/.test(r.reason || '')) {
+        billing.accountSetStatusById(a.id, 'expired', '⚠ ' + (r.reason || '登录失效') + '，请重新扫码');
+        console.warn('  [xhs-acct] #' + a.id + ' ' + (a.nickname || '') + ' 登录态失效');
+      }
+    } catch (e) { /* 单个账号失败不影响其他 */ }
+    await new Promise(r => setTimeout(r, 4000)); // 错峰，避免同时开多个浏览器
+  }
+}
+if (process.env.XHS_ACCT_KEEPALIVE !== '0') {
+  setTimeout(keepAliveAccounts, 45000); // 启动后 45s 先跑一轮
+  const ka2 = setInterval(keepAliveAccounts, 6 * 3600 * 1000);
+  if (ka2.unref) ka2.unref();
+}
