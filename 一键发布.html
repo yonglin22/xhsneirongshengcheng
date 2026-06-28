@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>一键发布 · 获客 Agent · 朱砂操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=82" />
+<link rel="stylesheet" href="/assets/atelier.css?v=83" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
@@ -39,6 +39,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/pinyin.js?v=1"></script>
 <script src="/assets/app.js?v=52"></script>
 <script>
 let WORK = null, sel = new Set();
@@ -57,8 +58,10 @@ function capCardHTML(cap, isCover, coverFallback){
     if(lay==='编号'){ s2=s.replace(/^[①-⑩\d\.\、\s]+/,''); return `<div class="cv-li num"><b>${k+1}</b><span>${mark(s2)}</span></div>`; }
     return `<div class="cv-li ${cls}">${mark(s2)}</div>`;
   }).join('')+'</div>'; }
+  if(c.theme==='poster'&&(isCover||lay==='封面')) return coverxHTML(c, lines);
   return `<div class="cv-card theme-${c.theme} ${isCover?'is-cover':''} lay-${lay}">${c.title?`<div class="cv-card-t">${mark(c.title)}</div>`:''}${body}</div>`;
 }
+function coverxHTML(c, lines){ const py=(typeof window.cnPinyin==='function'?(window.cnPinyin(c.title||'')||''):'').trim().toUpperCase(); const sub=lines[0]||'', tags=lines.slice(1); return `<div class="cv-card cv-coverx">${py?`<div class="cx-py">${py}</div>`:''}<div class="cx-t">${mark(c.title)}</div>${sub?`<div class="cx-sub">${mark(sub)}</div>`:''}${tags.length?`<div class="cx-tags">${tags.map(t=>`<span>${mark(t)}</span>`).join('<i>|</i>')}</div>`:''}</div>`; }
 // ===== 卡片渲染器（与成稿预览一致，用于把 note:// / ctpl:// CSS 卡转 PNG）=====
 function hexA(h,a){ const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim()); if(!m)return 'rgba(255,150,60,'+a+')'; const n=parseInt(m[1],16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
 function noteStyleVars(page){ const p=page||{}; const memo=!!p.memo;
@@ -127,7 +130,7 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
     try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
     // 等底图加载完，否则截到空白
     const im=host.querySelector('img'); if(im && !im.complete){ try{ await new Promise(r=>{im.onload=im.onerror=r;}); }catch{} }
-    host.querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }); // AI 封面标题自适应
+    host.querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t, .cv-coverx .cx-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }); // AI 封面标题自适应
     const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
     return cv.toDataURL('image/jpeg',0.92); };
   for(const u of (coverImages||[])){ i++;

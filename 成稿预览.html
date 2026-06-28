@@ -8,8 +8,9 @@
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 <script src="/assets/jszip.min.js?v=1"></script>
-<link rel="stylesheet" href="/assets/atelier.css?v=82" />
+<link rel="stylesheet" href="/assets/atelier.css?v=83" />
 <script src="/assets/tracks.js?v=16"></script>
+<script src="/assets/pinyin.js?v=1"></script>
 <script src="/assets/app.js?v=52"></script>
 <style>
   :root{
@@ -639,8 +640,10 @@ function capCardHTML(cap, isCover, coverFallback){
     if(lay==='编号'){ s2=s.replace(/^[①-⑩\d\.\、\s]+/,''); return `<div class="cv-li num"><b>${k+1}</b><span>${mark(s2)}</span></div>`; }
     return `<div class="cv-li ${cls}">${mark(s2)}</div>`;
   }).join('') + '</div>'; }
+  if(c.theme==='poster'&&(isCover||lay==='封面')) return coverxHTML(c, lines);
   return `<div class="cv-card theme-${c.theme} ${isCover?'is-cover':''} lay-${lay}">${c.title?`<div class="cv-card-t">${mark(c.title)}</div>`:''}${body}</div>`;
 }
+function coverxHTML(c, lines){ const py=(typeof window.cnPinyin==='function'?(window.cnPinyin(c.title||'')||''):'').trim().toUpperCase(); const sub=lines[0]||'', tags=lines.slice(1); return `<div class="cv-card cv-coverx">${py?`<div class="cx-py">${py}</div>`:''}<div class="cx-t">${mark(c.title)}</div>${sub?`<div class="cx-sub">${mark(sub)}</div>`:''}${tags.length?`<div class="cx-tags">${tags.map(t=>`<span>${mark(t)}</span>`).join('<i>|</i>')}</div>`:''}</div>`; }
 // 长文笔记款渲染（与流水线一致）
 function olStr(x){ return typeof x==='string'?x:((x&&(x.text||x.content||x.title||x.name||x.desc))||''); }
 function noteBlock(b){ if(!b)return''; const t=b.t||'p';
@@ -692,7 +695,7 @@ function noteCardHTML(page){ const cover=isCoverPage(page); const memo=!!(page&&
 function fitMemoTitle(noteEl){ if(!noteEl.classList.contains('is-memo'))return; const h=noteEl.querySelector('.nt-h1'); if(!h)return; h.style.fontSize=''; if(/<br/i.test(h.innerHTML))return; const cs=getComputedStyle(h); let fs=parseFloat(cs.fontSize); const lh=parseFloat(cs.lineHeight)||fs*1.22; let g=0; while(h.scrollHeight>lh*1.45&&fs>9&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }
 function fitNote(noteEl){ const fit=noteEl.querySelector('.cv-note-fit'); if(!fit) return; fitMemoTitle(noteEl); fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; let s=1; if(need>avail+1&&avail>0){ s=Math.max(0.45, avail/need); fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%'; } noteEl.dataset.fitScale=String(s); }
 function unifyNotes(notes){ if(!notes||notes.length<2)return; let minS=1; notes.forEach(n=>{ const s=parseFloat(n.dataset.fitScale||'1'); if(s<minS)minS=s; }); let minTitle=Infinity; notes.forEach(n=>{ const h=n.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML)){ const fs=parseFloat(getComputedStyle(h).fontSize); if(fs<minTitle)minTitle=fs; }}); notes.forEach(n=>{ const h=n.querySelector('.nt-h1'); if(h&&!/<br/i.test(h.innerHTML)&&isFinite(minTitle))h.style.fontSize=minTitle+'px'; const fit=n.querySelector('.cv-note-fit'); if(fit){ if(minS<0.999){ fit.style.transform='scale('+minS+')'; fit.style.width=(100/minS)+'%'; } else { fit.style.transform=''; fit.style.width='100%'; } n.dataset.fitScale=String(minS); } }); }
-function fitCoverTitle(root){ (root||document).querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }); }
+function fitCoverTitle(root){ (root||document).querySelectorAll('.cv-card.is-cover .cv-card-t, .cv-card.lay-封面 .cv-card-t, .cv-coverx .cx-t').forEach(function(h){ h.style.fontSize=''; var cs=getComputedStyle(h); var fs=parseFloat(cs.fontSize); var lh=parseFloat(cs.lineHeight)||fs*1.2; var g=0; while(h.scrollHeight>lh*2.3&&fs>10&&g++<60){fs-=0.5;h.style.fontSize=fs+'px';} }); }
 function fitAllNotes(root){ const notes=[...(root||document).querySelectorAll('.cv-note:not(.is-cover)')]; notes.forEach(fitNote); unifyNotes(notes); fitCoverTitle(root); }
 // 用多张图重建轮播（第1张为封面，每张都用干净叠字卡）
 // 出图比例（2:3 / 3:4 / 9:16）跟随流水线选择，作用到封面与轮播框，发布到后台也按此比例
