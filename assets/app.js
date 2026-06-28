@@ -508,6 +508,8 @@ window.buildMyAgentNav = function () {
       <div class="ag-dd-menu">
         <a href="/账号矩阵.html" class="ag-dd-item">🗂 账号矩阵</a>
         <a href="/获客计划.html" class="ag-dd-item">🌱 养号 / 截流计划</a>
+        <a href="/话术库.html" class="ag-dd-item">💬 话术库</a>
+        <a href="/评论收集.html" class="ag-dd-item">👥 评论收集（潜客）</a>
         <a href="/一键发布.html" class="ag-dd-item">🚀 一键发布</a>
       </div>
     </div>`;
