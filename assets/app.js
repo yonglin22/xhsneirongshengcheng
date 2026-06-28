@@ -300,26 +300,33 @@ window.callClaude = async function ({ system, prompt, model, max_tokens = 2000, 
     try { window.creditModal(cost, window.__balance); } catch {}
     throw new Error('积分不足：本次约需 ' + cost + ' 积分，当前余额 ' + window.__balance + '。请先充值后再生成。');
   }
-  let res;
-  try {
-    res = await fetch('/api/claude', {
-      method: 'POST',
-      signal: AbortSignal.timeout(90000), // 90s 超时，避免上游卡住时"一直加载不出来"
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: model || localStorage.getItem('ag_model') || 'claude-opus-4-8',
-        max_tokens,
-        system: system || PERSONA,
-        messages: [{ role: 'user', content: prompt }],
-        json,
-        action: action || 'text',
-      }),
-    });
-  } catch (e) {
-    if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) throw new Error('生成超时（90 秒无响应），请重试');
-    throw new Error('连不上服务，请重试');
+  let res, text;
+  // 上游网关瞬时错误(502/503/504)/超时/网络抖动 → 自动重试，最多 3 次，避免一次抖动就中断整条流水线
+  for (let attempt = 1; ; attempt++) {
+    try {
+      res = await fetch('/api/claude', {
+        method: 'POST',
+        signal: AbortSignal.timeout(90000), // 90s 超时，避免上游卡住时"一直加载不出来"
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: model || localStorage.getItem('ag_model') || 'claude-opus-4-8',
+          max_tokens,
+          system: system || PERSONA,
+          messages: [{ role: 'user', content: prompt }],
+          json,
+          action: action || 'text',
+        }),
+      });
+    } catch (e) {
+      const transient = e && (e.name === 'TimeoutError' || e.name === 'AbortError' || /Failed to fetch|NetworkError|network/i.test(String((e && e.message) || e)));
+      if (transient && attempt < 3) { await new Promise(r => setTimeout(r, attempt * 1500)); continue; }
+      if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) throw new Error('生成超时（90 秒无响应），请重试');
+      throw new Error('连不上服务，请重试');
+    }
+    text = await res.text();
+    if ([502, 503, 504].includes(res.status) && attempt < 3) { await new Promise(r => setTimeout(r, attempt * 1500)); continue; } // 网关瞬时错误重试
+    break;
   }
-  const text = await res.text();
   if (!res.ok) {
     let parsed = null; try { parsed = JSON.parse(text); } catch {}
     let msg = parsed?.error?.message || parsed?.error || text;
