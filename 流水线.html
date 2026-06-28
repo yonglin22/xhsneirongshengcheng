@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=91" />
+<link rel="stylesheet" href="/assets/atelier.css?v=92" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -583,10 +583,11 @@ function capCardHTML(cap, isCover, coverFallback) {
   return `<div class="cv-card theme-${c.theme} ${isCover ? 'is-cover' : ''} lay-${lay}">${c.title ? `<div class="cv-card-t">${mark(c.title)}</div>` : ''}${body}</div>`;
 }
 // 稿定风 AI 封面叠字（拼音/大标题/副标题条/底部标签）
+function cxSubSvg(t){ t=String(t||''); let w=0; for(const ch of t){ w += (/[一-龥　-〿＀-｠]/.test(ch)&&ch!=='％'&&ch!=='%')?1:0.56; } const padX=1.2, vw=+(w+padX*2).toFixed(2), vh=2.0; const e=s=>String(s).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x])); return `<div class="cx-sub" style="width:${(vw*4).toFixed(1)}cqw;height:8cqw"><svg viewBox="0 0 ${vw} ${vh}" preserveAspectRatio="xMidYMid meet" style="display:block;width:100%;height:100%"><rect width="${vw}" height="${vh}" rx="0.5" fill="#ffd24a"/><text x="${(vw/2).toFixed(2)}" y="${vh/2}" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-size="1" font-weight="800" font-family="-apple-system,PingFang SC,sans-serif">${e(t)}</text></svg></div>`; }
 function coverxHTML(c, lines) {
   const py = (typeof window.cnPinyin === 'function' ? (window.cnPinyin(c.title || '') || '') : '').trim().toUpperCase();
   const sub = lines[0] || '', tags = lines.slice(1);
-  return `<div class="cv-card cv-coverx"><div class="cx-mid">${py ? `<div class="cx-py">${py}</div>` : ''}<div class="cx-t">${mark(c.title)}</div>${sub ? `<div class="cx-sub">${mark(sub)}</div>` : ''}</div>${tags.length ? `<div class="cx-tags">${tags.map(t => `<span>${mark(t)}</span>`).join('<i>|</i>')}</div>` : ''}</div>`;
+  return `<div class="cv-card cv-coverx"><div class="cx-mid">${py ? `<div class="cx-py">${py}</div>` : ''}<div class="cx-t">${mark(c.title)}</div>${sub ? cxSubSvg(sub) : ''}</div>${tags.length ? `<div class="cx-tags">${tags.map(t => `<span>${mark(t)}</span>`).join('<i>|</i>')}</div>` : ''}</div>`;
 }
 function capTheme(cap) { return (cap && cap.theme === 'poster') ? 'poster' : 'photo'; }
 // 渲染封面+配图多图（每张都用干净叠字卡，文字不进图里 → 不再乱码）
@@ -1522,7 +1523,7 @@ function noteCardHTML(page) {
   const cover = isCoverPage(page);
   const memo = !!(page && page.memo);
   const tz = !!(page && page.tz); let _secN = 0;
-  const inner = ((page && page.blocks) || []).map(b => { if (tz && b && (b.t || 'p') === 'sec') { _secN++; return `<div class="nt-sec"><span class="nt-no">${_secN}</span>${mark(b.text || '')}</div>`; } return noteBlock(b); }).join('');
+  const inner = ((page && page.blocks) || []).map(b => { if (tz && b && (b.t || 'p') === 'sec') { _secN++; return `<div class="nt-sec"><span class="nt-no"><svg viewBox="0 0 20 20" preserveAspectRatio="xMidYMid meet"><rect width="20" height="20" rx="5.2" fill="#ff7a1a"/><text x="10" y="10" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="13" font-weight="900" font-family="-apple-system,PingFang SC,sans-serif">${_secN}</text></svg></span>${mark(b.text || '')}</div>`; } return noteBlock(b); }).join('');
   if (memo) {
     // 仿真 iPhone 备忘录截图：状态栏 + 黄色导航栏(日期居中) + 内容 + 底部工具栏 + Home条
     const nav = MEMO_NAV;
