@@ -57,12 +57,12 @@
 <script>
 const PLAT = { xhs: '📕 小红书', gzh: '📰 公众号' };
 const STAT = { pending: ['待接入', '#b6bbc2'], active: ['已登录', '#00a152'], expired: ['登录失效', '#e8a400'], banned: ['受限/封禁', 'var(--cinnabar-deep)'] };
-async function api(path, method, body) {
-  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 15000);
+async function api(path, method, body, timeoutMs) {
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), timeoutMs || 15000);
   try {
     const r = await fetch('/api/accounts' + path, { method: method || 'GET', headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal });
     return await r.json();
-  } catch { return { ok: false, error: '网络较慢或不稳定，请重试' }; }
+  } catch (e) { return { ok: false, error: (e && e.name === 'AbortError') ? '出码超时（服务端打开小红书较慢，请重试一次）' : '网络较慢或不稳定，请重试' }; }
   finally { clearTimeout(to); }
 }
 function statChip(s) { const [t, c] = STAT[s] || STAT.pending; return `<span style="font-size:11px;font-weight:600;color:${c};background:rgba(0,0,0,.04);border-radius:999px;padding:2px 9px">${t}</span>`; }
@@ -140,9 +140,9 @@ function openAuthModal(id) {
   m.querySelector('#amCancel').onclick = close;
   m.querySelector('#amQrStart').onclick = async () => {
     const box = m.querySelector('#amQrBox'); const st = m.querySelector('#amStatus');
-    box.innerHTML = '<span style="font-size:13px;color:var(--ink-soft)">正在打开小红书登录…（约 10 秒）</span>';
-    const r = await api('/qr-start', 'POST', {});
-    if (!r.ok) { box.innerHTML = `<button id="amQrStart2" class="btn-go rounded-xl px-6 py-3 text-[13px]">重试</button>`; st.textContent = '✗ ' + (r.reason || '出码失败'); st.style.color = 'var(--cinnabar-deep)'; m.querySelector('#amQrStart2').onclick = () => openAuthModal(id) && close(); return; }
+    box.innerHTML = '<span style="font-size:13px;color:var(--ink-soft)">正在打开小红书登录…（首次较慢，最多约 50 秒，请耐心等）</span>';
+    const r = await api('/qr-start', 'POST', {}, 55000);
+    if (!r.ok) { box.innerHTML = `<button id="amQrStart2" class="btn-go rounded-xl px-6 py-3 text-[13px]">重试</button>`; st.textContent = '✗ ' + (r.reason || r.error || '出码失败'); st.style.color = 'var(--cinnabar-deep)'; m.querySelector('#amQrStart2').onclick = () => openAuthModal(id) && close(); return; }
     box.innerHTML = `<img src="${r.qr}" style="width:200px;height:200px;object-fit:contain;border:1px solid var(--line);border-radius:10px"/><span style="font-size:12px;color:var(--ink)">用小红书 App「我」→ 右上角扫一扫</span>`;
     st.textContent = '等待扫码确认…'; st.style.color = 'var(--ink-soft)';
     let n = 0;
