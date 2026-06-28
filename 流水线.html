@@ -95,7 +95,7 @@
 
 <script src="/assets/tracks.js?v=16"></script>
 <script src="/assets/pinyin.js?v=1"></script>
-<script src="/assets/app.js?v=56"></script>
+<script src="/assets/app.js?v=57"></script>
 <script>
 // 步骤显示名（会议共识：S1/S2…→第一步/第二步…，更直观；内部 key/no 不变）。选题=第一步，故流水线从第二步起。
 function uiConfirm(opt) {
@@ -1746,6 +1746,12 @@ function errMsg(tx) {
 function renderGzhCover() {
   const w = $('#imgWrap'); if (!w) return;
   const u = (state.coverImages || [])[0];
+  // 首图必须横版（宽>高）。竖版/方图（小红书 3:4 封面误带）不当首图 → 清掉、显示「生成首图」
+  if (typeof u === 'string' && (/^https?:\/\//.test(u) || u.startsWith('data:'))) {
+    const probe = new Image();
+    probe.onload = () => { if (probe.naturalWidth < probe.naturalHeight * 1.2) { state.coverImages = []; state.coverImage = ''; persist(); const ww = $('#imgWrap'); if (ww) ww.innerHTML = ''; } };
+    probe.src = u;
+  }
   if (!u) { w.innerHTML = ''; return; }
   w.innerHTML = `<div style="position:relative;width:100%;max-width:520px;aspect-ratio:2.35/1;border-radius:10px;overflow:hidden;border:1px solid var(--line)">
       <img ${imgAttr(u)} style="width:100%;height:100%;object-fit:cover;display:block" alt="公众号首图"/>

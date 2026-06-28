@@ -465,17 +465,26 @@ window.buildShell = function () {
   body.insertBefore(side, body.firstChild);
   side.after(top);
   document.getElementById('agBurger')?.addEventListener('click', () => body.classList.toggle('ag-side-open'));
-  document.getElementById('agBack')?.addEventListener('click', agSmartBack);
   body.addEventListener('click', e => { if (body.classList.contains('ag-side-open') && !e.target.closest('#agSide') && !e.target.closest('#agBurger')) body.classList.remove('ag-side-open'); });
 };
-/* 智能返回：同源且非登录页来路 → 后退一页（最流畅）；否则回工作台首页 */
+/* 智能返回：同源且非登录页来路 → 后退一页（最流畅）；否则回工作台首页。
+   兜底：history.back() 若 250ms 内没真正离开本页（同源同址/缓存项→点了没反应），强制回工作台。 */
 window.agSmartBack = function () {
   try {
+    const here = location.href;
     const ref = document.referrer;
-    if (ref && new URL(ref).origin === location.origin && !/\/(登录|login)\.html/.test(ref) && history.length > 1) { history.back(); return; }
+    if (ref && new URL(ref).origin === location.origin && new URL(ref).href !== here && !/\/(登录|login)\.html/.test(ref) && history.length > 1) {
+      let left = false;
+      window.addEventListener('pagehide', () => { left = true; }, { once: true });
+      history.back();
+      setTimeout(() => { if (!left && location.href === here) location.href = '/'; }, 250);
+      return;
+    }
   } catch {}
   location.href = '/';
 };
+/* 顶栏「← 返回」用事件委托绑定，避免 shell 重建后丢监听导致点了没反应 */
+document.addEventListener('click', e => { if (e.target.closest('#agBack')) { e.preventDefault(); window.agSmartBack(); } });
 
 /* 顶栏赛道选择 chips（= 我的智能体 / 平台公共赛道 切换；赛道变更/账号切换后重建）。
    点 chip → 切换当前赛道并进入该智能体；✕ 删自定义赛道；＋新增 → 首页新建流程。*/
