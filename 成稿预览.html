@@ -362,6 +362,11 @@
       <!-- ============ 公众号文章视图（gzh 时显示）============ -->
       <div id="gzhArticle" style="display:none;max-width:520px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-card)">
         <img id="gzhCover" style="display:none;width:100%;aspect-ratio:2.35/1;object-fit:cover" alt="首图" />
+        <div id="gzhCoverGen" style="display:none;aspect-ratio:2.35/1;background:repeating-linear-gradient(45deg,#f3efe7,#f3efe7 10px,#efe9df 10px,#efe9df 20px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:var(--ink-soft)">
+          <span style="font-size:12px">还没有首图（公众号横版 2.35:1）</span>
+          <button id="gzhGenBtn" class="btn-go rounded-xl px-5 py-2 text-[13px] font-medium">🎨 生成首图</button>
+          <span id="gzhGenStatus" style="font-size:11px"></span>
+        </div>
         <div style="padding:22px 22px 26px">
           <h1 id="gzhTitle" style="font-size:21px;font-weight:800;line-height:1.45;color:#1a1a1a"></h1>
           <div id="gzhMeta" style="font-size:13px;color:#9b958c;margin:11px 0 18px">朱砂·操盘台　·　今天</div>
@@ -510,7 +515,7 @@ function render(d){
   if (gzh) {
     $('#gzhTitle').textContent = d.title || (Array.isArray(d.cover_lines) ? d.cover_lines.join(' ') : '') || '';
     const cov = (d.coverImages || (d.coverImage ? [d.coverImage] : [])).find(u => typeof u === 'string' && (/^https?:\/\//.test(u) || u.startsWith('data:')));
-    if (cov) { loadImg($('#gzhCover'), cov); $('#gzhCover').style.display = 'block'; } else { $('#gzhCover').style.display = 'none'; }
+    if (cov) { loadImg($('#gzhCover'), cov); $('#gzhCover').style.display = 'block'; $('#gzhCoverGen').style.display = 'none'; } else { $('#gzhCover').style.display = 'none'; $('#gzhCoverGen').style.display = 'flex'; }
     const ps = Array.isArray(d.body) ? d.body : String(d.body || '').split(/\n{1,}/);
     $('#gzhBody').innerHTML = ps.map(p => String(p).trim()).filter(Boolean).map(t => /^#{1,3}\s+/.test(t) ? `<h3 style="font-size:17px;font-weight:800;margin:20px 0 8px;color:#1a1a1a">${mark(t.replace(/^#{1,3}\s+/, ''))}</h3>` : `<p style="margin:0 0 13px">${mark(t)}</p>`).join('');
     $('#gzhSummary').innerHTML = d.summary ? ('📄 摘要：' + mark(d.summary)) : '';
@@ -532,6 +537,29 @@ function render(d){
   else if(d.tags){ const ts = Array.isArray(d.tags)? d.tags : String(d.tags).split(/[\s,，]+/); $('#noteTags').innerHTML = ts.filter(Boolean).map(t=>`<span class="tagchip">${t.startsWith('#')?t:'#'+t}</span>`).join(''); }
   reveal();
 }
+
+// 公众号：当前草稿没有首图时，就地生成一张横版 2.35:1 首图（修「预览/自检没有首图」——对已生成的旧稿也能补）
+async function genGzhCoverNow(){
+  const btn=$('#gzhGenBtn'), st=$('#gzhGenStatus');
+  let d={}; try{ d=JSON.parse(localStorage.getItem('ag_draft')||'{}'); }catch{}
+  const visual=(d.cover && d.cover.visual) || d.topic || (d.title||'') || '公众号文章首图';
+  const prompt=`${visual}。微信公众号横版首图（2.35:1 宽幅），干净有设计感、主体居中、左右留白、真实质感、电影级柔光、4K 超清；画面不要出现任何文字。`;
+  if(btn){ btn.disabled=true; btn.textContent='生成中…'; } if(st){ st.textContent='约 30 秒…'; st.style.color='var(--ink-soft)'; }
+  async function once(){
+    const r=await fetch('/api/image',{method:'POST',signal:AbortSignal.timeout(170000),headers:{'content-type':'application/json'},body:JSON.stringify({provider:'gptimage',prompt,size:'1536x1024'})});
+    const tx=await r.text(); if(!r.ok) throw new Error((tx||'出图失败').slice(0,120));
+    let u=''; try{ u=JSON.parse(tx).data[0].url; }catch{} if(!u) throw new Error('上游无图'); return u;
+  }
+  try{
+    let u; try{ u=await once(); }catch(e1){ if(st) st.textContent='重试中…'; await new Promise(r=>setTimeout(r,1200)); u=await once(); }
+    const du=await urlToDataURL(u)||u;
+    d.coverImages=[du]; d.coverImage=du; d.coverCaptions=[{theme:'photo',raw:true}];
+    try{ localStorage.setItem('ag_draft',JSON.stringify(d)); }catch{}
+    render(d);
+    if(st){ st.textContent='✓ 已生成'; st.style.color='#00a152'; }
+  }catch(e){ if(st){ st.textContent='生成失败：'+(e.message||e); st.style.color='var(--cinnabar-deep)'; } if(btn){ btn.disabled=false; btn.textContent='🎨 重新生成首图'; } }
+}
+document.addEventListener('click', e=>{ if(e.target && e.target.id==='gzhGenBtn') genGzhCoverNow(); });
 
 const SAMPLE = {
   cover_lines:["跨考视觉传达","择校别踩这3个坑"],
