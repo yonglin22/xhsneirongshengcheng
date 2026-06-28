@@ -309,9 +309,9 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* ===== 手帐标注风（仅备忘录封面卡片 .is-tiezhan，不影响其它内页）=====
    ①数字方块小标题（CSS 计数器自动编号）②橙色波浪下划线（==）③红圈（@@）④⭐重点 */
 .cv-note.is-memo.is-tiezhan .cv-note-fit{ counter-reset: tzsec; }
-/* 数字方块用绝对定位（不依赖 flex）→ html2canvas 导出也不偏：左0、贴第一行顶部 */
-.cv-note.is-memo.is-tiezhan .nt-sec{ counter-increment: tzsec; position:relative; display:block; padding-left:6.8cqw; gap:0; font-size:4.3cqw; min-height:5cqw; line-height:1.25; }
-.cv-note.is-memo.is-tiezhan .nt-sec::before{ content:counter(tzsec); position:absolute; left:0; top:.1cqw; width:5cqw; height:5cqw; border-radius:1.3cqw; background:#ff7a1a; color:#fff; font-size:3.2cqw; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 .5cqw 1.4cqw rgba(255,122,26,.35); }
+/* 数字方块用「行内块 + 垂直居中」（不依赖 flex/绝对定位）→ 浏览器预览和 html2canvas 导出都与小标题文字稳定对齐 */
+.cv-note.is-memo.is-tiezhan .nt-sec{ counter-increment: tzsec; display:block; padding-left:0; gap:0; font-size:4.3cqw; line-height:1.5; }
+.cv-note.is-memo.is-tiezhan .nt-sec::before{ content:counter(tzsec); display:inline-block; vertical-align:middle; width:5cqw; height:5cqw; line-height:5cqw; text-align:center; margin-right:1.6cqw; margin-top:-.6cqw; border-radius:1.3cqw; background:#ff7a1a; color:#fff; font-size:3.2cqw; font-weight:900; box-shadow:0 .5cqw 1.4cqw rgba(255,122,26,.35); }
 .cv-note.is-memo.is-tiezhan .nt-sec .nt-dot{ display:none; }
 /* 橙色波浪下划线替代荧光块 */
 .cv-note.is-memo.is-tiezhan .hl{ background:none; color:inherit; padding:0 .1cqw .9cqw; border-radius:0; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6' viewBox='0 0 12 6'%3E%3Cpath d='M0 3 Q3 0 6 3 T12 3' fill='none' stroke='%23ff8a00' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat:repeat-x; background-position:0 100%; background-size:auto 1.4cqw; }
