@@ -743,9 +743,11 @@ async function urlToDataURL(u){
   if(!u) return null;
   if(u.startsWith('data:')) return u;
   const grab = async (url)=>{
-    const r = await fetch(url); if(!r.ok) throw 0;
-    const b = await r.blob();
-    return await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(b); });
+    const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),12000);
+    try{ const r = await fetch(url,{signal:ctl.signal}); if(!r.ok) throw 0;
+      const b = await r.blob();
+      return await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(b); });
+    } finally { clearTimeout(to); }
   };
   try{ return await grab('/api/img-proxy?u='+encodeURIComponent(u)); }
   catch{ try{ return await grab(u); }catch{ return null; } }
@@ -805,9 +807,18 @@ $('#exportBtn').addEventListener('click', async ()=>{
     const imgs = d.coverImages || (d.coverImage?[d.coverImage]:[]);
     // 逐张截轮播 slide（含叠字/标题、已裁水印），保证导出图=所见即所得
     const slides = $('#carTrack') ? [...$('#carTrack').children] : [];
+    // 导出前把轮播里的远程图内联成 data:（否则 html2canvas 会逐张等跨域图超时，5 张能卡 1 分钟+）
+    const slideImgs = $('#carTrack') ? [...$('#carTrack').querySelectorAll('img')] : [];
+    await Promise.allSettled(slideImgs.map(async im=>{
+      const src = im.getAttribute('src')||''; if(!src || src.startsWith('data:')) return;
+      const du = await urlToDataURL(im.dataset.direct || src); if(du) im.src=du;
+    }));
     const W=1080, H=Math.round(W*({'2:3':3/2,'3:4':4/3,'9:16':16/9}[window.__ratio||'3:4']||4/3)); // 1080P 竖版，高度随出图比例（2:3/3:4/9:16）
     for (let i=0; i<slides.length; i++){
-      const cv = await html2canvas(slides[i], { scale:3, useCORS:true, backgroundColor:'#ffffff' });
+      const cv = await Promise.race([
+        html2canvas(slides[i], { scale:3, useCORS:true, backgroundColor:'#ffffff', imageTimeout:8000 }),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('单张渲染超时')),20000))
+      ]);
       const oc = document.createElement('canvas'); oc.width=W; oc.height=H;
       const ctx=oc.getContext('2d'); ctx.imageSmoothingQuality='high'; ctx.drawImage(cv,0,0,W,H);
       const b = await new Promise(r=>oc.toBlob(r,'image/jpeg',0.9)); // 1080P JPEG，约 ~200KB
