@@ -295,6 +295,18 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 高亮改成饱满荧光笔：覆盖大半个字高（.66em）、上移到字身中部（.34em），更贴近真备忘录手写马克笔感 */
 /* 荧光带位置随收紧后的行距(1.4)重新对齐：盖在字身上、居中，不再偏高 */
 .cv-note.is-memo .hl{ background-size:100% .62em; background-position:0 .5em; padding:0 .12em; border-radius:.06em; }
+/* @@红圈@@ 标注：默认就是红字加粗（非手帐页温和降级） */
+.hl-circle{ color:#e0322d; font-weight:700; }
+/* ===== 手帐标注风（仅备忘录封面卡片 .is-tiezhan，不影响其它内页）=====
+   ①数字方块小标题（CSS 计数器自动编号）②橙色波浪下划线（==）③红圈（@@）④⭐重点 */
+.cv-note.is-memo.is-tiezhan .cv-note-fit{ counter-reset: tzsec; }
+.cv-note.is-memo.is-tiezhan .nt-sec{ counter-increment: tzsec; padding-left:0; align-items:center; gap:1.6cqw; font-size:4.3cqw; }
+.cv-note.is-memo.is-tiezhan .nt-sec::before{ content:counter(tzsec); flex:none; width:5cqw; height:5cqw; border-radius:1.3cqw; background:#ff7a1a; color:#fff; font-size:3.2cqw; font-weight:900; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 .5cqw 1.4cqw rgba(255,122,26,.35); }
+/* 橙色波浪下划线替代荧光块 */
+.cv-note.is-memo.is-tiezhan .hl{ background:none; color:inherit; padding:0 .1cqw .9cqw; border-radius:0; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6' viewBox='0 0 12 6'%3E%3Cpath d='M0 3 Q3 0 6 3 T12 3' fill='none' stroke='%23ff8a00' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat:repeat-x; background-position:0 100%; background-size:auto 1.4cqw; }
+/* 手画红圈强调 */
+.cv-note.is-memo.is-tiezhan .hl-circle{ position:relative; color:#e0322d; font-weight:800; padding:0 1.2cqw; white-space:nowrap; }
+.cv-note.is-memo.is-tiezhan .hl-circle::after{ content:""; position:absolute; left:-.4cqw; right:-.4cqw; top:-.9cqw; bottom:-.9cqw; border:.5cqw solid #e0322d; border-radius:50%; transform:rotate(-2.5deg); pointer-events:none; }
 /* 顶部：状态栏 + 导航栏。背景跟随纸面色（真 iOS 备忘录顶栏与纸面同色，白色顶栏一看就假）；底部加极淡分隔线 */
 .cv-note.is-memo .nt-ios-top{ position:absolute; top:0; left:0; right:0; z-index:4; background:var(--nt-bg,#fff); }
 .cv-note.is-memo .nt-ios-status{ position:relative; height:6cqw; padding:0 6cqw 0 7.5cqw; }

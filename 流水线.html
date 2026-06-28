@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=81" />
+<link rel="stylesheet" href="/assets/atelier.css?v=82" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -581,7 +581,10 @@ function capCardHTML(cap, isCover, coverFallback) {
 }
 function capTheme(cap) { return (cap && cap.theme === 'poster') ? 'poster' : 'photo'; }
 // 渲染封面+配图多图（每张都用干净叠字卡，文字不进图里 → 不再乱码）
+// 备忘录封面卡片（notePages[0]）标记为手帐标注风；其余内页清掉该标记（手帐风只对封面卡有效）
+function markCoverNote() { (state.notePages || []).forEach((p, i) => { if (p) { if (i === 0) p.tz = true; else if (p.tz) delete p.tz; } }); }
 function renderCoverImages() {
+  markCoverNote();
   const box = $('#imgWrap'); if (!box) return;
   const imgs = state.coverImages || (state.coverImage ? [state.coverImage] : []);
   if (!imgs.length) { box.innerHTML = ''; return; }
@@ -1124,7 +1127,8 @@ ${frameSrc || '（框架里没找到这张，先去跑 S3 并写清"配图规划
 ${coverMode ? `这是【备忘录开篇页】，像参考图第一页那样：大标题 + 开篇背景段 + 前 1~2 个小节，==密集写满整页==（不是稀疏的纯标题卡）。铁律：
 ${coverVisual ? '【S6 视觉建议（配色以这里为准：背景色/高亮色/主色都照它）】\n' + coverVisual + '\n' : ''}① title = ==直接采用上面 S3 框架·第1张「配图规划」里写的封面标题/文字原文==，与 S3 保持一致，**不要自创、不要改写**；仅当它超过 ==16 字== 才精简（核心说法不变）。可跟一句 t=meta 副标题。
 ② ==标题下必须写满内容，不许只放标题==：先写一段 t=p 开篇背景/钩子（如"🎯 我的情况：…"或"为什么…"，把人设/痛点/成果带出来）；再用 ==2~3 个 t=sec 小节==（每个 emoji 引导，如 📚一、… / ⏰二、…）展开前几块核心内容，每节配 t=p / t=ol 要点写具体（做法/数字/例子）；结尾可用 t=box 绿色 ✅ 总结框。
-③ ==写满到不少于 ${Math.round(notePageCap()*0.85)} 字、≤ ${notePageCap()} 字==，宁可多写也别留大片空白，像参考图那样密。重点名词/数字用 ==高亮== 包起来（每页 2~3 处）。
+③ ==写满到不少于 ${Math.round(notePageCap()*0.85)} 字、≤ ${notePageCap()} 字==，宁可多写也别留大片空白，像参考图那样密。
+③.1【手帐标注风（本封面卡专用）】：重点名词/数字用 ==高亮==（会显示成橙色波浪下划线，每页 3~5 处）；最关键的 1~2 个词用 @@词@@ 包起来（会显示成手画红圈，别滥用）；最核心的 1 句结论前加 ⭐ 强调。小节标题（t=sec）会自动带橙色数字方块编号，所以 sec 文字里**不用再手写"一、二、"序号**。
 ④ ==配色/版式优先按上面【配图风格库】，其次 S6 视觉建议，再次 S3「版式」==；转十六进制填 style：例"浅灰背景、暗红高亮"→ bg:"#ededed",hl:"#c0392b"；"浅蓝/米白背景、黄高亮"→ bg:"#eef3fb",hl:"#ffd54a"；"莫兰迪绿"→ bg:"#cdd6c4"；都没写→ bg:"#ffffff"。深色背景把 dark 设 true。
 ⑤ 注意：左右对比的"真实手绘图"这类**画面**画不了，开篇页**只承载文字部分**，画面留给「🎨 生成配图」。`
         : `铁律：
@@ -1419,7 +1423,7 @@ function noteCardHTML(page) {
     // 仿真 iPhone 备忘录截图：状态栏 + 黄色导航栏(日期居中) + 内容 + 底部工具栏 + Home条
     const nav = MEMO_NAV;
     const top = '<div class="nt-ios-top">' + MEMO_STATUS + nav + '</div>';
-    return `<div class="cv-note is-memo" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`;
+    return `<div class="cv-note is-memo${page && page.tz ? ' is-tiezhan' : ''}" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`;
   }
   return `<div class="cv-note${cover ? ' is-cover' : ''}" style="${noteStyleVars(page)}">${cover ? inner : `<div class="cv-note-fit">${inner}</div>`}</div>`;
 }

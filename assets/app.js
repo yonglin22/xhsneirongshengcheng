@@ -389,8 +389,9 @@ window.mark = function (t) {
     .replace(/<\s*\/?\s*(hl|mark)\s*>/gi, '');
   let s = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  s = s.replace(/@@(.+?)@@/g, '<span class="hl-circle">$1</span>'); // 红圈强调（手帐封面卡片里显示为手画红圈）
   s = s.replace(/==(.+?)==/g, '<span class="hl">$1</span>'); // 橙色高亮强调
-  s = s.replace(/={2,}/g, '').replace(/\*\*/g, ''); // 清掉 AI 截断/落单的标记残留（如末尾 ====、孤立 **）
+  s = s.replace(/={2,}/g, '').replace(/@@/g, '').replace(/\*\*/g, ''); // 清掉 AI 截断/落单的标记残留（如末尾 ====、孤立 @@/**）
   return s.replace(/需核实/g, '<span class="needverify">需核实</span>');
 };
 
