@@ -176,7 +176,11 @@
     }
   }
 
-  chrome.runtime.sendMessage({ type: 'getPayload' }, (resp) => {
-    if (resp && resp.payload) run(resp.payload);
+  // 取发布内容：优先读持久化存储（MV3 的 SW 可能已被回收，内存 payload 会丢），没有再问后台
+  let _ran = false;
+  function startWith(p) { if (_ran || !p) return; _ran = true; try { chrome.storage.local.remove('pendingPublish'); } catch (e) {} run(p); }
+  chrome.storage.local.get(['pendingPublish'], (st) => {
+    if (st && st.pendingPublish) { startWith(st.pendingPublish); return; }
+    chrome.runtime.sendMessage({ type: 'getPayload' }, (resp) => { if (resp && resp.payload) startWith(resp.payload); });
   });
 })();

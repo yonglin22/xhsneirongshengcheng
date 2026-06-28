@@ -294,13 +294,20 @@ async function xhsSearch(keyword, sort, type) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'publish') {
     pending = msg.payload || null;
-    chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/publish/publish?source=official', active: true });
+    // 同时落持久化存储：MV3 的 SW 可能在创作页加载完前被回收，内存 pending 会丢→改用 storage 兜底
+    chrome.storage.local.set({ pendingPublish: msg.payload || null }, () => {
+      chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/publish/publish?source=official', active: true });
+    });
     sendResponse({ ok: true, msg: '已打开小红书创作页，正在自动填充…完成后请在该页确认存草稿' });
     return true;
   }
   if (msg && msg.type === 'getPayload') {
-    sendResponse({ payload: pending });
-    pending = null; // 取走即清，避免误填
+    // 优先取持久化存储（跨 SW 重启不丢），没有再用内存 pending
+    chrome.storage.local.get(['pendingPublish'], (st) => {
+      const p = (st && st.pendingPublish) || pending || null;
+      pending = null; chrome.storage.local.remove('pendingPublish');
+      sendResponse({ payload: p });
+    });
     return true;
   }
   if (msg && msg.type === 'nurturePlan') {
@@ -540,7 +547,10 @@ async function zsPollContentDispatch() {
   if (!task || !task.payload) return;
   _zsContentBusy = true;
   try {
-    pending = Object.assign({}, task.payload, { _contentDispatchId: task.dispatchId });
+    const payload = Object.assign({}, task.payload, { _contentDispatchId: task.dispatchId });
+    pending = payload;
+    // 持久化兜底：SW 被回收后内存 pending 会丢，xhs.js 从 storage 取
+    await new Promise(res => chrome.storage.local.set({ pendingPublish: payload }, res));
     chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/publish/publish?source=official', active: false });
     setTimeout(() => { _zsContentBusy = false; }, 5 * 60000); // 兜底解锁
   } catch (e) { _zsContentBusy = false; }
