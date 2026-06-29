@@ -955,17 +955,8 @@ async function genCoverFromCvTpl(i) {
       const title = (((state.cover && state.cover.cover_lines) || []).filter(Boolean).join(' ')) || state.topic || '';
       const page = await planNotePage(idx >= 0 ? idx : 0, refVis, true, title, getTrack());
       if (!page || !((page.blocks || []).length)) throw new Error('没排出内容（先把 S3 框架里"配图规划·第1张封面"写清）');
-      // 海报式封面：文字直接「融进」AI 出的深色质感背景里（衬线大标题 + 烫金点缀 + 序号清单），真字零乱码、设计感强。
-      page.poster = true;
-      const _trk = (getTrack() && getTrack().name) ? getTrack().name : '';
-      page.posterKicker = _trk; // 顶部金色品牌/赛道行
-      try {
-        if (msg) msg.textContent = '出海报质感背景中…（约 30~60 秒）';
-        const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-        const bgPrompt = '一整张深色质感海报背景：深蓝/墨黑/暗棕等低明度高级底色做满幅，带细腻的星点/光晕/烟雾/纸张肌理或抽象几何光影，氛围沉静、有纵深、留白克制，整体偏暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('整体色调氛围贴近：' + aStyle + '。') : '') + '画面必须够暗、纹理高级，绝对不要出现任何文字、字迹、印刷字、字母、数字、假字或水印。';
-        const rb = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
-        const tb = await rb.text(); if (rb.ok) { let bu = ''; try { bu = JSON.parse(tb).data[0].url; } catch {} if (bu) { try { bu = await persistImgUrl(bu); } catch {} page.photoBg = bu; } }
-      } catch {}
+      // 长文笔记型对标 → 备忘录真字封面卡（现有默认）：1:1 复刻版式、内容换成我们的、真字零乱码。
+      page.memo = true;
       state.notePages = state.notePages || [];
       const ni = state.notePages.length; state.notePages.push(page);
       if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
@@ -976,7 +967,7 @@ async function genCoverFromCvTpl(i) {
       state.coverImages.splice(at0, 0, 'note://' + ni); state.coverCaptions.splice(at0, 0, null);
       if (!state.coverImage) state.coverImage = state.coverImages[0];
       persist(); renderCoverImages();
-      if (msg) { msg.textContent = '✓ 已出「海报版封面」（文字融进深色背景·真字零乱码，插在 AI 封面后，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
+      if (msg) { msg.textContent = '✓ 已出「备忘录真字封面卡」（按对标版式·内容换成我们的·零乱码，插在 AI 封面后，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
     } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
     return;
   }
@@ -1006,29 +997,32 @@ async function genCoverFromCvTpl(i) {
   }
   try {
     let u; try { u = await once(); } catch (e1) { if (msg) { msg.textContent = '出图超时，重试中…'; } await new Promise(r => setTimeout(r, 1200)); u = await once(); }
-    // 关键改法：不再是「照片 + 叠一个标题卡」。把 i2i 复刻的实拍画面当背景，叠上「海报版」真字排版
-    //（衬线大标题 + 烫金点缀 + 序号清单）→ 文字真正融进照片里，跟你批过的海报版同款，只是背景换成复刻的实拍画面。
-    if (msg) { msg.textContent = '叠海报版真字排版中…'; }
-    let bg = u; try { bg = await persistImgUrl(u); } catch {}
-    const idx2 = (state.refImages || []).indexOf(tp.url);
-    const refVis2 = (state.refVisions || [])[idx2 >= 0 ? idx2 : 0] || '';
-    const page = await planNotePage(idx2 >= 0 ? idx2 : 0, refVis2, true, (lines.join(' ') || topic || state.topic), getTrack());
-    page.poster = true;            // 海报版排版（衬线大标题/烫金/序号清单）
-    page.photoBg = bg;             // 背景 = i2i 复刻的实拍画面
-    page.posterLight = true;       // 实拍照片偏亮 → is-photo 更厚蒙版保证真字可读
-    page.posterKicker = (getTrack() && getTrack().name) ? getTrack().name : '';
-    state.notePages = state.notePages || [];
-    const ni = state.notePages.length; state.notePages.push(page);
     if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
     state.coverCaptions = state.coverCaptions || [];
-    while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null);
+    while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null); // 对齐长度
+    // i2i 复刻对标实拍画面 + 叠上我们的内容（真字层，不糊）。文案优先取提示词里「…」/引号里的那段（就是我们的内容）。
+    let pCopy = '';
+    try {
+      const cands = [...String(tp.prompt || '').matchAll(/「([^」]{4,80})」/g), ...String(tp.prompt || '').matchAll(/[“"]([^”"]{4,80})[”"]/g)].map(x => x[1]);
+      pCopy = cands.sort((a, b) => b.length - a.length)[0] || '';
+    } catch {}
+    let cap0;
+    if (pCopy) {
+      const k = pCopy.search(/[？！。]/);
+      const ttl = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(0, k + 1).trim() : pCopy;
+      const sub = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(k + 1).trim() : '';
+      cap0 = { title: ttl, lines: sub ? [sub] : [], layout: '封面', theme: 'photo' }; // photo 主题=细腻叠字，非大标题卡
+    } else {
+      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'photo' }
+        : { title: (topic || state.topic || '').slice(0, 20), lines: [], layout: '封面', theme: 'photo' };
+    }
     const first = state.coverImages[0] || '';
     const at = (/^https?:\/\//.test(first) || first.startsWith('data:')) ? 1 : 0;
-    state.coverImages.splice(at, 0, 'note://' + ni); state.coverCaptions.splice(at, 0, null);
+    state.coverImages.splice(at, 0, u); state.coverCaptions.splice(at, 0, cap0);
     if (!state.coverImage) state.coverImage = state.coverImages[0];
     persist();
     renderCoverImages();
-    if (msg) { msg.textContent = '✓ 已出「海报版封面」：复刻对标实拍画面 + 内容真字融进照片里（零乱码，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
+    if (msg) { msg.textContent = '✓ 已按对标画面 i2i 复刻一张 + 叠上我们的内容真字（不糊；可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
   } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
 }
 // AI 封面叠字（来自 S3 第一张/封面文案）：标题+要点，poster 主题=玻璃底板白字
@@ -1420,14 +1414,9 @@ async function generateCoverImagesCore(n) {
             ? (p.textHeavy ? ((sref && sref.url) || '') : (refPhoto || (sref && sref.url) || ''))
             : ((sref && sref.url) || (p.textHeavy ? '' : refPhoto));
           if (setMode === 'replica') {
-            // replica：出「复刻画面」当背景 + 叠「海报版」真字排版（文字融进照片里，非标题卡）→ 跟「出封面」同款、整套统一
-            let bg = await genImageFromPlan({ theme: 'photo', scene: plan.scene, layout: plan.layout }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
-            if (bg) {
-              try { bg = await persistImgUrl(bg); } catch {}
-              const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
-              if (page) { page.poster = true; page.photoBg = bg; page.posterLight = true; page.posterKicker = (t && t.name) ? t.name : ''; }
-              results[p.i] = { kind: 'note', page };
-            }
+            // replica：i2i 1:1 复刻对标画面，叠上我们的内容（真字层，不糊）。细腻文案，非大标题卡、非海报。
+            const u = await genImageFromPlan({ theme: 'photo', scene: plan.scene, layout: plan.layout }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
+            if (u) results[p.i] = { kind: 'photo', url: u, caption: replicaCaption(p.i, plan, coverTitle) };
           } else if (!initImg) {
             const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
             results[p.i] = { kind: 'note', page };
