@@ -2648,6 +2648,60 @@ function enforceCopyLimits(st) {
 
 // 隐形「降AI味」二次改写：正文生成后自动跑一遍，把最容易被检测判 AI 的写法压掉（用户无感）。
 // 实测证据：编号清单/分点排比/比喻/金句/对仗/提问+短答 最像 AI；连续口语+第一人称经历+琐碎具体细节 最像人。
+// ===== 降 AI 味 · 闭环「人写化」=====
+// 可选外部服务（在浏览器控制台执行 localStorage.setItem 写入即生效，VPS 那台机能访问的域名才行）：
+//  ① 专用降AI改写API：localStorage.ag_humanizer = '{"url":"https://你的降AI服务/api","key":"xxx","field":"text","respPath":"data.output"}'
+//  ② AI检测打分API ：localStorage.ag_aidetect  = '{"url":"https://检测服务/api","key":"xxx","field":"text","humanPath":"human_score"}'  // 返回 0~100 或 0~1 的人类率
+// 两个都没配也能跑（走自建二次扰动改写）；配了检测API就会自动闭环改到 ≥97% 再放行。
+function _humCfg(k) { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch { return null; } }
+function _humDig(o, path) { try { return path.split('.').reduce((a, c) => (a == null ? a : a[c]), o); } catch { return undefined; } }
+async function humanizeViaApi(text) {
+  const c = _humCfg('ag_humanizer'); if (!c || !c.url) return '';
+  try {
+    const body = Object.assign({}, c.extra || {}); body[c.field || 'text'] = text;
+    const r = await fetch(c.url, { method: 'POST', signal: AbortSignal.timeout(120000), headers: Object.assign({ 'content-type': 'application/json' }, c.key ? { authorization: 'Bearer ' + c.key } : {}), body: JSON.stringify(body) });
+    if (!r.ok) return ''; const j = await r.json();
+    const out = c.respPath ? _humDig(j, c.respPath) : (j.output || j.text || j.result || j.data || '');
+    return (typeof out === 'string' && out.trim().length > text.length * 0.4) ? out.trim() : '';
+  } catch { return ''; }
+}
+async function aiHumanScore(text) {
+  const c = _humCfg('ag_aidetect'); if (!c || !c.url) return null;
+  try {
+    const body = Object.assign({}, c.extra || {}); body[c.field || 'text'] = text;
+    const r = await fetch(c.url, { method: 'POST', signal: AbortSignal.timeout(60000), headers: Object.assign({ 'content-type': 'application/json' }, c.key ? { authorization: 'Bearer ' + c.key } : {}), body: JSON.stringify(body) });
+    if (!r.ok) return null; const j = await r.json();
+    let s = c.humanPath ? _humDig(j, c.humanPath) : (j.human_score ?? j.human ?? j.humanProbability);
+    if (s == null) return null; s = +s; if (s <= 1) s *= 100; return s;
+  } catch { return null; }
+}
+// 一轮"人写化扰动"：路线A(专用降AI服务)优先；否则路线B(二次扰动改写：极端突发性+去AI铁征+真人跑题)
+async function humanizeOnce(text, gzh) {
+  const api = await humanizeViaApi(text); if (api) return api;
+  const p = `下面这段是${gzh ? '公众号' : '小红书'}正文，已经改写过但 GPTZero 仍判 AI。再做一轮"人写化扰动"，目标让检测器判人类(人类率≥97%)：
+- 句子长短极端化：故意一两句拖很长很啰嗦(带口头语)，紧接着来一句四五个字的短句；绝不让句子长短均匀(这是检测器最看的"突发性")。
+- 彻底打散任何对称/排比/工整结构，宁可写得不齐、略口语啰嗦。
+- 加 1~2 处真人小跑题或自我更正(如"欸不对""我想想""怎么说呢"…)再自然拉回。
+- 删掉所有文案腔/AI 口头禅(说白了/划重点/不夸张地说/本质上/记住X不是Y而是Z/讲人话就是)。
+- 保留全部事实信息与大意，字数相近，不加任何联系方式，硬信息保留「需核实」。
+只输出改写后的纯文本(段落用空行分隔)，不要解释、不要JSON、不要任何列表/编号/小标题符号。
+原文：
+${text}`;
+  try { const out = await callClaude({ prompt: p, model: $('#model').value, max_tokens: gzh ? 3400 : 1800, action: 'deai' }); const s = String(out || '').replace(/^```[\s\S]*?\n|```$/g, '').trim(); if (s.length > text.length * 0.4) return s; } catch {}
+  return text;
+}
+// 闭环：反复人写化直到检测达标(配了检测API)；没配检测API就多扰动一轮即止
+async function humanizeLoop(text, gzh, setMsg) {
+  let body = text, score = await aiHumanScore(body), tries = 0;
+  while ((score == null && tries < 1) || (score != null && score < 97 && tries < 3)) {
+    if (setMsg) setMsg('正在深度人写化' + (score != null ? '（当前人类率 ' + Math.round(score) + '%，目标≥97%）' : '') + '…');
+    const h = await humanizeOnce(body, gzh);
+    if (h && h.length > body.length * 0.4) body = h;
+    tries++;
+    score = await aiHumanScore(body);
+  }
+  return { body, score };
+}
 async function deAiRewrite(state) {
   const gzh = isGzh();
   const bodyText = (state.body || []).join('\n\n').trim();
@@ -2680,6 +2734,17 @@ ${JSON.stringify(titles)}`;
       state.titles = j.titles.filter(Boolean);
       if (!state.titles.includes(state.best)) state.best = state.titles[0];
     }
+    // 第二阶段：闭环「人写化」——在结构化重写之上再做突发性扰动，配了检测API则改到人类率≥97%再放行
+    try {
+      const joined = (state.body || []).join('\n\n').trim();
+      if (joined.length >= 40) {
+        const { body: hb, score } = await humanizeLoop(joined, gzh, m => setAuto && setAuto(m));
+        if (hb && hb.length > joined.length * 0.4) {
+          state.body = hb.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+        }
+        if (score != null) setAuto && setAuto(score >= 97 ? ('✓ 已降到人类率 ' + Math.round(score) + '%') : ('人类率 ' + Math.round(score) + '%（已尽力扰动，建议手动微调几句最像AI的）'));
+      }
+    } catch (e) {}
     if (!gzh) enforceCopyLimits(state);
   } catch (e) {}
 }
