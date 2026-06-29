@@ -406,6 +406,17 @@ const $ = s => document.querySelector(s);
 const getTrack = () => (window.TRACKS && (TRACKS[localStorage.getItem('ag_track')] || TRACKS[(window.TRACK_ORDER||[])[0]])) || null;
 const TK = getTrack();
 const PERSONA = (TK && TK.persona) || '你是资深小红书内容操盘手，第一人称真人感、绝不AI腔；原创不洗稿、不绝对化、不做效果保证、不站外导流、不确定标「需核实」。';
+// 真人感铁律（与流水线一致）：根治被平台判 AI 限流，目标 GPTZero 人类率≥97%
+const HUMANIZE = `
+【真人感铁律 · 务必逐条照做，否则会被平台判 AI 生成、严重限流】
+像真人跟朋友唠嗑，不是写说明书：
+1. 多用比喻/打比方/具象大白话（如"脑子还是一团浆糊""像啃硬骨头"）——AI 几乎不用，每段至少一处。
+2. 句子承上启下连成一股气：用"所以/但/其实/说白了/你会发现/问题就出在/换句话说"勾连前后句，别一句一个孤立意思。
+3. 句子长短交错：长句夹短句，偶尔三五字单独成句（"就这么简单。""别不信。"）。
+4. 真实第一人称经历（"我当年""我带过的学生""踩过的坑"），带具体细节。
+5. 适度口语与语气词（"对吧""说真的"），可用破折号——、省略号……。
+6. 禁止 AI 腔："首先/其次/最后/综上所述/总而言之/不仅…而且…/值得注意的是"，不要通篇对称排比。
+7. emoji 克制。目标：GPTZero 判"高度确信出自人类之手"（≥97%）。`;
 if (TK) { const an = document.getElementById('authorName'); if (an) an.textContent = (TK.placeholders.persona.split('/')[0] || TK.name).trim(); }
 
 // restore
@@ -591,7 +602,7 @@ $('#genBtn').addEventListener('click', async ()=>{
 【选题】${topic}
 【这篇目的】${goal}
 ${ref? '【对标结构骨架/信息点】'+ref : ''}
-
+${HUMANIZE}
 要求：
 - 正文：开头前3行必须是钩子不铺垫；分点/分段、口语、emoji 适度；信息真实，凡涉及${TK?TK.hardInfo:'政策/数据'}等硬信息一律写「需核实」；结尾一句合规互动引导，不留任何联系方式。
 - 标题：≤20字、带钩子、不绝对化、不做效果/结果保证。
