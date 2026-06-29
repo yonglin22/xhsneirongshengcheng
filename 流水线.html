@@ -927,7 +927,7 @@ function renderCvTpls() {
         <textarea class="cvtpl-prompt field rounded-lg px-2.5 py-1.5 text-[12px] leading-relaxed" data-i="${i}" rows="4" style="resize:vertical">${esc(tp.prompt)}</textarea>
         <div class="flex items-center gap-2 flex-wrap">
           <button class="cvtpl-copy rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper-2);color:var(--ink);cursor:pointer">📋 复制提示词</button>
-          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer">🎨 出封面（替换封面位）</button>
+          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer">🎨 按提示词出封面（新增一张）</button>
           <span class="cvtpl-msg text-[11px]" data-i="${i}"></span>
         </div>
       </div>
@@ -944,38 +944,32 @@ async function genCoverFromCvTpl(i) {
   const a = loadCvTpls(); const tp = a[i]; if (!tp) return;
   const msg = document.querySelector('.cvtpl-msg[data-i="' + i + '"]');
   const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
-  // 关键修正：对标多是“密集文字笔记”，若把它的解析文字直接喂给画图模型 + 强行“无文字”，模型会画出一堆模仿排版的糊假字（就是之前那张鬼图）。
-  // 改为：按【主题】出一张纯视觉封面背景，只从对标借“配色/氛围”，明确禁止画文字/笔记/信息图/排版栏。
-  const topic = (state.topic || lines[0] || '美术考研').replace(/[（(].*$/, '').slice(0, 40);
-  const titleHint = '生成一张【纯视觉小红书封面背景图】（不是信息图、不是笔记截图、不是文字排版！画面里绝对不能出现任何文字、汉字、字母、数字、假字或排版栏）。主题：「' + topic + '」——用与主题相关的精致实拍或高级插画场景（如书桌书本、画材静物、相关物件、光影氛围），整图铺满质感与细节、构图有主体、色彩高级，绝不能纯色或大面积留白；上半部留一块柔和明亮但仍带背景纹理的区域，方便后期叠加标题。';
+  const topic = (state.topic || lines[0] || '').replace(/[（(].*$/, '').slice(0, 40);
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-  // 只截取对标解析里关于颜色/风格的提示当“配色参考”，不复制其内容
-  const colorRef = String(tp.prompt || '').replace(/\s+/g, '').slice(0, 120);
-  const prompt = titleHint + (colorRef ? '仅参考其配色与整体氛围（不要复制其中任何文字或信息排版）：' + colorRef + '。' : '') + (aStyle ? '整体画风贴近：' + aStyle + '。' : '') + '小红书竖版封面 ' + ratioWord() + '，商业摄影或高级插画质感、色彩饱满有氛围、主体清晰、细节精致，整图铺满，高清，无任何文字。';
+  // 直接用「解析对标封面」得到的(可编辑)提示词生图：保留对标的构图/版式/配色，主体内容换成本篇主题。
+  // 占位符 {主体}/{主题}/{王体} 等 → 本篇主题；末尾统一加「无文字」与比例约束（标题后期叠加）。
+  let base = String(tp.prompt || '').trim();
+  base = base.replace(/[{｛][^}｝]*[}｝]/g, topic || '主体');
+  const prompt = base
+    + (topic ? '。严格按上面描述的构图/版式/配色来画，画面主体内容围绕「' + topic + '」' : '')
+    + (aStyle ? '，画风贴近：' + aStyle : '')
+    + '。画面里绝对不要出现任何文字、汉字、字母、数字、假字或水印（标题区留白，后期叠字）。' + ratioWord() + '，高清、细节精致、整图铺满。';
   if (msg) { msg.textContent = '出图中…（约 30~60 秒）'; msg.style.color = 'var(--ink-soft)'; }
   try {
-    // 关键：不传 init_image。对标封面多是文字密集的笔记图，拿它当参考再要求「无文字」会被模型擦成白图 →
-    // 改为纯文生图（提示词里已含版式描述），出真正的设计封面。
     const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, action: 'cover', size: ratioSize() }) });
     const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
     if (!u) throw new Error('上游无图');
-    // 「出封面」= AI 图占封面位（index 0）。原封面位若是备忘录/模板卡(note:// / ctpl://) → 把它挪到第二张保留，不删；
-    // 若封面位已经是上一张 AI 封面图(http/data) → 直接替换它，避免反复点击无限堆叠。
+    // 「出封面」= 在图列表里【新增一张】（不替换封面位），原封面与其它配图都保留；用户可在图列表点「⇄ 换封面」选用。
     if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
     state.coverCaptions = state.coverCaptions || [];
+    while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null); // 对齐长度
     const cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : { raw: true };
-    const first = state.coverImages[0] || '';
-    const firstIsAiImg = /^https?:\/\//.test(first) || first.startsWith('data:');
-    if (!state.coverImages.length || firstIsAiImg) {
-      state.coverImages[0] = u; state.coverCaptions[0] = cap0;        // 空 / 已是 AI 图 → 替换封面位
-    } else {
-      state.coverImages.unshift(u); state.coverCaptions.unshift(cap0); // 备忘录/模板封面卡 → 卡片挪到第二张，两张都保留
-    }
-    state.coverImage = state.coverImages[0];
+    state.coverImages.push(u); state.coverCaptions.push(cap0); // 追加到末尾
+    if (!state.coverImage) state.coverImage = state.coverImages[0];
     persist();
     renderCoverImages();
-    if (msg) { msg.textContent = lines.length ? '✓ 已生成（AI 背景 + 标题叠字）' : '✓ 已生成（无封面文案，纯图）'; msg.style.color = '#00a052'; }
+    if (msg) { msg.textContent = '✓ 已新增一张封面图（在下方图列表，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
   } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
 }
 // AI 封面叠字（来自 S3 第一张/封面文案）：标题+要点，poster 主题=玻璃底板白字
