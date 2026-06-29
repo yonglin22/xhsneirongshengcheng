@@ -965,14 +965,8 @@ async function genCoverFromCvTpl(i) {
         if (j.en) page.posterEn = String(j.en).slice(0, 60);
         if (j.quote) page.posterQuote = '“' + String(j.quote).replace(/^[“"]|[”"]$/g, '').slice(0, 22) + '”';
       } catch {}
-      // 深海军蓝星夜质感背景（AI 出图，纯背景无文字）
-      try {
-        if (msg) msg.textContent = '出深蓝星夜质感背景中…（约 30~60 秒）';
-        const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-        const bgPrompt = '一整张酒红/暗紫色质感海报背景：勃艮第酒红、暗梅紫、深栗色做满幅，带梵高式的油画旋涡笔触肌理、细腻金色星点、柔和暖金光晕，氛围浓郁高级、有纵深、整体偏暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('色调氛围可贴近：' + aStyle + '。') : '') + '画面必须够暗、纹理高级，绝对不要出现任何文字、字迹、字母、数字、假字或水印。';
-        const rb = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
-        const tb = await rb.text(); if (rb.ok) { let bu = ''; try { bu = JSON.parse(tb).data[0].url; } catch {} if (bu) { try { bu = await persistImgUrl(bu); } catch {} page.photoBg = bu; } }
-      } catch {}
+      // 酒红暗紫质感背景（AI 出图，纯背景无文字）——与实拍套路海报内页同款
+      try { const bu = await genPosterBg(m => { if (msg) msg.textContent = m; }); if (bu) page.photoBg = bu; } catch {}
       state.notePages = state.notePages || [];
       const ni = state.notePages.length; state.notePages.push(page);
       if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
@@ -1070,6 +1064,21 @@ async function genAiCoverUrl(setStatus) {
       let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
       if (u) return u;
     } catch { if (attempt >= 3) return ''; }
+  }
+  return '';
+}
+// 海报版背景：生成一张干净的酒红/暗紫质感底（纯背景无文字），返回短链 URL（失败返回 ''）。供「出封面」与实拍套路海报内页共用。
+async function genPosterBg(setStatus) {
+  const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+  const bgPrompt = '一整张酒红/暗紫色质感海报背景：勃艮第酒红、暗梅紫、深栗色做满幅，带梵高式的油画旋涡笔触肌理、细腻金色星点、柔和暖金光晕，氛围浓郁高级、有纵深、整体偏暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('色调氛围可贴近：' + aStyle + '。') : '') + '画面必须够暗、纹理高级，绝对不要出现任何文字、字迹、字母、数字、假字或水印。';
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      if (setStatus) setStatus('出酒红暗紫海报背景中…（约 30~60 秒）');
+      const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
+      const tx = await r.text(); if (!r.ok) { if (attempt < 2) continue; return ''; }
+      let u = ''; try { u = JSON.parse(tx).data[0].url; } catch {}
+      if (u) { try { u = await persistImgUrl(u); } catch {} return u; }
+    } catch { if (attempt >= 2) return ''; }
   }
   return '';
 }
@@ -1413,6 +1422,9 @@ async function generateCoverImagesCore(n) {
     let _seq = 0; planned.forEach(p => { if (!p.isNote) p.photoIdx = _seq++; }); // 实拍图编号，超体验期上限的跳过
     const results = new Array(refSet.length).fill(null);
     let done = 0; const total = planned.length;
+    // 实拍套路：全套海报内页共用一张干净的酒红暗紫海报底（出一次即可，省时省钱、风格统一）
+    let posterBg = '';
+    if (setMode === 'replica') { try { posterBg = await genPosterBg(typeof setAuto === 'function' ? setAuto : null); } catch {} }
     const runOne = async (p) => {
       try {
         if (typeof autoGate === 'function') await autoGate(); // 暂停闸：暂停时不再开新图，已在跑的跑完
@@ -1420,21 +1432,13 @@ async function generateCoverImagesCore(n) {
           const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
           if (page) page.memo = true; // 一键生成全套：长图笔记默认醇备忘录真字风
           results[p.i] = { kind: 'note', page };
+        } else if (setMode === 'replica') {
+          // 实拍套路 → 海报版内页：不再 i2i 复刻实拍（背景常出丑/发暗/跑题），统一用干净的酒红暗紫海报底（全套共用一张、又快又稳），叠我们的内容真字。海报是 CSS 真字、不算计费配图，不受体验期张数上限限制。
+          const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
+          if (page) { page.poster = true; if (posterBg) page.photoBg = posterBg; page.posterKicker = (t && t.name) ? t.name : '缪斯拾光'; }
+          results[p.i] = { kind: 'note', page };
         } else if (p.photoIdx < imgCap) {
-          if (setMode === 'replica') {
-            // 提速：replica 不再跑 planOneImage（省一次 AI 调用）。直接拿对标原图 i2i 复刻当背景 + planNotePage 出海报真字。
-            // 文字截图那张不 i2i（中文会糊）→ 用风格库垫图兜底。
-            const refPhoto = (state.refImages || [])[p.i] || '';
-            const sref = (typeof pickStyleRef === 'function') ? pickStyleRef({ scene: coverTitle, layout: '封面', title: coverTitle }) : null;
-            const initImg = p.textHeavy ? ((sref && sref.url) || '') : (refPhoto || (sref && sref.url) || '');
-            let bg = await genImageFromPlan({ theme: 'photo', scene: '严格保留参考图的构图、主体、视角、光影与配色，真实质感、高级、画面里不要出现任何文字', layout: '封面' }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
-            if (bg) {
-              try { bg = await persistImgUrl(bg); } catch {}
-              const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
-              if (page) { page.poster = true; page.photoBg = bg; page.posterLight = true; page.posterKicker = (t && t.name) ? t.name : '缪斯拾光'; }
-              results[p.i] = { kind: 'note', page };
-            }
-          } else {
+          {
             const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
             const sref = pickStyleRef(plan);
             const refPhoto = (state.refImages || [])[p.i] || '';
