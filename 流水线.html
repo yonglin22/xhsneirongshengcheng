@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=92" />
+<link rel="stylesheet" href="/assets/atelier.css?v=93" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -1438,7 +1438,8 @@ function noteWeight(blocks) {
 }
 // 单页内容容量随比例走：9:16 长竖屏装得更多（更密、像参考图的长图干货笔记），少拆页
 // 每页字数上限＝按画框高度估的"写满量"。2:3 比 3:4 更高更长 → 应更大（之前 2:3=220 反而最小，导致页面很空）。整体上调让内容填满、不留大片空白。
-function notePageCap() { return ({ '2:3': 400, '3:4': 340, '9:16': 480 })[curRatio()] || 340; }
+// 每页容量适当下调 → 单页内容少一点、自适应少缩放 → 正文字号更大更清晰（用户反馈"内页字太小"）
+function notePageCap() { return ({ '2:3': 350, '3:4': 295, '9:16': 420 })[curRatio()] || 295; }
 const NOTE_PAGE_CAP = 300; // 兜底常量（splitHeavyPage 实际用 notePageCap()）
 // 太重的页 → 在块边界拆成多页（第二页起加"（续）"小标题）。封面不拆。
 function splitHeavyPage(page) {
@@ -1615,8 +1616,8 @@ async function resplitTooSmallNotes(st) {
     box.querySelectorAll('.cv-frame[data-note]').forEach(fr => {
       const idx = +fr.getAttribute('data-note'); const note = fr.querySelector('.cv-note'); if (!note || isNaN(idx)) return;
       const s = parseFloat(note.dataset.fitScale || '1'); const page = (state.notePages || [])[idx];
-      // 只在「严重溢出」(缩到 <0.6) 才拆，避免把刚装满(85%下限)的页又拆成两个半空页
-      if (s < 0.6 && page && !isCoverPage(page) && (page.blocks || []).length >= 3) toSplit.add(idx);
+      // 缩到 <0.72 就拆（之前 0.6 太宽松，导致页面被缩很小、正文字太小）→ 拆开后每页更松、字更大
+      if (s < 0.72 && page && !isCoverPage(page) && (page.blocks || []).length >= 3) toSplit.add(idx);
     });
     if (!toSplit.size) return;
     const np = []; (state.notePages || []).forEach((p, i) => { if (toSplit.has(i)) splitPageInTwo(p).forEach(x => np.push(x)); else np.push(p); });

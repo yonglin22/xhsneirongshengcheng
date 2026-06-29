@@ -287,14 +287,14 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 小节标题：emoji 引导、加粗，但比之前小一档，贴近参考图分节标题 */
 .cv-note.is-memo .nt-sec{ font-size:4.1cqw; font-weight:800; color:#1c1c1e; margin:1.6cqw 0 .9cqw; gap:1.1cqw; }
 /* 正文/列表统一缩到 3.35cqw、行距收紧，密度对齐参考图 */
-.cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ font-size:3.35cqw; line-height:1.4; }
+.cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ font-size:3.7cqw; line-height:1.42; }
 .cv-note.is-memo .nt-p{ margin:.7cqw 0; }
 .cv-note.is-memo .nt-ol li{ margin:.8cqw 0; }
 /* 编号圆圈跟随缩小并与首行 ✅/文字垂直居中（按行高居中算 margin） */
 /* 备忘录：序号圈绝对定位（左0、按首行行高居中），文字左缩进留出序号位；跨平台 + html2canvas 缩放导出都不偏 */
 .cv-note.is-memo .nt-ol li{ padding-left:6.4cqw; }
 .cv-note.is-memo .nt-num{ width:4.5cqw; height:4.5cqw; top:.1cqw; }
-.cv-note.is-memo .nt-box-li{ font-size:3.35cqw; }
+.cv-note.is-memo .nt-box-li{ font-size:3.7cqw; }
 .cv-note.is-memo .nt-p{ margin:.8cqw 0; line-height:1.45; }
 .cv-note.is-memo .nt-sec .nt-dot{ display:none; }
 /* 小节之间细虚线分隔（对齐参考图：灰蓝色横虚线，是这类干货长图最显眼的特征）；首个标题前不画 */
