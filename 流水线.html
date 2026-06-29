@@ -1021,18 +1021,19 @@ async function genCoverFromCvTpl(i) {
       const k = pCopy.search(/[？！。]/);
       const ttl = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(0, k + 1).trim() : pCopy;
       const sub = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(k + 1).trim() : '';
-      cap0 = { title: ttl, lines: sub ? [sub] : [], layout: '封面', theme: 'poster' };
+      // 实拍 i2i 复刻 → 用 photo 主题（文案细腻融在画面上，跟对标同调），不要大标题卡(=AI封面那种叠字)
+      cap0 = { title: ttl, lines: sub ? [sub] : [], layout: '封面', theme: 'photo' };
     } else {
-      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : (typeof aiCoverCaption === 'function' ? aiCoverCaption() : { raw: true });
+      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'photo' } : { raw: true }; // 没提取到文案 → 干脆不叠字，纯复刻画面
     }
     const first = state.coverImages[0] || '';
     const firstIsImg = /^https?:\/\//.test(first) || first.startsWith('data:'); // 第一张是 AI 封面图 → 插它后面(index1)；否则放最前
     const at = firstIsImg ? 1 : 0;
-    state.coverImages.splice(at, 0, u); state.coverCaptions.splice(at, 0, cap0); // 叠标题，与 AI 封面同款
+    state.coverImages.splice(at, 0, u); state.coverCaptions.splice(at, 0, cap0); // 1:1 复刻对标画面，文案细腻融图
     if (!state.coverImage) state.coverImage = state.coverImages[0];
     persist();
     renderCoverImages();
-    if (msg) { msg.textContent = '✓ 已在 AI 封面后插入一张按提示词出的图（可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
+    if (msg) { msg.textContent = '✓ 已按对标画面 i2i 复刻一张（文案细腻融在画面上，非大标题叠字；可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
   } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
 }
 // AI 封面叠字（来自 S3 第一张/封面文案）：标题+要点，poster 主题=玻璃底板白字
@@ -1153,11 +1154,19 @@ function isTextHeavyRef(refVis) {
   const v = refVis || '';
   const textPart = (v.match(/【文字】([\s\S]*?)(?:【|$)/) || [])[1] || '';
   const layoutPart = (v.match(/【版式】([\s\S]*?)(?:【|$)/) || [])[1] || '';
+  const scenePart = (v.match(/【画面】([\s\S]*?)(?:【|$)/) || [])[1] || '';
   const cleanLen = textPart.replace(/[\s\/无文字。，、]/g, '').length;
   if (/无文字/.test(textPart) || cleanLen < 6) return false;                 // 几乎没字 → 实拍照片
-  if (/清单|编号|对比|列表|数据|导图|思维导图|要点|表格|步骤/.test(layoutPart)) return true; // 版式即文字排版
-  if (/[①②③④⑤]/.test(textPart)) return true;
-  return cleanLen >= 12;                                                       // 字多 → 文字密集
+  // 实拍场景线索：画面像真实拍摄（哪怕配了一句英文/中文文案）→ 当实拍，走 i2i 复刻，不当文字笔记图
+  const realScene = /实拍|实物|拍摄|摆拍|拍照|场景|桌面|书桌|台面|背景|光线|逆光|自然光|阳光|窗|特写|俯拍|平铺|手持|手部|穿搭|人物|模特|绿植|花|咖啡|静物|布艺|针织|盘|首饰|饰品|手链|项链|戒指|耳环|产品|实景|生活照|室内|户外|质感照/.test(scenePart);
+  // 文字排版/截图线索：白底纯色的干货排版、聊天/笔记截图、信息图
+  const textCanvas = /白底|纯色背景|截图|聊天|对话|备忘录|信息图|海报排版|文字排版|清单图|纯文字|表格图/.test(scenePart + layoutPart);
+  const enumCount = (textPart.match(/[①②③④⑤⑥⑦⑧⑨⑩]/g) || []).length;
+  if (enumCount >= 3) return true;                                            // 3 条以上编号 → 文字清单图
+  if (textCanvas && /清单|编号|列表|数据|导图|思维导图|要点|表格|步骤/.test(layoutPart)) return true; // 白底干货排版
+  if (realScene) return false;                                               // 真实拍摄场景 → 实拍（即使带文案）
+  if (/清单|编号|列表|数据|导图|思维导图|要点|表格|步骤/.test(layoutPart)) return true; // 没场景线索时，纯排版版式 → 文字图
+  return cleanLen >= 16;                                                       // 字很多 → 文字密集
 }
 // 整套 S6 出图模式：只看「封面那张对标」决定（用户规则，整套统一）。
 //  · 封面对标=实拍(+文字) → 'replica'：整套按对标画面 1:1 图生图(i2i)复刻，图里内容换成我们的（不再叠备忘录/AI封面）
