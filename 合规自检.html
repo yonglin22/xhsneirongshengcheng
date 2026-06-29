@@ -547,7 +547,8 @@ function renderReport(r) {
         <div class="text-[11.5px] leading-relaxed" style="background:#fffbe6;border:1px solid #ffe27a;border-radius:8px;padding:8px 11px;color:#8a6d00">
           🔎 <b>AI味自查（免费·不调接口）</b>：上面<mark style="background:#fff2a8;padding:0 2px">黄色高亮</mark>的是<b>最可能被平台/GPTZero判 AI</b> 的句子（共 <b>${window.__aiSelfFlagged||0}</b> 处：比喻/金句对仗/清单骨架/套话语气词等）。
           要过 97% 人类，请<b>把这些句子用你自己的话手动重打一遍</b>（别只改词，关掉它用大白话重说；塞一两个只有你知道的真实细节），改完再粘进 gptzero.me 验收。仅高亮，不代表一定判 AI，最终以检测为准。
-        </div>`:''}
+        </div>
+        ${aiSuggestHTML()}`:''}
         ${rw.tags?`<div class="flex flex-wrap gap-2">${(rw.tags||[]).map(t=>`<span class="chip" style="color:var(--xhs-tag);background:rgba(58,90,140,.08);border-color:rgba(58,90,140,.2)">${t.startsWith('#')?t:'#'+t}</span>`).join('')}</div>`:''}
       </div>
       <div class="flex flex-wrap gap-2.5 mt-4 pt-3 border-t hairline">
@@ -620,20 +621,54 @@ function aiScanSentence(s) {
   if (/^(就这么|就是这么|没别的|说白了就|答案是)\S{0,6}[。！]?$/.test(t)) reasons.push('爽文短句');
   return reasons;
 }
+// 纯规律的「改写参考」：把常见 AI 句式机械转成更口语的草稿 + 给具体改法提示（不调接口；草稿仅供起步，需你再润色）
+function aiRewriteSuggest(s, reasons) {
+  let t = String(s || '').trim(); const tips = [];
+  // 去清单序号 → 用第一人称口吻起头
+  if (reasons.includes('清单')) {
+    t = t.replace(/^(第[一二三四五六七八九十]+[步个]?[:：、.．]?|[①②③④⑤⑥⑦⑧⑨⑩]|[0-9]+[、.．)]|[-—·•])\s*/, '');
+    if (!/^我/.test(t)) t = '我一般是' + t;
+    tips.push('去掉序号，用「我一般 / 我自己是」起头，别像清单');
+  }
+  // 去套话开场
+  if (reasons.includes('套话语气词')) { t = t.replace(/^(说白了就?|讲人话就是|划重点[:：]?|敲黑板[:：]?|不夸张地说|真心建议[:：]?|众所周知)[，,]?\s*/, ''); tips.push('删掉「说白了/讲人话就是/划重点」这类开场'); }
+  // 拆对仗反转
+  if (reasons.includes('对仗反转')) { t = t.replace(/不是([^，。！？]{1,26})，?而是([^，。！？]{1,26})/, '其实不是$1，是$2'); tips.push('拆掉「不是…而是…」的工整对仗，改成一句平铺的大白话'); }
+  // 比喻：机械改不了，给提示
+  if (reasons.includes('比喻')) tips.push('删掉句中的比喻/打比方，直接陈述事实或换成「我当时怎么做的」');
+  if (reasons.includes('提问开头')) { t = t.replace(/^(那怎么办|怎么办呢?|为什么|凭什么)[？?]\s*/, ''); tips.push('删掉「那怎么办？」这类设问，直接说做法'); }
+  if (reasons.includes('爽文短句')) tips.push('这种短促金句删掉或并进上一句，别单独成句');
+  // 通用：句尾若太工整，建议加点口语
+  return { draft: t, tips };
+}
 function aiScanHTML(paras) {
-  let count = 0;
+  let count = 0; const suggestions = [];
   const html = (paras || []).map(p => {
     const parts = String(p).split(/(?<=[。！？!?…])/);
     const out = parts.map(seg => {
       if (!seg.trim()) return seg;
       const rs = aiScanSentence(seg);
-      if (rs.length) { count++; return `<mark style="background:#fff2a8;border-radius:3px;padding:0 2px" title="疑似AI味：${rs.join('、')}">${mark(seg)}</mark>`; }
+      if (rs.length) { count++; const sg = aiRewriteSuggest(seg, rs); suggestions.push({ orig: seg.trim(), reasons: rs, draft: sg.draft, tips: sg.tips }); return `<mark style="background:#fff2a8;border-radius:3px;padding:0 2px" title="疑似AI味：${rs.join('、')}">${mark(seg)}</mark>`; }
       return mark(seg);
     }).join('');
     return `<p>${out}</p>`;
   }).join('');
-  window.__aiSelfFlagged = count;
+  window.__aiSelfFlagged = count; window.__aiSuggestions = suggestions;
   return html;
+}
+// 逐句改写建议清单 HTML
+function aiSuggestHTML() {
+  const list = window.__aiSuggestions || []; if (!list.length) return '';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  return `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;color:var(--cinnabar-deep);font-weight:600">✍️ 逐句改写建议（${list.length} 句 · 纯规律草稿，需你再润色）</summary>
+    <div class="space-y-2.5 mt-2">${list.map((it, k) => `
+      <div style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.6">
+        <div style="color:var(--ink-soft)"><b>原句</b>（${it.reasons.join('、')}）：${esc(it.orig)}</div>
+        ${it.draft && it.draft !== it.orig ? `<div style="margin-top:3px"><b style="color:#00795c">改写草稿</b>：${esc(it.draft)}</div>` : ''}
+        ${it.tips.length ? `<div style="margin-top:3px;color:#8a6d00">💡 ${it.tips.map(esc).join('；')}</div>` : ''}
+      </div>`).join('')}</div>
+    <div style="font-size:11px;color:var(--ink-soft);margin-top:6px">提示：草稿只是起步，最有效的是你<b>关掉原句、用自己的话重说一遍</b>，再塞一两个只有你知道的真实细节。</div>
+  </details>`;
 }
 function stripVerify(s) {
   return String(s || '')
