@@ -992,11 +992,25 @@ async function genCoverFromCvTpl(i) {
   }
   try {
     let u; try { u = await once(); } catch (e1) { if (msg) { msg.textContent = '出图超时，重试中…'; } await new Promise(r => setTimeout(r, 1200)); u = await once(); }
-    // 「出封面」= 按提示词出的图 + 叠上标题（和 AI 封面一样有字），插入到【AI 封面之后】(index 1)，不替换、不挤到末尾。
+    // 「出封面」= 按提示词出的图 + 叠字。叠的文案【取自提示词里写的那段封面文案】（「…」里的内容，就是我们的内容），不是用 S6 标题。
     if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
     state.coverCaptions = state.coverCaptions || [];
     while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null); // 对齐长度
-    const cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : (typeof aiCoverCaption === 'function' ? aiCoverCaption() : { raw: true });
+    // 从提示词里提取封面文案：优先 「…」，其次 中文/英文双引号里的内容（取最长一段）
+    let pCopy = '';
+    try {
+      const cands = [...String(tp.prompt || '').matchAll(/「([^」]{4,80})」/g), ...String(tp.prompt || '').matchAll(/[“"]([^”"]{4,80})[”"]/g)].map(x => x[1]);
+      pCopy = cands.sort((a, b) => b.length - a.length)[0] || '';
+    } catch {}
+    let cap0;
+    if (pCopy) { // 把文案在第一个 ？！。处切成 主标题 + 副标题条
+      const k = pCopy.search(/[？！。]/);
+      const ttl = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(0, k + 1).trim() : pCopy;
+      const sub = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(k + 1).trim() : '';
+      cap0 = { title: ttl, lines: sub ? [sub] : [], layout: '封面', theme: 'poster' };
+    } else {
+      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : (typeof aiCoverCaption === 'function' ? aiCoverCaption() : { raw: true });
+    }
     const first = state.coverImages[0] || '';
     const firstIsImg = /^https?:\/\//.test(first) || first.startsWith('data:'); // 第一张是 AI 封面图 → 插它后面(index1)；否则放最前
     const at = firstIsImg ? 1 : 0;
