@@ -187,10 +187,29 @@ function coverLinesForTpl(){ const c=($('#cCover')&&$('#cCover').value||'').trim
 // 出图比例（跟随流水线选择，保证发布到后台尺寸一致）
 function ratioCssV(){ return ({'2:3':'2/3','3:4':'3/4','9:16':'9/16'})[window.__ratio||'3:4']||'3/4'; }
 // 单个缩略：note:// / tpl:// / ctpl:// → CSS 卡；普通 URL/data → 图片
-function imgCellHTML(u, wpx){ u=u||'';
+// ===== 叠字封面卡（与 流水线/成稿预览 一致）=====
+function asStr(x){ return typeof x==='string'?x:((x&&(x.text||x.title||x.name||x.content||x.desc))||''); }
+function normalizeCap(cap, coverFallback){ if(!cap||cap.raw) return {title:coverFallback||'',lines:[],layout:'封面',theme:'poster'}; if(typeof cap==='string') return {title:cap,lines:[],layout:'要点',theme:'photo'}; const out={title:asStr(cap.title),lines:(Array.isArray(cap.lines)?cap.lines:[]).map(asStr).filter(Boolean),layout:cap.layout||'要点',theme:cap.theme==='poster'?'poster':(cap.theme==='editorial'?'editorial':'photo')}; if(!out.title&&!out.lines.length&&coverFallback){out.title=coverFallback;out.theme='poster';out.layout='封面';} return out; }
+function cxSubSvg(t){ t=String(t||''); let w=0; for(const ch of t){ w += (/[一-龥　-〿＀-｠]/.test(ch)&&ch!=='％'&&ch!=='%')?1:0.56; } const padX=1.2, vw=+(w+padX*2).toFixed(2), vh=2.0; const e=s=>String(s).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x])); return `<div class="cx-sub" style="width:${(vw*4).toFixed(1)}cqw;height:8cqw"><svg viewBox="0 0 ${vw} ${vh}" preserveAspectRatio="xMidYMid meet" style="display:block;width:100%;height:100%"><rect width="${vw}" height="${vh}" rx="0.5" fill="#ffd24a"/><text x="${(vw/2).toFixed(2)}" y="${vh/2}" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-size="1" font-weight="800" font-family="-apple-system,PingFang SC,sans-serif">${e(t)}</text></svg></div>`; }
+function coverxHTML(c, lines){ const py=(typeof window.cnPinyin==='function'?(window.cnPinyin(c.title||'')||''):'').trim().toUpperCase(); const sub=lines[0]||'', tags=lines.slice(1); return `<div class="cv-card cv-coverx"><div class="cx-mid">${py?`<div class="cx-py">${py}</div>`:''}<div class="cx-t">${mark(c.title)}</div>${sub?cxSubSvg(sub):''}</div>${tags.length?`<div class="cx-tags">${tags.map(t=>`<span>${mark(t)}</span>`).join('<i>|</i>')}</div>`:''}</div>`; }
+function capCardHTML(cap, isCover, coverFallback){
+  const c = normalizeCap(cap, coverFallback); if(!c.title && !c.lines.length) return '';
+  const lay = c.layout || (isCover?'封面':'要点'); const lines = c.lines.filter(Boolean); let body='';
+  if(lines.length){ body = '<div class="cv-card-b">' + lines.map((s,k)=>{
+    let s2=s, cls='';
+    if(lay==='对比'){ if(/^[✅✓对]/.test(s)||/正解|正确/.test(s)) cls='ok'; else if(/^[❌✗错]/.test(s)||/误区|错误|别/.test(s)) cls='no'; }
+    if(lay==='编号'){ s2=s.replace(/^[①-⑩\d\.\、\s]+/,''); return `<div class="cv-li num"><b>${k+1}</b><span>${mark(s2)}</span></div>`; }
+    return `<div class="cv-li ${cls}">${mark(s2)}</div>`;
+  }).join('') + '</div>'; }
+  if(c.theme==='poster'&&(isCover||lay==='封面')) return coverxHTML(c, lines);
+  return `<div class="cv-card theme-${c.theme} ${isCover?'is-cover':''} lay-${lay}">${c.title?`<div class="cv-card-t">${mark(c.title)}</div>`:''}${body}</div>`;
+}
+function imgCellHTML(u, wpx, cap, isCover){ u=u||'';
   if(u.startsWith('ctpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;aspect-ratio:${ratioCssV()};box-shadow:none;border:1px solid var(--line)">${coverTemplateHTML(u.slice(7), coverLinesForTpl())}</div>`;
   if(u.startsWith('note://')) return `<div class="cv-frame tpl note-zoom" data-note="${+u.slice(7)}" title="点击放大" style="width:${wpx}px;aspect-ratio:${ratioCssV()};box-shadow:none;border:1px solid var(--line);cursor:zoom-in">${noteCardHTML((window.__notePages||[])[+u.slice(7)])}</div>`;
   if(u.startsWith('tpl://')) return `<div class="cv-frame tpl" style="width:${wpx}px;aspect-ratio:${ratioCssV()};box-shadow:none;border:1px solid var(--line)"><div class="cv-tpl t0"></div></div>`;
+  const ov = (cap && (cap.title || (cap.lines&&cap.lines.length))) ? capCardHTML(cap, !!isCover) : '';
+  if(ov) return `<div class="cv-frame" style="width:${wpx}px;aspect-ratio:${ratioCssV()};container-type:inline-size;border-radius:8px;overflow:hidden;cursor:zoom-in"><img class="zoomable" title="点击放大" src="${imgSrc(u)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"/>${ov}</div>`;
   return `<div class="out p-0" style="width:${wpx}px;aspect-ratio:${ratioCssV()};border-radius:8px;overflow:hidden"><img class="zoomable" title="点击放大" src="${imgSrc(u)}" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in"/></div>`; }
 // 长图笔记卡点击放大（CSS 卡不是图，用大号 cv-frame 弹层显示）
 function showNoteLightbox(page){ if(!page)return;
@@ -204,7 +223,7 @@ function renderImgs(){
   const box = $('#imgList'); if(!box) return;
   box.innerHTML = cImages.map((u,i)=>`
     <div style="position:relative">
-      ${imgCellHTML(u.url||u, 84)}
+      ${imgCellHTML(u.url||u, 84, u.cap, i===0)}
       ${(u.verdict)?`<div class="text-[10px] text-center mt-0.5" style="color:${u.bad?'var(--cinnabar-deep)':(/文字卡/.test(u.verdict)?'var(--ink-soft)':'#00a152')}">${u.verdict}</div>`:(u.cap&&u.cap.title?`<div class="text-[9.5px] text-center mt-0.5 text-[var(--ink-soft)] leading-tight" style="width:84px">${mark(u.cap.title)}</div>`:'')}
       <span class="ci-del" data-i="${i}" style="position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:999px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;font-size:10px;box-shadow:0 1px 4px rgba(0,0,0,.15)">✕</span>
     </div>`).join('');
@@ -535,7 +554,7 @@ function renderReport(r) {
     const rwCover = (rw.cover_lines || []).map(stripVerify);
     const imgsRow = cImages.length ? `
       <div><span class="chip mr-1.5">图片</span><span class="text-[11px] text-[var(--ink-soft)]">${cImages.length} 张（随终稿一起带去预览/打包）</span>
-        <div class="flex flex-wrap gap-2 mt-2" id="fixImgRow">${cImages.map(c=>imgCellHTML(c.url, 54)).join('')}</div>
+        <div class="flex flex-wrap gap-2 mt-2" id="fixImgRow">${cImages.map((c,i)=>imgCellHTML(c.url, 54, c.cap, i===0)).join('')}</div>
       </div>` : '';
     html += `<div class="card p-5 mt-4">
       <div class="flex items-center justify-between mb-3">
