@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=97" />
+<link rel="stylesheet" href="/assets/atelier.css?v=99" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -587,7 +587,8 @@ function asStr(x) { return typeof x === 'string' ? x : (x == null ? '' : (x.text
 function normalizeCap(cap, coverFallback) {
   if (!cap) return { title: coverFallback || '', lines: [], layout: '封面', theme: 'photo' };
   if (typeof cap === 'string') return { title: cap, lines: [], layout: '要点', theme: 'photo' };
-  return { title: asStr(cap.title), lines: (Array.isArray(cap.lines) ? cap.lines : []).map(asStr).filter(Boolean), layout: cap.layout || '要点', theme: cap.theme === 'poster' ? 'poster' : 'photo' };
+  const th = (cap.theme === 'poster') ? 'poster' : (cap.theme === 'editorial' ? 'editorial' : 'photo');
+  return { title: asStr(cap.title), lines: (Array.isArray(cap.lines) ? cap.lines : []).map(asStr).filter(Boolean), layout: cap.layout || '要点', theme: th };
 }
 function capCardHTML(cap, isCover, coverFallback) {
   const c = normalizeCap(cap, coverFallback);
@@ -946,17 +947,32 @@ function renderCvTpls() {
 async function genCoverFromCvTpl(i) {
   const a = loadCvTpls(); const tp = a[i]; if (!tp) return;
   const msg = document.querySelector('.cvtpl-msg[data-i="' + i + '"]');
-  // 文字密集型对标：AI 画不出清晰中文（会糊成鬼图）→ 改为按对标版式排「备忘录真字封面卡」：1:1 复刻版式、内容换成我们的、真字零乱码；插在 AI 封面之后。
-  if (tp.textNote) {
-    if (msg) { msg.textContent = '按对标版式排真字封面卡中…'; msg.style.color = 'var(--ink-soft)'; }
+  // 出封面 = 「海报版」：参照梵高珠宝海报的深海军蓝+烫金中英排版（中文真字、零乱码、设计感强）。
+  {
+    if (msg) { msg.textContent = '排海报版封面中…'; msg.style.color = 'var(--ink-soft)'; }
     try {
       const idx = (state.refImages || []).indexOf(tp.url);
       const refVis = (state.refVisions || [])[idx >= 0 ? idx : 0] || '';
       const title = (((state.cover && state.cover.cover_lines) || []).filter(Boolean).join(' ')) || state.topic || '';
       const page = await planNotePage(idx >= 0 ? idx : 0, refVis, true, title, getTrack());
       if (!page || !((page.blocks || []).length)) throw new Error('没排出内容（先把 S3 框架里"配图规划·第1张封面"写清）');
-      // 长文笔记型对标 → 备忘录真字封面卡（现有默认）：1:1 复刻版式、内容换成我们的、真字零乱码。
-      page.memo = true;
+      page.poster = true;
+      page.posterKicker = (getTrack() && getTrack().name) ? getTrack().name : '缪斯拾光';
+      // 英文副标 + 一句引言（让海报更像编辑设计稿）——best-effort，失败就不加
+      try {
+        const j = extractJSON(await callClaude({ system: '只输出 JSON。', json: true, max_tokens: 200, action: 'imgplan',
+          prompt: `给一张海报做点缀文案。主题：「${title || state.topic}」。输出：en=对应主题的优雅英文副标题(3~7个词，首字母大写，别音译拼音)；quote=一句中文金句(≤18字，带引号感、不要标点堆砌)。只输出 JSON：{"en":"","quote":""}` }));
+        if (j.en) page.posterEn = String(j.en).slice(0, 60);
+        if (j.quote) page.posterQuote = '“' + String(j.quote).replace(/^[“"]|[”"]$/g, '').slice(0, 22) + '”';
+      } catch {}
+      // 深海军蓝星夜质感背景（AI 出图，纯背景无文字）
+      try {
+        if (msg) msg.textContent = '出深蓝星夜质感背景中…（约 30~60 秒）';
+        const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+        const bgPrompt = '一整张深海军蓝色质感海报背景：午夜蓝/钴蓝做满幅，带细腻的金色星点、柔和光晕、抽象笔触或星云肌理，氛围沉静高级、有纵深、整体偏暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('色调氛围可贴近：' + aStyle + '。') : '') + '画面必须够暗、纹理高级，绝对不要出现任何文字、字迹、字母、数字、假字或水印。';
+        const rb = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
+        const tb = await rb.text(); if (rb.ok) { let bu = ''; try { bu = JSON.parse(tb).data[0].url; } catch {} if (bu) { try { bu = await persistImgUrl(bu); } catch {} page.photoBg = bu; } }
+      } catch {}
       state.notePages = state.notePages || [];
       const ni = state.notePages.length; state.notePages.push(page);
       if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
@@ -967,7 +983,7 @@ async function genCoverFromCvTpl(i) {
       state.coverImages.splice(at0, 0, 'note://' + ni); state.coverCaptions.splice(at0, 0, null);
       if (!state.coverImage) state.coverImage = state.coverImages[0];
       persist(); renderCoverImages();
-      if (msg) { msg.textContent = '✓ 已出「备忘录真字封面卡」（按对标版式·内容换成我们的·零乱码，插在 AI 封面后，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
+      if (msg) { msg.textContent = '✓ 已出「海报版封面」（深蓝烫金·中英排版·真字零乱码，插在 AI 封面后，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
     } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
     return;
   }
@@ -1011,10 +1027,10 @@ async function genCoverFromCvTpl(i) {
       const k = pCopy.search(/[？！。]/);
       const ttl = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(0, k + 1).trim() : pCopy;
       const sub = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(k + 1).trim() : '';
-      cap0 = { title: ttl, lines: sub ? [sub] : [], layout: '封面', theme: 'photo' }; // photo 主题=细腻叠字，非大标题卡
+      cap0 = { title: ttl, lines: sub ? [sub] : [], layout: '封面', theme: 'editorial' }; // photo 主题=细腻叠字，非大标题卡
     } else {
-      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'photo' }
-        : { title: (topic || state.topic || '').slice(0, 20), lines: [], layout: '封面', theme: 'photo' };
+      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'editorial' }
+        : { title: (topic || state.topic || '').slice(0, 20), lines: [], layout: '封面', theme: 'editorial' };
     }
     const first = state.coverImages[0] || '';
     const at = (/^https?:\/\//.test(first) || first.startsWith('data:')) ? 1 : 0;
@@ -1179,7 +1195,7 @@ function replicaCaption(i, plan, coverTitle) {
     if (fromSeg.length) { title = fromSeg[0]; if (!lines.length) lines = fromSeg.slice(1, 3); }
     else title = (cl[i] || cl[0] || bodyPts[i] || coverTitle || state.topic || '').slice(0, 20);
   }
-  return { title: (title || '').slice(0, 22), lines, layout: '封面', theme: 'photo' };
+  return { title: (title || '').slice(0, 22), lines, layout: '封面', theme: 'editorial' };
 }
 // 照「对标第 i 张」的版式，排成我这篇的一页长图笔记（结构照搬、内容换成我的）
 // 从 S3 框架文本里切出"第 N 张"那一段：先定位所有"第X张"标记（忽略 **/#/* 等前缀），
@@ -1643,10 +1659,12 @@ function posterHTML(page) {
   const items = []; let cur = null;
   blocks.forEach(b => { if (!b) return; if (b.t === 'sec') { if (cur) items.push(cur); cur = { ttl: b.text || '', dsc: '' }; } else if (cur && (b.t === 'p' || b.t === 'ol')) { const tx = b.t === 'ol' ? (b.items || []).map(x => (typeof x === 'string' ? x : (x && (x.text || x.content) || ''))).join('；') : (b.text || ''); cur.dsc = (cur.dsc ? cur.dsc + ' ' : '') + tx; } });
   if (cur) items.push(cur);
-  const li = items.slice(0, 5).map((it, i) => `<div class="pst-item"><span class="pst-no">${String(i + 1).padStart(2, '0')}</span><div class="pst-tx"><div class="pst-ttl">${mark(it.ttl)}</div>${it.dsc ? `<div class="pst-dsc">${mark(it.dsc)}</div>` : ''}</div></div>`).join('');
+  const li = items.slice(0, 6).map(it => `<div class="pst-item"><div class="pst-ttl">${mark(it.ttl)}</div>${it.dsc ? `<div class="pst-dsc">${mark(it.dsc)}</div>` : ''}</div>`).join('');
   const bg = (page && page.photoBg) ? `background-image:url('${String(page.photoBg).replace(/'/g, '%27')}')` : '';
-  const kicker = (page && page.posterKicker) ? mark(page.posterKicker) : '';
-  return `<div class="cv-poster${(page&&page.posterLight)?' is-photo':''}" style="${bg}"><div class="pst-scrim"></div><div class="pst-frame"><i></i><i></i><i></i><i></i></div><div class="pst-body">${kicker ? `<div class="pst-kicker">${kicker}</div>` : ''}<h1 class="pst-title">${title}</h1><div class="pst-rule"><i></i><span>✦</span><i></i></div><div class="pst-list">${li}</div>${kicker?`<div class="pst-foot">${kicker}</div>`:''}</div></div>`;
+  const brand = (page && page.posterKicker) ? mark(page.posterKicker) : '';
+  const en = (page && page.posterEn) ? mark(page.posterEn) : '';
+  const quote = (page && page.posterQuote) ? mark(page.posterQuote) : '';
+  return `<div class="cv-poster${(page&&page.posterLight)?' is-photo':''}" style="${bg}"><div class="pst-scrim"></div><div class="pst-body"><div class="pst-top"><span class="l">${brand||'Muse Light'}</span><i></i><span class="r">MUSE LIGHT</span></div><div class="pst-head"><h1 class="pst-title">${title}</h1>${en?`<div class="pst-en">${en}</div>`:''}</div><div class="pst-list">${li}</div>${quote?`<div class="pst-quote">${quote}</div>`:''}<div class="pst-foot"><span class="em">✦</span><span class="bn">${brand||'缪斯拾光'}</span><span class="bs">ART · ARCHIVE</span></div></div></div>`;
 }
 function noteCardHTML(page) {
   if (page && page.poster) return posterHTML(page); // 海报式封面
