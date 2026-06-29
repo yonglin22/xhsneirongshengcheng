@@ -1570,12 +1570,14 @@ const MEMO_BOTTOM = '<div class="nt-ios-bottom">' + MEMO_TOOLS + '<div class="nt
 // 备忘录标题自动适配：能一行放下就用大号，放不下才逐档缩小（避免短标题被挤成两行）。有意的「；」换行不动。
 function fitMemoTitle(noteEl) {
   if (!noteEl.classList.contains('is-memo')) return;
-  const h = noteEl.querySelector('.nt-h1'); if (!h) return;
-  h.style.fontSize = '';
-  if (/<br/i.test(h.innerHTML)) return; // 标题在「；」处有意两行 → 保留
-  const cs = getComputedStyle(h); let fs = parseFloat(cs.fontSize); const lh = parseFloat(cs.lineHeight) || fs * 1.22;
-  let g = 0;
-  while (h.scrollHeight > lh * 1.45 && fs > 9 && g++ < 60) { fs -= 0.5; h.style.fontSize = fs + 'px'; }
+  // 页内所有大标题(nt-h1)都收一遍——packThinPages 合并后可能有不止一个 → 否则后面的标题会换行没被缩
+  noteEl.querySelectorAll('.nt-h1').forEach(h => {
+    h.style.fontSize = '';
+    if (/<br/i.test(h.innerHTML)) return; // 标题在「；」处有意两行 → 保留
+    const cs = getComputedStyle(h); let fs = parseFloat(cs.fontSize); const lh = parseFloat(cs.lineHeight) || fs * 1.22;
+    let g = 0;
+    while (h.scrollHeight > lh * 1.45 && fs > 9 && g++ < 80) { fs -= 0.4; h.style.fontSize = fs + 'px'; }
+  });
 }
 function fitNote(noteEl) {
   const fit = noteEl.querySelector('.cv-note-fit'); if (!fit) { return 1; }
