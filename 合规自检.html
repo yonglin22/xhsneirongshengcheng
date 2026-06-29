@@ -633,7 +633,7 @@ function origCheck(bodyText, refText) {
 }
 function origCheckHTML(paras) {
   const r = origCheck((paras || []).join('\n'), GST.ref || '');
-  if (!r) return ''; // 没贴对标正文就不显示
+  if (!r) return `<div style="margin-top:10px;background:#f5f5f7;border:1px solid #e3e3e8;border-radius:8px;padding:9px 12px;color:#777;font-size:12px">原创度查重需要<b>「对标正文」</b>：这篇没贴对标文字（可能只贴了对标图）。去<b>第二步「对标拆解」</b>把对标笔记的文字正文贴进去，这里就会显示与对标的重合率、帮你防搬运/查重限流。</div>`; // 没贴对标正文 → 给清楚提示而非空白
   const lv = r.overlapPct <= 12 ? ['#0a8a4f', '#e8f7ee', '#bfe6cd', '✅ 原创度高', '跟对标几乎没有雷同，放心发。'] :
     r.overlapPct <= 22 ? ['#9a6b00', '#fffbe6', '#ffe27a', '⚠️ 有局部雷同', '下面几处跟对标用词太像，建议换成你自己的话再发。'] :
       ['#c0271a', '#fdeceb', '#f6b8b2', '❗ 雷同偏高 · 搬运风险', '跟对标重合较多，平台查重容易判「搬运/非原创」而限流，务必把下面几处重写。'];
@@ -676,10 +676,10 @@ function checkupOverview(paras) {
   const o = origCheck((paras || []).join('\n'), GST.ref || '');
   const tags = ($('#cTags') && $('#cTags').value) || '';
   const e = engageCheck(paras, tags, cPlatform === 'gzh');
-  const cell = (label, v, suffix) => `<div style="flex:1;text-align:center"><div style="font-size:11px;color:#888">${label}</div><div style="font-size:19px;font-weight:800;color:${v == null ? '#bbb' : (v >= 80 ? '#0a8a4f' : v >= 55 ? '#c98a00' : '#c0271a')}">${v == null ? '—' : v}${v == null ? '' : (suffix || '')}</div></div>`;
+  const cell = (label, v, na) => `<div style="flex:1;text-align:center"><div style="font-size:11px;color:#888">${label}</div><div style="font-size:${v == null ? 12 : 19}px;font-weight:${v == null ? 600 : 800};margin-top:${v == null ? 4 : 0}px;color:${v == null ? '#bbb' : (v >= 80 ? '#0a8a4f' : v >= 55 ? '#c98a00' : '#c0271a')}">${v == null ? (na || '—') : v}</div></div>`;
   return `<div style="margin-bottom:10px;background:#fff;border:1px solid var(--line,#eee);border-radius:10px;padding:11px 8px;display:flex;align-items:center;box-shadow:0 2px 10px -7px rgba(0,0,0,.2)">
     <div style="font-size:12px;font-weight:800;writing-mode:horizontal-tb;padding:0 8px;color:#333">发布前<br>体检</div>
-    ${cell('原创度', o ? o.score : null)}${cell('互动力', e ? e.score : null)}
+    ${cell('原创度', o ? o.score : null, '无对标')}${cell('互动力', e ? e.score : null)}
     <div style="flex:1;text-align:center"><div style="font-size:11px;color:#888">爆款潜力</div><div style="font-size:12px;color:#ff3f5c;font-weight:700;margin-top:3px">点🔥诊断</div></div>
   </div>`;
 }
