@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=99" />
+<link rel="stylesheet" href="/assets/atelier.css?v=100" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -969,7 +969,7 @@ async function genCoverFromCvTpl(i) {
       try {
         if (msg) msg.textContent = '出深蓝星夜质感背景中…（约 30~60 秒）';
         const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-        const bgPrompt = '一整张深海军蓝色质感海报背景：午夜蓝/钴蓝做满幅，带细腻的金色星点、柔和光晕、抽象笔触或星云肌理，氛围沉静高级、有纵深、整体偏暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('色调氛围可贴近：' + aStyle + '。') : '') + '画面必须够暗、纹理高级，绝对不要出现任何文字、字迹、字母、数字、假字或水印。';
+        const bgPrompt = '一整张墨黑色质感海报背景：近黑的炭灰/暖黑做满幅，带极细腻的金色尘点/微光颗粒与若隐若现的暖金光晕，质感高级、纯净克制、整体很暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('色调氛围可贴近：' + aStyle + '。') : '') + '画面必须够暗、干净高级，绝对不要出现任何文字、字迹、字母、数字、假字或水印。';
         const rb = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
         const tb = await rb.text(); if (rb.ok) { let bu = ''; try { bu = JSON.parse(tb).data[0].url; } catch {} if (bu) { try { bu = await persistImgUrl(bu); } catch {} page.photoBg = bu; } }
       } catch {}
