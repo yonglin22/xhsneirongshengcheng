@@ -553,6 +553,7 @@ function render(d){
   if ($('#xhsHint')) $('#xhsHint').style.display = gzh ? 'none' : '';
   if (ga) ga.style.display = gzh ? 'block' : 'none';
   if ($('#gzhHint')) $('#gzhHint').style.display = gzh ? 'block' : 'none';
+  if ($('#toPublishBtn')) $('#toPublishBtn').style.display = gzh ? 'none' : ''; // 公众号无一键发布 → 隐藏
   if (gzh) {
     $('#gzhTitle').textContent = d.title || (Array.isArray(d.cover_lines) ? d.cover_lines.join(' ') : '') || '';
     const cov = (d.coverImages || (d.coverImage ? [d.coverImage] : [])).find(u => typeof u === 'string' && (/^https?:\/\//.test(u) || u.startsWith('data:')));

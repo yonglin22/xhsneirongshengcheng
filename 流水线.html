@@ -274,6 +274,7 @@ function renderPlatformTabs() {
     b.style.color = on ? '#fff' : 'var(--ink-soft)';
   });
   const h = $('#pfHint'); if (h) h.textContent = isGzh() ? '长文 · 无标签 · 首图横版 2.35:1' : '短笔记 · 带话题标签 · 封面竖版 3:4';
+  const tpub = $('#toPublish'); if (tpub) tpub.style.display = isGzh() ? 'none' : ''; // 公众号无一键发布（推小红书草稿箱）→ 隐藏
 }
 document.querySelectorAll('#platformTabs .pf-tab').forEach(b => b.addEventListener('click', () => {
   if (state.platform === b.dataset.pf) return;

@@ -610,6 +610,7 @@ function renderReport(r) {
   if (tp) tp.addEventListener('click', async () => { if (!await confirmFreshImgs('去预览')) return; pushRevisedToDraft(); location.href = '/成稿预览.html'; });
   // 一键发布：先把「修改后的文案 + 配图」写回草稿，再去一键发布页（推到小红书草稿箱）
   const tpub = document.querySelector('#toPublishBtn');
+  if (tpub && cPlatform === 'gzh') tpub.style.display = 'none'; // 公众号无一键发布 → 隐藏
   if (tpub) tpub.addEventListener('click', async () => { if (!await confirmFreshImgs('发布')) return; pushRevisedToDraft(); location.href = '/一键发布.html'; });
   const dp = document.querySelector('#dlPackBtn');
   if (dp) dp.addEventListener('click', async () => { if (!await confirmFreshImgs('下载')) return; pushRevisedToDraft(); location.href = '/成稿预览.html?export=1'; });
