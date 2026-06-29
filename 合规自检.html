@@ -553,6 +553,7 @@ function renderReport(r) {
         </div>
         ${aiSuggestHTML()}
         ${checkupOverview(rwBody)}
+        ${redlineHTML(rwTitle, (rwCover||[]).join(' '), rwBody, rw.tags)}
         ${origCheckHTML(rwBody)}
         ${engageCheckHTML(rwBody)}`:''}
         ${rw.tags?`<div class="flex flex-wrap gap-2">${(rw.tags||[]).map(t=>`<span class="chip" style="color:var(--xhs-tag);background:rgba(58,90,140,.08);border-color:rgba(58,90,140,.2)">${t.startsWith('#')?t:'#'+t}</span>`).join('')}</div>`:''}
@@ -680,6 +681,30 @@ function checkupOverview(paras) {
     <div style="font-size:12px;font-weight:800;writing-mode:horizontal-tb;padding:0 8px;color:#333">发布前<br>体检</div>
     ${cell('原创度', o ? o.score : null)}${cell('互动力', e ? e.score : null)}
     <div style="flex:1;text-align:center"><div style="font-size:11px;color:#888">爆款潜力</div><div style="font-size:12px;color:#ff3f5c;font-weight:700;margin-top:3px">点🔥诊断</div></div>
+  </div>`;
+}
+// ===== 免费「合规红线扫描」：不调接口，本地秒标广告法绝对化/效果承诺/站外导流/夸大违规词 =====
+const REDLINE = [
+  ['绝对化用词(广告法)', /最佳|最好|最强|最优|最低|最高|最大|第一名|排名第一|全网第一|全球第一|国家级|世界级|顶级|顶尖|唯一|独家|绝无仅有|史无前例|空前绝后|永久|万能|100%|百分百|首选|极致/g, '广告法违禁，平台高风险——删掉或改成"很/挺/相对"等程度词'],
+  ['效果/结果承诺', /包过|必过|稳过|保过|包就业|包offer|包录取|根治|治愈|永不复发|立竿见影|马上见效|一定能|肯定能|保证(?!金)|确保(?!安全)|必涨|必瘦|稳赚|躺赚|轻松月入|月入[过上]?[万千]/g, '承诺类违规，删掉或改成"有人反馈/因人而异/仅供参考"'],
+  ['站外导流/联系方式', /微信|加[Vv]|加微|威信|薇信|\b[Vv][Xx]\b|扣[1-9]|私我|私信我|加我好友|公众号搜|淘宝|闲鱼|拼多多|抖音搜|qq群|QQ群|电话|手机号|二维码/g, '站外导流，小红书严打——一律删除'],
+  ['夸大/标题党', /震惊|惊呆|不转不是|爆炸|血赚|封神|天花板|逆天|碾压|秒杀全场|吊打/g, '夸大/标题党，弱化或删除'],
+];
+function redlineScan(text) {
+  const s = String(text || ''); const hits = [];
+  REDLINE.forEach(([cat, re, advice]) => { const set = new Set(); let m; re.lastIndex = 0; while (m = re.exec(s)) set.add(m[0]); if (set.size) hits.push({ cat, advice, words: [...set] }); });
+  return hits;
+}
+function redlineHTML(title, cover, body, tags) {
+  const all = [title, cover, (body || []).join('\n'), (tags || []).join(' ')].filter(Boolean).join('\n');
+  const hits = redlineScan(all);
+  if (!hits.length) return `<div style="margin-top:10px;background:#e8f7ee;border:1px solid #bfe6cd;border-radius:8px;padding:9px 12px;color:#0a8a4f;font-weight:700;font-size:13px">✅ 合规红线扫描：未发现明显违规词</div>`;
+  const n = hits.reduce((a, h) => a + h.words.length, 0);
+  return `<div style="margin-top:10px;background:#fdeceb;border:1px solid #f6b8b2;border-radius:8px;padding:10px 12px">
+    <div style="color:#c0271a;font-weight:700;font-size:13.5px">❗ 合规红线扫描：发现 ${n} 个高危词（本地秒查·务必处理）</div>
+    ${hits.map(h => `<div style="margin-top:7px"><div style="font-size:12px;font-weight:700;color:#c0271a">${h.cat}</div>
+      <div style="margin:4px 0">${h.words.map(w => `<span style="display:inline-block;background:#fff;border:1px solid #f6b8b2;color:#c0271a;border-radius:5px;padding:1px 7px;margin:2px 4px 0 0;font-size:12px">${mark(w)}</span>`).join('')}</div>
+      <div style="font-size:11.5px;color:#9a4a00">${h.advice}</div></div>`).join('')}
   </div>`;
 }
 // 去掉「需核实 / 需要核实 / 待核实」及其包裹符号，得到发布级干净文本
