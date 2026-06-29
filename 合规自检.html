@@ -57,6 +57,7 @@
       </div>
       <div class="flex items-center gap-2.5 pt-1">
         <button id="checkBtn" class="btn-go flex-1 rounded-xl py-3 text-[14px] font-medium flex items-center justify-center gap-2"><span id="ci">🛡</span><span id="ct">开始自检</span></button>
+        <button id="viralBtn" class="rounded-xl py-3 px-4 text-[13px] font-medium" style="background:linear-gradient(180deg,#ff7a59,#ff3f5c);color:#fff">🔥 爆款潜力</button>
         <select id="model" class="field rounded-xl px-3 py-3 text-[12px] hidden">
           <option value="claude-opus-4-8">Opus 4.8</option>
           <option value="claude-sonnet-4-6">Sonnet 4.6</option>
@@ -64,6 +65,7 @@
         </select>
       </div>
       <div id="status" class="text-[12px] text-[var(--ink-soft)] min-h-[18px]"></div>
+      <div id="viralBox"></div>
     </section>
 
     <!-- 报告 -->
@@ -709,6 +711,53 @@ function stripVerify(s) {
     .replace(/\s{2,}/g, ' ').trim();
 }
 
+// ===== 🔥 爆款潜力诊断：用爆款要素给选题/标题/封面/开头打分，指出弱点+给可一键替换的强标题/封面 =====
+function viralBar(label, s, comment, fix) {
+  const col = s >= 80 ? '#0a8a4f' : s >= 60 ? '#c98a00' : '#c0271a';
+  return `<div style="margin:9px 0">
+    <div style="display:flex;align-items:center;gap:8px;font-size:12.5px"><b style="min-width:64px">${label}</b>
+      <div style="flex:1;height:7px;background:#eee;border-radius:6px;overflow:hidden"><div style="width:${Math.max(4, s)}%;height:100%;background:${col}"></div></div>
+      <span style="color:${col};font-weight:700;min-width:30px;text-align:right">${s}</span></div>
+    <div style="font-size:11.5px;color:#666;margin:2px 0 0 72px">${mark(comment || '')}${fix ? `　<b style="color:${col}">改：</b>${mark(fix)}` : ''}</div>
+  </div>`;
+}
+async function runViral() {
+  const title = $('#cTitle').value.trim(), cover = $('#cCover').value.trim(), body = $('#cBody').value.trim();
+  if (!body && !title) { setStatus('至少填标题或正文，再诊断爆款潜力', 'err'); return; }
+  const tk = getTrack(); const gzh = cPlatform === 'gzh';
+  const vb = $('#viralBtn'); const old = vb.textContent; vb.disabled = true; vb.textContent = '诊断中…';
+  $('#viralBox').innerHTML = '<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">正在按爆款要素诊断…</div>';
+  const prompt = `你是${tk.domain}${gzh ? '公众号' : '小红书'}爆款操盘手。给下面这篇稿子做"爆款潜力诊断"，按平台真实的起量逻辑严格打分（别夸、别客套，分低就低）。
+${tk.ref ? '' : ''}维度（每项 0~100 + 一句问题 + 一句具体改法）：
+1. 选题(痛点/情绪/人群精准度) 2. 标题钩子(数字/反差/利益/悬念/身份感，前几秒抓不抓人) 3. ${gzh ? '开头(前两段留人)' : '封面第一眼(封面文案钩子)'} 4. 开头3行(刷到会不会停) 5. 收藏动机(干货密度/可复用/清单感) 6. 互动钩子(结尾有没有让人评论的理由)。
+再给：① overall 总分(0~100，综合) ② 3 个更强的标题(${gzh ? '≤30字' : '≤20字'}、各用不同钩子套路、不绝对化不违规) ③ 2 行更强的封面文案(每行≤12字)。
+【标题】${title}
+【封面文案】${cover}
+【正文(取开头即可判断)】${body.slice(0, 1200)}
+只输出 JSON：{"overall":0,"dims":[{"name":"","score":0,"issue":"","fix":""}],"titles":["",""],"cover_lines":["",""]}`;
+  try {
+    const out = await callClaude({ prompt, model: $('#model').value, max_tokens: 1500, json: true, action: 'deai' });
+    const j = extractJSON(out);
+    if (!j || !Array.isArray(j.dims)) throw new Error('诊断失败，重试一次');
+    const ov = Math.round(+j.overall || 0);
+    const ovc = ov >= 80 ? '#0a8a4f' : ov >= 60 ? '#c98a00' : '#c0271a';
+    const tt = (j.titles || []).filter(Boolean).slice(0, 3);
+    const cl = (j.cover_lines || []).filter(Boolean).slice(0, 2);
+    $('#viralBox').innerHTML = `<div style="margin-top:10px;background:#fff;border:1px solid var(--line,#eee);border-radius:10px;padding:13px 14px;box-shadow:0 2px 10px -6px rgba(0,0,0,.15)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-weight:800;font-size:14px">🔥 爆款潜力</div>
+        <div style="margin-left:auto;font-size:26px;font-weight:800;color:${ovc}">${ov}<span style="font-size:13px">分</span></div>
+      </div>
+      <div style="margin-top:8px">${j.dims.map(d => viralBar(d.name, Math.round(+d.score || 0), d.issue, d.fix)).join('')}</div>
+      ${tt.length ? `<div style="margin-top:11px;border-top:1px solid #f0f0f0;padding-top:9px"><div style="font-size:12px;font-weight:700;margin-bottom:5px">💡 更强标题（点击替换到上面标题框）</div>${tt.map(x => `<button class="vTitle" style="display:block;width:100%;text-align:left;border:1px solid var(--line,#eee);background:var(--paper-2,#faf8f5);border-radius:7px;padding:6px 9px;margin-bottom:5px;font-size:12.5px;cursor:pointer">${mark(x)}</button>`).join('')}</div>` : ''}
+      ${cl.length ? `<div style="margin-top:6px"><div style="font-size:12px;font-weight:700;margin-bottom:5px">🖼 更强封面文案（点击替换）</div><button class="vCover" data-c="${cl.join(' / ').replace(/"/g, '&quot;')}" style="border:1px solid var(--line,#eee);background:var(--paper-2,#faf8f5);border-radius:7px;padding:6px 9px;font-size:12.5px;cursor:pointer">${mark(cl.join(' / '))}</button></div>` : ''}
+    </div>`;
+    $('#viralBox').querySelectorAll('.vTitle').forEach(b => b.addEventListener('click', () => { $('#cTitle').value = b.textContent; b.style.background = '#e8f7ee'; b.textContent = '✓ ' + b.textContent; }));
+    const vc = $('#viralBox').querySelector('.vCover'); if (vc) vc.addEventListener('click', () => { $('#cCover').value = vc.dataset.c; vc.style.background = '#e8f7ee'; });
+  } catch (e) { $('#viralBox').innerHTML = `<div style="font-size:12px;color:var(--cinnabar-deep);margin-top:8px">爆款诊断失败：${(e.message || e)}</div>`; }
+  finally { vb.disabled = false; vb.textContent = old; }
+}
+$('#viralBtn') && $('#viralBtn').addEventListener('click', runViral);
 $('#checkBtn').addEventListener('click', async () => {
   const title = $('#cTitle').value.trim(), cover = $('#cCover').value.trim(), body = $('#cBody').value.trim(), tags = $('#cTags').value.trim();
   if (!body && !title) { setStatus('至少填标题或正文', 'err'); return; }
