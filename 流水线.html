@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=101" />
+<link rel="stylesheet" href="/assets/atelier.css?v=102" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -1421,29 +1421,31 @@ async function generateCoverImagesCore(n) {
           if (page) page.memo = true; // 一键生成全套：长图笔记默认醇备忘录真字风
           results[p.i] = { kind: 'note', page };
         } else if (p.photoIdx < imgCap) {
-          const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
-          const sref = pickStyleRef(plan);
-          const refPhoto = (state.refImages || [])[p.i] || '';
-          // replica 模式：实拍那张用对标原图当垫图 1:1 复刻；但「文字截图/笔记图」那张绝不能 i2i（中文会糊成鬼图）→ 改用风格库垫图或纯文生图出干净氛围背景
-          // 其它模式：风格库模板优先，文字密集图不当实拍垫图
-          const initImg = setMode === 'replica'
-            ? (p.textHeavy ? ((sref && sref.url) || '') : (refPhoto || (sref && sref.url) || ''))
-            : ((sref && sref.url) || (p.textHeavy ? '' : refPhoto));
           if (setMode === 'replica') {
-            // replica：i2i 1:1 复刻对标画面当背景 + 叠「海报版」真字排版（内容换成我们的，零乱码）。封面另外出 AI 封面（见下方 prepend）。
-            let bg = await genImageFromPlan({ theme: 'photo', scene: plan.scene, layout: plan.layout }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
+            // 提速：replica 不再跑 planOneImage（省一次 AI 调用）。直接拿对标原图 i2i 复刻当背景 + planNotePage 出海报真字。
+            // 文字截图那张不 i2i（中文会糊）→ 用风格库垫图兜底。
+            const refPhoto = (state.refImages || [])[p.i] || '';
+            const sref = (typeof pickStyleRef === 'function') ? pickStyleRef({ scene: coverTitle, layout: '封面', title: coverTitle }) : null;
+            const initImg = p.textHeavy ? ((sref && sref.url) || '') : (refPhoto || (sref && sref.url) || '');
+            let bg = await genImageFromPlan({ theme: 'photo', scene: '严格保留参考图的构图、主体、视角、光影与配色，真实质感、高级、画面里不要出现任何文字', layout: '封面' }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
             if (bg) {
               try { bg = await persistImgUrl(bg); } catch {}
               const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
               if (page) { page.poster = true; page.photoBg = bg; page.posterLight = true; page.posterKicker = (t && t.name) ? t.name : '缪斯拾光'; }
               results[p.i] = { kind: 'note', page };
             }
-          } else if (!initImg) {
-            const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
-            results[p.i] = { kind: 'note', page };
           } else {
-            const u = await genImageFromPlan(plan, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
-            if (u) results[p.i] = { kind: 'photo', url: u, caption: { title: plan.title, lines: plan.lines, layout: plan.layout, theme: plan.theme } };
+            const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
+            const sref = pickStyleRef(plan);
+            const refPhoto = (state.refImages || [])[p.i] || '';
+            const initImg = (sref && sref.url) || (p.textHeavy ? '' : refPhoto); // 风格库模板优先，文字密集图不当实拍垫图
+            if (!initImg) {
+              const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
+              results[p.i] = { kind: 'note', page };
+            } else {
+              const u = await genImageFromPlan(plan, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
+              if (u) results[p.i] = { kind: 'photo', url: u, caption: { title: plan.title, lines: plan.lines, layout: plan.layout, theme: plan.theme } };
+            }
           }
         }
       } catch {}

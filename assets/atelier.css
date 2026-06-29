@@ -318,8 +318,14 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-poster .pst-list{ display:flex; flex-direction:column; flex:1; justify-content:center; }
 .cv-poster .pst-item{ padding:3.2cqw 0; border-top:.1cqw solid rgba(201,168,95,.30); }
 .cv-poster .pst-item:first-child{ border-top:0; }
-.cv-poster .pst-ttl{ font-size:4.7cqw; font-weight:700; color:#f4ecda; line-height:1.32; }
-.cv-poster .pst-dsc{ margin-top:1cqw; font-size:3.05cqw; font-weight:400; color:rgba(231,207,149,.74); line-height:1.5; font-family:-apple-system,"PingFang SC",sans-serif; }
+.cv-poster .pst-ttl{ font-size:4.7cqw; font-weight:700; color:#fbf6ea; line-height:1.32; }
+.cv-poster .pst-dsc{ margin-top:1cqw; font-size:3.2cqw; font-weight:500; color:#efe7d4; line-height:1.5; font-family:-apple-system,"PingFang SC",sans-serif; }
+/* 叠在实拍照片上时：正文真字加亮、加粗、加阴影，保证在浅色照片上也清晰 */
+.cv-poster.is-photo .pst-ttl{ color:#fffaf0; text-shadow:0 .2cqw 1.2cqw rgba(0,0,0,.85),0 .1cqw .4cqw rgba(0,0,0,.7); }
+.cv-poster.is-photo .pst-dsc{ color:#f6efe0; font-weight:600; text-shadow:0 .2cqw 1cqw rgba(0,0,0,.85); }
+.cv-poster.is-photo .pst-title{ text-shadow:0 .4cqw 2.4cqw rgba(0,0,0,.7),0 .15cqw .5cqw rgba(0,0,0,.6); }
+.cv-poster.is-photo .pst-en{ color:#f0dca8; text-shadow:0 .2cqw 1cqw rgba(0,0,0,.8); }
+.cv-poster.is-photo .pst-item{ border-top-color:rgba(255,240,210,.4); }
 /* 底部：引言 + 居中徽记品牌落款 */
 .cv-poster .pst-quote{ margin-top:4cqw; text-align:center; font-size:3cqw; color:rgba(237,230,214,.8); font-style:italic; line-height:1.5; }
 .cv-poster .pst-foot{ margin-top:3.6cqw; padding-top:3.2cqw; border-top:.1cqw solid rgba(201,168,95,.24); display:flex; flex-direction:column; align-items:center; gap:1.1cqw; }
