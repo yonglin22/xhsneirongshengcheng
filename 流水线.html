@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=96" />
+<link rel="stylesheet" href="/assets/atelier.css?v=97" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -1006,35 +1006,29 @@ async function genCoverFromCvTpl(i) {
   }
   try {
     let u; try { u = await once(); } catch (e1) { if (msg) { msg.textContent = '出图超时，重试中…'; } await new Promise(r => setTimeout(r, 1200)); u = await once(); }
-    // 「出封面」= 按提示词出的图 + 叠字。叠的文案【取自提示词里写的那段封面文案】（「…」里的内容，就是我们的内容），不是用 S6 标题。
+    // 关键改法：不再是「照片 + 叠一个标题卡」。把 i2i 复刻的实拍画面当背景，叠上「海报版」真字排版
+    //（衬线大标题 + 烫金点缀 + 序号清单）→ 文字真正融进照片里，跟你批过的海报版同款，只是背景换成复刻的实拍画面。
+    if (msg) { msg.textContent = '叠海报版真字排版中…'; }
+    let bg = u; try { bg = await persistImgUrl(u); } catch {}
+    const idx2 = (state.refImages || []).indexOf(tp.url);
+    const refVis2 = (state.refVisions || [])[idx2 >= 0 ? idx2 : 0] || '';
+    const page = await planNotePage(idx2 >= 0 ? idx2 : 0, refVis2, true, (lines.join(' ') || topic || state.topic), getTrack());
+    page.poster = true;            // 海报版排版（衬线大标题/烫金/序号清单）
+    page.photoBg = bg;             // 背景 = i2i 复刻的实拍画面
+    page.posterLight = true;       // 实拍照片偏亮 → is-photo 更厚蒙版保证真字可读
+    page.posterKicker = (getTrack() && getTrack().name) ? getTrack().name : '';
+    state.notePages = state.notePages || [];
+    const ni = state.notePages.length; state.notePages.push(page);
     if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
     state.coverCaptions = state.coverCaptions || [];
-    while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null); // 对齐长度
-    // 从提示词里提取封面文案：优先 「…」，其次 中文/英文双引号里的内容（取最长一段）
-    let pCopy = '';
-    try {
-      const cands = [...String(tp.prompt || '').matchAll(/「([^」]{4,80})」/g), ...String(tp.prompt || '').matchAll(/[“"]([^”"]{4,80})[”"]/g)].map(x => x[1]);
-      pCopy = cands.sort((a, b) => b.length - a.length)[0] || '';
-    } catch {}
-    let cap0;
-    if (pCopy) { // 把文案在第一个 ？！。处切成 主标题 + 副标题条
-      const k = pCopy.search(/[？！。]/);
-      const ttl = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(0, k + 1).trim() : pCopy;
-      const sub = (k > 0 && k < pCopy.length - 1) ? pCopy.slice(k + 1).trim() : '';
-      // 实拍 i2i 复刻 → 用 photo 主题（文案细腻融在画面上，跟对标同调），不要大标题卡(=AI封面那种叠字)
-      cap0 = { title: ttl, lines: sub ? [sub] : [], layout: '封面', theme: 'photo' };
-    } else {
-      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'photo' }
-        : { title: (topic || state.topic || '').slice(0, 20), lines: [], layout: '封面', theme: 'photo' }; // 没提取到文案 → 用本篇主题做一句融图文案
-    }
+    while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null);
     const first = state.coverImages[0] || '';
-    const firstIsImg = /^https?:\/\//.test(first) || first.startsWith('data:'); // 第一张是 AI 封面图 → 插它后面(index1)；否则放最前
-    const at = firstIsImg ? 1 : 0;
-    state.coverImages.splice(at, 0, u); state.coverCaptions.splice(at, 0, cap0); // 1:1 复刻对标画面，文案细腻融图
+    const at = (/^https?:\/\//.test(first) || first.startsWith('data:')) ? 1 : 0;
+    state.coverImages.splice(at, 0, 'note://' + ni); state.coverCaptions.splice(at, 0, null);
     if (!state.coverImage) state.coverImage = state.coverImages[0];
     persist();
     renderCoverImages();
-    if (msg) { msg.textContent = '✓ 已按对标画面 i2i 复刻一张（文案细腻融在画面上，非大标题叠字；可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
+    if (msg) { msg.textContent = '✓ 已出「海报版封面」：复刻对标实拍画面 + 内容真字融进照片里（零乱码，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
   } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
 }
 // AI 封面叠字（来自 S3 第一张/封面文案）：标题+要点，poster 主题=玻璃底板白字
@@ -1426,9 +1420,14 @@ async function generateCoverImagesCore(n) {
             ? (p.textHeavy ? ((sref && sref.url) || '') : (refPhoto || (sref && sref.url) || ''))
             : ((sref && sref.url) || (p.textHeavy ? '' : refPhoto));
           if (setMode === 'replica') {
-            // replica：永远出「画面照片」，并强制叠上我们的内容（真字），保证“图片内是我们的内容”
-            const u = await genImageFromPlan({ theme: 'photo', scene: plan.scene, layout: plan.layout }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
-            if (u) results[p.i] = { kind: 'photo', url: u, caption: replicaCaption(p.i, plan, coverTitle) };
+            // replica：出「复刻画面」当背景 + 叠「海报版」真字排版（文字融进照片里，非标题卡）→ 跟「出封面」同款、整套统一
+            let bg = await genImageFromPlan({ theme: 'photo', scene: plan.scene, layout: plan.layout }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
+            if (bg) {
+              try { bg = await persistImgUrl(bg); } catch {}
+              const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
+              if (page) { page.poster = true; page.photoBg = bg; page.posterLight = true; page.posterKicker = (t && t.name) ? t.name : ''; }
+              results[p.i] = { kind: 'note', page };
+            }
           } else if (!initImg) {
             const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
             results[p.i] = { kind: 'note', page };
@@ -1479,7 +1478,7 @@ ${refBlock()}
   }
   if (!urls.length) throw new Error('未生成任何图片');
   // 一键全套若整组都是长图笔记 → 跑密度装满(packThinPages)，避免出现内容少、下半部留白(看着像9:16)的页
-  if (urls.every(u => (u || '').startsWith('note://')) && notePages.length > 1 && typeof packThinPages === 'function') {
+  if (urls.every(u => (u || '').startsWith('note://')) && notePages.length > 1 && !notePages.some(p => p && p.poster) && typeof packThinPages === 'function') {
     try {
       const packed = packThinPages(notePages);
       if (packed && packed.length) {
@@ -1658,7 +1657,7 @@ function posterHTML(page) {
   const li = items.slice(0, 5).map((it, i) => `<div class="pst-item"><span class="pst-no">${String(i + 1).padStart(2, '0')}</span><div class="pst-tx"><div class="pst-ttl">${mark(it.ttl)}</div>${it.dsc ? `<div class="pst-dsc">${mark(it.dsc)}</div>` : ''}</div></div>`).join('');
   const bg = (page && page.photoBg) ? `background-image:url('${String(page.photoBg).replace(/'/g, '%27')}')` : '';
   const kicker = (page && page.posterKicker) ? mark(page.posterKicker) : '';
-  return `<div class="cv-poster" style="${bg}"><div class="pst-scrim"></div><div class="pst-frame"><i></i><i></i><i></i><i></i></div><div class="pst-body">${kicker ? `<div class="pst-kicker">${kicker}</div>` : ''}<h1 class="pst-title">${title}</h1><div class="pst-rule"><i></i><span>✦</span><i></i></div><div class="pst-list">${li}</div>${kicker?`<div class="pst-foot">${kicker}</div>`:''}</div></div>`;
+  return `<div class="cv-poster${(page&&page.posterLight)?' is-photo':''}" style="${bg}"><div class="pst-scrim"></div><div class="pst-frame"><i></i><i></i><i></i><i></i></div><div class="pst-body">${kicker ? `<div class="pst-kicker">${kicker}</div>` : ''}<h1 class="pst-title">${title}</h1><div class="pst-rule"><i></i><span>✦</span><i></i></div><div class="pst-list">${li}</div>${kicker?`<div class="pst-foot">${kicker}</div>`:''}</div></div>`;
 }
 function noteCardHTML(page) {
   if (page && page.poster) return posterHTML(page); // 海报式封面

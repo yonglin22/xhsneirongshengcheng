@@ -294,6 +294,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-poster{ position:absolute; inset:0; background-color:#11151d; background-size:cover; background-position:center; color:#f4efe6; overflow:hidden; font-family:"Noto Serif SC","Songti SC","SimSun",serif; --gold:#d9b878; --gold-lt:#f0d9a6; }
 /* 深色蒙版：上深→中透→下深，保证大标题与底部清单都压得住背景 */
 .cv-poster .pst-scrim{ position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,12,18,.78) 0%, rgba(10,12,18,.34) 30%, rgba(10,12,18,.40) 60%, rgba(8,9,14,.84) 100%); }
+/* 叠在「实拍照片」上（照片普遍偏亮）→ 用更厚、整片压暗的蒙版，确保浅色真字处处可读、像编辑设计海报 */
+.cv-poster.is-photo .pst-scrim{ background:linear-gradient(180deg, rgba(8,10,16,.82) 0%, rgba(8,10,16,.58) 30%, rgba(8,10,16,.60) 60%, rgba(6,8,12,.90) 100%); }
 /* 内嵌金色细线画框（双线）+ 四角点缀 */
 .cv-poster .pst-frame{ position:absolute; inset:4.2cqw; border:.18cqw solid rgba(217,184,120,.55); pointer-events:none; }
 .cv-poster .pst-frame::before{ content:""; position:absolute; inset:1.1cqw; border:.1cqw solid rgba(217,184,120,.28); }
