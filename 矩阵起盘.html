@@ -37,7 +37,7 @@
 <script>
 (function render(){
   const box=document.getElementById('sop');
-  let mx=null,tname=''; try{ const t=getTrack(); mx=t&&t.matrix; tname=t?t.name:''; }catch(e){}
+  let mx=null,tname=''; try{ let t=getTrack(); if(!(t&&t.matrix)&&window.TRACKS){ for(const id in window.TRACKS){ if(window.TRACKS[id].matrix){ t=window.TRACKS[id]; break; } } } mx=t&&t.matrix; tname=t?t.name:''; }catch(e){}
   if(!mx){ box.innerHTML='<div class="card p-8 text-center text-[13px] text-[var(--ink-soft)]">当前智能体没有配置矩阵预设。切换到「设计考研」智能体查看。</div>'; return; }
   const M=window.mark||(s=>String(s||''));
   let html='';

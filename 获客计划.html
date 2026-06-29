@@ -319,7 +319,7 @@ showSections(); renderKw(); load(); loadLibs(); toggleLib();
 // 赛道矩阵预设：一键把"养号 / 截流"计划填进上方表单（老号先养号），用户核对后保存
 (function renderGpPreset(){
   const box=document.getElementById('gpPreset'); if(!box) return;
-  let mx=null,tname=''; try{ const t=getTrack(); mx=t&&t.matrix; tname=t?t.name:''; }catch(e){}
+  let mx=null,tname=''; try{ let t=getTrack(); if(!(t&&t.matrix)&&window.TRACKS){ for(const id in window.TRACKS){ if(window.TRACKS[id].matrix){ t=window.TRACKS[id]; break; } } } mx=t&&t.matrix; tname=t?t.name:''; }catch(e){}
   if(!mx){ box.innerHTML=''; return; }
   const kw=(mx.interceptKeywords||[]).join(' / ');
   const nz=mx.nurture||{};

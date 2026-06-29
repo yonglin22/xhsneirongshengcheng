@@ -206,7 +206,7 @@ $('#addBtn').addEventListener('click', async () => {
 // 赛道矩阵预设：一键铺设 3 个角色号（老号先养号）
 (function renderMatrixPreset(){
   const box = document.getElementById('matrixPreset'); if (!box) return;
-  let mx = null, tname = ''; try { const t = getTrack(); mx = t && t.matrix; tname = t ? t.name : ''; } catch (e) {}
+  let mx = null, tname = ''; try { let t = getTrack(); if (!(t && t.matrix) && window.TRACKS) { for (const id in window.TRACKS) { if (window.TRACKS[id].matrix) { t = window.TRACKS[id]; break; } } } mx = t && t.matrix; tname = t ? t.name : ''; } catch (e) {}
   if (!mx || !mx.accounts || !mx.accounts.length) { box.innerHTML = ''; return; }
   box.innerHTML = `<div class="card p-5">
     <div class="flex items-center justify-between gap-3 mb-1 flex-wrap">
