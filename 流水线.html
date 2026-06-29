@@ -1702,6 +1702,7 @@ async function genNoteImages() {
     state.coverImage = state.coverImages[0];
     state.coverCaptions = [];
     persist(); renderCoverImages();
+    try { await deAiNotePages(state); renderCoverImages(); } catch (e) {} // 内页文字降AI味
     if (st) { st.textContent = '✓ 已排成 ' + finalPages.length + ' 页长图笔记' + (splitN > 0 ? '（含 ' + splitN + ' 页因内容多自动拆分）' : '') + '（去成稿预览导 1080P）'; st.style.color = '#00a152'; }
     await resplitTooSmallNotes(st); // 再按实际缩放比例兜底拆分被缩太小的页（在纯 note:// 集上做）
     // 默认两种封面都出（受「默认出 AI 封面」开关控制）：AI 图封面放封面位(第一张)，备忘录真字封面卡挪到第二张；封面位点「⇄ 换封面」可一键切换
@@ -2498,26 +2499,61 @@ async function deAiRewrite(state) {
   const gzh = isGzh();
   const bodyText = (state.body || []).join('\n\n').trim();
   if (!bodyText || bodyText.length < 40) return;
-  const prompt = `下面是一篇${gzh ? '公众号文章' : '小红书笔记'}正文。请整体改写一遍，唯一目标：让 AI 检测器(GPTZero)判定为"人类所写"，同时事实/信息点/大意完全不变、字数大体相当。
-严格按下面来（这些是实测能把 AI 概率压下去的关键）：
-1. 删掉一切编号清单与分点排比（"1、2、3""①②③""第一步/第二步"这种最容易被判 AI）——改写成一段段连续说下去的大白话。
+  const titles = (state.titles || []).filter(Boolean);
+  const prompt = `下面是一篇${gzh ? '公众号文章' : '小红书笔记'}的【正文】和【标题候选】。请各自整体改写，唯一目标：让 AI 检测器(GPTZero)判为"人类所写"，事实/信息点/大意不变、字数大体相当。
+正文严格按下面来（实测能把 AI 概率压下去的关键）：
+1. 删掉一切编号清单与分点排比（"1、2、3""①②③""第一步/第二步"最容易被判 AI）——改写成一段段连续说下去的大白话。
 2. 删掉所有比喻、打比方、金句、工整对仗句、"提问+短答"的爽文节奏。
-3. 把知识点揉进"我自己当时是怎么做/怎么记的"这种第一人称经历里讲，而不是干巴巴罗列。
+3. 把知识点揉进"我自己当时是怎么做/怎么记的"这种第一人称经历里讲。
 4. 句子长短刻意不规则，允许长句啰嗦、中途补一句、用"其实吧""反正""我记得好像"这种口语和轻微自我纠正。
 5. 多保留具体琐碎细节（数字/时间/书名/步骤），少抒情、少升华，结尾别拔高。
-6. 涉及硬信息保留「需核实」；不加任何联系方式或引流。
-${gzh ? '保留 ## 小标题分段（但小标题本身也写得口语自然些）。' : '分成自然段落，不要用任何序号或符号清单。'}
-只输出改写后的正文本身，不要任何解释、不要代码块、不要前后缀。
+6. 涉及硬信息保留「需核实」；不加任何联系方式或引流。${gzh ? '保留 ## 小标题分段（小标题也写口语些）。' : '分成自然段落，不用任何序号或符号清单。'}
+标题：每个改得更口语、像随口一说，别太工整对仗、别标题党；${gzh ? '≤30字' : '≤20字'}、不绝对化、不做效果保证；个数与原来一致。
+只输出 JSON，不要解释或代码块：{"body":${gzh ? '"整篇正文字符串，段落用\\\\n\\\\n分隔，小标题以## 开头"' : '["段落1","段落2","..."]'},"titles":["改写后的标题",...]}
 【原正文】
-${bodyText}`;
+${bodyText}
+【原标题候选】
+${JSON.stringify(titles)}`;
   try {
     setAuto && setAuto('正在打磨正文（降 AI 味）…');
-    const out = await callClaude({ prompt, model: $('#model').value, max_tokens: gzh ? 3000 : 1500, action: 'deai' });
-    const t = String(out || '').replace(/^```[a-z]*\n?|\n?```$/g, '').trim();
-    if (t && t.length > bodyText.length * 0.4) {
-      state.body = t.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
-      if (!gzh) enforceCopyLimits(state);
+    const out = await callClaude({ prompt, model: $('#model').value, max_tokens: gzh ? 3200 : 1700, json: true, action: 'deai' });
+    const j = extractJSON(out);
+    if (j && j.body) {
+      const nb = gzh ? String(j.body).split(/\n{2,}/).map(s => s.trim()).filter(Boolean) : (Array.isArray(j.body) ? j.body.map(s => String(s).trim()).filter(Boolean) : String(j.body).split(/\n{2,}/).map(s => s.trim()).filter(Boolean));
+      if (nb.join('\n\n').length > bodyText.length * 0.4) state.body = nb;
     }
+    if (j && Array.isArray(j.titles) && j.titles.filter(Boolean).length) {
+      state.titles = j.titles.filter(Boolean);
+      if (!state.titles.includes(state.best)) state.best = state.titles[0];
+    }
+    if (!gzh) enforceCopyLimits(state);
+  } catch (e) {}
+}
+// 内页笔记卡/配图文字降AI味：保留卡片结构（标题/小标题/要点），只把每条措辞改成大白话（去金句/比喻/对仗）
+async function deAiNotePages(state) {
+  const pages = state.notePages || [];
+  const texts = []; const map = [];
+  pages.forEach((p, pi) => (p && p.blocks || []).forEach((b, bi) => {
+    if (b && typeof b.text === 'string' && b.text.trim().length > 6 && b.t !== 'meta') { map.push([pi, bi, 'text']); texts.push(b.text); }
+    if (b && Array.isArray(b.items)) b.items.forEach((it, ii) => { const s = (typeof it === 'string') ? it : (it && (it.text || it.content) || ''); if (s && s.trim().length > 6) { map.push([pi, bi, 'item', ii]); texts.push(s); } });
+  }));
+  if (!texts.length) return;
+  const prompt = `这是一组小红书长图笔记卡上的文字条目（每条是卡片上的一行/一点）。请逐条改写措辞，让它更像人随手写的、别像AI：去掉比喻、金句、工整对仗、"提问+短答"；用大白话、口语；保持每条简短、意思不变、字数相近（卡片放得下）。不要合并或增删条目，按原顺序一一对应。
+只输出 JSON 数组，长度与输入完全一致，不要解释或代码块：["改写后第1条","改写后第2条",...]
+【原条目】
+${JSON.stringify(texts)}`;
+  try {
+    setAuto && setAuto('正在打磨配图文字（降 AI 味）…');
+    const out = await callClaude({ prompt, model: $('#model').value, max_tokens: 2600, json: true, action: 'deai' });
+    const arr = extractJSON(out);
+    if (!Array.isArray(arr) || arr.length !== texts.length) return;
+    map.forEach(([pi, bi, kind, ii], k) => {
+      const nv = String(arr[k] || '').trim(); if (!nv) return;
+      const b = state.notePages[pi].blocks[bi];
+      if (kind === 'text') b.text = nv;
+      else if (kind === 'item') { if (typeof b.items[ii] === 'string') b.items[ii] = nv; else if (b.items[ii]) b.items[ii].text = nv; }
+    });
+    persist();
   } catch (e) {}
 }
 async function runStep(st) {
@@ -2635,6 +2671,7 @@ async function autoRun() {
         const cn = coverCount();
         setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
         try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
+        try { await deAiNotePages(state); } catch (e) {} // 内页文字降AI味
         // 取开局就并行出好的 AI 封面，放封面位(第一张)，原配图/备忘录卡顺移第二张
         if (aiCoverPromise) try {
           setAuto('正在取并行生成的 AI 封面…');
