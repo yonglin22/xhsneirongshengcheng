@@ -984,8 +984,12 @@ async function genCoverFromCvTpl(i) {
     + '。画面里绝对不要出现任何文字、汉字、字母、数字、假字或水印（标题区留白，后期叠字）。' + ratioWord() + '，高清、细节精致、整图铺满。';
   if (msg) { msg.textContent = '出图中…（约 30~60 秒）'; msg.style.color = 'var(--ink-soft)'; }
   // 出图：失败/超时自动重试 1 次（这些提示词长、构图复杂，上游偶发超时）
+  // 实拍类对标 → 图生图(i2i)：把对标实拍图当参考图(init_image) 1:1 复刻其画面/构图，文字按提示词去掉、改叠我们的文案。
+  const initImg = (tp.url && /^https?:\/\//.test(tp.url) || (tp.url || '').startsWith('data:')) ? tp.url : '';
   async function once() {
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, action: 'cover', size: ratioSize() }) });
+    const body = { provider: 'gptimage', prompt, action: 'cover', size: ratioSize() };
+    if (initImg) body.init_image = initImg; // 图生图：复刻对标实拍画面
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
     if (!u) throw new Error('上游无图'); return u;
