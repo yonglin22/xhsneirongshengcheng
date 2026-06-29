@@ -2687,8 +2687,42 @@ async function humanizeOnce(text, gzh) {
 只输出改写后的纯文本(段落用空行分隔)，不要解释、不要JSON、不要任何列表/编号/小标题符号。
 原文：
 ${text}`;
-  try { const out = await callClaude({ prompt: p, model: $('#model').value, max_tokens: gzh ? 3400 : 1800, action: 'deai' }); const s = String(out || '').replace(/^```[\s\S]*?\n|```$/g, '').trim(); if (s.length > text.length * 0.4) return s; } catch {}
-  return text;
+  try { const out = await callClaude({ prompt: p, model: $('#model').value, max_tokens: gzh ? 3400 : 1800, action: 'deai' }); const s = String(out || '').replace(/^```[\s\S]*?\n|```$/g, '').trim(); if (s.length > text.length * 0.4) return perturbZh(s); } catch {}
+  return perturbZh(text);
+}
+// 确定性中文扰动层（不调AI、瞬时）：换掉书面连接词、打散句子长短、稀疏插入口语起头 → 进一步压低 GPTZero 指纹。
+// 刻意保守，保证可读性；硬信息/数字/书名一律不动。
+function perturbZh(text) {
+  if (!text || text.length < 30) return text;
+  // 1) 书面连接词/副词 → 口语（整体替换，安全、显著提升真人感）
+  const repl = [[/因此/g, '所以'], [/然而/g, '不过'], [/并且/g, '而且'], [/此外/g, '另外'], [/总而言之/g, '反正'], [/综上所述/g, '说到底'], [/与此同时/g, '同时'], [/换句话说/g, '说白了不过这词也别用，意思就是'], [/总的来说/g, '反正'], [/值得注意的是/g, '有一点'], [/不难发现/g, '你会发现'], [/显而易见/g, '明摆着'], [/毋庸置疑/g, '肯定'], [/在我看来/g, '我觉得'], [/通过/g, '靠']];
+  // 上面"说白了"那条是反面占位，去掉它，避免引入 AI 口头禅
+  let s = text.replace(/说白了不过这词也别用，意思就是/g, '其实就是');
+  repl.forEach(([a, b]) => { if (!/说白了/.test(b)) s = s.replace(a, b); });
+  // 2) 逐段处理：句子长短打散 + 稀疏口语起头
+  const leads = ['其实吧，', '说真的，', '怎么说呢，', '我自己是', '反正', '讲真，', '对了，', '我记得', '嗯，'];
+  let li = 0, used = -9; let gi = 0;
+  return s.split(/\n{2,}/).map((para, pIdx) => {
+    if (!para.trim()) return para;
+    // 按句末标点切句（保留标点）
+    const parts = para.match(/[^。！？]*[。！？]|[^。！？]+$/g) || [para];
+    const out = [];
+    parts.forEach((sent) => {
+      let cur = sent;
+      // 2a) 超长句(>45字且含逗号) → 在中间一个逗号处断成两句
+      if (cur.replace(/\s/g, '').length > 45) {
+        const commas = []; let m; const re = /[，,]/g; while (m = re.exec(cur)) commas.push(m.index);
+        if (commas.length) { const ci = commas[Math.floor(commas.length / 2)]; const a = cur.slice(0, ci).trim(); const b = cur.slice(ci + 1).trim(); if (a.length > 6 && b.length > 6) cur = a + '。' + b; }
+      }
+      // 2b) 稀疏口语起头：约每 6 句一次，不连续、不在段首第一句、原句没口语起头时才加
+      gi++;
+      if (gi - used >= 6 && pIdx > 0 && out.length > 0 && !/^(其实|说真|我|反正|对了|嗯|讲真|怎么|你)/.test(cur)) {
+        cur = leads[li++ % leads.length] + cur.replace(/^[，。、\s]+/, ''); used = gi;
+      }
+      out.push(cur);
+    });
+    return out.join('');
+  }).join('\n\n');
 }
 // 闭环：反复人写化直到检测达标(配了检测API)；没配检测API就多扰动一轮即止
 async function humanizeLoop(text, gzh, setMsg) {
