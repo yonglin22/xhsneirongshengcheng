@@ -156,19 +156,14 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
     await prep();
     let s=1; const noteEl=host.querySelector('.cv-note:not(.is-cover)'); const fit=noteEl&&noteEl.querySelector('.cv-note-fit');
     if(fit){ fit.style.transform=''; fit.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=fit.scrollHeight; if(need>avail+1&&avail>0) s=Math.max(0.45, avail/need); }
-    if(s>=0.999){
-      const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
-      return cv.toDataURL('image/jpeg',0.92);
+    // 溢出页：用 transform:scale 把内容(cv-note-fit)缩进固定画框 —— 与预览 fitNote 同机制。
+    // （旧的"整框放大再缩回"对 cqw 卡片无效：放大画框 cqw 同步放大→内容比例不变→底部仍被裁。当前 html2canvas 已能正确渲染 transform:scale。）
+    if(fit && s<0.999){
+      fit.style.transformOrigin='top left'; fit.style.transform='scale('+s+')'; fit.style.width=(100/s)+'%';
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     }
-    // 溢出页：按 1/s 整框等比放大(宽高同放大，比例仍=W:H)自然渲染 → 整张位图等比缩到 W×H。
-    // 内容满幅、无侧边留白，cqw 字号同比放大再缩回，与预览 transform:scale(s)+width:(100/s)% 视觉一致。
-    const Wb=Math.round(W/s), Hb=Math.round(H/s);
-    host.innerHTML='<div class="cv-frame" style="width:'+Wb+'px;height:'+Hb+'px">'+FIX+html+'</div>';
-    await prep();
-    const cap=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:Wb,height:Hb});
-    const o=document.createElement('canvas'); o.width=W*2; o.height=H*2; const ctx=o.getContext('2d'); ctx.imageSmoothingQuality='high';
-    ctx.drawImage(cap,0,0,cap.width,cap.height,0,0,o.width,o.height); // 满幅填充：Wb:Hb=W:H 等比，无变形无侧边
-    return o.toDataURL('image/jpeg',0.92);
+    const cv=await html2canvas(host.querySelector('.cv-frame'),{scale:2,backgroundColor:'#ffffff',useCORS:true,width:W,height:H});
+    return cv.toDataURL('image/jpeg',0.92);
   };
   for(const u of (coverImages||[])){ i++;
     let cap=caps[i];

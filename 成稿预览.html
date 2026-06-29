@@ -912,18 +912,20 @@ $('#exportBtn').addEventListener('click', async ()=>{
     // 故统一：克隆 slide → 去掉 scale、按 1/s 等比放大离屏渲染、内页多留右内边距防裁，再整张缩到 W×H。
     const FIXP='<style>.cv-note:not(.is-cover){padding-right:9.5cqw!important}</style>';
     const cap=(el,w,h)=>Promise.race([ html2canvas(el,{scale:3,useCORS:true,backgroundColor:'#ffffff',imageTimeout:8000,width:w,height:h}), new Promise((_,rej)=>setTimeout(()=>rej(new Error('单张渲染超时')),20000)) ]);
+    // 用 transform:scale 把内页内容缩进固定画框（与预览 fitNote 同机制；当前 html2canvas 已能正确渲染 scale）。
+    // 旧的"克隆放进 1/s 等比放大框"对 cqw 卡片无效：放大框 cqw 同步放大→内容比例不变→底部被裁。改为按导出宽度+右内边距重算缩放，套 scale，原尺寸渲染。
     const shotSlide=async(slide)=>{
-      const fit=slide.querySelector('.cv-note-fit'); let s=1;
-      if(fit){ const m=/scale\(([\d.]+)\)/.exec(fit.style.transform||''); if(m) s=parseFloat(m[1])||1; }
       const r=slide.getBoundingClientRect(); const sw=Math.round(r.width)||540, sh=Math.round(r.height)||720;
-      const Wb=Math.round(sw/s), Hb=Math.round(sh/s);
-      const wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-99999px;top:0;width:'+Wb+'px;height:'+Hb+'px;overflow:hidden';
+      const wrap=document.createElement('div'); wrap.style.cssText='position:fixed;left:-99999px;top:0;width:'+sw+'px;height:'+sh+'px;overflow:hidden';
       wrap.innerHTML=FIXP;
-      const clone=slide.cloneNode(true); clone.style.width=Wb+'px'; clone.style.height=Hb+'px'; clone.style.transform='none';
-      const cf=clone.querySelector('.cv-note-fit'); if(cf){ cf.style.transform='none'; cf.style.width='100%'; }
+      const clone=slide.cloneNode(true); clone.style.width=sw+'px'; clone.style.height=sh+'px'; clone.style.transform='none';
       wrap.appendChild(clone); document.body.appendChild(wrap);
+      // 重新按导出宽度+右内边距算缩放并套 scale（右内边距会让文字多换行变高，必须重算，否则仍可能裁底）
+      const noteEl=clone.querySelector('.cv-note:not(.is-cover)'); const cf=noteEl&&noteEl.querySelector('.cv-note-fit');
+      if(cf){ cf.style.transform=''; cf.style.width='100%'; const cs=getComputedStyle(noteEl); const padV=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom); const avail=noteEl.clientHeight-padV; const need=cf.scrollHeight; if(need>avail+1&&avail>0){ const s=Math.max(0.45, avail/need); cf.style.transformOrigin='top left'; cf.style.transform='scale('+s+')'; cf.style.width=(100/s)+'%'; } }
       try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch{}
-      const cv=await cap(clone,Wb,Hb); wrap.remove(); return cv;
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const cv=await cap(clone,sw,sh); wrap.remove(); return cv;
     };
     for (let i=0; i<slides.length; i++){
       const cv = await shotSlide(slides[i]);
