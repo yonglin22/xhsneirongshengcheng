@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=95" />
+<link rel="stylesheet" href="/assets/atelier.css?v=96" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -1615,7 +1615,7 @@ function posterHTML(page) {
   const li = items.slice(0, 5).map((it, i) => `<div class="pst-item"><span class="pst-no">${String(i + 1).padStart(2, '0')}</span><div class="pst-tx"><div class="pst-ttl">${mark(it.ttl)}</div>${it.dsc ? `<div class="pst-dsc">${mark(it.dsc)}</div>` : ''}</div></div>`).join('');
   const bg = (page && page.photoBg) ? `background-image:url('${String(page.photoBg).replace(/'/g, '%27')}')` : '';
   const kicker = (page && page.posterKicker) ? mark(page.posterKicker) : '';
-  return `<div class="cv-poster" style="${bg}"><div class="pst-scrim"></div><div class="pst-body">${kicker ? `<div class="pst-kicker">${kicker}</div>` : ''}<h1 class="pst-title">${title}</h1><div class="pst-rule"><i></i><span>✦</span><i></i></div><div class="pst-list">${li}</div></div></div>`;
+  return `<div class="cv-poster" style="${bg}"><div class="pst-scrim"></div><div class="pst-frame"><i></i><i></i><i></i><i></i></div><div class="pst-body">${kicker ? `<div class="pst-kicker">${kicker}</div>` : ''}<h1 class="pst-title">${title}</h1><div class="pst-rule"><i></i><span>✦</span><i></i></div><div class="pst-list">${li}</div>${kicker?`<div class="pst-foot">${kicker}</div>`:''}</div></div>`;
 }
 function noteCardHTML(page) {
   if (page && page.poster) return posterHTML(page); // 海报式封面

@@ -291,20 +291,36 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo.is-onpaper .nt-p, .cv-note.is-memo.is-onpaper .nt-ol li{ color:#3a2f22; }
 .cv-note.is-memo.is-onpaper .nt-sec{ color:#241c12; }
 /* ===== 海报式封面：AI 主题背景 + 设计感真字排版（衬线大标题/装饰线/金色编号要点列/深色蒙版）===== */
-.cv-poster{ position:absolute; inset:0; background-color:#1a1f2b; background-size:cover; background-position:center; color:#f4efe6; overflow:hidden; font-family:"Noto Serif SC","Songti SC","SimSun",serif; }
-.cv-poster .pst-scrim{ position:absolute; inset:0; background:linear-gradient(180deg, rgba(12,14,20,.62) 0%, rgba(12,14,20,.30) 34%, rgba(12,14,20,.42) 70%, rgba(12,14,20,.74) 100%); }
-.cv-poster .pst-body{ position:absolute; inset:0; padding:10cqw 8.5cqw; display:flex; flex-direction:column; }
-.cv-poster .pst-kicker{ font-size:3.1cqw; letter-spacing:.5cqw; color:#e3c27e; font-weight:600; margin-bottom:2.4cqw; text-transform:uppercase; }
-.cv-poster .pst-title{ font-size:9.4cqw; line-height:1.18; font-weight:800; color:#fdfaf3; letter-spacing:.2cqw; text-shadow:0 .4cqw 2.4cqw rgba(0,0,0,.45); margin:0; }
-.cv-poster .pst-rule{ display:flex; align-items:center; gap:2cqw; margin:4cqw 0 5cqw; }
-.cv-poster .pst-rule i{ height:.3cqw; background:linear-gradient(90deg,#e3c27e,rgba(227,194,126,0)); flex:1; }
-.cv-poster .pst-rule i:last-child{ background:linear-gradient(90deg,rgba(227,194,126,0),#e3c27e); }
-.cv-poster .pst-rule span{ color:#e3c27e; font-size:3.4cqw; }
-.cv-poster .pst-list{ display:flex; flex-direction:column; gap:3.6cqw; }
-.cv-poster .pst-item{ display:flex; gap:3cqw; align-items:flex-start; }
-.cv-poster .pst-no{ flex:none; font-family:"Times New Roman",serif; font-size:5.2cqw; font-weight:700; color:#e3c27e; line-height:1; min-width:8cqw; }
-.cv-poster .pst-ttl{ font-size:4.4cqw; font-weight:700; color:#fdfaf3; line-height:1.3; margin-bottom:.6cqw; }
-.cv-poster .pst-dsc{ font-size:3.35cqw; font-weight:400; color:rgba(244,239,230,.82); line-height:1.5; font-family:-apple-system,"PingFang SC",sans-serif; }
+.cv-poster{ position:absolute; inset:0; background-color:#11151d; background-size:cover; background-position:center; color:#f4efe6; overflow:hidden; font-family:"Noto Serif SC","Songti SC","SimSun",serif; --gold:#d9b878; --gold-lt:#f0d9a6; }
+/* 深色蒙版：上深→中透→下深，保证大标题与底部清单都压得住背景 */
+.cv-poster .pst-scrim{ position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,12,18,.78) 0%, rgba(10,12,18,.34) 30%, rgba(10,12,18,.40) 60%, rgba(8,9,14,.84) 100%); }
+/* 内嵌金色细线画框（双线）+ 四角点缀 */
+.cv-poster .pst-frame{ position:absolute; inset:4.2cqw; border:.18cqw solid rgba(217,184,120,.55); pointer-events:none; }
+.cv-poster .pst-frame::before{ content:""; position:absolute; inset:1.1cqw; border:.1cqw solid rgba(217,184,120,.28); }
+.cv-poster .pst-frame i{ position:absolute; width:1.5cqw; height:1.5cqw; border:.18cqw solid var(--gold); }
+.cv-poster .pst-frame i:nth-child(1){ top:-.85cqw; left:-.85cqw; border-right:0; border-bottom:0; }
+.cv-poster .pst-frame i:nth-child(2){ top:-.85cqw; right:-.85cqw; border-left:0; border-bottom:0; }
+.cv-poster .pst-frame i:nth-child(3){ bottom:-.85cqw; left:-.85cqw; border-right:0; border-top:0; }
+.cv-poster .pst-frame i:nth-child(4){ bottom:-.85cqw; right:-.85cqw; border-left:0; border-top:0; }
+.cv-poster .pst-body{ position:absolute; inset:0; padding:12cqw 10.5cqw; display:flex; flex-direction:column; }
+/* 顶部品牌行：金字 + 两侧短线，居中克制 */
+.cv-poster .pst-kicker{ display:flex; align-items:center; gap:2.2cqw; font-size:2.85cqw; letter-spacing:1.1cqw; color:var(--gold-lt); font-weight:600; margin-bottom:5cqw; text-indent:1.1cqw; }
+.cv-poster .pst-kicker::before,.cv-poster .pst-kicker::after{ content:""; height:.32cqw; flex:1; background:linear-gradient(90deg,rgba(217,184,120,0),rgba(217,184,120,.7)); }
+.cv-poster .pst-kicker::after{ background:linear-gradient(90deg,rgba(217,184,120,.7),rgba(217,184,120,0)); }
+.cv-poster .pst-title{ font-size:9.8cqw; line-height:1.16; font-weight:800; color:#fffaf2; letter-spacing:.2cqw; text-shadow:0 .5cqw 3cqw rgba(0,0,0,.55); margin:0; }
+.cv-poster .pst-rule{ display:flex; align-items:center; gap:2cqw; margin:4.4cqw 0 5.4cqw; }
+.cv-poster .pst-rule i{ height:.3cqw; background:linear-gradient(90deg,var(--gold),rgba(217,184,120,0)); flex:1; }
+.cv-poster .pst-rule i:last-child{ background:linear-gradient(90deg,rgba(217,184,120,0),var(--gold)); }
+.cv-poster .pst-rule span{ color:var(--gold); font-size:2.9cqw; letter-spacing:1cqw; text-indent:1cqw; }
+.cv-poster .pst-list{ display:flex; flex-direction:column; }
+.cv-poster .pst-item{ display:flex; gap:3.4cqw; align-items:flex-start; padding:3.2cqw 0; border-top:.1cqw solid rgba(217,184,120,.16); }
+.cv-poster .pst-item:first-child{ border-top:0; }
+.cv-poster .pst-no{ flex:none; font-family:"Didot","Times New Roman",serif; font-size:6.4cqw; font-weight:600; line-height:.9; min-width:9cqw; color:var(--gold-lt); }
+.cv-poster .pst-ttl{ font-size:4.5cqw; font-weight:700; color:#fffaf2; line-height:1.3; margin-bottom:.8cqw; }
+.cv-poster .pst-dsc{ font-size:3.3cqw; font-weight:400; color:rgba(244,239,230,.78); line-height:1.55; font-family:-apple-system,"PingFang SC",sans-serif; }
+/* 底部品牌落款 */
+.cv-poster .pst-foot{ margin-top:auto; display:flex; align-items:center; gap:1.6cqw; padding-top:4cqw; color:rgba(217,184,120,.7); font-size:2.5cqw; letter-spacing:.4cqw; }
+.cv-poster .pst-foot::before{ content:"✦"; color:var(--gold); font-size:2.4cqw; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 /* 字号整体向参考图（密集干货长图）看齐：标题更克制、正文更小更密 */
 /* 标题=系统苹方粗体（与真 iOS 备忘录一致）；不内嵌字体、不描边 */
