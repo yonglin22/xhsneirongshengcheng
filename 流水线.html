@@ -968,14 +968,15 @@ async function genCoverFromCvTpl(i) {
   }
   try {
     let u; try { u = await once(); } catch (e1) { if (msg) { msg.textContent = '出图超时，重试中…'; } await new Promise(r => setTimeout(r, 1200)); u = await once(); }
-    // 「出封面」= 按提示词出的【纯图】（不叠系统标题，就是提示词描述的那张），插入到【AI封面之后】(index 1)，不替换、不挤到末尾。
+    // 「出封面」= 按提示词出的图 + 叠上标题（和 AI 封面一样有字），插入到【AI 封面之后】(index 1)，不替换、不挤到末尾。
     if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
     state.coverCaptions = state.coverCaptions || [];
     while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null); // 对齐长度
+    const cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : (typeof aiCoverCaption === 'function' ? aiCoverCaption() : { raw: true });
     const first = state.coverImages[0] || '';
     const firstIsImg = /^https?:\/\//.test(first) || first.startsWith('data:'); // 第一张是 AI 封面图 → 插它后面(index1)；否则放最前
     const at = firstIsImg ? 1 : 0;
-    state.coverImages.splice(at, 0, u); state.coverCaptions.splice(at, 0, { raw: true }); // 纯图、不叠字
+    state.coverImages.splice(at, 0, u); state.coverCaptions.splice(at, 0, cap0); // 叠标题，与 AI 封面同款
     if (!state.coverImage) state.coverImage = state.coverImages[0];
     persist();
     renderCoverImages();
