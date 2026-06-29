@@ -280,6 +280,9 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* ===== 苹果备忘录风（is-memo）：仿真 iPhone 备忘录截图（状态栏+导航栏+底部工具栏+Home条，不随内容缩放）===== */
 /* 纸面背景跟随 --nt-bg（可自定义颜色）；顶栏/底栏保持白色，像真 iOS UI */
 .cv-note.is-memo{ background:var(--nt-bg,#fff); padding:15cqw 0 13cqw; font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; --nt-meta:#9a9aa0; }
+/* 实拍背景模式：AI 出的实拍空场景当底图，真字卡作为「桌上的一张纸」叠在中间（照片质感 + 清晰真字） */
+.cv-photoframe{ position:absolute; inset:0; background-color:#d8d2c8; background-size:cover; background-position:center; background-repeat:no-repeat; }
+.cv-photoframe .cv-note.is-memo{ position:absolute; inset:7cqw 6cqw; border-radius:3.2cqw; overflow:hidden; box-shadow:0 3cqw 9cqw rgba(0,0,0,.32), 0 1cqw 3cqw rgba(0,0,0,.18); }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 /* 字号整体向参考图（密集干货长图）看齐：标题更克制、正文更小更密 */
 /* 标题=系统苹方粗体（与真 iOS 备忘录一致）；不内嵌字体、不描边 */

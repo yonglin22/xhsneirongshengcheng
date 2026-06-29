@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=93" />
+<link rel="stylesheet" href="/assets/atelier.css?v=94" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -956,6 +956,14 @@ async function genCoverFromCvTpl(i) {
       const page = await planNotePage(idx >= 0 ? idx : 0, refVis, true, title, getTrack());
       if (!page || !((page.blocks || []).length)) throw new Error('没排出内容（先把 S3 框架里"配图规划·第1张封面"写清）');
       page.memo = true;
+      // 实拍背景：AI 出一张「空白笔记本/便签」实拍空场景(不带字)做底图，真字卡叠上去 → 照片质感 + 我们的清晰真字
+      try {
+        if (msg) msg.textContent = '出实拍背景中…（约 30~60 秒）';
+        const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+        const bgPrompt = '一张摊开的空白米色横线笔记本平铺在木质书桌上，正对俯拍、纸面几乎铺满整个画面、大片干净留白；周围少量点缀钢笔、小绿植或咖啡杯营造氛围；柔和自然光、真实摄影质感、高级、4K。' + (aStyle ? ('整体色调氛围贴近：' + aStyle + '。') : '') + '画面里绝对不要出现任何文字、字迹、印刷字、便签内容（纸面必须空白）。' + (typeof IMG_NEG !== 'undefined' ? '' : '');
+        const rb = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
+        const tb = await rb.text(); if (rb.ok) { let bu = ''; try { bu = JSON.parse(tb).data[0].url; } catch {} if (bu) { try { bu = await persistImgUrl(bu); } catch {} page.photoBg = bu; } }
+      } catch {}
       state.notePages = state.notePages || [];
       const ni = state.notePages.length; state.notePages.push(page);
       if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
@@ -1603,7 +1611,9 @@ function noteCardHTML(page) {
     // 仿真 iPhone 备忘录截图：状态栏 + 黄色导航栏(日期居中) + 内容 + 底部工具栏 + Home条
     const nav = MEMO_NAV;
     const top = '<div class="nt-ios-top">' + MEMO_STATUS + nav + '</div>';
-    return `<div class="cv-note is-memo${page && page.tz ? ' is-tiezhan' : ''}" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`;
+    const _memoCard = `<div class="cv-note is-memo${page && page.tz ? ' is-tiezhan' : ''}" style="${noteStyleVars(page)}">${top}<div class="cv-note-fit">${inner}</div>${MEMO_BOTTOM}</div>`;
+    // 实拍背景模式：照片当底图，真字卡作为「桌上的一张纸」叠在上面（照片质感 + 清晰真字）
+    return (page && page.photoBg) ? `<div class="cv-photoframe" style="background-image:url('${String(page.photoBg).replace(/'/g, "%27")}')">${_memoCard}</div>` : _memoCard;
   }
   return `<div class="cv-note${cover ? ' is-cover' : ''}" style="${noteStyleVars(page)}">${cover ? inner : `<div class="cv-note-fit">${inner}</div>`}</div>`;
 }
