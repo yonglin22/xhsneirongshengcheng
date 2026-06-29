@@ -950,6 +950,7 @@ async function genCoverFromCvTpl(i) {
   // 占位符 {主体}/{主题}/{王体} 等 → 本篇主题；末尾统一加「无文字」与比例约束（标题后期叠加）。
   let base = String(tp.prompt || '').trim();
   base = base.replace(/[{｛][^}｝]*[}｝]/g, topic || '主体');
+  base = base.slice(0, 600); // 提示词过长上游易直接「出图失败」→ 截断到 600 字以内
   const prompt = base
     + (topic ? '。严格按上面描述的构图/版式/配色来画，画面主体内容围绕「' + topic + '」' : '')
     + (aStyle ? '，画风贴近：' + aStyle : '')
@@ -1443,7 +1444,7 @@ function noteWeight(blocks) {
 // 单页内容容量随比例走：9:16 长竖屏装得更多（更密、像参考图的长图干货笔记），少拆页
 // 每页字数上限＝按画框高度估的"写满量"。2:3 比 3:4 更高更长 → 应更大（之前 2:3=220 反而最小，导致页面很空）。整体上调让内容填满、不留大片空白。
 // 每页容量适当下调 → 单页内容少一点、自适应少缩放 → 正文字号更大更清晰（用户反馈"内页字太小"）
-function notePageCap() { return ({ '2:3': 350, '3:4': 295, '9:16': 420 })[curRatio()] || 295; }
+function notePageCap() { return ({ '2:3': 370, '3:4': 320, '9:16': 445 })[curRatio()] || 320; }
 const NOTE_PAGE_CAP = 300; // 兜底常量（splitHeavyPage 实际用 notePageCap()）
 // 太重的页 → 在块边界拆成多页（第二页起加"（续）"小标题）。封面不拆。
 function splitHeavyPage(page) {
@@ -1620,8 +1621,8 @@ async function resplitTooSmallNotes(st) {
     box.querySelectorAll('.cv-frame[data-note]').forEach(fr => {
       const idx = +fr.getAttribute('data-note'); const note = fr.querySelector('.cv-note'); if (!note || isNaN(idx)) return;
       const s = parseFloat(note.dataset.fitScale || '1'); const page = (state.notePages || [])[idx];
-      // 缩到 <0.72 就拆（之前 0.6 太宽松，导致页面被缩很小、正文字太小）→ 拆开后每页更松、字更大
-      if (s < 0.72 && page && !isCoverPage(page) && (page.blocks || []).length >= 3) toSplit.add(idx);
+      // 只在「严重溢出」(<0.62) 才拆，避免把刚装满的页拆成两个半空页（字大靠字号+容量，不靠激进拆页）
+      if (s < 0.62 && page && !isCoverPage(page) && (page.blocks || []).length >= 4) toSplit.add(idx);
     });
     if (!toSplit.size) return;
     const np = []; (state.notePages || []).forEach((p, i) => { if (toSplit.has(i)) splitPageInTwo(p).forEach(x => np.push(x)); else np.push(p); });
