@@ -903,6 +903,9 @@ async function genCvTplsFromBench() {
       if (j.ok && j.desc) {
         if (st) { st.textContent = '翻译成生图提示词 ' + (i + 1) + '/' + imgs.length + '…'; }
         prompt = (await descToGenPrompt(j.desc.trim())).slice(0, 600); // 视觉描述 → 1:1 生图提示词模板
+        // 把占位符 {主体}/{主题} 直接换成本篇主题 → 提示词里就是「我们的内容」，按对标构图 1:1 复刻
+        const _topic = (state.topic || ((state.cover && state.cover.cover_lines) || [])[0] || '').replace(/[（(].*$/, '').slice(0, 40);
+        if (_topic) prompt = prompt.replace(/[{｛][^}｝]*[}｝]/g, _topic);
       }
     } catch {}
     // B：判定这张对标是不是「文字密集笔记图」——模型若仍在讲内容/知识点而非视觉风格，标记 textNote，给友好提示而非没用的内容简介
@@ -965,16 +968,18 @@ async function genCoverFromCvTpl(i) {
   }
   try {
     let u; try { u = await once(); } catch (e1) { if (msg) { msg.textContent = '出图超时，重试中…'; } await new Promise(r => setTimeout(r, 1200)); u = await once(); }
-    // 「出封面」= 在图列表里【新增一张】（不替换封面位），原封面与其它配图都保留；用户可在图列表点「⇄ 换封面」选用。
+    // 「出封面」= 按提示词出的【纯图】（不叠系统标题，就是提示词描述的那张），插入到【AI封面之后】(index 1)，不替换、不挤到末尾。
     if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
     state.coverCaptions = state.coverCaptions || [];
     while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null); // 对齐长度
-    const cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'poster' } : { raw: true };
-    state.coverImages.push(u); state.coverCaptions.push(cap0); // 追加到末尾
+    const first = state.coverImages[0] || '';
+    const firstIsImg = /^https?:\/\//.test(first) || first.startsWith('data:'); // 第一张是 AI 封面图 → 插它后面(index1)；否则放最前
+    const at = firstIsImg ? 1 : 0;
+    state.coverImages.splice(at, 0, u); state.coverCaptions.splice(at, 0, { raw: true }); // 纯图、不叠字
     if (!state.coverImage) state.coverImage = state.coverImages[0];
     persist();
     renderCoverImages();
-    if (msg) { msg.textContent = '✓ 已新增一张封面图（在下方图列表，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
+    if (msg) { msg.textContent = '✓ 已在 AI 封面后插入一张按提示词出的图（可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
   } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
 }
 // AI 封面叠字（来自 S3 第一张/封面文案）：标题+要点，poster 主题=玻璃底板白字
