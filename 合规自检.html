@@ -548,7 +548,7 @@ function renderReport(r) {
         ${imgsRow}
         ${rwBody.length?`<div class="out p-4 leading-[1.8] space-y-2" id="aiScanBody">${aiScanHTML(rwBody)}</div>
         <div class="text-[11.5px] leading-relaxed" style="background:#fffbe6;border:1px solid #ffe27a;border-radius:8px;padding:8px 11px;color:#8a6d00">
-          🔎 <b>AI味自查（免费·不调接口）</b>：上面<mark style="background:#fff2a8;padding:0 2px">黄色高亮</mark>的是<b>最可能被平台/GPTZero判 AI</b> 的句子（共 <b>${window.__aiSelfFlagged||0}</b> 处：比喻/金句对仗/清单骨架/套话语气词等）。
+          🔎 <b>AI味自查</b>：上面<mark style="background:#fff2a8;padding:0 2px">黄色高亮</mark>的是<b>最可能被平台/GPTZero判 AI</b> 的句子（共 <b>${window.__aiSelfFlagged||0}</b> 处：比喻/金句对仗/清单骨架/套话语气词等）。
           要过 97% 人类，请<b>把这些句子用你自己的话手动重打一遍</b>（别只改词，关掉它用大白话重说；塞一两个只有你知道的真实细节），改完再粘进 gptzero.me 验收。仅高亮，不代表一定判 AI，最终以检测为准。
         </div>
         ${aiSuggestHTML()}
@@ -640,7 +640,7 @@ function origCheckHTML(paras) {
   const list = r.spans.length ? `<div class="mt-2 space-y-1.5">${r.spans.map(s => `<div style="font-size:12px;background:#fff;border:1px solid ${lv[2]};border-radius:6px;padding:5px 8px;color:#333">…${mark(s.slice(0, 40))}…</div>`).join('')}</div>` : '';
   return `<div style="margin-top:10px;background:${lv[1]};border:1px solid ${lv[2]};border-radius:8px;padding:10px 12px">
     <div style="display:flex;align-items:center;gap:8px;color:${lv[0]};font-weight:700;font-size:13.5px">
-      <span>原创度自查（免费·不调接口）</span>
+      <span>原创度自查</span>
       <span style="margin-left:auto;font-size:20px;font-weight:800">${r.score}<span style="font-size:12px;font-weight:600">分</span></span>
     </div>
     <div style="font-size:12.5px;color:${lv[0]};margin-top:3px">${lv[3]}　·　与对标重合 <b>${r.overlapPct}%</b></div>
@@ -667,7 +667,7 @@ function engageCheckHTML(paras) {
   const col = r.score >= 80 ? '#0a8a4f' : r.score >= 55 ? '#9a6b00' : '#c0271a';
   const items = r.checks.map(([n, ok, bad, fix]) => `<div style="font-size:12px;margin:3px 0;color:${ok ? '#3a7d52' : '#9a4a00'}">${ok ? '✅' : '⚠️'} <b>${n}</b>${ok ? '' : `：${bad}　<span style="color:#c0271a">改：${fix}</span>`}</div>`).join('');
   return `<div style="margin-top:10px;background:#f7f9ff;border:1px solid #cfdcff;border-radius:8px;padding:10px 12px">
-    <div style="display:flex;align-items:center;color:#2b4ea0;font-weight:700;font-size:13.5px"><span>互动力自查（免费·不调接口）</span><span style="margin-left:auto;font-size:20px;font-weight:800">${r.score}<span style="font-size:12px">分</span></span></div>
+    <div style="display:flex;align-items:center;color:#2b4ea0;font-weight:700;font-size:13.5px"><span>互动力自查</span><span style="margin-left:auto;font-size:20px;font-weight:800">${r.score}<span style="font-size:12px">分</span></span></div>
     <div style="margin-top:6px">${items}</div>
   </div>`;
 }
