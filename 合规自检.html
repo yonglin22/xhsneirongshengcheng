@@ -552,7 +552,9 @@ function renderReport(r) {
           要过 97% 人类，请<b>把这些句子用你自己的话手动重打一遍</b>（别只改词，关掉它用大白话重说；塞一两个只有你知道的真实细节），改完再粘进 gptzero.me 验收。仅高亮，不代表一定判 AI，最终以检测为准。
         </div>
         ${aiSuggestHTML()}
-        ${origCheckHTML(rwBody)}`:''}
+        ${checkupOverview(rwBody)}
+        ${origCheckHTML(rwBody)}
+        ${engageCheckHTML(rwBody)}`:''}
         ${rw.tags?`<div class="flex flex-wrap gap-2">${(rw.tags||[]).map(t=>`<span class="chip" style="color:var(--xhs-tag);background:rgba(58,90,140,.08);border-color:rgba(58,90,140,.2)">${t.startsWith('#')?t:'#'+t}</span>`).join('')}</div>`:''}
       </div>
       <div class="flex flex-wrap gap-2.5 mt-4 pt-3 border-t hairline">
@@ -642,6 +644,42 @@ function origCheckHTML(paras) {
     </div>
     <div style="font-size:12.5px;color:${lv[0]};margin-top:3px">${lv[3]}　·　与对标重合 <b>${r.overlapPct}%</b></div>
     ${r.spans.length ? `<div style="font-size:11.5px;color:#666;margin-top:7px">下面这些片段跟对标几乎一字不差（建议各自换成你自己的说法）：</div>${list}` : ''}
+  </div>`;
+}
+// ===== 免费「互动力自查」：不调接口，查开头钩子/对话感/结尾引导/提问/emoji/标签 → 提高评论收藏转发 =====
+function engageCheck(paras, tagsStr, gzh) {
+  const body = (paras || []).join('\n').trim(); if (body.length < 30) return null;
+  const head = body.slice(0, 90), tail = body.slice(-180);
+  const C = [];
+  C.push(['开头钩子', /[?？]|你是不是|有没有|是不是|别再|千万别|我当时|后来才|没想到|为什么|凭什么|多少|几个|\d/.test(head), '开头三行没钩子，刷到容易划走', '开头先抛痛点/提问/反差/数字，如"基础期还没背完？"']);
+  C.push(['对话感', (body.match(/你/g) || []).length >= 2, '几乎没用"你"，像自说自话', '多用第二人称"你/你们"，像在跟读者聊']);
+  C.push(['结尾引导', /评论区|留言|扣|你觉得|你们|说说|聊聊|蹲|关注|收藏|码住|\+1|哪个|有没有|告诉我/.test(tail), '结尾没给评论/收藏的理由', '结尾留互动钩子，如"你卡在哪一步？评论区告诉我"']);
+  C.push(['提问互动', (body.match(/[?？]/g) || []).length >= 1, '全篇没一个提问，难引发评论', '中间或结尾抛1~2个问题，邀请读者回答']);
+  if (!gzh) { const em = (body.match(/\p{Extended_Pictographic}/gu) || []).length; C.push(['emoji适度', em >= 1 && em <= 15, em < 1 ? '一个emoji都没有，略干' : 'emoji偏多显乱', '小红书正文点缀1~8个emoji即可']); }
+  if (!gzh) { const tn = (String(tagsStr || '').match(/#/g) || []).length; C.push(['话题标签', tn >= 3, '标签太少，少了流量入口', '配5~8个标签：3个大流量+若干精准']); }
+  const pass = C.filter(c => c[1]).length;
+  return { score: Math.round(pass / C.length * 100), checks: C };
+}
+function engageCheckHTML(paras) {
+  const tags = ($('#cTags') && $('#cTags').value) || '';
+  const r = engageCheck(paras, tags, cPlatform === 'gzh'); if (!r) return '';
+  const col = r.score >= 80 ? '#0a8a4f' : r.score >= 55 ? '#9a6b00' : '#c0271a';
+  const items = r.checks.map(([n, ok, bad, fix]) => `<div style="font-size:12px;margin:3px 0;color:${ok ? '#3a7d52' : '#9a4a00'}">${ok ? '✅' : '⚠️'} <b>${n}</b>${ok ? '' : `：${bad}　<span style="color:#c0271a">改：${fix}</span>`}</div>`).join('');
+  return `<div style="margin-top:10px;background:#f7f9ff;border:1px solid #cfdcff;border-radius:8px;padding:10px 12px">
+    <div style="display:flex;align-items:center;color:#2b4ea0;font-weight:700;font-size:13.5px"><span>互动力自查（免费·不调接口）</span><span style="margin-left:auto;font-size:20px;font-weight:800">${r.score}<span style="font-size:12px">分</span></span></div>
+    <div style="margin-top:6px">${items}</div>
+  </div>`;
+}
+// 体检总览条：原创度 + 互动力（本地秒出）+ 爆款（点🔥诊断）
+function checkupOverview(paras) {
+  const o = origCheck((paras || []).join('\n'), GST.ref || '');
+  const tags = ($('#cTags') && $('#cTags').value) || '';
+  const e = engageCheck(paras, tags, cPlatform === 'gzh');
+  const cell = (label, v, suffix) => `<div style="flex:1;text-align:center"><div style="font-size:11px;color:#888">${label}</div><div style="font-size:19px;font-weight:800;color:${v == null ? '#bbb' : (v >= 80 ? '#0a8a4f' : v >= 55 ? '#c98a00' : '#c0271a')}">${v == null ? '—' : v}${v == null ? '' : (suffix || '')}</div></div>`;
+  return `<div style="margin-bottom:10px;background:#fff;border:1px solid var(--line,#eee);border-radius:10px;padding:11px 8px;display:flex;align-items:center;box-shadow:0 2px 10px -7px rgba(0,0,0,.2)">
+    <div style="font-size:12px;font-weight:800;writing-mode:horizontal-tb;padding:0 8px;color:#333">发布前<br>体检</div>
+    ${cell('原创度', o ? o.score : null)}${cell('互动力', e ? e.score : null)}
+    <div style="flex:1;text-align:center"><div style="font-size:11px;color:#888">爆款潜力</div><div style="font-size:12px;color:#ff3f5c;font-weight:700;margin-top:3px">点🔥诊断</div></div>
   </div>`;
 }
 // 去掉「需核实 / 需要核实 / 待核实」及其包裹符号，得到发布级干净文本
