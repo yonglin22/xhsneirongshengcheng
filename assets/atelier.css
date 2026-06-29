@@ -306,10 +306,10 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-poster.is-photo .pst-scrim{ background:linear-gradient(180deg, rgba(10,7,10,.90) 0%, rgba(10,7,10,.82) 38%, rgba(10,7,10,.84) 70%, rgba(7,4,7,.93) 100%); }
 .cv-poster .pst-body{ position:absolute; inset:0; padding:7.5cqw 7.5cqw 6cqw; display:flex; flex-direction:column; }
 /* 顶部品牌横条：左品牌（斜体衬线）—— 金线 —— 右栏目 */
-.cv-poster .pst-top{ display:flex; align-items:center; gap:2.2cqw; font-size:2.7cqw; letter-spacing:.4cqw; color:var(--gold-lt); font-family:"Times New Roman",serif; }
-.cv-poster .pst-top .l{ font-style:italic; }
-.cv-poster .pst-top i{ flex:1; height:.34cqw; background:linear-gradient(90deg,rgba(201,168,95,.7),rgba(201,168,95,.15),rgba(201,168,95,.7)); }
-.cv-poster .pst-top .r{ letter-spacing:.55cqw; }
+.cv-poster .pst-top{ display:flex; align-items:center; gap:2.2cqw; font-size:2.6cqw; letter-spacing:.35cqw; color:var(--gold-lt); font-family:"Times New Roman",serif; }
+.cv-poster .pst-top .l{ font-style:italic; flex:none; white-space:nowrap; }
+.cv-poster .pst-top i{ flex:1 1 auto; min-width:2cqw; height:.34cqw; background:linear-gradient(90deg,rgba(201,168,95,.7),rgba(201,168,95,.15),rgba(201,168,95,.7)); }
+.cv-poster .pst-top .r{ flex:none; white-space:nowrap; letter-spacing:.38cqw; }
 /* 标题：大号中文衬线 + 烫金英文副标 */
 .cv-poster .pst-head{ margin:6.5cqw 0 5cqw; }
 .cv-poster .pst-title{ font-size:8.8cqw; line-height:1.22; font-weight:700; color:#f7efdf; letter-spacing:.2cqw; margin:0; text-shadow:0 .4cqw 2.4cqw rgba(0,0,0,.4); }
