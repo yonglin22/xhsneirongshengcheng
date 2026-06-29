@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=100" />
+<link rel="stylesheet" href="/assets/atelier.css?v=101" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -969,7 +969,7 @@ async function genCoverFromCvTpl(i) {
       try {
         if (msg) msg.textContent = '出深蓝星夜质感背景中…（约 30~60 秒）';
         const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
-        const bgPrompt = '一整张墨黑色质感海报背景：近黑的炭灰/暖黑做满幅，带极细腻的金色尘点/微光颗粒与若隐若现的暖金光晕，质感高级、纯净克制、整体很暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('色调氛围可贴近：' + aStyle + '。') : '') + '画面必须够暗、干净高级，绝对不要出现任何文字、字迹、字母、数字、假字或水印。';
+        const bgPrompt = '一整张酒红/暗紫色质感海报背景：勃艮第酒红、暗梅紫、深栗色做满幅，带梵高式的油画旋涡笔触肌理、细腻金色星点、柔和暖金光晕，氛围浓郁高级、有纵深、整体偏暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('色调氛围可贴近：' + aStyle + '。') : '') + '画面必须够暗、纹理高级，绝对不要出现任何文字、字迹、字母、数字、假字或水印。';
         const rb = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
         const tb = await rb.text(); if (rb.ok) { let bu = ''; try { bu = JSON.parse(tb).data[0].url; } catch {} if (bu) { try { bu = await persistImgUrl(bu); } catch {} page.photoBg = bu; } }
       } catch {}
@@ -1430,9 +1430,14 @@ async function generateCoverImagesCore(n) {
             ? (p.textHeavy ? ((sref && sref.url) || '') : (refPhoto || (sref && sref.url) || ''))
             : ((sref && sref.url) || (p.textHeavy ? '' : refPhoto));
           if (setMode === 'replica') {
-            // replica：i2i 1:1 复刻对标画面，叠上我们的内容（真字层，不糊）。细腻文案，非大标题卡、非海报。
-            const u = await genImageFromPlan({ theme: 'photo', scene: plan.scene, layout: plan.layout }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
-            if (u) results[p.i] = { kind: 'photo', url: u, caption: replicaCaption(p.i, plan, coverTitle) };
+            // replica：i2i 1:1 复刻对标画面当背景 + 叠「海报版」真字排版（内容换成我们的，零乱码）。封面另外出 AI 封面（见下方 prepend）。
+            let bg = await genImageFromPlan({ theme: 'photo', scene: plan.scene, layout: plan.layout }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
+            if (bg) {
+              try { bg = await persistImgUrl(bg); } catch {}
+              const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
+              if (page) { page.poster = true; page.photoBg = bg; page.posterLight = true; page.posterKicker = (t && t.name) ? t.name : '缪斯拾光'; }
+              results[p.i] = { kind: 'note', page };
+            }
           } else if (!initImg) {
             const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
             results[p.i] = { kind: 'note', page };
@@ -1783,11 +1788,18 @@ async function genNoteImages() {
     const refSet = (await analyzeRefImageSet(m => { if (st) { st.textContent = m; st.style.color = 'var(--ink-soft)'; } })).filter(Boolean);
     // 整套出图模式：封面对标=实拍 → 按对标画面 1:1 图生图(i2i)复刻、图里换我们的内容（不出备忘录卡）
     if (noteSetMode(refSet) === 'replica') {
-      if (st) { st.textContent = '封面对标是实拍 → 按对标画面 1:1 图生图复刻（图里内容换成我们的）…'; st.style.color = 'var(--ink-soft)'; }
+      if (st) { st.textContent = '封面对标是实拍 → 按对标画面 1:1 图生图复刻 + 海报版真字叠层（图里内容换成我们的）…'; st.style.color = 'var(--ink-soft)'; }
       const urls = await generateCoverImagesCore(refSet.length || coverCount());
       renderCoverImages();
       try { await deAiNotePages(state); renderCoverImages(); } catch (e) {}
-      if (st) { st.textContent = '✓ 已按对标画面 i2i 复刻 ' + (urls ? urls.length : 0) + ' 张（图里是我们的内容；如要换成备忘录长图，可换一张文字笔记型对标）'; st.style.color = '#00a152'; }
+      // 实拍套路也要 +AI 封面（放封面位，i2i 海报内页顺移其后）
+      const aiUrlR = autoAiCoverOn() ? await genAiCoverUrl(m => { if (st) { st.textContent = m; st.style.color = 'var(--ink-soft)'; } }) : '';
+      if (aiUrlR) {
+        state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
+        state.coverImages.unshift(aiUrlR); state.coverCaptions.unshift(aiCoverCaption());
+        state.coverImage = state.coverImages[0]; persist(); renderCoverImages();
+      }
+      if (st) { st.textContent = '✓ 已按对标画面 i2i 复刻 ' + (urls ? urls.length : 0) + ' 张海报版内页' + (aiUrlR ? ' + AI 封面' : '') + '（图里是我们的内容·真字零乱码）'; st.style.color = '#00a152'; }
       return;
     }
     // memo 模式：长文内容只来自 S3 框架——贴了对标却没框架 → 拦下，提示先跑 S3
@@ -2812,9 +2824,8 @@ async function autoRun() {
         setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
         try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
         try { await deAiNotePages(state); } catch (e) {} // 内页文字降AI味
-        // 取开局就并行出好的 AI 封面，放封面位(第一张)，原配图/备忘录卡顺移第二张
-        // replica 模式（封面对标=实拍，整套 i2i 复刻）→ 封面就是复刻图，不再叠 AI 封面
-        if (aiCoverPromise && state._noteMode !== 'replica') try {
+        // 取开局就并行出好的 AI 封面，放封面位(第一张)，原配图/备忘录卡顺移第二张（replica 与 memo 都要 AI 封面）
+        if (aiCoverPromise) try {
           setAuto('正在取并行生成的 AI 封面…');
           const aiUrl = await aiCoverPromise;
           if (aiUrl) {
