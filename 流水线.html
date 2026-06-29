@@ -99,7 +99,7 @@ body.auto-running #autoBtn { opacity:.7; }
   </div>
 </div>
 
-<script src="/assets/tracks.js?v=17"></script>
+<script src="/assets/tracks.js?v=18"></script>
 <script src="/assets/pinyin.js?v=1"></script>
 <script src="/assets/app.js?v=59"></script>
 <script>
@@ -161,6 +161,8 @@ const HUMANIZER_ZH = `【Humanizer-zh · 去 AI 写作痕迹（24 模式·适用
 必删 AI 句式：①夸大象征意义（"作为…的证明/标志着…关键时刻"） ②-ing 肤浅分析（"…，象征着/反映了/确保…"） ③模糊归因（"专家认为/行业报告显示/多个来源"） ④否定式排比（"不仅…而且/这不仅是…而是…"） ⑤三段式排比 ⑥同义词循环 ⑦"从X到Y"虚假范围 ⑧破折号揭示 ⑨粗体强调 ⑩内联粗体小标题+冒号清单 ⑪emoji 装饰标题 ⑫谄媚语气（"好问题!/您说得对"） ⑬截止日期免责 ⑭通用积极结尾（"未来光明/激动人心的时代/迈出重要一步"） ⑮填充短语（"为了实现这一目标/值得注意的是/在这个时间点"） ⑯过度限定（"可能潜在地或许大概"）。
 注入人味：有观点（对事实做出反应）、承认复杂与不确定、适当用"我"、允许跑题与半成型想法、对感受给具体细节（不是"令人担忧"而是具体场景）。
 交付前快速清单：连续三句一样长→打断一句；段落总以单行金句收尾→换个收法；揭示前有破折号→删；解释了比喻→相信读者删掉解释；用了"此外/然而"等连接词→删；三段式列举→改两项或四项。`;
+// 赛道级流水线指引：赛道在 tracks.js 里写 pipeline:{frame,body,cover,checklist}，对应步骤自动注入（无则不影响其它赛道）
+function tPipe(k){ try{ const p=getTrack().pipeline; return (p&&p[k])?('\n'+p[k]):''; }catch(e){ return ''; } }
 const STEPS = [
   { no:'S2', key:'skeleton', name:'对标拆解', type:'text', input:'ref',
     uses: s => '本篇选题 + 你粘贴的对标',
@@ -188,7 +190,7 @@ const STEPS = [
       : (() => { const refN = (s.refImages || []).length; return `为下面这个选题设计本篇结构骨架。==严格围绕【选题】和【S2 拆解】的真实主题来写，topic/对标是什么领域就写什么领域，绝不套用其它行业的话术或案例==：
 【选题】${s.topic}
 【可借鉴的结构骨架(S2)】${s.skeleton || '（无，按常见好结构搭）'}
-给以下四部分：
+给以下四部分：${tPipe('frame')}
 1) 开头钩子（2个方向）
 2) 主体分几段、每段讲什么（结合本选题所属领域的真实信息点，不确定标「需核实」）
 3) 结尾合规互动引导（不导流站外）
@@ -222,7 +224,7 @@ ${HUMANIZER_ZH}
 要求：
 · 正文：开头前3行必须是钩子不铺垫；分点/分段、口语、emoji 适度；信息真实，涉及${getTrack().hardInfo}等硬信息一律写「需核实」；原创不与对标实质相似；结尾一句合规互动引导，不留任何联系方式。==正文 + 标签合计字数(含标签里的"#")不能超过1000字，请控制在800字以内留余量==。
 · 标题：给 3–5 个，==每个严格≤20字（含标点，超出算不合格，请数清楚字数再输出）==，带钩子(痛点/数字/身份/悬念)，不标题党/不绝对化/不做上岸保证，并选出最推荐的一个。
-· 标签：5–8 个，3 个大流量(如 ${getTrack().bigTags.join(' ')}) + 若干精准(细分/地域/痛点)，剔除凑数。
+· 标签：5–8 个，3 个大流量(如 ${getTrack().bigTags.join(' ')}) + 若干精准(细分/地域/痛点)，剔除凑数。${tPipe('body')}
 只输出 JSON：{"body":["段落1","段落2","..."],"titles":["标题1","..."],"best":"最推荐标题","tags":["#标签1","..."]}` },
   { no:'S5', key:'cover', name:'封面·配图', type:'json',
     uses: s => 'S3 框架·封面规划',
@@ -235,7 +237,7 @@ ${HUMANIZER_ZH}
       : (() => { const fc = (typeof frameSliceForImage === 'function' && frameSliceForImage(1)) || ''; return `给这篇做封面方案，==必须与下面 S3 框架里"第1张(封面)"的规划保持一致==：文案用它「文字/主标题」的意思，视觉建议照搬它「版式/画面/配色」的描述（背景色、高亮色、关键词、构图都要对上），不要另起炉灶、不要编造。
 ${fc ? '【S3 框架·封面(第1张)规划】\n' + fc : '【提示】S3 框架里没找到第1张(封面)规划，请先去跑 S3 并写清"配图规划：第1张(封面)…"'}
 【选题】${s.topic}
-输出：cover_lines = 封面文案2行(每行≤12字，取自上面规划的主标题/副标题)；visual = 视觉与构图建议(背景色/高亮关键词/构图，与上面规划一致)。
+输出：cover_lines = 封面文案2行(每行≤12字，取自上面规划的主标题/副标题)；visual = 视觉与构图建议(背景色/高亮关键词/构图，与上面规划一致)。${tPipe('cover')}
 只输出 JSON：{"cover_lines":["第一行","第二行"],"visual":"视觉与构图建议"}`; })() },
 ];
 
@@ -356,7 +358,14 @@ const PLHistory = {
     // 已到达的最远步骤号（卡片用）：已完成步骤的最大号；对标素材(图/正文)已就绪但还没出骨架 → 至少算到第2步「拆解中」
     let stepNo = doneKeys.length ? Math.max(...doneKeys.map(k => parseInt(String(k).replace(/\D/g, '')) || 0)) : (hasTopic ? 1 : 0);
     if (stepNo < 2 && ((st.refImages || []).length || (st.ref || '').trim())) stepNo = 2;
-    return { id: st._runId, ts: Date.now(), topic: (st.topic || '').trim() || (st.best || '') || '（未命名）', track: (typeof getTrack === 'function' && getTrack()) ? getTrack().name : '', doneKeys, stepNo, imgs, data: JSON.parse(JSON.stringify(st)) };
+    // 存档去掉 data: 大图（base64）——否则 50 条历史会撑满 localStorage(≈5MB)，导致后续 ag_draft 存不进、合规自检导入为空。
+    // 图片可一键重出，文字/排版全保留；登录用户的完整图走云端。
+    const lite = JSON.parse(JSON.stringify(st));
+    const stripD = a => Array.isArray(a) ? a.map(u => (typeof u === 'string' && u.startsWith('data:')) ? '' : u) : a;
+    lite.coverImages = stripD(lite.coverImages);
+    if (typeof lite.coverImage === 'string' && lite.coverImage.startsWith('data:')) lite.coverImage = '';
+    lite.refImages = stripD(lite.refImages);
+    return { id: st._runId, ts: Date.now(), topic: (st.topic || '').trim() || (st.best || '') || '（未命名）', track: (typeof getTrack === 'function' && getTrack()) ? getTrack().name : '', doneKeys, stepNo, imgs, data: lite };
   },
   upsert(st) {
     if (!st || !st._runId) return;

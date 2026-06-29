@@ -433,6 +433,17 @@ window.Draft = {
     try { slim.refImages = stripData(slim.refImages); setit(slim); return; } catch (e) {}
     // 3) 实在存不下 → 丢弃图片字段只保文字（不抛错，避免中断生成）
     try { delete slim.coverImages; delete slim.coverImage; delete slim.refImages; setit(slim); return; } catch (e) {}
+    // 4) 仍存不下（多为其它 key 占满 localStorage）→ 兜底只存「下游导入必需」的文字核心，
+    //    保证合规自检/成稿预览能拿到这篇内容，绝不出现「跳转后为空」。
+    try {
+      const core = { _ts: Date.now(), topic: full.topic, platform: full.platform,
+        title: full.title, best: full.best, titles: full.titles, body: full.body, tags: full.tags,
+        cover: full.cover, cover_lines: full.cover_lines, frame: full.frame, summary: full.summary,
+        imgRatio: full.imgRatio, notePages: full.notePages };
+      setit(core); return;
+    } catch (e) {}
+    // 5) 连文字核心都存不下（localStorage 几乎被别的 key 塞满）→ 先腾出历史记录再存一次
+    try { localStorage.removeItem('ag_pl_history'); const core = { _ts: Date.now(), topic: full.topic, platform: full.platform, title: full.title, best: full.best, titles: full.titles, body: full.body, tags: full.tags, cover: full.cover, cover_lines: full.cover_lines, frame: full.frame, summary: full.summary, imgRatio: full.imgRatio }; setit(core); return; } catch (e) {}
     try { console.warn('Draft.save: storage quota exceeded, persist skipped'); } catch {}
   },
   load() { try { return JSON.parse(localStorage.getItem('ag_draft') || '{}'); } catch { return {}; } },
