@@ -153,8 +153,8 @@
   </div>
 </div>
 
-<script src="/assets/tracks.js?v=16"></script>
-<script src="/assets/app.js?v=58"></script>
+<script src="/assets/tracks.js?v=17"></script>
+<script src="/assets/app.js?v=59"></script>
 <script>
 const SKILLS = [
   ['S1','选题','产出 3–5 个当下最该发的选题，标最推荐'],
@@ -187,7 +187,7 @@ function renderSkills() {
 function load() {
   const t = TRACKS[curId], c = getAgentConfig(curId);
   $('#persona').value = c.persona || t.persona;
-  $('#imgStyle').value = c.imgStyle || '';
+  $('#imgStyle').value = c.imgStyle || t.defaultImgStyle || '';
   $('#kb1').value = c.kb1 || ''; $('#kb3').value = c.kb3 || ''; $('#kb2').value = c.kb2 || ''; $('#kb4').value = c.kb4 || '';
   $('#agentName').textContent = t.emoji + ' ' + t.name;
   $('#agentDomain').textContent = '领域：' + t.domain + ' · 受众：' + t.audience;

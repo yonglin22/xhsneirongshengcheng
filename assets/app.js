@@ -244,7 +244,7 @@ document.addEventListener('click', e => {
 });
 
 /* 配图视觉风格（智能体页设置，S6 配图统一画风）。留空＝跟对标图走 */
-window.agentImgStyle = () => { const t = getTrack(); if (!t) return ''; return ((getAgentConfig(t.id).imgStyle) || '').trim(); };
+window.agentImgStyle = () => { const t = getTrack(); if (!t) return ''; return (((getAgentConfig(t.id).imgStyle) || t.defaultImgStyle || '')).trim(); };
 /* 配图风格库（上传的参考图）：没有对标垫图时，用第1张当垫图统一调性 */
 window.agentStyleRefs = () => { const t = getTrack(); if (!t) return []; const r = getAgentConfig(t.id).styleRefs; return Array.isArray(r) ? r.map(x => typeof x === 'string' ? x : (x && x.url)).filter(Boolean) : []; };
 /* 风格库每张图的「提示词模板」（与 agentStyleRefs 同序）；没有则空串 */
