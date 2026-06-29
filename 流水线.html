@@ -2950,7 +2950,14 @@ async function autoRun() {
       }
       renderRail(); renderPanel();
     }
-    setAuto('✓ 已自动跑完（从 ' + dispNo(STEPS[startIdx].no) + ' 至末步' + (startIdx === 0 && !state.ref ? '，未贴对标已跳过 S2' : '') + '，含封面图）。可去成稿预览 →');
+    const _completed = autoRunning; // 仍在跑=正常跑完；被「停止」打断则为 false，不自动跳转
+    if (_completed) {
+      setAuto('✓ 已自动跑完（含封面图）。正在进入「合规自检 · 发布前体检」…');
+      try { Draft.save(state); } catch {}
+      setTimeout(() => { location.href = '/合规自检.html?auto=1'; }, 1600); // 流程自动衔接到合规自检并自动开跑体检
+    } else {
+      setAuto('已停止。可去成稿预览 → 或点「去合规自检」做发布前体检');
+    }
   } catch (e) { setAuto('中断于 ' + (STEPS[cur] ? STEPS[cur].no : '') + '：' + (e.message || e), true); }
   finally { autoRunning = false; autoPaused = false; setAutoUI(false); const ab2 = $('#autoBtn'); if (ab2) { ab2.disabled = false; ab2.textContent = '▶ 一键按对标生成全套（图文+封面图）'; } }
 }

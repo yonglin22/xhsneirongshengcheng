@@ -459,7 +459,7 @@ $('#impClose').addEventListener('click', () => $('#impModal').style.display = 'n
 $('#impModal').addEventListener('click', e => { if (e.target === $('#impModal')) $('#impModal').style.display = 'none'; });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#impModal').style.display = 'none'; });
 // 进入页面自动导入「当前草稿」（= 流水线刚生成/正在编辑的这篇），无需手动筛选；换别篇再点「从流水线导入」。
-(function () { try { const d = Draft.load(); if (d && (d.body || d.best || d.title)) importDraftData(d); } catch {} })();
+(function () { try { const d = Draft.load(); if (d && (d.body || d.best || d.title)) { importDraftData(d); if (/[?&]auto=1/.test(location.search)) setTimeout(() => { const b = document.querySelector('#checkBtn'); if (b && !b.disabled) b.click(); }, 400); } } catch {} })();
 
 // 上传图片
 $('#imgUp').addEventListener('click', () => $('#cImgFile').click());
