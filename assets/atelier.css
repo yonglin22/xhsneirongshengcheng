@@ -283,6 +283,13 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 实拍背景模式：AI 出的实拍空场景当底图，真字卡作为「桌上的一张纸」叠在中间（照片质感 + 清晰真字） */
 .cv-photoframe{ position:absolute; inset:0; background-color:#d8d2c8; background-size:cover; background-position:center; background-repeat:no-repeat; }
 .cv-photoframe .cv-note.is-memo{ position:absolute; inset:7cqw 6cqw; border-radius:3.2cqw; overflow:hidden; box-shadow:0 3cqw 9cqw rgba(0,0,0,.32), 0 1cqw 3cqw rgba(0,0,0,.18); }
+/* 整页真字直接铺在纸张背景上（无卡片边框/无 iOS 外壳）：合成感最小，像一张做旧纸上的笔记 */
+.cv-photoframe.is-full{ background-color:#f5efe2; }
+.cv-photoframe.is-full .cv-note.is-memo.is-onpaper{ position:absolute; inset:0; border-radius:0; box-shadow:none; background:transparent !important; padding:11cqw 9cqw; }
+.cv-note.is-memo.is-onpaper .cv-note-fit{ padding:0; }
+.cv-note.is-memo.is-onpaper .nt-h1{ color:#241c12; }
+.cv-note.is-memo.is-onpaper .nt-p, .cv-note.is-memo.is-onpaper .nt-ol li{ color:#3a2f22; }
+.cv-note.is-memo.is-onpaper .nt-sec{ color:#241c12; }
 .cv-note.is-memo .cv-note-fit{ padding:1.5cqw 6.5cqw 0; }
 /* 字号整体向参考图（密集干货长图）看齐：标题更克制、正文更小更密 */
 /* 标题=系统苹方粗体（与真 iOS 备忘录一致）；不内嵌字体、不描边 */
