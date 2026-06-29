@@ -595,10 +595,13 @@ function imgAttr(u) {
 // 把一张图的叠字（标题+内容）渲染成干净的信息卡覆盖层，版式跟随 layout
 function asStr(x) { return typeof x === 'string' ? x : (x == null ? '' : (x.text || x.title || x.content || (Array.isArray(x) ? x.join(' ') : String(x)))); }
 function normalizeCap(cap, coverFallback) {
-  if (!cap) return { title: coverFallback || '', lines: [], layout: '封面', theme: 'photo' };
+  // 空 / raw 的封面 caption → 用兜底标题，poster 主题保证 AI 封面也叠上标题（修：AI 封面图没带标题）
+  if (!cap || cap.raw) return { title: coverFallback || '', lines: [], layout: '封面', theme: 'poster' };
   if (typeof cap === 'string') return { title: cap, lines: [], layout: '要点', theme: 'photo' };
   const th = (cap.theme === 'poster') ? 'poster' : (cap.theme === 'editorial' ? 'editorial' : 'photo');
-  return { title: asStr(cap.title), lines: (Array.isArray(cap.lines) ? cap.lines : []).map(asStr).filter(Boolean), layout: cap.layout || '要点', theme: th };
+  const out = { title: asStr(cap.title), lines: (Array.isArray(cap.lines) ? cap.lines : []).map(asStr).filter(Boolean), layout: cap.layout || '要点', theme: th };
+  if (!out.title && !out.lines.length && coverFallback) { out.title = coverFallback; out.theme = 'poster'; out.layout = '封面'; }
+  return out;
 }
 function capCardHTML(cap, isCover, coverFallback) {
   const c = normalizeCap(cap, coverFallback);
@@ -634,7 +637,7 @@ function renderCoverImages() {
   const box = $('#imgWrap'); if (!box) return;
   const imgs = state.coverImages || (state.coverImage ? [state.coverImage] : []);
   if (!imgs.length) { box.innerHTML = ''; return; }
-  const coverFallback = ((state.cover && state.cover.cover_lines) || []).filter(Boolean).join(' ');
+  const coverFallback = (((state.cover && state.cover.cover_lines) || []).filter(Boolean).join(' ')) || ((state.titles && state.titles.best) || state.best || state.topic || '').trim();
   const caps = state.coverCaptions || [];
   box.innerHTML = '<div class="flex flex-wrap gap-3 items-start">' + imgs.map((u, i) => `
     <div style="position:relative">
@@ -1048,10 +1051,13 @@ async function genCoverFromCvTpl(i) {
 // AI 封面叠字（来自 S3 第一张/封面文案）：标题+要点，poster 主题=玻璃底板白字
 function aiCoverCaption() {
   const cl = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
-  if (!cl.length) return { raw: true };
+  // 没有 S5「封面文案」时，用本篇标题/选题兜底，保证 AI 封面图一定叠上标题（否则封面是空的）
+  const fb = ((state.titles && state.titles.best) || state.best || ((state.cover && state.cover.cover_lines) || [])[0] || state.topic || '').trim();
+  const title = cl[0] || fb;
+  if (!title) return { raw: true };
   const sub = cl[1] || '';                                   // 黄色副标题条 = 第二行封面文案
   const tags = (state.tags || []).map(t => String(t || '').replace(/^#/, '').trim()).filter(Boolean).slice(0, 3); // 底部竖线分隔标签
-  return { title: cl[0], lines: [sub, ...tags], layout: '封面', theme: 'poster' };
+  return { title, lines: [sub, ...tags].filter(Boolean), layout: '封面', theme: 'poster' };
 }
 // 生成一张「按主题 + 智能体画风」的纯视觉 AI 封面背景图，返回短链 URL（失败返回 ''，不抛错）。供「出封面」与默认流程共用。
 async function genAiCoverUrl(setStatus) {
