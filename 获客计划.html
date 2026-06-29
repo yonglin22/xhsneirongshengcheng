@@ -34,6 +34,9 @@
     <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-2xl">配置养号 / 截流获客 / 口令刷量计划。保存后由<b>浏览器插件</b>按计划在你登录的小红书里执行（保守拟真、有上限、出验证即停）。</p>
   </div>
 
+  <!-- 赛道矩阵预设：一键填养号/截流计划（赛道写 matrix 才显示） -->
+  <div id="gpPreset" class="mb-5"></div>
+
   <!-- 新建/编辑 计划 -->
   <div class="card p-5 mb-5">
     <div class="font-song font-bold text-[15px] mb-3">＋ 新建计划</div>
@@ -116,7 +119,7 @@
   <div id="list" class="space-y-3"></div>
 </main>
 
-<script src="/assets/tracks.js?v=20"></script>
+<script src="/assets/tracks.js?v=21"></script>
 <script src="/assets/app.js?v=59"></script>
 <script src="/assets/ui-dialog.js?v=1"></script>
 <script>
@@ -312,6 +315,42 @@ function runPlan(p){
   });
 }
 showSections(); renderKw(); load(); loadLibs(); toggleLib();
+
+// 赛道矩阵预设：一键把"养号 / 截流"计划填进上方表单（老号先养号），用户核对后保存
+(function renderGpPreset(){
+  const box=document.getElementById('gpPreset'); if(!box) return;
+  let mx=null,tname=''; try{ const t=getTrack(); mx=t&&t.matrix; tname=t?t.name:''; }catch(e){}
+  if(!mx){ box.innerHTML=''; return; }
+  const kw=(mx.interceptKeywords||[]).join(' / ');
+  const nz=mx.nurture||{};
+  box.innerHTML=`<div class="card p-5">
+    <div class="font-song font-bold text-[15px] mb-1">🎯 「${tname}」矩阵获客预设 <span class="text-[11px] text-[var(--ink-soft)] font-normal">· 老号先养号，再开截流</span></div>
+    <div class="text-[11px] text-[var(--ink-soft)] mb-3">点按钮把对应计划填进上方表单（不自动保存），核对账号/参数后点「保存计划」。建议每个老号各建 1 条养号计划，养满 ${nz.days||7} 天再开截流。</div>
+    <div class="flex flex-wrap gap-2">
+      <button id="gpNurture" class="btn-go rounded-lg px-4 py-2 text-[12px] font-medium">① 填「搜索养号」计划（先做）</button>
+      <button id="gpIntercept" class="btn-ghost rounded-lg px-4 py-2 text-[12px]">② 填「搜索截流」计划（养号后再做）</button>
+      <a href="/矩阵起盘.html" class="btn-ghost rounded-lg px-4 py-2 text-[12px]" style="text-decoration:none">📖 矩阵起盘 SOP</a>
+    </div>
+    <div class="text-[11px] text-[var(--ink-soft)] mt-2.5">截流关键词：<b>${esc(kw)}</b></div>
+  </div>`;
+  function setType(t){ $('#pType').value=t; showSections(); }
+  function setSeg(name,v){ const seg=document.querySelector('.seg[data-seg="'+name+'"]'); if(!seg)return; seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); segs[name]=v; }
+  function fillKw(){ kws=(mx.interceptKeywords||[]).slice(); renderKw(); }
+  box.querySelector('#gpNurture').addEventListener('click',()=>{
+    setType('search_nurture'); $('#pName').value=tname+'·老号养号（养'+(nz.days||7)+'天）'; $('#pDesc').value='起号养号：保守互动养权重，养满再开截流'; fillKw();
+    setSeg('sort','like');
+    const set=(id,v)=>{ const e=$('#'+id); if(e)e.value=v; };
+    set('nzLove',nz.love??60); set('nzLike',nz.like??80); set('nzFav',nz.fav??25); set('nzFollow',nz.follow??20); set('nzComment',nz.comment??15); set('nzDaily',nz.daily??15);
+    $('#saveStatus').textContent='✓ 已填「搜索养号」，请在上方选好该执行的账号后保存（每个老号各建一条）'; $('#saveStatus').style.color='#00a152';
+    document.querySelector('.card.p-5.mb-5')?.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+  box.querySelector('#gpIntercept').addEventListener('click',()=>{
+    setType('search_intercept'); $('#pName').value=tname+'·搜索截流获客'; $('#pDesc').value='去同行评论区收集潜客并保守触达（出验证即停）'; fillKw();
+    setSeg('sort','like'); collectOn=true; $('#icCollect')?.classList.add('on');
+    $('#saveStatus').textContent='✓ 已填「搜索截流」，请核对触达频率(保守)后保存。务必先养号满'+(nz.days||7)+'天再开'; $('#saveStatus').style.color='#e8a400';
+    document.querySelector('.card.p-5.mb-5')?.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+})();
 </script>
 </body>
 </html>

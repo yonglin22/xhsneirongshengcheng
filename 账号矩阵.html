@@ -48,10 +48,13 @@
     </div>
   </div>
 
+  <!-- 赛道矩阵预设：一键铺设 3 个角色号（赛道写 matrix 才显示） -->
+  <div id="matrixPreset" class="mb-5"></div>
+
   <div id="list" class="space-y-4"></div>
 </main>
 
-<script src="/assets/tracks.js?v=20"></script>
+<script src="/assets/tracks.js?v=21"></script>
 <script src="/assets/app.js?v=59"></script>
 <script src="/assets/ui-dialog.js?v=1"></script>
 <script>
@@ -200,6 +203,41 @@ $('#addBtn').addEventListener('click', async () => {
   $('#addStatus').textContent = '✓ 已添加'; $('#addStatus').style.color = '#00a152';
   $('#addBtn').disabled = false; load();
 });
+// 赛道矩阵预设：一键铺设 3 个角色号（老号先养号）
+(function renderMatrixPreset(){
+  const box = document.getElementById('matrixPreset'); if (!box) return;
+  let mx = null, tname = ''; try { const t = getTrack(); mx = t && t.matrix; tname = t ? t.name : ''; } catch (e) {}
+  if (!mx || !mx.accounts || !mx.accounts.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="card p-5">
+    <div class="flex items-center justify-between gap-3 mb-1 flex-wrap">
+      <div class="font-song font-bold text-[15px]">🎯 一键铺设「${mark(mx.groupName || (tname + '矩阵'))}」</div>
+      <div class="flex gap-2">
+        <a href="/矩阵起盘.html" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]" style="text-decoration:none">📖 矩阵起盘 SOP</a>
+        <button id="mxAdd" class="btn-go rounded-lg px-4 py-1.5 text-[12px] font-medium">＋ 添加这 3 个号到矩阵</button>
+      </div>
+    </div>
+    <div class="text-[11px] text-[var(--ink-soft)] mb-3">⚠️ 老号先养号：添加后请到「获客计划」给这 3 个号各建一条<b>搜索页·起号养号</b>计划，养 7 天再开始日更。</div>
+    <div class="grid sm:grid-cols-3 gap-2.5">${mx.accounts.map(a=>`
+      <div class="out p-3 rounded-xl">
+        <div class="text-[13px] font-medium" style="color:var(--cinnabar-deep)">${mark(a.role)}</div>
+        <div class="text-[12px] mt-1">${mark(a.nick)}</div>
+        <div class="text-[11px] text-[var(--ink-soft)] mt-1.5 leading-snug">主打：${mark(a.focus)}</div>
+        <div class="text-[11px] text-[var(--ink-soft)] mt-0.5 leading-snug">目标：${mark(a.goal)}</div>
+      </div>`).join('')}</div>
+    <div id="mxStatus" class="text-[12px] mt-2.5" style="min-height:16px"></div>
+  </div>`;
+  const btn = box.querySelector('#mxAdd'), st = box.querySelector('#mxStatus');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; const old = btn.textContent; let ok = 0;
+    for (const a of mx.accounts) {
+      btn.textContent = '添加中…' + a.nick;
+      const r = await api('', 'POST', { platform: 'xhs', nickname: a.nick, grp: mx.groupName || (tname + '矩阵'), note: a.note || a.role });
+      if (r && r.ok) ok++;
+    }
+    st.textContent = '✓ 已铺设 ' + ok + ' 个号到「' + (mx.groupName || tname) + '」分组（待接入）。下一步：去获客计划给它们建养号计划。';
+    st.style.color = '#00a152'; btn.disabled = false; btn.textContent = old; load();
+  });
+})();
 load();
 </script>
 </body>
