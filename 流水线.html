@@ -1159,6 +1159,14 @@ function isTextHeavyRef(refVis) {
   if (/[①②③④⑤]/.test(textPart)) return true;
   return cleanLen >= 12;                                                       // 字多 → 文字密集
 }
+// 整套 S6 出图模式：只看「封面那张对标」决定（用户规则，整套统一）。
+//  · 封面对标=实拍(+文字) → 'replica'：整套按对标画面 1:1 图生图(i2i)复刻，图里内容换成我们的（不再叠备忘录/AI封面）
+//  · 封面对标=长文笔记图 / 没有对标 → 'memo'：备忘录真字封面卡 + 长文笔记图文 + AI 封面（现有默认）
+function noteSetMode(refSet) {
+  const arr = (refSet || []).filter(Boolean);
+  if (!arr.length) return 'memo';                       // 无对标 → 默认备忘录套路
+  return isTextHeavyRef(arr[0]) ? 'memo' : 'replica';   // 看第 1 张(封面)对标
+}
 // 照「对标第 i 张」的版式，排成我这篇的一页长图笔记（结构照搬、内容换成我的）
 // 从 S3 框架文本里切出"第 N 张"那一段：先定位所有"第X张"标记（忽略 **/#/* 等前缀），
 // 取第 n 个标记到下一个标记之间的全部内容（含 文字/版式/内容要点/作用）。
@@ -1363,12 +1371,14 @@ async function generateCoverImagesCore(n) {
   const urls = [], captions = [], notePages = [];
 
   const imgCap = maxImagesForUser(); let realCount = 0; // 体验期真实配图≤4
+  // 整套统一模式：看封面那张对标决定（replica=按对标画面 i2i 复刻；memo=备忘录真字+AI封面）
+  const setMode = noteSetMode(refSet);
+  state._noteMode = setMode; // 供「一键全套」决定要不要再叠 AI 封面（replica 不叠）
   if (refSet.length) {
-    // 有对标图组 → 逐张对位：文字密集→长图笔记；实拍→i2i。并发出图(最多3张同时)提速，结果按对标顺序组装。
+    // 整套统一：memo→全部出长图笔记真字卡；replica→全部按对标画面 i2i 复刻、图里换我们的内容。并发出图(最多4张同时)提速，按对标顺序组装。
     const planned = refSet.map((rv, i) => {
       const textHeavy = isTextHeavyRef(rv);
-      // 默认走长文笔记卡（文字零乱码、版式精确、最稳）；只有「对标本身是实拍照片」才出 AI 图（AI 复刻不了文字排版，强行出图=四不像）
-      return { i, textHeavy, isNote: textHeavy };
+      return { i, textHeavy, isNote: setMode === 'memo' };
     });
     let _seq = 0; planned.forEach(p => { if (!p.isNote) p.photoIdx = _seq++; }); // 实拍图编号，超体验期上限的跳过
     const results = new Array(refSet.length).fill(null);
@@ -1382,10 +1392,12 @@ async function generateCoverImagesCore(n) {
           results[p.i] = { kind: 'note', page };
         } else if (p.photoIdx < imgCap) {
           const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
-          // 垫图优先级：① 配图风格库最优模板（出图风格按它）② 实拍对标原图（按对标画面）③ 都没有→不让AI乱发挥，退回长图笔记
+          // 垫图优先级：replica 模式 → 对标原图优先(1:1 复刻对标画面/image2 图生图)；其它 → 配图风格库模板优先
           const sref = pickStyleRef(plan);
-          const refPhoto = p.textHeavy ? '' : ((state.refImages || [])[p.i] || '');
-          const initImg = (sref && sref.url) || refPhoto;
+          const refPhoto = (state.refImages || [])[p.i] || '';
+          const initImg = setMode === 'replica'
+            ? (refPhoto || (sref && sref.url))                       // replica：对标原图当垫图，1:1 复刻
+            : ((sref && sref.url) || (p.textHeavy ? '' : refPhoto));
           if (!initImg) {
             const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
             results[p.i] = { kind: 'note', page };
@@ -1727,13 +1739,22 @@ async function genNoteImages() {
   const title = ((state.cover && state.cover.cover_lines) || []).join(' ') || (state.titles && state.titles.best) || state.topic;
   const bodyTxt = (state.body || []).join('\n').slice(0, 1800);
   const hasRef = (state.refImages || []).length;
-  // 对标逐张路径的内容只来自 S3 框架：贴了对标却没框架 → 拦下，提示先跑 S3
-  if (hasRef && !state.frame) { if (st) { st.textContent = '长文内容来自 S3 框架——请先跑 S3，并在框架里写清「配图规划：第1张…第2张…」'; st.style.color = 'var(--cinnabar-deep)'; } return; }
   if (!state.frame && !bodyTxt && !hasRef) { if (st) { st.textContent = '先跑 S3 框架（长文内容从框架来）+ 贴对标图片'; st.style.color = 'var(--cinnabar-deep)'; } return; }
   if (btn) { btn.disabled = true; btn.textContent = '排版中…'; }
   try {
     const pages = [];
     const refSet = (await analyzeRefImageSet(m => { if (st) { st.textContent = m; st.style.color = 'var(--ink-soft)'; } })).filter(Boolean);
+    // 整套出图模式：封面对标=实拍 → 按对标画面 1:1 图生图(i2i)复刻、图里换我们的内容（不出备忘录卡）
+    if (noteSetMode(refSet) === 'replica') {
+      if (st) { st.textContent = '封面对标是实拍 → 按对标画面 1:1 图生图复刻（图里内容换成我们的）…'; st.style.color = 'var(--ink-soft)'; }
+      const urls = await generateCoverImagesCore(refSet.length || coverCount());
+      renderCoverImages();
+      try { await deAiNotePages(state); renderCoverImages(); } catch (e) {}
+      if (st) { st.textContent = '✓ 已按对标画面 i2i 复刻 ' + (urls ? urls.length : 0) + ' 张（图里是我们的内容；如要换成备忘录长图，可换一张文字笔记型对标）'; st.style.color = '#00a152'; }
+      return;
+    }
+    // memo 模式：长文内容只来自 S3 框架——贴了对标却没框架 → 拦下，提示先跑 S3
+    if (hasRef && !state.frame) { if (st) { st.textContent = '长文内容来自 S3 框架——请先跑 S3，并在框架里写清「配图规划：第1张…第2张…」'; st.style.color = 'var(--cinnabar-deep)'; } return; }
     const frameN = frameImageCount();
     if (frameN > 0) {
       // 页数 = S3 框架规划的图数（内容源）；对标只提供"第 i 张"的版式参考（不够就用最后一张/留空）
@@ -2755,7 +2776,8 @@ async function autoRun() {
         try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
         try { await deAiNotePages(state); } catch (e) {} // 内页文字降AI味
         // 取开局就并行出好的 AI 封面，放封面位(第一张)，原配图/备忘录卡顺移第二张
-        if (aiCoverPromise) try {
+        // replica 模式（封面对标=实拍，整套 i2i 复刻）→ 封面就是复刻图，不再叠 AI 封面
+        if (aiCoverPromise && state._noteMode !== 'replica') try {
           setAuto('正在取并行生成的 AI 封面…');
           const aiUrl = await aiCoverPromise;
           if (aiUrl) {
