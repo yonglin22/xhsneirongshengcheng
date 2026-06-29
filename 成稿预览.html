@@ -422,6 +422,30 @@ const HUMANIZE = `
 4. 多陈述事实和自己的具体做法，少抒情少煽动。
 5. 第一人称但平实，不戏剧化。emoji 克制。
 目标：GPTZero≥97% 人类。一句话：宁可平淡，不要漂亮——漂亮就是 AI。`;
+// 隐形「降AI味」二次改写：正文生成后自动跑一遍（用户无感）。返回改写后的段落数组。
+async function deAiRewriteBody(body, model){
+  const bodyText = (Array.isArray(body)?body:[String(body||'')]).join('\n\n').trim();
+  if(!bodyText || bodyText.length < 40) return body;
+  const prompt = `下面是一篇小红书笔记正文。请整体改写一遍，唯一目标：让 AI 检测器(GPTZero)判定为"人类所写"，同时事实/信息点/大意完全不变、字数大体相当。
+严格按下面来（实测能把 AI 概率压下去的关键）：
+1. 删掉一切编号清单与分点排比（"1、2、3""①②③""第一步/第二步"最容易被判 AI）——改写成一段段连续说下去的大白话。
+2. 删掉所有比喻、打比方、金句、工整对仗句、"提问+短答"的爽文节奏。
+3. 把知识点揉进"我自己当时是怎么做/怎么记的"这种第一人称经历里讲。
+4. 句子长短刻意不规则，允许长句啰嗦、中途补一句、用"其实吧""反正""我记得好像"这种口语和轻微自我纠正。
+5. 多保留具体琐碎细节（数字/时间/书名/步骤），少抒情、少升华，结尾别拔高。
+6. 涉及硬信息保留「需核实」；不加任何联系方式或引流。分成自然段落，不要用任何序号或符号清单。
+只输出改写后的正文本身，不要任何解释、不要代码块、不要前后缀。
+【原正文】
+${bodyText}`;
+  try{
+    const r = await fetch('/api/claude',{ method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ model, max_tokens:1500, messages:[{role:'user',content:prompt}] }) });
+    if(!r.ok) return body;
+    const d = await r.json();
+    let t = (d.content||[]).map(b=>b.text||'').join('').replace(/^```[a-z]*\n?|\n?```$/g,'').trim();
+    if(t && t.length > bodyText.length*0.4) return t.split(/\n{2,}/).map(s=>s.trim()).filter(Boolean);
+  }catch(e){}
+  return body;
+}
 if (TK) { const an = document.getElementById('authorName'); if (an) an.textContent = (TK.placeholders.persona.split('/')[0] || TK.name).trim(); }
 
 // restore
@@ -630,6 +654,8 @@ ${HUMANIZE}
     txt = txt.replace(/^```(json)?/i,'').replace(/```$/,'').trim();
     const m = txt.match(/\{[\s\S]*\}/); if(m) txt = m[0];
     const parsed = JSON.parse(txt);
+    setStatus('正在打磨正文…');
+    try { parsed.body = await deAiRewriteBody(parsed.body, model); } catch(e) {}
     render(parsed);
     setCoverImage('');
     setStatus('✓ 生成完成 · 已过铁律提示词约束，发布前仍需运营终审（S8）');

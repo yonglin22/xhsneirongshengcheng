@@ -2492,6 +2492,34 @@ function enforceCopyLimits(st) {
   }
 }
 
+// 隐形「降AI味」二次改写：正文生成后自动跑一遍，把最容易被检测判 AI 的写法压掉（用户无感）。
+// 实测证据：编号清单/分点排比/比喻/金句/对仗/提问+短答 最像 AI；连续口语+第一人称经历+琐碎具体细节 最像人。
+async function deAiRewrite(state) {
+  const gzh = isGzh();
+  const bodyText = (state.body || []).join('\n\n').trim();
+  if (!bodyText || bodyText.length < 40) return;
+  const prompt = `下面是一篇${gzh ? '公众号文章' : '小红书笔记'}正文。请整体改写一遍，唯一目标：让 AI 检测器(GPTZero)判定为"人类所写"，同时事实/信息点/大意完全不变、字数大体相当。
+严格按下面来（这些是实测能把 AI 概率压下去的关键）：
+1. 删掉一切编号清单与分点排比（"1、2、3""①②③""第一步/第二步"这种最容易被判 AI）——改写成一段段连续说下去的大白话。
+2. 删掉所有比喻、打比方、金句、工整对仗句、"提问+短答"的爽文节奏。
+3. 把知识点揉进"我自己当时是怎么做/怎么记的"这种第一人称经历里讲，而不是干巴巴罗列。
+4. 句子长短刻意不规则，允许长句啰嗦、中途补一句、用"其实吧""反正""我记得好像"这种口语和轻微自我纠正。
+5. 多保留具体琐碎细节（数字/时间/书名/步骤），少抒情、少升华，结尾别拔高。
+6. 涉及硬信息保留「需核实」；不加任何联系方式或引流。
+${gzh ? '保留 ## 小标题分段（但小标题本身也写得口语自然些）。' : '分成自然段落，不要用任何序号或符号清单。'}
+只输出改写后的正文本身，不要任何解释、不要代码块、不要前后缀。
+【原正文】
+${bodyText}`;
+  try {
+    setAuto && setAuto('正在打磨正文（降 AI 味）…');
+    const out = await callClaude({ prompt, model: $('#model').value, max_tokens: gzh ? 3000 : 1500, action: 'deai' });
+    const t = String(out || '').replace(/^```[a-z]*\n?|\n?```$/g, '').trim();
+    if (t && t.length > bodyText.length * 0.4) {
+      state.body = t.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+      if (!gzh) enforceCopyLimits(state);
+    }
+  } catch (e) {}
+}
 async function runStep(st) {
   // S2/S3 生成前：逐张视觉解析对标图组（不只封面，每张都解析）
   if ((st.key === 'skeleton' || st.key === 'frame') && (state.refImages || []).length && !(state.refVisions && state.refVisions.length)) {
@@ -2536,6 +2564,7 @@ async function runStep(st) {
       state.titles = j.titles || []; state.best = j.best || (j.titles || [])[0] || ''; state.tags = j.tags || [];
       if (j.summary !== undefined) state.summary = j.summary;
       if (!isGzh()) { enforceCopyLimits(state); }
+      await deAiRewrite(state); // 隐形降AI味二次改写
     }
     else if (st.key === 'cover') state.cover = { cover_lines: j.cover_lines || [], visual: j.visual || '' };
   } else { state[st.key] = txt; }
