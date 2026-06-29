@@ -955,11 +955,15 @@ async function genCoverFromCvTpl(i) {
     + (aStyle ? '，画风贴近：' + aStyle : '')
     + '。画面里绝对不要出现任何文字、汉字、字母、数字、假字或水印（标题区留白，后期叠字）。' + ratioWord() + '，高清、细节精致、整图铺满。';
   if (msg) { msg.textContent = '出图中…（约 30~60 秒）'; msg.style.color = 'var(--ink-soft)'; }
-  try {
+  // 出图：失败/超时自动重试 1 次（这些提示词长、构图复杂，上游偶发超时）
+  async function once() {
     const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(170000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, action: 'cover', size: ratioSize() }) });
     const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
-    if (!u) throw new Error('上游无图');
+    if (!u) throw new Error('上游无图'); return u;
+  }
+  try {
+    let u; try { u = await once(); } catch (e1) { if (msg) { msg.textContent = '出图超时，重试中…'; } await new Promise(r => setTimeout(r, 1200)); u = await once(); }
     // 「出封面」= 在图列表里【新增一张】（不替换封面位），原封面与其它配图都保留；用户可在图列表点「⇄ 换封面」选用。
     if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
     state.coverCaptions = state.coverCaptions || [];
