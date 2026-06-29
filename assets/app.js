@@ -222,11 +222,25 @@ window.showLightbox = function (src) {
     lb.addEventListener('click', () => { lb.style.display = 'none'; });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.style.display = 'none'; });
   }
+  lb.innerHTML = '<img alt="放大图" style="max-width:92vw;max-height:92vh;border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.55)"/>';
   lb.querySelector('img').src = src; lb.style.display = 'flex';
+};
+// 放大「带叠字的封面卡」：显示合成后的整张卡（底图 + CSS 叠字），而不是裸底图（否则放大看不到标题）
+window.showLightboxNode = function (frameEl) {
+  let lb = document.getElementById('__lightbox');
+  if (!lb) { window.showLightbox(''); lb = document.getElementById('__lightbox'); lb.style.display = 'none'; }
+  const ar = (getComputedStyle(frameEl).aspectRatio || '').replace(/\s/g, '') || '3/4';
+  const clone = frameEl.cloneNode(true);
+  clone.style.cssText = 'width:min(90vw,64vh);aspect-ratio:' + ar + ';container-type:inline-size;border-radius:12px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.55);cursor:zoom-out';
+  lb.innerHTML = ''; lb.appendChild(clone); lb.style.display = 'flex';
 };
 document.addEventListener('click', e => {
   const img = e.target && e.target.closest && e.target.closest('img.zoomable');
-  if (img && img.src) { e.stopPropagation(); showLightbox(img.src); }
+  if (!img) return;
+  const frame = img.closest('.cv-frame');
+  const overlay = frame && frame.querySelector('.cv-card, .cv-coverx, .cv-poster');
+  if (frame && overlay) { e.stopPropagation(); window.showLightboxNode(frame); return; } // 有叠字 → 放大合成卡
+  if (img.src) { e.stopPropagation(); window.showLightbox(img.src); }
 });
 
 /* 配图视觉风格（智能体页设置，S6 配图统一画风）。留空＝跟对标图走 */
