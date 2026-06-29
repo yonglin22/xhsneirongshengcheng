@@ -1024,7 +1024,8 @@ async function genCoverFromCvTpl(i) {
       // 实拍 i2i 复刻 → 用 photo 主题（文案细腻融在画面上，跟对标同调），不要大标题卡(=AI封面那种叠字)
       cap0 = { title: ttl, lines: sub ? [sub] : [], layout: '封面', theme: 'photo' };
     } else {
-      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'photo' } : { raw: true }; // 没提取到文案 → 干脆不叠字，纯复刻画面
+      cap0 = lines.length ? { title: lines[0], lines: lines.slice(1, 4), layout: '封面', theme: 'photo' }
+        : { title: (topic || state.topic || '').slice(0, 20), lines: [], layout: '封面', theme: 'photo' }; // 没提取到文案 → 用本篇主题做一句融图文案
     }
     const first = state.coverImages[0] || '';
     const firstIsImg = /^https?:\/\//.test(first) || first.startsWith('data:'); // 第一张是 AI 封面图 → 插它后面(index1)；否则放最前
@@ -1175,6 +1176,22 @@ function noteSetMode(refSet) {
   const arr = (refSet || []).filter(Boolean);
   if (!arr.length) return 'memo';                       // 无对标 → 默认备忘录套路
   return isTextHeavyRef(arr[0]) ? 'memo' : 'replica';   // 看第 1 张(封面)对标
+}
+// replica 模式下，给第 i 张复刻图配「我们的内容」叠字（真字，绝不靠 AI 画字）。
+// 内容优先级：planOneImage 解析出的 title/lines → S3 框架第 i 张的文字要点 → 封面文案/标题 → 正文要点 → 选题。
+function replicaCaption(i, plan, coverTitle) {
+  let title = ((plan && plan.title) || '').trim();
+  let lines = (plan && Array.isArray(plan.lines) ? plan.lines : []).filter(Boolean).slice(0, 3);
+  if (!title) {
+    const seg = (typeof frameSliceForImage === 'function' ? frameSliceForImage(i + 1) : '') || '';
+    const fromSeg = ((seg.match(/(?:文字要点|内容要点|要点|主标题|文字)[：:]\s*([^\n]+)/) || [])[1] || '')
+      .replace(/[（(].*?[）)]/g, '').split(/[\/、，,；;|]+/).map(s => s.replace(/^[·\-\s]+/, '').trim()).filter(Boolean);
+    const cl = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
+    const bodyPts = (state.body || []).join('\n').split(/\n+/).map(s => s.replace(/^[#*\->\s]+/, '').trim()).filter(s => s.length >= 4 && s.length <= 22);
+    if (fromSeg.length) { title = fromSeg[0]; if (!lines.length) lines = fromSeg.slice(1, 3); }
+    else title = (cl[i] || cl[0] || bodyPts[i] || coverTitle || state.topic || '').slice(0, 20);
+  }
+  return { title: (title || '').slice(0, 22), lines, layout: '封面', theme: 'photo' };
 }
 // 照「对标第 i 张」的版式，排成我这篇的一页长图笔记（结构照搬、内容换成我的）
 // 从 S3 框架文本里切出"第 N 张"那一段：先定位所有"第X张"标记（忽略 **/#/* 等前缀），
@@ -1401,13 +1418,18 @@ async function generateCoverImagesCore(n) {
           results[p.i] = { kind: 'note', page };
         } else if (p.photoIdx < imgCap) {
           const plan = await planOneImage(p.i, refSet[p.i], p.i === 0, coverTitle, bodyTxt, t);
-          // 垫图优先级：replica 模式 → 对标原图优先(1:1 复刻对标画面/image2 图生图)；其它 → 配图风格库模板优先
           const sref = pickStyleRef(plan);
           const refPhoto = (state.refImages || [])[p.i] || '';
+          // replica 模式：实拍那张用对标原图当垫图 1:1 复刻；但「文字截图/笔记图」那张绝不能 i2i（中文会糊成鬼图）→ 改用风格库垫图或纯文生图出干净氛围背景
+          // 其它模式：风格库模板优先，文字密集图不当实拍垫图
           const initImg = setMode === 'replica'
-            ? (refPhoto || (sref && sref.url))                       // replica：对标原图当垫图，1:1 复刻
+            ? (p.textHeavy ? ((sref && sref.url) || '') : (refPhoto || (sref && sref.url) || ''))
             : ((sref && sref.url) || (p.textHeavy ? '' : refPhoto));
-          if (!initImg) {
+          if (setMode === 'replica') {
+            // replica：永远出「画面照片」，并强制叠上我们的内容（真字），保证“图片内是我们的内容”
+            const u = await genImageFromPlan({ theme: 'photo', scene: plan.scene, layout: plan.layout }, '', p.i === 0 ? COVER_PROVIDER : INNER_PROVIDER, initImg, sref ? sref.prompt : '');
+            if (u) results[p.i] = { kind: 'photo', url: u, caption: replicaCaption(p.i, plan, coverTitle) };
+          } else if (!initImg) {
             const page = await planNotePage(p.i, refSet[p.i], p.i === 0, coverTitle, t);
             results[p.i] = { kind: 'note', page };
           } else {
