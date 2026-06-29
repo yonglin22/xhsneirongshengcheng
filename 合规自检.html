@@ -549,7 +549,8 @@ function renderReport(r) {
           🔎 <b>AI味自查（免费·不调接口）</b>：上面<mark style="background:#fff2a8;padding:0 2px">黄色高亮</mark>的是<b>最可能被平台/GPTZero判 AI</b> 的句子（共 <b>${window.__aiSelfFlagged||0}</b> 处：比喻/金句对仗/清单骨架/套话语气词等）。
           要过 97% 人类，请<b>把这些句子用你自己的话手动重打一遍</b>（别只改词，关掉它用大白话重说；塞一两个只有你知道的真实细节），改完再粘进 gptzero.me 验收。仅高亮，不代表一定判 AI，最终以检测为准。
         </div>
-        ${aiSuggestHTML()}`:''}
+        ${aiSuggestHTML()}
+        ${origCheckHTML(rwBody)}`:''}
         ${rw.tags?`<div class="flex flex-wrap gap-2">${(rw.tags||[]).map(t=>`<span class="chip" style="color:var(--xhs-tag);background:rgba(58,90,140,.08);border-color:rgba(58,90,140,.2)">${t.startsWith('#')?t:'#'+t}</span>`).join('')}</div>`:''}
       </div>
       <div class="flex flex-wrap gap-2.5 mt-4 pt-3 border-t hairline">
@@ -609,6 +610,37 @@ function renderReport(r) {
   if (dp) dp.addEventListener('click', async () => { if (!await confirmFreshImgs('下载')) return; pushRevisedToDraft(); location.href = '/成稿预览.html?export=1'; });
   const rb = document.querySelector('#regenImgBtn');
   if (rb) rb.addEventListener('click', () => regenS8Images(rb));
+}
+// ===== 免费「原创度查重」：不调接口，用 8 字滑窗比对【我的正文 vs 对标正文】，算重合率 → 防搬运/查重限流 =====
+function _normDup(s) { return String(s || '').replace(/[\s\p{P}]/gu, ''); } // 去空白与标点，只比文字
+function origCheck(bodyText, refText) {
+  const a = _normDup(bodyText), b = _normDup(refText);
+  if (a.length < 24 || b.length < 24) return null; // 没对标或太短 → 不查
+  const K = 8, set = new Set();
+  for (let i = 0; i + K <= b.length; i++) set.add(b.slice(i, i + K));
+  const cov = new Array(a.length).fill(false);
+  for (let i = 0; i + K <= a.length; i++) if (set.has(a.slice(i, i + K))) for (let j = i; j < i + K; j++) cov[j] = true;
+  let c = 0; for (let i = 0; i < a.length; i++) if (cov[i]) c++;
+  const pct = Math.round(c / a.length * 100);
+  const spans = []; let st = -1;
+  for (let i = 0; i <= a.length; i++) { if (i < a.length && cov[i]) { if (st < 0) st = i; } else if (st >= 0) { if (i - st >= 10) spans.push(a.slice(st, i)); st = -1; } }
+  return { overlapPct: pct, score: Math.max(0, 100 - pct), spans: spans.sort((x, y) => y.length - x.length).slice(0, 10) };
+}
+function origCheckHTML(paras) {
+  const r = origCheck((paras || []).join('\n'), GST.ref || '');
+  if (!r) return ''; // 没贴对标正文就不显示
+  const lv = r.overlapPct <= 12 ? ['#0a8a4f', '#e8f7ee', '#bfe6cd', '✅ 原创度高', '跟对标几乎没有雷同，放心发。'] :
+    r.overlapPct <= 22 ? ['#9a6b00', '#fffbe6', '#ffe27a', '⚠️ 有局部雷同', '下面几处跟对标用词太像，建议换成你自己的话再发。'] :
+      ['#c0271a', '#fdeceb', '#f6b8b2', '❗ 雷同偏高 · 搬运风险', '跟对标重合较多，平台查重容易判「搬运/非原创」而限流，务必把下面几处重写。'];
+  const list = r.spans.length ? `<div class="mt-2 space-y-1.5">${r.spans.map(s => `<div style="font-size:12px;background:#fff;border:1px solid ${lv[2]};border-radius:6px;padding:5px 8px;color:#333">…${mark(s.slice(0, 40))}…</div>`).join('')}</div>` : '';
+  return `<div style="margin-top:10px;background:${lv[1]};border:1px solid ${lv[2]};border-radius:8px;padding:10px 12px">
+    <div style="display:flex;align-items:center;gap:8px;color:${lv[0]};font-weight:700;font-size:13.5px">
+      <span>原创度自查（免费·不调接口）</span>
+      <span style="margin-left:auto;font-size:20px;font-weight:800">${r.score}<span style="font-size:12px;font-weight:600">分</span></span>
+    </div>
+    <div style="font-size:12.5px;color:${lv[0]};margin-top:3px">${lv[3]}　·　与对标重合 <b>${r.overlapPct}%</b></div>
+    ${r.spans.length ? `<div style="font-size:11.5px;color:#666;margin-top:7px">下面这些片段跟对标几乎一字不差（建议各自换成你自己的说法）：</div>${list}` : ''}
+  </div>`;
 }
 // 去掉「需核实 / 需要核实 / 待核实」及其包裹符号，得到发布级干净文本
 // ===== 免费「AI味自查」：不调任何接口，用已摸清的规律给最像AI的句子标黄，方便手改（GPTZero 同款思路：清单/比喻/金句/对仗/套话最像AI）=====
