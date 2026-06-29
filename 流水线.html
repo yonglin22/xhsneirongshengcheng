@@ -930,7 +930,7 @@ function renderCvTpls() {
         <textarea class="cvtpl-prompt field rounded-lg px-2.5 py-1.5 text-[12px] leading-relaxed" data-i="${i}" rows="4" style="resize:vertical">${esc(tp.prompt)}</textarea>
         <div class="flex items-center gap-2 flex-wrap">
           <button class="cvtpl-copy rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper-2);color:var(--ink);cursor:pointer">📋 复制提示词</button>
-          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer">🎨 按提示词出封面（新增一张）</button>
+          <button class="cvtpl-gen rounded-lg px-3 py-1.5 text-[12px]" data-i="${i}" style="border:1px solid ${tp.textNote?'var(--cinnabar)':'var(--line)'};background:var(--paper);color:${tp.textNote?'var(--cinnabar)':'var(--ink-soft)'};cursor:pointer">${tp.textNote?'📝 按对标版式出真字封面卡（新增）':'🎨 按提示词出封面（新增一张）'}</button>
           <span class="cvtpl-msg text-[11px]" data-i="${i}"></span>
         </div>
       </div>
@@ -946,6 +946,30 @@ function renderCvTpls() {
 async function genCoverFromCvTpl(i) {
   const a = loadCvTpls(); const tp = a[i]; if (!tp) return;
   const msg = document.querySelector('.cvtpl-msg[data-i="' + i + '"]');
+  // 文字密集型对标：AI 画不出清晰中文（会糊成鬼图）→ 改为按对标版式排「备忘录真字封面卡」：1:1 复刻版式、内容换成我们的、真字零乱码；插在 AI 封面之后。
+  if (tp.textNote) {
+    if (msg) { msg.textContent = '按对标版式排真字封面卡中…'; msg.style.color = 'var(--ink-soft)'; }
+    try {
+      const idx = (state.refImages || []).indexOf(tp.url);
+      const refVis = (state.refVisions || [])[idx >= 0 ? idx : 0] || '';
+      const title = (((state.cover && state.cover.cover_lines) || []).filter(Boolean).join(' ')) || state.topic || '';
+      const page = await planNotePage(idx >= 0 ? idx : 0, refVis, true, title, getTrack());
+      if (!page || !((page.blocks || []).length)) throw new Error('没排出内容（先把 S3 框架里"配图规划·第1张封面"写清）');
+      page.memo = true;
+      state.notePages = state.notePages || [];
+      const ni = state.notePages.length; state.notePages.push(page);
+      if (!Array.isArray(state.coverImages)) state.coverImages = state.coverImage ? [state.coverImage] : [];
+      state.coverCaptions = state.coverCaptions || [];
+      while (state.coverCaptions.length < state.coverImages.length) state.coverCaptions.push(null);
+      const first0 = state.coverImages[0] || '';
+      const at0 = (/^https?:\/\//.test(first0) || first0.startsWith('data:')) ? 1 : 0;
+      state.coverImages.splice(at0, 0, 'note://' + ni); state.coverCaptions.splice(at0, 0, null);
+      if (!state.coverImage) state.coverImage = state.coverImages[0];
+      persist(); renderCoverImages();
+      if (msg) { msg.textContent = '✓ 已按对标版式出「真字封面卡」（插在 AI 封面后，可「⇄ 换封面」选用）'; msg.style.color = '#00a052'; }
+    } catch (e) { if (msg) { msg.textContent = '失败：' + (e.message || e); msg.style.color = 'var(--cinnabar-deep)'; } }
+    return;
+  }
   const lines = ((state.cover && state.cover.cover_lines) || []).filter(Boolean);
   const topic = (state.topic || lines[0] || '').replace(/[（(].*$/, '').slice(0, 40);
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
