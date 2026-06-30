@@ -159,7 +159,13 @@ const views = {
     const { j } = await aget('/api/admin/orders');
     if (!j.ok) return '加载失败：' + (j.error || '');
     const rows = (j.orders || []).map(o => `<tr><td>${o.otn}</td><td>${o.phone || o.user_id}</td><td>${o.pack_id || ''}</td><td class="r">¥${yuan(o.amount_cny)}</td><td class="r">${o.credits}</td><td><span style="color:${o.status==='paid'?'#00a052':'var(--cinnabar-deep)'}">${o.status}</span></td><td>${ts(o.paid_at || o.created_at)}</td><td class="r">${o.status==='pending'?`<button class="oc-ok btn-go rounded px-2 py-1 text-[11px]" data-otn="${o.otn}">确认到账</button>`:'—'}</td></tr>`).join('');
-    return `<div class="card p-4 overflow-x-auto"><table><thead><tr><th>单号</th><th>用户</th><th>套餐</th><th class="r">金额</th><th class="r">积分</th><th>状态</th><th>时间</th><th class="r">操作</th></tr></thead><tbody>${rows || '<tr><td colspan=8 class="text-center" style="color:var(--ink-soft)">暂无单据</td></tr>'}</tbody></table>
+    return `<div class="card p-4 overflow-x-auto">
+      <div class="flex items-center gap-2 mb-3 flex-wrap">
+        <input id="ordSearch" class="field rounded-lg px-3 py-1.5 text-[12px]" style="min-width:200px" placeholder="🔍 搜单号 / 用户 / 套餐" />
+        <select id="ordStatus" class="field rounded-lg px-2 py-1.5 text-[12px]"><option value="">全部状态</option><option value="paid">已到账(paid)</option><option value="pending">待确认(pending)</option></select>
+        <span id="ordBodyCount" class="text-[11px] text-[var(--ink-soft)]" style="margin-left:auto"></span>
+      </div>
+      <table><thead><tr><th>单号</th><th>用户</th><th>套餐</th><th class="r">金额</th><th class="r">积分</th><th>状态</th><th>时间</th><th class="r">操作</th></tr></thead><tbody id="ordBody">${rows || '<tr data-empty=1><td colspan=8 class="text-center" style="color:var(--ink-soft)">暂无单据</td></tr>'}</tbody></table>
       <p class="text-[12px] text-[var(--ink-soft)] mt-2">一期人工开户：用户付款后把订单号发客服 → 这里点「确认到账」即给其入账（含充值赠分）。</p></div>`;
   },
   async levels() {
@@ -178,7 +184,12 @@ const views = {
     const { j } = await aget('/api/admin/prices'); if (!j.ok) return '加载失败：' + (j.error || '');
     const label = { text: '文字(选题/拆解/框架/正文…)', image_std: '配图·标清', image_hd: '配图·高清(可灵)', image_premium: '配图·高级(Seedream)', compliance: '合规质检', vision: '对标图视觉解析' };
     const rows = (j.prices || []).map(p => `<tr data-k="${p.action_key}"><td>${label[p.action_key] || p.action_key}</td><td class="text-[var(--ink-soft)]">${p.action_key}</td><td class="r"><input class="pr-c field rounded px-2 py-1 text-[12px] r" style="width:80px" type="number" value="${p.credits}"> 积分</td></tr>`).join('');
-    return `<div class="card p-4 overflow-x-auto"><table><thead><tr><th>计费点</th><th>key</th><th class="r">单价</th></tr></thead><tbody>${rows}</tbody></table>
+    return `<div class="card p-4 overflow-x-auto">
+      <div class="flex items-center gap-2 mb-3 flex-wrap">
+        <input id="prSearch" class="field rounded-lg px-3 py-1.5 text-[12px]" style="min-width:200px" placeholder="🔍 搜计费点 / key" />
+        <span id="prBodyCount" class="text-[11px] text-[var(--ink-soft)]" style="margin-left:auto"></span>
+      </div>
+      <table><thead><tr><th>计费点</th><th>key</th><th class="r">单价</th></tr></thead><tbody id="prBody">${rows}</tbody></table>
       <div class="flex items-center gap-2 mt-3"><button id="prSave" class="btn-go rounded-lg px-4 py-1.5 text-[12px]">保存计费</button><span id="prMsg" class="text-[12px] text-[var(--ink-soft)]"></span></div>
       <p class="text-[12px] text-[var(--ink-soft)] mt-2">1 积分≈¥0.01。PRD §8 建议：选题5/拆解框架10/正文10/配图60/质检免费/规则5（文字类目前统一按 text 计价；如需分步差异化需在流水线按 action 传不同 key，可后续接）。</p></div>`;
   },
@@ -192,7 +203,9 @@ const views = {
     const ruleRows = rules.map(x => `<tr><td><input class="kb-t field rounded px-2 py-1 text-[12px]" style="width:100px" value="${(x.t||'').replace(/"/g,'&quot;')}"></td><td><textarea class="kb-d field rounded px-2 py-1 text-[12px]" rows="2" style="width:100%;min-width:240px">${x.d||''}</textarea></td><td><input class="kb-date field rounded px-2 py-1 text-[12px]" style="width:78px" placeholder="2026-06" value="${(x.date||META.date||'').replace(/"/g,'&quot;')}"></td><td><input class="kb-src field rounded px-2 py-1 text-[12px]" style="width:150px" placeholder="官方出处" value="${(x.src||META.src||'').replace(/"/g,'&quot;')}"></td><td class="r"><button class="row-del btn-ghost rounded px-2 py-1 text-[11px]">删</button></td></tr>`).join('');
     return `<div class="card p-4 overflow-x-auto space-y-5">
       <div>
-        <div class="text-[13px] font-medium mb-2">📕 小红书规则要点（规则查询 Agent 引用）· 每条标注更新日期与官方出处</div>
+        <div class="flex items-center gap-2 mb-2 flex-wrap"><div class="text-[13px] font-medium">📕 小红书规则要点（规则查询 Agent 引用）· 每条标注更新日期与官方出处</div>
+          <input id="kbSearch" class="field rounded-lg px-3 py-1.5 text-[12px]" style="min-width:180px;margin-left:auto" placeholder="🔍 搜规则要点/说明/出处" />
+          <span id="kbBodyCount" class="text-[11px] text-[var(--ink-soft)]"></span></div>
         <table><thead><tr><th>要点</th><th>说明（以官方为准）</th><th>更新日期</th><th>官方出处</th><th class="r">操作</th></tr></thead><tbody id="kbBody">${ruleRows}</tbody></table>
         <button id="kbAdd" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px] mt-2">＋ 新增规则</button>
       </div>
@@ -224,8 +237,10 @@ const views = {
         <table><thead><tr><th class="r">#</th><th>问题</th><th class="r">次数</th><th>最近</th></tr></thead><tbody>${top || '<tr><td colspan=4 class="text-center" style="color:var(--ink-soft)">暂无数据</td></tr>'}</tbody></table>
       </div>
       <div class="card p-4 overflow-x-auto">
-        <div class="text-[13px] font-medium mb-2">📝 最近问答日志（最新 100 条）</div>
-        <table><thead><tr><th>用户</th><th>问题</th><th>回答摘要</th><th>时间</th></tr></thead><tbody>${log || '<tr><td colspan=4 class="text-center" style="color:var(--ink-soft)">暂无日志</td></tr>'}</tbody></table>
+        <div class="flex items-center gap-2 mb-2 flex-wrap"><div class="text-[13px] font-medium">📝 最近问答日志（最新 100 条）</div>
+          <input id="qaSearch" class="field rounded-lg px-3 py-1.5 text-[12px]" style="min-width:180px;margin-left:auto" placeholder="🔍 搜用户/问题/回答" />
+          <span id="qaBodyCount" class="text-[11px] text-[var(--ink-soft)]"></span></div>
+        <table><thead><tr><th>用户</th><th>问题</th><th>回答摘要</th><th>时间</th></tr></thead><tbody id="qaBody">${log || '<tr data-empty=1><td colspan=4 class="text-center" style="color:var(--ink-soft)">暂无日志</td></tr>'}</tbody></table>
       </div>
       <p class="text-[12px] text-[var(--ink-soft)]">来源：用户在「小红书助手 / 规则查询 Agent」的提问（action=rule_query）。用于发现高频需求、完善规则知识库。</p></div>`;
   },
@@ -362,6 +377,29 @@ function userRowHTML(u) {
     <td class="r" style="white-space:nowrap"><button class="led-view btn-ghost rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">查看流水</button></td>
     <td class="r" style="white-space:nowrap"><button class="adj-add btn-go rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">＋充值</button> <button class="adj-sub btn-ghost rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">－扣减</button></td></tr>`;
 }
+// 通用表格行筛选：按整行文本包含关键词/下拉值 显示隐藏（不重建行，按钮/编辑态不丢）
+function wireFilter(inputId, tbodyId, selectId) {
+  const inp = $('#' + inputId), tb = $('#' + tbodyId), sel = selectId ? $('#' + selectId) : null;
+  if (!tb) return;
+  const apply = () => {
+    const kw = (inp && inp.value || '').trim().toLowerCase();
+    const sv = (sel && sel.value || '').toLowerCase();
+    let n = 0, total = 0;
+    tb.querySelectorAll('tr').forEach(tr => {
+      if (tr.dataset.empty) return;
+      total++;
+      const vals = [...tr.querySelectorAll('input,textarea,select')].map(e => e.value).join(' ');
+      const t = (tr.textContent + ' ' + vals).toLowerCase();
+      const ok = (!kw || t.includes(kw)) && (!sv || t.includes(sv));
+      tr.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    const c = $('#' + tbodyId + 'Count'); if (c) c.textContent = n + ' / ' + total + ' 条';
+  };
+  inp && inp.addEventListener('input', apply);
+  sel && sel.addEventListener('change', apply);
+  apply();
+}
 function renderUserRows() {
   const tb = $('#uBody'); if (!tb) return;
   const kw = ($('#uSearch')?.value || '').trim().toLowerCase();
@@ -381,7 +419,10 @@ async function renderView() {
   $('#view').innerHTML = '<div class="text-[13px] text-[var(--ink-soft)]">加载中…</div>';
   $('#view').innerHTML = await views[curView]();
   const V = $('#view');
-  if (curView === 'orders') V.querySelectorAll('.oc-ok').forEach(b => b.addEventListener('click', async () => { if (!confirm('确认该订单已收款、给用户入账？')) return; const { ok, j } = await apost('/api/admin/order-confirm', { out_trade_no: b.dataset.otn }); if (ok && j.ok) renderView(); else alert('失败：' + (j.error || '')); }));
+  if (curView === 'orders') { V.querySelectorAll('.oc-ok').forEach(b => b.addEventListener('click', async () => { if (!confirm('确认该订单已收款、给用户入账？')) return; const { ok, j } = await apost('/api/admin/order-confirm', { out_trade_no: b.dataset.otn }); if (ok && j.ok) renderView(); else alert('失败：' + (j.error || '')); })); wireFilter('ordSearch', 'ordBody', 'ordStatus'); }
+  if (curView === 'prices') wireFilter('prSearch', 'prBody');
+  if (curView === 'rules') wireFilter('kbSearch', 'kbBody');
+  if (curView === 'qaLog') wireFilter('qaSearch', 'qaBody');
   if (curView === 'users') {
     renderUserRows();
     $('#uSearch')?.addEventListener('input', renderUserRows);
