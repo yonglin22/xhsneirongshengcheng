@@ -19,7 +19,10 @@
   <div class="card p-4 mb-5">
     <div class="flex items-center justify-between mb-3">
       <div class="font-song font-bold text-[15px]">＋ 添加账号</div>
-      <span class="text-[11px] text-[var(--ink-soft)]" id="cnt"></span>
+      <div class="flex items-center gap-2.5">
+        <button id="resetQrBtn" class="btn-ghost rounded-lg px-2.5 py-1 text-[11px]" title="把扫码接入但其实没真正登录的号重置为待接入（不影响手动粘贴 cookie 的号）">🔄 重置误标登录态</button>
+        <span class="text-[11px] text-[var(--ink-soft)]" id="cnt"></span>
+      </div>
     </div>
     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
       <div>
@@ -238,6 +241,13 @@ $('#addBtn').addEventListener('click', async () => {
     st.style.color = '#00a152'; btn.disabled = false; btn.textContent = old; load();
   });
 })();
+// 一键重置「扫码误标已登录」的号为待接入（不动手动粘贴 cookie 的号）
+$('#resetQrBtn')?.addEventListener('click', async () => {
+  if (!await zConfirm('把「扫码接入但未真正登录」的号重置为待接入？\n（手动粘贴 cookie 接入的号不受影响，可重新扫码接入）', { okText: '重置' })) return;
+  const r = await api('/reset-qr', 'POST', {});
+  if (r && r.ok) { zToast(r.reset ? ('✓ 已重置 ' + r.reset + ' 个号为待接入') : '没有需要重置的扫码号', 'ok'); load(); }
+  else zToast('重置失败，请重试', 'err');
+});
 load();
 </script>
 </body>

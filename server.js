@@ -1277,6 +1277,11 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { ok: billing.accountRemove(uid, id) });
     }
     // 检测小红书登录态（Playwright 用账号 cookie 访问小红书，验真伪 + 探测风控）
+    if (pathname === '/api/accounts/reset-qr' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const n = billing.accountsResetQrAuth(uid);
+      return sendJSON(res, 200, { ok: true, reset: n });
+    }
     if (pathname === '/api/accounts/verify' && req.method === 'POST') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       const { id } = JSON.parse((await readBody(req)) || '{}');

@@ -113,6 +113,9 @@ function accountAdd(uid, a){ const now=Date.now(); const r=db.prepare('INSERT IN
 function accountUpdate(uid, id, p){ const cur=db.prepare('SELECT * FROM social_accounts WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; const f=(k,max)=>{ let v=p[k]!==undefined?p[k]:cur[k]; if(typeof v==='string'&&max) v=v.slice(0,max); return v; }; db.prepare('UPDATE social_accounts SET nickname=?,grp=?,status=?,auth_blob=?,note=?,health=?,updated_at=? WHERE id=? AND user_id=?').run(f('nickname',60),f('grp',40),f('status'),f('auth_blob'),f('note',200),f('health'),Date.now(),id,uid); return true; }
 function accountRemove(uid, id){ db.prepare('DELETE FROM social_accounts WHERE id=? AND user_id=?').run(id,uid); return true; }
 function accountAuthBlob(uid, id){ const r=db.prepare('SELECT auth_blob,platform,nickname FROM social_accounts WHERE id=? AND user_id=?').get(id,uid); return r||null; } // 服务端取登录态(敏感,仅本人)
+// 一次性清理：把「扫码/扫码+短信」接入的号(via=qr/qr-sms)重置为待接入并清空假登录态。
+// 修复前访客 web_session 误判已登录都来自这条路径；手动粘贴 cookie 的号(无 via)保持不动。
+function accountsResetQrAuth(uid){ const rows=db.prepare("SELECT id,auth_blob FROM social_accounts WHERE user_id=?").all(uid); let n=0; for(const r of rows){ let via=''; try{ via=(JSON.parse(r.auth_blob||'{}').via)||''; }catch{} if(via==='qr'||via==='qr-sms'){ db.prepare("UPDATE social_accounts SET status='pending', auth_blob='', health='', updated_at=? WHERE id=? AND user_id=?").run(Date.now(), r.id, uid); n++; } } return n; }
 // 保活任务用：全量取已登录且有 cookie 的小红书账号（含 user_id），及按 id 回写 cookie/状态。
 function accountsActiveXhs(){ return db.prepare("SELECT id,user_id,nickname,auth_blob,last_active_at FROM social_accounts WHERE platform='xhs' AND status='active' AND auth_blob IS NOT NULL AND auth_blob<>''").all(); }
 function accountSetAuthById(id, authBlob, status, health){ db.prepare('UPDATE social_accounts SET auth_blob=?,status=?,health=?,updated_at=?,last_active_at=? WHERE id=?').run(String(authBlob||''), status||'active', String(health||''), Date.now(), Date.now(), id); return true; }
@@ -627,7 +630,7 @@ module.exports = {
   rolesGet, rolesSet, menuCfgGet, menuCfgSet, enabledMenuKeys,
   partnerMemberOrders, partnerTransfer, hasPaidPack,
   qaLogAdd, qaLogList, qaTopQuestions, qaStats,
-  accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob,
+  accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob, accountsResetQrAuth,
   accountsActiveXhs, accountSetAuthById, accountSetStatusById,
   plansList, planAdd, planUpdate, planRemove, planStat,
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
