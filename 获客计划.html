@@ -116,7 +116,15 @@
     <div class="gp-hint mt-3" style="background:#fff;border-radius:8px;padding:8px 11px">⚠️ 截流（自动评论/私信）是高风险灰色操作，平台严打、可能封号。建议默认 0、先只做养号；真要用务必极低频。执行由插件后续上线。</div>
   </div>
 
-  <div id="list" class="space-y-3"></div>
+  <div class="flex items-center gap-2 mb-3 flex-wrap" style="margin-top:6px">
+    <h3 style="font-size:15px;font-weight:700">计划列表</h3>
+    <select id="fType" class="field" style="font-size:12px"><option value="">全部类型</option><option value="link">口令刷量</option><option value="home_nurture">首页养号</option><option value="search_nurture">搜索养号</option><option value="home_intercept">首页截流</option><option value="search_intercept">搜索截流</option></select>
+    <select id="fExec" class="field" style="font-size:12px"><option value="">全部状态</option><option value="running">执行中</option><option value="pending">待领取</option><option value="done">已完成</option><option value="none">未下发</option></select>
+    <input id="fKw" class="field" style="font-size:12px;min-width:150px" placeholder="🔍 搜计划名/关键词" />
+    <span id="listCount" class="text-[11px] text-[var(--ink-soft)]" style="margin-left:auto"></span>
+  </div>
+  <style>.zt{width:100%;border-collapse:collapse;font-size:13px}.zt th{text-align:left;font-size:11px;font-weight:600;color:var(--ink-soft);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:#faf7f1}.zt td{padding:9px 12px;border-bottom:1px solid #f3eee4;vertical-align:middle}.zt tbody tr:hover{background:#fcfaf6}.zt tbody tr:last-child td{border-bottom:none}.zt .actc button,.zt .actc a{margin:1px}</style>
+  <div id="list"></div>
 </main>
 
 <script src="/assets/tracks.js?v=21"></script>
@@ -191,27 +199,41 @@ function dispCell(p){
 async function load(){
   const j=await api(''); PLANS=(j&&j.list)||[];
   await loadDispatch();
-  $('#list').innerHTML = PLANS.length ? PLANS.map(p=>{
-    const st=p.stats||{}; const isIc=/_intercept$/.test(p.ptype);
-    const statCell=(n,v,extra)=>`<span style="text-align:center;min-width:52px"><b style="font-size:15px;${extra||''}">${v||0}</b><span style="display:block;font-size:10px;color:var(--ink-soft)">${n}</span></span>`;
-    return `
-    <div class="card p-4 flex items-center gap-3 flex-wrap" data-id="${p.id}">
-      <span style="font-size:11px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:2px 8px">${TYPE_NAME[p.ptype]||p.ptype}</span>
-      <span style="font-size:14px;font-weight:700;flex:1;min-width:140px">${esc(p.name)}</span>
-      <span class="text-[11px] text-[var(--ink-soft)]" style="min-width:90px">${(p.config&&p.config.keywords||[]).slice(0,3).join('、')||(p.config&&p.config.link?'口令链接':'')}</span>
-      ${isIc?statCell('收集',st.collected):''}
-      ${isIc?statCell('回复',st.replied):''}
-      ${isIc?statCell('私信',st.dmed):''}
-      ${dispCell(p)}
-      <span style="text-align:center;min-width:74px"><b style="font-size:11px;font-weight:600;color:var(--ink-soft)">${st.lastRunAt?fmtRun(st.lastRunAt):'未执行'}</b><span style="display:block;font-size:10px;color:var(--ink-soft)">最近执行</span></span>
-      ${isIc&&st.collected?`<a class="btn-ghost rounded-md px-2.5 py-1 text-[11px]" href="/评论收集.html?plan=${p.id}" style="text-decoration:none">👥 潜客</a>`:''}
-      ${/_(nurture|intercept)$/.test(p.ptype)?`<button class="pl-run btn-ghost rounded-md px-2.5 py-1 text-[11px]" style="border-color:var(--cinnabar);color:var(--cinnabar)">▶ 执行</button>`:''}
-      ${/_(nurture|intercept)$/.test(p.ptype)?`<button class="pl-dispatch btn-ghost rounded-md px-2.5 py-1 text-[11px]">📤 下发</button>`:''}
-      <button class="pl-view btn-ghost rounded-md px-2.5 py-1 text-[11px]">👁 查看</button>
-      <button class="pl-edit btn-ghost rounded-md px-2.5 py-1 text-[11px]">编辑</button>
-      <button class="pl-del btn-ghost rounded-md px-2.5 py-1 text-[11px]">删除</button>
-    </div>`; }).join('') : '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有计划，上面新建一个。</div>';
+  renderList();
 }
+function execStateOf(p){ const recs=DISP[p.id]||[]; if(!/_(nurture|intercept)$/.test(p.ptype)) return ''; if(!recs.length) return 'none'; const c={}; recs.forEach(r=>c[r.status]=(c[r.status]||0)+1); if(c.running)return 'running'; if(c.pending)return 'pending'; if(c.done)return 'done'; return 'none'; }
+function renderList(){
+  const ty=($('#fType')&&$('#fType').value)||''; const ex=($('#fExec')&&$('#fExec').value)||''; const kw=(($('#fKw')&&$('#fKw').value)||'').trim().toLowerCase();
+  const rows=PLANS.filter(p=>{
+    if(ty && p.ptype!==ty) return false;
+    if(ex){ const s=execStateOf(p); if(ex==='none'? s!=='none' && s!=='' : s!==ex) return false; }
+    if(kw){ const hay=((p.name||'')+' '+((p.config&&p.config.keywords||[]).join(' '))).toLowerCase(); if(!hay.includes(kw)) return false; }
+    return true;
+  });
+  if($('#listCount')) $('#listCount').textContent=rows.length+' / '+PLANS.length+' 个计划';
+  const dataCell=(p,st,isIc)=> isIc?`收${st.collected||0}·复${st.replied||0}·信${st.dmed||0}`:'—';
+  $('#list').innerHTML = !PLANS.length ? '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有计划，上面新建一个。</div>'
+    : !rows.length ? '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">没有匹配的计划，换个筛选条件。</div>'
+    : `<div class="card" style="padding:0;overflow:auto"><table class="zt"><thead><tr>
+      <th style="width:78px">类型</th><th>名称</th><th style="width:130px">关键词</th><th style="width:120px">数据</th><th style="width:130px">执行状态</th><th style="width:90px">最近执行</th><th style="width:240px">操作</th></tr></thead><tbody>${
+    rows.map(p=>{ const st=p.stats||{}; const isIc=/_intercept$/.test(p.ptype); const isExec=/_(nurture|intercept)$/.test(p.ptype); const ds=dispCell(p); return `<tr data-id="${p.id}">
+      <td><span style="font-size:11px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:2px 8px;white-space:nowrap">${TYPE_NAME[p.ptype]||p.ptype}</span></td>
+      <td style="font-weight:700">${esc(p.name)}</td>
+      <td style="font-size:11px;color:var(--ink-soft)">${(p.config&&p.config.keywords||[]).slice(0,3).join('、')||(p.config&&p.config.link?'口令链接':'—')}</td>
+      <td style="font-size:12px;color:${isIc?'var(--ink)':'var(--ink-soft)'}">${dataCell(p,st,isIc)}</td>
+      <td>${ds||'<span style="font-size:11px;color:var(--ink-soft)">—</span>'}</td>
+      <td style="font-size:11px;color:var(--ink-soft);white-space:nowrap">${st.lastRunAt?fmtRun(st.lastRunAt):'未执行'}</td>
+      <td class="actc" style="white-space:nowrap">
+        ${isIc&&st.collected?`<a class="btn-ghost rounded-md px-2 py-1 text-[11px]" href="/评论收集.html?plan=${p.id}" style="text-decoration:none">👥潜客</a>`:''}
+        ${isExec?`<button class="pl-run btn-ghost rounded-md px-2 py-1 text-[11px]" style="border-color:var(--cinnabar);color:var(--cinnabar)">▶执行</button>`:''}
+        ${isExec?`<button class="pl-dispatch btn-ghost rounded-md px-2 py-1 text-[11px]">📤下发</button>`:''}
+        <button class="pl-view btn-ghost rounded-md px-2 py-1 text-[11px]">👁查看</button>
+        <button class="pl-edit btn-ghost rounded-md px-2 py-1 text-[11px]">编辑</button>
+        <button class="pl-del btn-ghost rounded-md px-2 py-1 text-[11px]">删除</button>
+      </td></tr>`; }).join('')}</tbody></table></div>`;
+}
+['#fType','#fExec'].forEach(s=>$(s)&&$(s).addEventListener('change',renderList));
+$('#fKw')&&$('#fKw').addEventListener('input',renderList);
 // 事件委托：删除/查看/编辑/执行 都挂在 #list 上，重渲染也不丢
 $('#list').addEventListener('click', async e=>{
   const card=e.target.closest('[data-id]'); if(!card) return;
