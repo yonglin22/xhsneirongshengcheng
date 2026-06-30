@@ -36,15 +36,15 @@ async function verifyLogin(cookieStr) {
     const info = await p.evaluate(() => {
       const t = (document.body && document.body.innerText) || '';
       return {
-        risk: /环境异常|安全验证|滑动验证|拼图验证|验证后继续/.test(t) && t.length < 1800,
-        loginUI: /扫码登录|手机号登录|登录后即可|登录创作|二维码登录/.test(t),
+        risk: /环境异常|滑动验证|拼图验证|拖动.*滑块/.test(t) && t.length < 1500,
         nick: ((document.querySelector('[class*=nickname],[class*=name],.user-info .name') || {}).textContent || '').trim(),
         len: t.length
       };
     });
-    // 风控/超时/网络 = 不确定，不能判失效（避免误杀好登录态）；只有明确跳 /login 才算真失效
-    if (info.risk) return { ok: false, uncertain: true, reason: '小红书风控验证页（机房 IP 触发），无法确认登录态——未改动状态。建议换新鲜 cookie 或配住宅代理' };
-    if (/\/login/i.test(url) || info.loginUI) return { ok: false, invalid: true, reason: 'cookie 已失效/未登录，请在电脑重新登录小红书后导出新 cookie' };
+    // 只按网址判：创作中心登录态停在 creator.xiaohongshu.com/，未登录才跳 /login。
+    // 不看页面文字——登录后页面也含"登录/手机号登录"字样，会把真登录误判成失效（之前的坑）。
+    if (info.risk) return { ok: false, uncertain: true, reason: '小红书风控验证页（机房 IP 触发），无法确认登录态——未改动状态' };
+    if (/\/login/i.test(url)) return { ok: false, invalid: true, reason: 'cookie 已失效/未登录，请重新扫码或导出新 cookie' };
     return { ok: true, nickname: (info.nick || '').slice(0, 30) };
   } catch (e) {
     return { ok: false, uncertain: true, reason: '检测失败（网络/超时，未改动状态）：' + (e.message || String(e)).slice(0, 120) };
@@ -217,11 +217,9 @@ async function _finishLogin(s) {
   for (let i = 0; i < 5; i++) {
     try { await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 25000 }); await p.waitForTimeout(2600); } catch {}
     let bad = true;
-    try {
-      const url = p.url();
-      const loginUI = await p.evaluate(() => /扫码登录|手机号登录|登录创作|登录后即可|二维码登录/.test((document.body && document.body.innerText) || ''));
-      bad = /\/login/i.test(url) || loginUI;
-    } catch {}
+    // 只按网址判（创作中心登录态停在 creator.xiaohongshu.com/，未登录才跳 /login）。
+    // 不看页面文字——登录后页面里也含"登录/手机号登录"字样，会误判失效（这是之前的坑）。
+    try { bad = /\/login/i.test(p.url()); } catch {}
     if (!bad) {
       const cks = await s.ctx.cookies();
       const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
