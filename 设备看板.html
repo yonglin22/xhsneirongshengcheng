@@ -163,7 +163,13 @@ curl -s ${base}/api/dispatch/done -H "Authorization: Bearer ${r.token}" \\
 # 5) 内容数据回流：发布后抓回笔记真实数据 → 数据复盘/红线（按 note_url 去重）
 curl -s ${base}/api/note-stats -H "Authorization: Bearer ${r.token}" \\
   -H "content-type: application/json" \\
-  -d '{"account_name":"设计考研学姐","note_title":"设计史速记","note_url":"https://www.xiaohongshu.com/explore/xxx","views":260,"likes":25,"favs":30,"comments":5}'`;
+  -d '{"account_name":"设计考研学姐","note_title":"设计史速记","note_url":"https://www.xiaohongshu.com/explore/xxx","views":260,"likes":25,"favs":30,"comments":5}'
+
+# 6) 拟人评论生成：执行端发评论前调用，按人设+上下文生成自然合规评论
+#    若发评论触发验证码/风控 → 第4步用 ok=false + data.risk 回报，服务端自动熔断暂停同账号
+curl -s ${base}/api/gen-comment -H "Authorization: Bearer ${r.token}" \\
+  -H "content-type: application/json" \\
+  -d '{"persona":"设计考研学姐","scene":"intercept","noteTitle":"设计史速记","userComment":"求资料"}'`;
   document.getElementById('tkOut').style.display='';
   document.getElementById('tkName').value='';
   load();

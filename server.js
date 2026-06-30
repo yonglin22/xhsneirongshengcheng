@@ -858,6 +858,56 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // 复用上游模型调用（system + 单轮 user），返回纯文本；供拟人评论生成等内部用途
+  async function llmComplete(system, user, maxTokens) {
+    if (!API_KEY) throw new Error('未配置 ANTHROPIC_API_KEY');
+    const model = FORCE_MODEL || (API_FORMAT === 'openai' ? 'deepseek-chat' : 'claude-opus-4-8');
+    let upUrl, headers, body;
+    if (API_FORMAT === 'openai') {
+      upUrl = `${API_BASE}/chat/completions`;
+      headers = { 'content-type': 'application/json', 'authorization': 'Bearer ' + API_KEY };
+      body = { model, max_tokens: maxTokens || 200, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: user }] };
+    } else {
+      upUrl = `${API_BASE}/v1/messages`;
+      headers = { 'content-type': 'application/json', 'anthropic-version': API_VERSION };
+      if (AUTH_STYLE === 'bearer') headers['authorization'] = 'Bearer ' + API_KEY; else headers['x-api-key'] = API_KEY;
+      body = { model, max_tokens: maxTokens || 200, system: system || '', messages: [{ role: 'user', content: user }] };
+    }
+    const up = await fetch(upUrl, { method: 'POST', headers, body: JSON.stringify(body) });
+    const text = await up.text();
+    if (!up.ok) throw new Error('上游 ' + up.status + '：' + text.slice(0, 160));
+    const j = JSON.parse(text);
+    if (API_FORMAT === 'openai') return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+    return (j.content || []).map(b => b.text || '').join('').trim();
+  }
+
+  // 拟人评论生成：按智能体人设 + 笔记/评论上下文，生成自然、合规的引流回复/评论（执行端 token 或 cookie 均可调）
+  if (pathname === '/api/gen-comment' && req.method === 'POST') {
+    const dev = authDevice(req); const uid = dev ? dev.uid : authUid(req);
+    if (!uid) return sendJSON(res, 401, { error: '请先登录或提供有效设备 token' });
+    if (!API_KEY) return sendJSON(res, 500, { error: '服务端未配置 ANTHROPIC_API_KEY' });
+    const b = JSON.parse((await readBody(req)) || '{}');
+    const persona = String(b.persona || '一个真诚分享的小红书博主').slice(0, 1200);
+    const scene = b.scene === 'reply' ? '回复评论区某用户的评论' : (b.scene === 'intercept' ? '在同行笔记评论区发一条自然的引流评论' : '在自己笔记下回复读者');
+    const noteTitle = String(b.noteTitle || '').slice(0, 120);
+    const noteText = String(b.noteText || '').slice(0, 800);
+    const userComment = String(b.userComment || '').slice(0, 300);
+    const system = `你是${persona}。任务：${scene}。要求：像真人随手打的，口语化、20字以内最佳，最多40字；不硬广、不留微信/QQ/电话/链接、不出现"加我/私我"等违规词；可用1个自然的emoji或不用；只输出评论正文，不要引号、不要解释。`;
+    const user = `笔记标题：${noteTitle || '(无)'}\n笔记内容：${noteText || '(无)'}\n${userComment ? '对方评论：' + userComment + '\n' : ''}请直接给出这条评论：`;
+    try {
+      // 计费按解析出的 uid（cookie 或设备 token 都能扣到本人账户）
+      const cost = BILLING_ENABLED ? billing.getPrice('comment', 1) : 0;
+      if (BILLING_ENABLED && billing.getBalance(uid) < cost) return sendJSON(res, 402, { error: '积分不足，请充值', code: 'INSUFFICIENT', need: cost });
+      let out = (await llmComplete(system, user, 120)).replace(/^["「『]|["」』]$/g, '').trim();
+      // 合规兜底：剔除明显违规联系方式
+      out = out.replace(/(微信|VX|vx|weixin|加我|私我|电话|手机号|\+?\d{6,})/g, '').trim();
+      if (BILLING_ENABLED && cost) billing.deduct(uid, cost, 'usage', null, { action: 'comment' });
+      return sendJSON(res, 200, { ok: true, comment: out || '写得真好，学到了～', balance: BILLING_ENABLED ? billing.getBalance(uid) : undefined });
+    } catch (e) {
+      return sendJSON(res, 200, { ok: false, error: '生成失败：' + (e.message || '').slice(0, 120) });
+    }
+  }
+
   // ---- 知识库文件解析：Word/Excel/PPT/PDF/CSV/MD → 纯文本 ----
   if (pathname === '/api/extract' && req.method === 'POST') {
     const MAX_UPLOAD = 60 * 1024 * 1024; // 60MB

@@ -207,10 +207,19 @@ function dispatchPull(uid, device){
   return { ok:true, task:{ dispatchId:row.id, accountId:row.account_id, accountName:row.account_name, plan:{ id:plan.id, name:plan.name, ptype:plan.ptype, platform:plan.platform, config:cfg } } };
 }
 // 执行端完成回报：ok=false → 标记 failed（含风控熔断）；可带结构化 data（浏览/赞/藏/评论 + 风控）
+// 风控熔断：失败且 data.risk 命中（验证码/限流等）→ 暂停同账号其余 pending/running 任务，避免继续触发风控被封
 function dispatchDone(uid, id, result, opts){
   opts=opts||{}; const st=(opts.ok===false||opts.failed)?'failed':'done'; const now=Date.now();
-  let dataStr=null; if(opts.data&&typeof opts.data==='object'){ try{ dataStr=JSON.stringify(opts.data).slice(0,2000); }catch{} }
+  let dataStr=null; const risk=opts.data&&typeof opts.data==='object'?opts.data.risk:null;
+  if(opts.data&&typeof opts.data==='object'){ try{ dataStr=JSON.stringify(opts.data).slice(0,2000); }catch{} }
+  const cur=db.prepare('SELECT account_id FROM plan_dispatch WHERE id=? AND user_id=?').get(id,uid);
   const r=db.prepare("UPDATE plan_dispatch SET status=?, result=?, data=COALESCE(?,data), reported_at=?, done_at=? WHERE id=? AND user_id=?").run(st, String(result||'').slice(0,300), dataStr, now, now, id, uid);
+  let breaker=0;
+  if(st==='failed' && risk && cur && cur.account_id){
+    const br=db.prepare("UPDATE plan_dispatch SET status='failed', result='风控熔断·已暂停（'||?||'）', done_at=? WHERE user_id=? AND account_id=? AND status IN('pending','running') AND id<>?")
+      .run(String(risk).slice(0,40), now, uid, cur.account_id, id);
+    breaker=br.changes||0;
+  }
   return r.changes>0;
 }
 // 执行端进度回报（不结束任务）：更新 progress(0-100) / 结构化 data / 中途结果

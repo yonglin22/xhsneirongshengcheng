@@ -105,6 +105,7 @@
       <div class="gp-row"><label>私信间隔</label><input id="icDmInt" class="field pct" type="number" value="1" /><span class="gp-hint">分钟 · 每次私信最小间隔（建议 &gt;1 分钟）</span></div>
       <div class="gp-row"><label>话术来源</label><span class="seg" data-seg="isrc"><button data-v="ai" class="on">🤖 AI 智能</button><button data-v="preset">预设话术</button><button data-v="lib">话术库</button></span></div>
       <div class="gp-row"><span class="gp-hint" style="margin-left:84px">🤖 AI 智能＝按智能体人设 + 对标笔记/该用户评论上下文，生成自然的引流回复/私信话术（合规、不硬广）</span></div>
+      <div class="gp-row"><span style="width:84px"></span><button id="genTry" type="button" class="btn-ghost rounded-md px-3 py-1 text-[12px]">🤖 预览 AI 评论</button><span id="genOut" class="gp-hint" style="margin-left:10px"></span></div>
       <div class="gp-row" id="icLibRow" style="display:none"><label>选话术库</label><select id="icLib" class="field" style="min-width:200px"></select><a href="/话术库.html" class="gp-hint" style="color:var(--cinnabar-deep)">去建/管理话术库 →</a></div>
     </div>
 
@@ -232,6 +233,20 @@ function renderList(){
         <button class="pl-del btn-ghost rounded-md px-2 py-1 text-[11px]">删除</button>
       </td></tr>`; }).join('')}</tbody></table></div>`;
 }
+// #4 预览 AI 拟人评论：用当前赛道人设 + 关键词样例笔记，调 /api/gen-comment
+const _genBtn=$('#genTry');
+if(_genBtn) _genBtn.addEventListener('click', async ()=>{
+  const out=$('#genOut'); out.style.color='var(--ink-soft)'; out.textContent='生成中…';
+  let persona='一个真诚分享的小红书博主';
+  try{ const t=(window.TRACKS&&window.TRACKS[localStorage.getItem('ag_track')]); if(t&&t.persona) persona=String(t.persona).slice(0,800); }catch{}
+  const kw=(kws&&kws[0])||'设计考研'; const title=$('#pName').value.trim()||(kw+'·干货笔记');
+  try{
+    const r=await fetch('/api/gen-comment',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ persona, scene:'intercept', noteTitle:title, noteText:'分享'+kw+'的实用方法和资料整理', userComment:'求资料！' })});
+    const j=await r.json();
+    if(j&&j.ok){ out.style.color='var(--ink)'; out.textContent='💬 '+j.comment; }
+    else { out.style.color='var(--cinnabar-deep)'; out.textContent=(j&&j.error)||'生成失败'; }
+  }catch{ out.style.color='var(--cinnabar-deep)'; out.textContent='网络错误，请重试'; }
+});
 ['#fType','#fExec'].forEach(s=>$(s)&&$(s).addEventListener('change',renderList));
 $('#fKw')&&$('#fKw').addEventListener('input',renderList);
 // 事件委托：删除/查看/编辑/执行 都挂在 #list 上，重渲染也不丢
