@@ -218,23 +218,17 @@ async function pollQrLogin(token) {
   if (!s) return { ok: false, expired: true, reason: '二维码会话已过期，请重新获取' };
   try {
     const p = s.page;
-    // ① 最权威信号：登录 cookie(web_session) 是否已写入（扫码确认后会有）。
-    //    放最前面——小红书扫码后 qrcode-img 元素仍留在 DOM（只盖一层“扫描成功”），不能拿它判断。
+    // ① 权威信号：cookie 是否已是登录态（_grabIfLoggedIn 走 verifyLogin 真验证，读 context cookie，
+    //    不依赖也不改动当前 QR 页 → 当前页可安全保留短信验证表单）。
     let cookie = await _grabIfLoggedIn(s);
     if (cookie) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; }
-    // ② 没 cookie：扫码确认后页面有时不自动刷新 → 主动刷一次再取一次
-    if (!s._reloadedOnce && (await p.locator('img.qrcode-img').count()) === 0) {
-      s._reloadedOnce = true;
-      try { await p.goto('https://www.xiaohongshu.com/explore', { waitUntil: 'domcontentloaded', timeout: 25000 }); await p.waitForTimeout(2500); } catch {}
-      cookie = await _grabIfLoggedIn(s);
-      if (cookie) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; }
-      s._reloadedOnce = false; // 允许后续再试
-    }
-    // ③ 仍未登录：还显示二维码 → 还没扫/确认
+    // ② 还显示二维码 → 还没扫 / 还没在手机上确认。
     if ((await p.locator('img.qrcode-img').count()) > 0) return { ok: false, pending: true };
-    // ④ 二维码没了又没 cookie → 可能触发短信验证
+    // ③ 二维码没了又没登录 → 多半是扫码后小红书要求「短信验证 / 绑定手机」。
+    //    这一步必须在任何页面跳转之前检测——之前会先 goto explore，把验证表单冲掉导致永远卡住。
     const ver = await _detectVerify(p);
     if (ver.need) return { ok: false, needSms: true, info: ver };
+    // ④ 既不是登录态也不是短信验证（可能页面在跳转中）→ 等下一轮再看。
     return { ok: false, pending: true };
   } catch (e) { return { ok: false, pending: true }; }
 }
