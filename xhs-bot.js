@@ -186,21 +186,11 @@ async function startQrLogin() {
 async function _grabIfLoggedIn(s) {
   const cks = await s.ctx.cookies();
   const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
-  // 实测：访客态就有一个 38 位的 web_session（且稳定不变），长度阈值无法区分访客/真登录。
-  // 唯一可靠的判据是「拿 cookie 去创作中心真验证」——复用 verifyLogin（即"检测登录态"的逻辑）。
-  // 优化：同一个 web_session 值只验证一次，验证未登录就缓存跳过；扫码成功后 web_session 值会变
-  //       → 重新验证 → 通过。避免每轮都启浏览器验证访客态。
-  const ws = xhs.find(c => c.name === 'web_session' && c.value && c.value.length >= 10);
-  if (!ws) return null;
-  // 同一个 web_session 值最多缓存 8 秒就重验（防止"值没变只是服务端激活"导致永远跳过）
-  if (s._badWs === ws.value && (Date.now() - (s._badWsAt || 0) < 8000)) return null;
-  if (s._verifying) return null;                      // 避免并发重复启浏览器
-  s._verifying = true;
-  const cookieStr = xhs.map(c => c.name + '=' + c.value).join('; ');
-  let r = null; try { r = await verifyLogin(cookieStr); } catch {} finally { s._verifying = false; }
-  if (r && r.ok) return cookieStr;                    // 真登录
-  s._badWs = ws.value; s._badWsAt = Date.now();       // 缓存访客/失效值，8 秒内跳过
-  return null;
+  // 只读当前 context 的 cookie，绝不在轮询里反复访问小红书（高频校验会触发风控、连累已登录的号）。
+  // 真登录/绑定手机完成后 web_session 会写入；登录由用户在弹窗里手动「提交验证码」驱动。
+  const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
+  if (!sess) return null;
+  return xhs.map(c => c.name + '=' + c.value).join('; ');
 }
 // 检测短信验证 UI（扫码后风控触发）
 async function _detectVerify(p) {

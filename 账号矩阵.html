@@ -149,15 +149,42 @@ function openAuthModal(id) {
     box.innerHTML = '<span style="font-size:13px;color:var(--ink-soft)">正在打开小红书登录…（首次较慢，最多约 50 秒，请耐心等）</span>';
     const r = await api('/qr-start', 'POST', {}, 55000);
     if (!r.ok) { box.innerHTML = `<button id="amQrStart2" class="btn-go rounded-xl px-6 py-3 text-[13px]">重试</button>`; st.textContent = '✗ ' + (r.reason || r.error || '出码失败'); st.style.color = 'var(--cinnabar-deep)'; m.querySelector('#amQrStart2').onclick = () => openAuthModal(id) && close(); return; }
-    box.innerHTML = `<img src="${r.qr}" style="width:200px;height:200px;object-fit:contain;border:1px solid var(--line);border-radius:10px"/><span style="font-size:12px;color:var(--ink)">用小红书 App「我」→ 右上角扫一扫</span>`;
-    st.textContent = '等待扫码确认…'; st.style.color = 'var(--ink-soft)';
+    box.innerHTML = `<img src="${r.qr}" style="width:180px;height:180px;object-fit:contain;border:1px solid var(--line);border-radius:10px"/>
+      <span style="font-size:12px;color:var(--ink)">① 用小红书 App「我」→ 右上角扫一扫</span>
+      <div style="width:100%;border-top:1px dashed var(--line);margin:6px 0 2px;padding-top:10px;text-align:left">
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px">② 扫码后若要短信验证，在这里填（不需要可忽略）：</div>
+        <input id="amSmsPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin-bottom:8px" placeholder="手机号（小红书账号绑定的）" />
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="amSmsCode" class="field rounded-lg px-3 py-2 text-[13px]" style="flex:1" placeholder="短信验证码" />
+          <button id="amSmsSend" class="btn-ghost rounded-lg px-3 py-2 text-[12px] whitespace-nowrap">发送验证码</button>
+        </div>
+        <button id="amSmsOk" class="btn-go rounded-xl w-full py-2.5 text-[13px] font-medium">③ 提交验证码登录</button>
+      </div>`;
+    st.textContent = '等待扫码确认…（扫码后需短信验证就在上面填）'; st.style.color = 'var(--ink-soft)';
+    // 手动短信：发送验证码
+    let sending = false;
+    m.querySelector('#amSmsSend').onclick = async () => {
+      if (sending) return; sending = true; const b = m.querySelector('#amSmsSend'); const o = b.textContent; b.textContent = '发送中…';
+      const phone = (m.querySelector('#amSmsPhone') || {}).value || '';
+      const rr = await api('/qr-sms-send', 'POST', { token: r.token, phone });
+      if (rr.ok) { st.textContent = '✓ 验证码已发送，查收短信'; st.style.color = '#00a152'; let c = 60; b.disabled = true; const t = setInterval(() => { b.textContent = (--c) + 's'; if (c <= 0) { clearInterval(t); b.disabled = false; b.textContent = '重新发送'; } }, 1000); }
+      else { st.textContent = '✗ ' + (rr.reason || '发送失败（先扫码再发）'); st.style.color = 'var(--cinnabar-deep)'; b.textContent = o; }
+      sending = false;
+    };
+    // 手动短信：提交验证码登录
+    m.querySelector('#amSmsOk').onclick = async () => {
+      const code = (m.querySelector('#amSmsCode') || {}).value.trim(); if (!code) { st.textContent = '请填短信验证码'; st.style.color = 'var(--cinnabar-deep)'; return; }
+      const b = m.querySelector('#amSmsOk'); b.disabled = true; const o = b.textContent; b.textContent = '验证中…'; st.textContent = '正在登录…';
+      const rr = await api('/qr-sms-submit', 'POST', { token: r.token, code, id });
+      if (rr.ok) { if (_qrTimer) { clearInterval(_qrTimer); _qrTimer = null; } st.textContent = '✓ 登录成功！'; st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 800); }
+      else { st.textContent = '✗ ' + (rr.reason || '验证失败'); st.style.color = 'var(--cinnabar-deep)'; b.disabled = false; b.textContent = o; }
+    };
     let n = 0;
     _qrTimer = setInterval(async () => {
-      n++; if (n > 60) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码超时，请重新生成'; st.style.color = 'var(--cinnabar-deep)'; return; }
+      n++; if (n > 80) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码可能超时，没成功就重新生成'; return; }
       const p = await api('/qr-poll', 'POST', { token: r.token, id });
       if (p.ok) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '✓ 登录成功！'; st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 800); }
       else if (p.expired) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码已过期，请重新生成'; st.style.color = 'var(--cinnabar-deep)'; }
-      else if (p.needSms) { clearInterval(_qrTimer); _qrTimer = null; showSms(m, r.token, id, p.info || {}); }
     }, 2500);
   };
   m.querySelector('#amCookieSave').onclick = async () => {
