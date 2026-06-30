@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>网页执行端 · agent 工作室 · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=106" />
+<style>
+  .field{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px}
+  .db{font-size:13px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 16px;cursor:pointer;color:var(--ink)}
+  .db.go{border-color:var(--cinnabar);background:var(--cinnabar);color:#fff;font-weight:600}
+  .db.stop{border-color:#b6291f;color:#b6291f}
+  .db:hover{filter:brightness(.97)}
+  .stat{display:inline-flex;flex-direction:column;align-items:center;min-width:78px}
+  .stat b{font-size:22px;font-weight:800}
+  .stat span{font-size:11px;color:var(--ink-soft)}
+  .log{font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.7;background:#1f1b16;color:#d8e6d8;border-radius:10px;padding:12px 14px;height:300px;overflow:auto}
+  .log .t{color:#8a8170;margin-right:6px}
+  .log .a{color:#e8d9a8}
+  .log .ok{color:#7fd87f}
+  .log .warn{color:#ff9a8a}
+  .pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00a152;margin-right:6px;animation:pl 1.2s infinite}
+  @keyframes pl{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT · 工作室</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">网页<span class="italic" style="color:var(--cinnabar)">执行端</span></h1>
+    <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-3xl">把<b>这个浏览器</b>当作一台执行设备：自动领取「养号/截流计划」下发的任务，按概率拟人模拟互动，回流数据、生成 AI 评论、跑完回报——让你<b>无需真机也能把整条链路跑通</b>、「执行中」正常结束。真机版投屏见「设备看板」。</p>
+  </div>
+
+  <div class="card p-5 mb-4">
+    <div class="flex items-center gap-3 flex-wrap mb-4">
+      <label class="text-[13px]">设备名</label>
+      <input id="devName" class="field" style="min-width:160px" value="网页执行端-01" maxlength="20"/>
+      <label class="text-[13px] ml-2 flex items-center gap-1.5"><input type="checkbox" id="simRisk"/> 模拟风控熔断（测试用）</label>
+      <label class="text-[13px] ml-2 flex items-center gap-1.5"><input type="checkbox" id="fast" checked/> 快速模式</label>
+      <span class="ml-auto flex items-center gap-2">
+        <button id="startBtn" class="db go">▶ 启动执行端</button>
+        <button id="stopBtn" class="db stop" style="display:none">⏸ 停止</button>
+      </span>
+    </div>
+    <div class="flex items-center gap-5 flex-wrap" style="border-top:1px solid var(--line);padding-top:14px">
+      <span id="state" class="text-[13px] text-[var(--ink-soft)]">未启动</span>
+      <span class="ml-auto flex items-center gap-5">
+        <span class="stat"><b id="cDone">0</b><span>任务完成</span></span>
+        <span class="stat"><b id="cView">0</b><span>累计浏览</span></span>
+        <span class="stat"><b id="cLike">0</b><span>累计互动</span></span>
+        <span class="stat"><b id="cLead">0</b><span>收集潜客</span></span>
+        <span class="stat"><b id="cBreak" style="color:#b6291f">0</b><span>风控熔断</span></span>
+      </span>
+    </div>
+  </div>
+
+  <div class="card p-4">
+    <div class="text-[12px] text-[var(--ink-soft)] mb-2">实时动作日志</div>
+    <div id="log" class="log"></div>
+  </div>
+</main>
+
+<script src="/assets/tracks.js?v=22"></script>
+<script src="/assets/app.js?v=61"></script>
+<script src="/assets/ui-dialog.js?v=1"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let RUN=false, BUSY=false, devKey='web-'+Math.random().toString(36).slice(2,9);
+let stat={done:0,view:0,like:0,lead:0,brk:0};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function now(){ const d=new Date(),p=n=>String(n).padStart(2,'0'); return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function log(msg,cls){ const box=$('#log'); const line=document.createElement('div'); line.innerHTML=`<span class="t">${now()}</span><span class="${cls||'a'}">${esc(msg)}</span>`; box.appendChild(line); box.scrollTop=box.scrollHeight; while(box.children.length>400) box.removeChild(box.firstChild); }
+function setStat(){ $('#cDone').textContent=stat.done; $('#cView').textContent=stat.view; $('#cLike').textContent=stat.like; $('#cLead').textContent=stat.lead; $('#cBreak').textContent=stat.brk; }
+async function jpost(url,body){ try{ const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body||{})}); return await r.json(); }catch(e){ return {ok:false,error:e.message}; } }
+
+async function heartbeat(status){ await jpost('/api/devices/heartbeat',{key:devKey,name:$('#devName').value.trim()||devKey,status}); }
+function persona(){ try{ const t=window.TRACKS&&window.TRACKS[localStorage.getItem('ag_track')]; if(t&&t.persona) return String(t.persona).slice(0,800); }catch{} return '一个真诚分享的小红书博主'; }
+function rnd(a,b){ return Math.floor(a+Math.random()*(b-a+1)); }
+function gap(){ return $('#fast').checked? rnd(280,650) : rnd(1500,3500); }
+
+async function runTask(task){
+  const p=task.plan||{}; const cfg=p.config||{}; const nz=cfg.nurture||{}; const ic=cfg.intercept||{};
+  const isIc=/_intercept$/.test(p.ptype);
+  const daily=Math.max(3,Math.min(isIc?8:12, parseInt(nz.daily)||8));
+  const acct=task.accountName||('账号#'+task.accountId);
+  log(`领到任务「${p.name||p.ptype}」→ ${acct}（计划 ${daily} 篇拟人${isIc?'截流':'养号'}）`,'ok');
+  await heartbeat('working');
+  let viewed=0,liked=0,faved=0,commented=0,collected=0,replied=0;
+  const pLove=(+nz.love||60)/100, pLike=(+nz.like||3)/100, pFav=(+nz.fav||2)/100, pCm=(+(isIc?ic.reply:nz.comment)||(isIc?5:5))/100;
+  for(let i=1;i<=daily;i++){
+    if(!RUN) break;
+    await sleep(gap());
+    viewed++; stat.view++;
+    let acts=[];
+    const hit=Math.random()<pLove; // 命中对标后才互动，拟人
+    if(hit && Math.random()<pLike){ liked++; stat.like++; acts.push('👍赞'); }
+    if(hit && Math.random()<pFav){ faved++; acts.push('⭐藏'); }
+    if(hit && Math.random()<pCm){
+      commented++;
+      // AI 拟人评论生成
+      const g=await jpost('/api/gen-comment',{persona:persona(),scene:isIc?'intercept':'reply',noteTitle:(cfg.keywords||['设计考研'])[0]+'·对标笔记',userComment:isIc?'求资料':''});
+      const cm=(g&&g.ok&&g.comment)||'写得好，学到了～';
+      acts.push('💬“'+cm+'”'); if(isIc) replied++;
+    }
+    // 模拟风控
+    if($('#simRisk').checked && i>=Math.ceil(daily/2) && Math.random()<0.6){
+      log(`第 ${i}/${daily} 篇时弹出验证码 → 触发风控，熔断停机`,'warn');
+      await jpost('/api/dispatch/done',{id:task.dispatchId,ok:false,result:'触发验证码，已熔断',data:{viewed,liked,faved,commented,risk:'captcha'}});
+      stat.brk++; setStat();
+      log(`已上报熔断：同账号其余待执行任务将被自动暂停`,'warn');
+      return;
+    }
+    if(isIc && hit && Math.random()<0.5){
+      // 收集一个潜客
+      const u='红薯'+rnd(1000,9999); collected++; stat.lead++;
+      await jpost('/api/collected-leads',{items:[{platform:'xhs',lead_user:u,lead_text:'求'+((cfg.keywords||['资料'])[0])+'！',note_title:(cfg.keywords||['对标'])[0]+'笔记',plan_id:p.id}]});
+      acts.push('🎯收潜客 '+u);
+    }
+    log(`第 ${i}/${daily} 篇：浏览 ${(cfg.keywords||['推荐'])[0]} 笔记 ${acts.length?'· '+acts.join(' '):'（仅浏览，未互动）'}`);
+    await jpost('/api/dispatch/report',{id:task.dispatchId,progress:Math.round(i/daily*100),data:{viewed,liked,faved,commented}});
+    setStat();
+  }
+  // 回流计划统计
+  await jpost('/api/growth-plans/stat',{id:p.id,collected,replied,dmed:0});
+  // 数据回流：模拟这条账号刚发布的一篇笔记的真实数据
+  if(!isIc){
+    const v=rnd(80,1500), lk=rnd(5,Math.max(6,Math.round(v/8))), fv=rnd(3,Math.max(4,Math.round(lk*1.1)));
+    await jpost('/api/note-stats',{account_name:acct,note_title:(cfg.keywords||['设计史速记'])[0]+'·今日更新',note_url:'sim://'+acct+'/'+Date.now(),views:v,likes:lk,favs:fv,comments:rnd(0,8)});
+    log(`数据回流：本号今日笔记 小眼睛${v}/赞${lk}/藏${fv} → 已进「数据复盘」红线比对`,'ok');
+  }
+  await jpost('/api/dispatch/done',{id:task.dispatchId,ok:true,result:`拟人${isIc?'截流':'养号'}完成 浏览${viewed}赞${liked}藏${faved}${isIc?' 收潜客'+collected:''}`,data:{viewed,liked,faved,commented,collected}});
+  stat.done++; setStat();
+  log(`任务完成 ✓ 浏览${viewed}/互动${liked+faved+commented}${isIc?'/潜客'+collected:''}`,'ok');
+}
+
+async function loop(){
+  while(RUN){
+    if(BUSY){ await sleep(800); continue; }
+    const r=await jpost('/api/dispatch/pull',{device:$('#devName').value.trim()||devKey});
+    if(r&&r.ok&&r.task){ BUSY=true; $('#state').innerHTML='<span class="pulse"></span>工作中…'; try{ await runTask(r.task); }catch(e){ log('执行异常：'+e.message,'warn'); } BUSY=false; $('#state').innerHTML='<span class="pulse"></span>在线 · 等待任务（去「养号/截流计划」点📤下发即可领取）'; }
+    else { $('#state').innerHTML='<span class="pulse"></span>在线 · 等待任务（去「养号/截流计划」点📤下发即可领取）'; await heartbeat('idle'); await sleep($('#fast').checked?1500:5000); }
+  }
+}
+let hbTimer=null;
+$('#startBtn').onclick=async()=>{
+  RUN=true; $('#startBtn').style.display='none'; $('#stopBtn').style.display='';
+  log('执行端已启动，设备上线：'+($('#devName').value.trim()||devKey),'ok');
+  await heartbeat('idle');
+  hbTimer=setInterval(()=>heartbeat(BUSY?'working':'idle'), 25000);
+  loop();
+};
+$('#stopBtn').onclick=async()=>{
+  RUN=false; $('#startBtn').style.display=''; $('#stopBtn').style.display='none';
+  if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
+  $('#state').textContent='已停止'; log('执行端已停止','warn');
+};
+window.addEventListener('beforeunload',()=>{ RUN=false; });
+setStat();
+</script>
+</body>
+</html>

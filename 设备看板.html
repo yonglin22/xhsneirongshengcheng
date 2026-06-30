@@ -60,7 +60,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=21"></script>
-<script src="/assets/app.js?v=60"></script>
+<script src="/assets/app.js?v=61"></script>
 <script src="/assets/ui-dialog.js?v=1"></script>
 <script>
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -80,7 +80,14 @@ function render(){
       <div class="dev-title">${i+1}号智能体</div>
       <div class="dev-name">名称：${esc(d.name||d.device_key)}</div>
       <div class="dev-stat ${cls}">状态：${st}</div>
-      <div class="dev-screen">实时屏幕<br>（真机投屏建设中）</div>
+      ${(()=>{ const t=RUNNING[d.name]||RUNNING[d.device_key]; if(busy&&t){ const dt=t.data||{}; const acts=[dt.liked!=null?'👍'+dt.liked:'',dt.faved!=null?'⭐'+dt.faved:'',dt.commented!=null?'💬'+dt.commented:''].filter(Boolean).join(' '); return `<div class="dev-screen" style="background:#11150f;color:#cfe8cf;flex-direction:column;justify-content:flex-start;gap:6px;padding:12px;text-align:left;font-size:11px;line-height:1.5">
+        <div style="font-weight:700;color:#7fd87f">▶ ${esc(t.plan_name||('计划#'+t.plan_id))}</div>
+        <div style="color:#e8d9a8">${esc(t.account_name||'账号#'+t.account_id)}</div>
+        <div style="width:100%;height:6px;background:#2a2a22;border-radius:3px;overflow:hidden"><div style="height:100%;width:${t.progress||0}%;background:#7fd87f"></div></div>
+        <div style="color:#9a9a8c">${t.progress||0}%</div>
+        <div style="color:#bdbdb0">浏览 ${dt.viewed||0} 篇 ${acts}</div>
+        <div style="color:#8a8170;margin-top:auto">${esc((t.result||'拟人互动中…').slice(0,40))}</div>
+      </div>`; } return `<div class="dev-screen">${busy?'执行中…':(d.online?'休息中 · 待领取任务':'离线')}<br><span style="font-size:10px">真机视频投屏需原生App</span></div>`; })()}
       <div class="dev-btns">
         <button class="db dv-rename">编辑名称</button>
         <button class="db dv-zoom">放大查看</button>
@@ -130,7 +137,12 @@ function zPrompt(title, val){
     inp.addEventListener('keydown',e=>{ if(e.key==='Enter') done(inp.value); if(e.key==='Escape') done(null); });
   });
 }
-async function load(){ const j=await api(''); DEVS=(j&&j.list)||[]; render(); }
+let RUNNING={};  // device名 -> 正在执行的任务记录
+async function load(){
+  const j=await api(''); DEVS=(j&&j.list)||[];
+  try{ const r=await fetch('/api/dispatch'); const dj=await r.json(); RUNNING={}; (dj&&dj.list||[]).forEach(x=>{ if(x.status==='running'&&x.device) RUNNING[x.device]=x; }); }catch{}
+  render();
+}
 $('#refreshBtn').addEventListener('click', load);
 load(); setInterval(load, 8000);
 

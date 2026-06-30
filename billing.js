@@ -207,7 +207,7 @@ function dispatchAdd(uid, planId, accounts){
   try{ txn(run); }catch{ run(); }
   return { ok:true, created:n };
 }
-function dispatchList(uid, planId){ const where=planId?' AND plan_id=?':''; const args=planId?[uid,parseInt(planId)]:[uid]; return db.prepare('SELECT id,plan_id,account_id,account_name,device,status,result,progress,data,reported_at,created_at,picked_at,done_at FROM plan_dispatch WHERE user_id=?'+where+' ORDER BY id DESC LIMIT 200').all(...args).map(r=>{ let data=null; try{ data=r.data?JSON.parse(r.data):null; }catch{} return {...r, data}; }); }
+function dispatchList(uid, planId){ const where=planId?' AND d.plan_id=?':''; const args=planId?[uid,parseInt(planId)]:[uid]; return db.prepare('SELECT d.id,d.plan_id,d.account_id,d.account_name,d.device,d.status,d.result,d.progress,d.data,d.reported_at,d.created_at,d.picked_at,d.done_at,(SELECT name FROM growth_plans WHERE id=d.plan_id) AS plan_name FROM plan_dispatch d WHERE d.user_id=?'+where+' ORDER BY d.id DESC LIMIT 200').all(...args).map(r=>{ let data=null; try{ data=r.data?JSON.parse(r.data):null; }catch{} return {...r, data}; }); }
 // 设备拉取一条待执行任务（claim：pending→running，附带计划完整配置）。也回收超时 running。
 function dispatchPull(uid, device){
   const now=Date.now();
