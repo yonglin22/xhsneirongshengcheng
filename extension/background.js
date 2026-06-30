@@ -409,6 +409,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true;
   }
+  // #2 住宅IP登录：把本机已登录小红书的 cookie（含 httpOnly 的 web_session）回传到某账号，绕过机房 headless 风控
+  if (msg && msg.type === 'submitXhsCookie') {
+    (async () => {
+      try {
+        const all = await chrome.cookies.getAll({ domain: '.xiaohongshu.com' });
+        const cookie = (all || []).map(c => c.name + '=' + c.value).join('; ');
+        if (!/web_session=/.test(cookie)) { sendResponse({ ok: false, error: '本机浏览器还没登录小红书（没找到 web_session），请先在本机登录 www.xiaohongshu.com 再回传' }); return; }
+        const r = await fetch('https://yonglin.chat/api/accounts/submit-cookie', {
+          method: 'POST', credentials: 'include',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: msg.accountId, nickname: msg.nickname || '', cookie }),
+        });
+        const j = await r.json().catch(() => null);
+        sendResponse({ ok: !!(j && j.ok), id: j && j.id, error: j && j.error });
+      } catch (e) { sendResponse({ ok: false, error: e.message || String(e) }); }
+    })();
+    return true;
+  }
   // 待发私信草稿入库（人工确认发送，不自动发，降低高风险灰色操作的封号风险）
   if (msg && msg.type === 'queueDM') {
     chrome.storage.local.get(['zsPendingDM'], st => {

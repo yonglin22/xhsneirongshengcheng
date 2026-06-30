@@ -59,6 +59,16 @@
         window.postMessage({ type: 'ZHUSHA_NURTURE_ACK', ok: !!(resp && resp.ok), msg: (resp && resp.msg) || '' }, '*');
       });
     }
+    if (e.data.type === 'ZHUSHA_SUBMIT_COOKIE') {
+      const { accountId, nickname } = e.data;
+      try {
+        chrome.runtime.sendMessage({ type: 'submitXhsCookie', accountId, nickname }, (resp) => {
+          window.postMessage({ type: 'ZHUSHA_SUBMIT_COOKIE_ACK', ok: !!(resp && resp.ok), id: resp && resp.id, error: (resp && resp.error) || (chrome.runtime.lastError ? chrome.runtime.lastError.message : '') }, '*');
+        });
+      } catch (err) {
+        window.postMessage({ type: 'ZHUSHA_SUBMIT_COOKIE_ACK', ok: false, error: '插件连接已失效（刷新本页后重试）：' + (err && err.message || err) }, '*');
+      }
+    }
   });
 
   // 后台抓完后把结果“推”回来（不依赖那条会被回收的长连接），转发给页面。

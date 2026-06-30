@@ -1378,6 +1378,12 @@ const server = http.createServer(async (req, res) => {
       if (r.ok && r.cookie && id) { billing.accountUpdate(uid, id, { auth_blob: JSON.stringify({ cookie: r.cookie, via: 'qr-sms', ts: Date.now() }), status: 'active', health: '✓ 扫码+验证登录' }); }
       return sendJSON(res, 200, r);
     }
+    // #2 住宅IP登录：插件/设备把本机已登录小红书的 cookie 回传，绕过机房 headless 风控（token 或 cookie 鉴权）
+    if (pathname === '/api/accounts/submit-cookie' && req.method === 'POST') {
+      const dev = authDevice(req); const uid = dev ? dev.uid : authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录或提供有效设备 token' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, billing.accountSubmitCookie(uid, b));
+    }
     // 一键发布到小红书草稿箱（Playwright 驱动创作中心）
     if (pathname === '/api/accounts/publish' && req.method === 'POST') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });

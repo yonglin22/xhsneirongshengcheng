@@ -120,6 +120,20 @@ function accountsResetQrAuth(uid){ const rows=db.prepare("SELECT id,auth_blob FR
 function accountsActiveXhs(){ return db.prepare("SELECT id,user_id,nickname,auth_blob,last_active_at FROM social_accounts WHERE platform='xhs' AND status='active' AND auth_blob IS NOT NULL AND auth_blob<>''").all(); }
 function accountSetAuthById(id, authBlob, status, health){ db.prepare('UPDATE social_accounts SET auth_blob=?,status=?,health=?,updated_at=?,last_active_at=? WHERE id=?').run(String(authBlob||''), status||'active', String(health||''), Date.now(), Date.now(), id); return true; }
 function accountSetStatusById(id, status, health){ db.prepare('UPDATE social_accounts SET status=?,health=?,updated_at=? WHERE id=?').run(status||'expired', String(health||''), Date.now(), id); return true; }
+// #2 住宅IP登录：住宅 IP 的插件/设备把本机已登录小红书的 cookie 回传，落到某账号→active，绕过机房 headless 风控
+// id 优先；无 id 时按 nickname 模糊匹配该用户的 pending/expired 账号；都没有则新建一个
+function accountSubmitCookie(uid, opt){
+  opt=opt||{}; const cookie=String(opt.cookie||'').trim();
+  if(!/web_session=/.test(cookie)) return { ok:false, error:'cookie 里没有 web_session，请确认是已登录小红书的完整 cookie' };
+  const blob=JSON.stringify({ cookie, via:'device-cookie', ts:Date.now() });
+  let id=parseInt(opt.id)||0; let row=null;
+  if(id) row=db.prepare('SELECT id FROM social_accounts WHERE id=? AND user_id=?').get(id,uid);
+  if(!row && opt.nickname){ row=db.prepare("SELECT id FROM social_accounts WHERE user_id=? AND platform='xhs' AND nickname=? ORDER BY id DESC LIMIT 1").get(uid, String(opt.nickname).slice(0,60)); }
+  if(row){ db.prepare("UPDATE social_accounts SET auth_blob=?, status='active', health='✓ 设备回传登录', updated_at=?, last_active_at=? WHERE id=? AND user_id=?").run(blob, Date.now(), Date.now(), row.id, uid); return { ok:true, id:row.id }; }
+  const nid=accountAdd(uid,{ platform:'xhs', nickname:String(opt.nickname||'设备回传账号').slice(0,60), grp:String(opt.grp||'').slice(0,40), status:'active', auth_blob:blob });
+  db.prepare("UPDATE social_accounts SET health='✓ 设备回传登录', last_active_at=? WHERE id=?").run(Date.now(), nid);
+  return { ok:true, id:nid, created:true };
+}
 // 获客 Agent · 养号/截流计划
 try { db.exec("CREATE TABLE IF NOT EXISTS growth_plans(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, ptype TEXT, platform TEXT, config TEXT, status TEXT DEFAULT 'draft', created_at INTEGER, updated_at INTEGER)"); } catch {}
 // 对齐原型「任务列表」统计列：累计收集潜客/已回复/已私信 + 最近执行时间（执行端跑完上报）
@@ -705,7 +719,7 @@ module.exports = {
   rolesGet, rolesSet, menuCfgGet, menuCfgSet, enabledMenuKeys,
   partnerMemberOrders, partnerTransfer, hasPaidPack,
   qaLogAdd, qaLogList, qaTopQuestions, qaStats,
-  accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob, accountsResetQrAuth,
+  accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob, accountsResetQrAuth, accountSubmitCookie,
   accountsActiveXhs, accountSetAuthById, accountSetStatusById,
   plansList, planAdd, planUpdate, planRemove, planStat,
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
