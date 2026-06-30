@@ -1291,7 +1291,10 @@ const server = http.createServer(async (req, res) => {
       if (!cookie) return sendJSON(res, 200, { ok: false, reason: '该账号还没接入登录态（先点「接入登录态」粘贴 cookie）' });
       let bot; try { bot = require('./xhs-bot'); } catch (e) { return sendJSON(res, 200, { ok: false, reason: '服务端未装 Playwright：' + (e.message || '').slice(0, 80) }); }
       const r = await bot.verifyLogin(cookie);
-      billing.accountUpdate(uid, id, { status: r.ok ? 'active' : 'expired', health: r.ok ? ('✓ ' + (r.nickname || '已登录')) : (r.reason || '失效') });
+      // 只有「明确失效(invalid)」才标 expired；风控/超时/网络(uncertain) 一律不改状态，避免误杀好登录态。
+      if (r.ok) billing.accountUpdate(uid, id, { status: 'active', health: '✓ ' + (r.nickname || '已登录') });
+      else if (r.invalid) billing.accountUpdate(uid, id, { status: 'expired', health: r.reason || '失效' });
+      // uncertain：保持原状态不动
       return sendJSON(res, 200, r);
     }
     // 扫码登录：出二维码（登录态在 VPS 本地生成，规避 cookie 跨 IP 失效）

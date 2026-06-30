@@ -42,11 +42,12 @@ async function verifyLogin(cookieStr) {
         len: t.length
       };
     });
-    if (info.risk) return { ok: false, reason: '小红书风控验证页（VPS 机房 IP 触发）。建议：用本机刚登录导出的新鲜 cookie，或给服务端配住宅代理' };
-    if (/\/login/i.test(url) || info.loginUI) return { ok: false, reason: 'cookie 已失效/未登录，请在电脑重新登录小红书后导出新 cookie' };
+    // 风控/超时/网络 = 不确定，不能判失效（避免误杀好登录态）；只有明确跳 /login 才算真失效
+    if (info.risk) return { ok: false, uncertain: true, reason: '小红书风控验证页（机房 IP 触发），无法确认登录态——未改动状态。建议换新鲜 cookie 或配住宅代理' };
+    if (/\/login/i.test(url) || info.loginUI) return { ok: false, invalid: true, reason: 'cookie 已失效/未登录，请在电脑重新登录小红书后导出新 cookie' };
     return { ok: true, nickname: (info.nick || '').slice(0, 30) };
   } catch (e) {
-    return { ok: false, reason: '检测失败：' + (e.message || String(e)).slice(0, 160) };
+    return { ok: false, uncertain: true, reason: '检测失败（网络/超时，未改动状态）：' + (e.message || String(e)).slice(0, 120) };
   } finally { try { if (b) await b.close(); } catch {} }
 }
 
