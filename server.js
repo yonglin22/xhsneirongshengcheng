@@ -1817,9 +1817,10 @@ async function keepAliveAccounts() {
     await new Promise(r => setTimeout(r, 4000)); // 错峰，避免同时开多个浏览器
   }
 }
-// 默认关闭：扫码 cookie 与发布同 IP（同 IP 本就稳定），在机房 IP 上反复重开会话反而易触发风控把登录态踢掉。
-// 确有需要再用 XHS_ACCT_KEEPALIVE=1 开启；开启时也只每 12 小时一次、不在启动时立刻跑。
-if (process.env.XHS_ACCT_KEEPALIVE === '1') {
-  const ka2 = setInterval(keepAliveAccounts, 12 * 3600 * 1000);
+// 默认开启账号矩阵登录态保活：每 6 小时给「已登录」账号用 cookie 静默续期，把时效拉到一周以上。
+// 这是 cookie 不几天就老化失效的关键。要关掉设 XHS_ACCT_KEEPALIVE=0。
+if (process.env.XHS_ACCT_KEEPALIVE !== '0') {
+  const ka2 = setInterval(keepAliveAccounts, 6 * 3600 * 1000);
   if (ka2.unref) ka2.unref();
+  setTimeout(() => { try { keepAliveAccounts(); } catch {} }, 5 * 60 * 1000); // 启动 5 分钟后先续一次
 }
