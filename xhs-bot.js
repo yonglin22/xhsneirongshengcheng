@@ -204,10 +204,20 @@ async function _detectVerify(p) {
 async function pollQrLogin(token) {
   const s = _qr.get(token);
   if (!s) return { ok: false, expired: true, reason: '二维码会话已过期，请重新获取' };
-  // 轮询只保活，不自动判登录（访客态本有 web_session，自动判会误报"没扫就成功"）。
-  // 登录由用户点「完成登录」→ qrSubmitSms 做一次权威验证完成。
+  // 轮询给「状态反馈」：等待扫码 / 已扫码待确认 / 需短信验证。不自动判登录成功（避免访客 web_session 误报），
+  // 真正登录由用户点「完成登录」→ qrSubmitSms 一次权威验证完成。
   try {
-    if (!s.page || s.page.isClosed()) return { ok: false, expired: true, reason: '二维码会话已结束，请重新生成' };
+    const p = s.page;
+    if (!p || p.isClosed()) return { ok: false, expired: true, reason: '二维码会话已结束，请重新生成' };
+    const st = await p.evaluate(() => {
+      const t = (document.body && document.body.innerText) || '';
+      const hasQr = !!document.querySelector('img.qrcode-img');
+      const scanned = /扫码成功|扫描成功|已扫描|请在手机|手机端确认|确认登录|登录中|授权/.test(t);
+      const smsForm = !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]') || /短信验证|验证手机|安全验证|输入验证码|绑定手机|身份验证|新设备/.test(t);
+      return { hasQr, scanned, smsForm };
+    });
+    if (st.smsForm) return { ok: false, scanned: true, sms: true, msg: '✓ 已扫码 · 请填手机号取验证码，再点「完成登录」' };
+    if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码 · 请在手机上确认 / 填验证码后点「完成登录」' };
     return { ok: false, pending: true };
   } catch (e) { return { ok: false, pending: true }; }
 }

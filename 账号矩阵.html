@@ -185,6 +185,7 @@ function openAuthModal(id) {
       const p = await api('/qr-poll', 'POST', { token: r.token, id });
       if (p.ok) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '✓ 登录成功！'; st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 800); }
       else if (p.expired) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码已过期，请重新生成'; st.style.color = 'var(--cinnabar-deep)'; }
+      else if (p.scanned) { st.textContent = p.msg || '✓ 已扫码，请完成验证'; st.style.color = '#00a152'; }   // 扫码状态反馈
     }, 2500);
   };
   m.querySelector('#amCookieSave').onclick = async () => {
