@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>朱砂 · 设备投屏工作室</title>
+<style>
+  :root{ --ink:#23201c; --soft:#8a8273; --line:#e7e0d4; --red:#d4380d; }
+  *{box-sizing:border-box} body{margin:0;font-family:-apple-system,"Microsoft YaHei",sans-serif;background:#faf7f1;color:var(--ink)}
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:5}
+  header h1{font-size:16px;margin:0;font-weight:800} header .muted{color:var(--soft);font-size:12px}
+  input{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+  button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+  button.go{background:var(--red);color:#fff;border-color:var(--red)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;padding:18px}
+  .card{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;display:flex;flex-direction:column}
+  .scr{aspect-ratio:9/16;background:#11150f;display:flex;align-items:center;justify-content:center;position:relative}
+  .scr img{width:100%;height:100%;object-fit:contain}
+  .scr .ph{color:#6a6a5c;font-size:12px;text-align:center;padding:10px}
+  .badge{position:absolute;top:8px;left:8px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .b-work{background:#1d4ed8;color:#fff} .b-idle{background:#0a7a3a;color:#fff} .b-notok{background:#9a3412;color:#fff}
+  .body{padding:10px 12px;font-size:12px}
+  .body .nm{font-weight:800;font-size:13px} .body .ser{color:var(--soft);font-size:11px;word-break:break-all}
+  .prog{height:6px;background:#eee;border-radius:3px;overflow:hidden;margin:8px 0}
+  .prog>div{height:100%;background:#0a7a3a}
+  .rowb{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .empty{padding:60px;text-align:center;color:var(--soft)}
+</style>
+</head>
+<body>
+<header>
+  <h1>朱砂 · 设备投屏工作室</h1>
+  <span class="muted" id="cnt">0 台真机</span>
+  <span style="margin-left:auto" class="muted">服务端</span>
+  <input id="srv" style="width:240px" placeholder="https://yonglin.chat" />
+  <button id="saveSrv">保存</button>
+</header>
+<div id="grid" class="grid"></div>
+<div id="empty" class="empty" style="display:none">
+  没有检测到真机。用 USB 连接安卓手机、开启「USB 调试」，确保电脑已装 <code>adb</code>（platform-tools）。投屏推荐再装 <code>scrcpy</code>。<br/>
+  每台设备首次需在卡片里填「执行端 token」（在网页端「设备看板 → 接入真机/脚本」生成）。
+</div>
+
+<script>
+let SERVER='https://yonglin.chat';
+studio.getConfig().then(c=>{ if(c&&c.serverBase){ SERVER=c.serverBase; document.getElementById('srv').value=c.serverBase; } });
+document.getElementById('saveSrv').onclick=()=>studio.setServer(document.getElementById('srv').value.trim()).then(()=>location.reload());
+
+function badge(d){
+  if(!d.hasToken) return '<span class="badge b-notok">未接入</span>';
+  if(d.agentStatus==='working') return '<span class="badge b-work">工作中</span>';
+  return '<span class="badge b-idle">休息中</span>';
+}
+studio.onDevices(list=>{
+  document.getElementById('cnt').textContent=list.length+' 台真机';
+  document.getElementById('empty').style.display=list.length?'none':'';
+  const g=document.getElementById('grid');
+  g.innerHTML=list.map(d=>`
+    <div class="card" data-serial="${d.serial}">
+      <div class="scr">${badge(d)}${d.screen?`<img src="${d.screen}"/>`:'<div class="ph">投屏预览<br/>（截图轮询；装 scrcpy 可点下方实时投屏）</div>'}</div>
+      <div class="body">
+        <div class="nm">${d.model||d.serial}</div>
+        <div class="ser">${d.serial}</div>
+        ${d.hasToken?`
+          <div style="margin-top:6px">${d.agentTask?('▶ '+d.agentTask):'待领取任务'}</div>
+          <div class="prog"><div style="width:${d.agentProgress||0}%"></div></div>
+          <div style="color:var(--soft)">${d.agentLog||''}</div>
+        `:`
+          <div class="rowb"><input class="tok" placeholder="粘贴执行端 token (zd_...)" style="flex:1"/><button class="go save">接入</button></div>
+        `}
+        <div class="rowb"><button class="scrcpy">实时投屏</button></div>
+      </div>
+    </div>`).join('');
+  g.querySelectorAll('.card').forEach(card=>{
+    const serial=card.dataset.serial;
+    const save=card.querySelector('.save'); if(save) save.onclick=()=>{ const t=card.querySelector('.tok').value.trim(); if(t) studio.setToken(serial,t); };
+    card.querySelector('.scrcpy').onclick=()=>studio.openScrcpy(serial);
+  });
+});
+</script>
+</body>
+</html>

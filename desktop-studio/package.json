@@ -1,0 +1,22 @@
+{
+  "name": "zhusha-desktop-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "朱砂操盘台 · 设备投屏工作室（PC Electron + USB/ADB 真机投屏 + 执行端协议客户端）",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "chat.yonglin.zhusha.studio",
+    "productName": "朱砂投屏工作室",
+    "files": ["**/*"],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" }
+  }
+}
