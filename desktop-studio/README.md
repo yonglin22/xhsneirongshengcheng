@@ -1,47 +1,54 @@
-# 朱砂 · 设备投屏工作室（PC Electron + USB/ADB）
+# 朱砂 · 真机执行端 / 投屏工作室
 
-PRD 里 huohuoAI 工作室那一端的脚手架：把多台安卓真机 USB 接到一台电脑，**实时投屏成网格看板**，每台真机作为一个执行设备，跑「养号 / 截流计划」——直接对接你网页端已经做好的**执行端协议**（token 拉任务 / 进度回报 / 数据回流 / AI 评论 / 风控熔断）。
+把安卓真机接上电脑，作为执行设备跑「养号 / 截流计划」。
 
-> 这是**独立桌面工程**，不在网页服务里运行。需要你在本机（装了 Node + adb）构建运行。
+---
 
-## 它能做什么（已实现骨架）
-- 枚举 USB/ADB 在线真机，自动成网格。
-- 投屏预览：默认 `adb screencap` 截图轮询（无需额外软件）；装了 `scrcpy` 可点「实时投屏」开真投屏窗口。
-- 每台真机一个**执行端协议客户端**（`agent.js`）：心跳上线 → `/api/dispatch/pull` 领任务 → 拟人滑动/点赞/评论（贝塞尔滑动样例已给）→ `/api/dispatch/report` 回报进度 → `/api/dispatch/done` 完成（验证码即 `ok:false+risk` 熔断）→ `/api/gen-comment` 生成评论。
-- 这些设备会**同时出现在网页端「设备看板」**（同一套协议、同一个朱砂账号）。
+## ⚠️ 先选对路线（别上来就搞真机）
 
-## 还需你适配（已留 TODO 钩子，在 `agent.js`）
-真机在小红书 App 里的**具体点击坐标 / 控件**随机型分辨率不同，需按你的真机标定：
-- `_openXhs`：拉起后进搜索页、输入关键词
-- `_tapLike` / `_tapFav` / `_postComment`：点赞/收藏/评论的坐标（中文输入建议装 ADBKeyBoard 或走剪贴板）
-- `_riskHit`：截一帧做验证码/异常弹窗识别（OCR 或模板匹配）——这是风控熔断的触发源
+| 你的情况 | 走哪条 | 成本 |
+|---|---|---|
+| **一两个号、个人用** | **Chrome 插件「朱砂助手」** | ⭐ 零门槛：装扩展 → 开「执行设备」+「前台观看」→ 网页下发。不碰终端、不接线 |
+| **要多台手机、规模化养号** | **真机执行端（本目录）** | ⭐⭐⭐ 要接线、装工具、开手机调试 |
 
-## 前置环境
-1. Node ≥ 18、`adb`（Android platform-tools）在 PATH 中。
-2. 投屏推荐装 [`scrcpy`](https://github.com/Genymobile/scrcpy)。
-3. 手机：开发者选项 → USB 调试打开；首次连接在手机上「允许调试」。
+> 大多数人用插件就够了。真机这套是给"手机农场"规模化用的。下面是真机路线。
 
-## 运行
+---
+
+## 真机路线 · 极简三步
+
+### 1. 装工具（一次性）
+**Mac：**
 ```bash
-cd desktop-studio
-npm install        # 装 electron
-npm start          # 启动工作室
+brew install android-platform-tools node scrcpy
 ```
-打包安装包：`npm run dist`（electron-builder）。
+**Windows：** 装 [Node](https://nodejs.org)、[platform-tools](https://developer.android.com/tools/releases/platform-tools)（adb）、[scrcpy](https://github.com/Genymobile/scrcpy)，都加入 PATH。
 
-## 接入步骤
-1. 网页端「设备看板 → 接入真机/脚本」给每台设备**生成执行端 token**（`zd_...`）。
-2. 工作室里每张设备卡片粘贴对应 token → 点「接入」。
-3. 在网页端「养号/截流计划」点 **📤 下发** 选这些账号 → 真机自动领取并开始执行，投屏看板实时显示进度。
+> 不需要 `npm install`！执行端只用 Node 内置模块。
 
-## 配置
-`~/.zhusha-studio.json` 自动保存：`serverBase`（默认 `https://yonglin.chat`）与每台设备的 token。
+### 2. 连手机
+USB 连接 → 手机【设置→关于→连点版本号7次】开开发者 → 开 **USB 调试** → 插线后点【允许】。
+**小米/红米**额外要开 **「USB调试(安全设置)」**（要登小米账号+插SIM卡），否则模拟点击被系统拦。
 
-## 架构对应
-| PRD huohuoAI 工作室 | 本脚手架 |
-|---|---|
-| USB/ADB 多机投屏（≤200 台） | `main.js` listDevices + screencap/scrcpy 网格 |
-| 创建计划 / 任务下发 | 复用网页端「养号·截流计划」+ `/api/dispatch` |
-| AOA 脚本引擎 / 拟人行为 | `agent.js`（贝塞尔滑动 + 概率互动 + 留坐标 TODO） |
-| 大模型评论 / 风控熔断 | `/api/gen-comment` + `done(ok:false,risk)` |
-| 数据上报 | `/api/dispatch/report` + `/api/note-stats` |
+### 3. 双击启动
+- **Mac**：双击 `start.command`（首次右键→打开，过一下安全提示；若提示无法执行，终端跑一次 `chmod +x start.command`）
+- **Windows**：双击 `start.bat`
+
+第一次会让你粘一次 **token**（网页「设备看板 → 接入真机/脚本 → 生成接入 token」，复制 zd_ 开头那串）。粘一次就存住，以后双击即用。
+
+启动后：网页「养号/截流计划」→ 📤 下发 → 手机自动跑，scrcpy 窗口实时看。
+
+---
+
+## 命令行方式（进阶/调试）
+```bash
+node run-agent.js zd_你的token        # 单台真机执行端
+scrcpy                                # 另开窗口投屏
+```
+配置存 `~/.zhusha-studio-token`（token）。换号删掉它重填。
+
+## 还需适配（真机点击坐标）
+真机在小红书里**精准点赞/评论**的坐标随机型不同，需按你的屏幕标定——见 `agent.js` 里 `_tapLike`/`_tapFav`/`_postComment` 的 TODO。当前默认坐标按 1080 宽屏给的，滑动浏览能通用。
+
+## Electron 投屏看板（可选，非必须）
+`npm start` 可起一个 Electron 多机投屏网格看板，但需要联网下载 Electron（国内可能慢/失败）。**不影响真机执行**——执行用上面的 `start.command` / `run-agent.js` 即可，投屏用 scrcpy。
