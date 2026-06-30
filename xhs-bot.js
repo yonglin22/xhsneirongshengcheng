@@ -225,8 +225,8 @@ async function pollQrLogin(token) {
     const st = await _scan(s);
     if (st.dead) return { ok: false, expired: true, reason: '二维码会话已结束，请重新生成' };
     if (st.loggedIn) { const cookie = await _finishLogin(s); try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; } // 扫码+手机确认后自动成功(并暖创作中心)
-    if (st.smsForm) return { ok: false, scanned: true, sms: true, msg: '⚠ 需要短信验证：填手机号 → 发送验证码 → 填码 → 点「完成登录」', info: { btns: st.btns, snippet: st.snippet } };
-    if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码！请在手机小红书 App 上点【确认登录】，确认后这里会自动登录成功' };
+    // 注：登录弹窗永远带"手机号登录"标签(自带验证码框)，不能据此判"需短信"。手机号/验证码框始终显示，按需用。
+    if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码！在手机小红书上点【确认登录】会自动成功；或在下面用手机号+验证码登录' };
     return { ok: false, pending: true };
   } catch (e) { return { ok: false, pending: true }; }
 }
