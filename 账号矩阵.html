@@ -216,6 +216,7 @@ function openAuthModal(id) {
     if (raw[0] === '[' || raw[0] === '{') {
       try { const arr = JSON.parse(raw); const list = Array.isArray(arr) ? arr : (arr.cookies || []); const pairs = list.filter(c => c && c.name).map(c => c.name + '=' + (c.value == null ? '' : c.value)); if (pairs.length) cookie = pairs.join('; '); } catch {}
     }
+    if (!/web_session/.test(cookie)) { st.textContent = '⚠ 粘的 cookie 里没有 web_session（登录关键 cookie）。请在 Cookie-Editor 里点「Export」导出完整 JSON 再粘（要在已登录的小红书页面导出）'; st.style.color = 'var(--cinnabar-deep)'; return; }
     const btn = m.querySelector('#amCookieSave'); const o = btn.textContent; btn.disabled = true; btn.textContent = '保存并验证中…';
     st.textContent = '正在保存并验证登录态…'; st.style.color = 'var(--ink-soft)';
     const r = await api('/update', 'POST', { id, patch: { auth_blob: JSON.stringify({ cookie, ts: Date.now() }), status: 'active' } });
