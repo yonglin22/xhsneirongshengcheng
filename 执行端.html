@@ -69,7 +69,9 @@
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-let RUN=false, BUSY=false, devKey='web-'+Math.random().toString(36).slice(2,9);
+let RUN=false, BUSY=false;
+// 固定设备 key（按浏览器持久化）——避免每次打开都在「设备看板」堆出新的离线影子设备
+let devKey=localStorage.getItem('zs_web_devkey'); if(!devKey){ devKey='web-'+Math.random().toString(36).slice(2,9); localStorage.setItem('zs_web_devkey',devKey); }
 let stat={done:0,view:0,like:0,lead:0,brk:0};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function now(){ const d=new Date(),p=n=>String(n).padStart(2,'0'); return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }

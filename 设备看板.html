@@ -36,7 +36,8 @@
   <div class="card p-3 mb-4 flex items-center gap-3 flex-wrap">
     <span class="text-[13px]">共 <b id="cnt">0</b> 台设备</span>
     <span class="text-[11px] text-[var(--ink-soft)]">在线 <b id="onCnt" style="color:#00a152">0</b></span>
-    <button id="refreshBtn" class="db" style="margin-left:auto">↻ 刷新</button>
+    <button id="cleanBtn" class="db" style="margin-left:auto;color:#b6291f;border-color:#f0c9c0">🧹 清理离线设备</button>
+    <button id="refreshBtn" class="db">↻ 刷新</button>
   </div>
   <div id="grid" class="dev-grid"></div>
   <div id="empty" class="card p-8 text-center text-[13px] text-[var(--ink-soft)]" style="display:none">
@@ -99,6 +100,7 @@ function render(){
             <a href="#" class="dv-wx">微信 AI</a>
           </span></span>
         <button class="db stop dv-stop" ${busy?'':'disabled style=opacity:.5'}>停止工作</button>
+        ${!d.online?'<button class="db dv-remove" style="color:#b6291f;border-color:#f0c9c0">移除</button>':''}
       </div>
     </div>`;
   }).join('');
@@ -111,6 +113,7 @@ $('#grid').addEventListener('click', async e=>{
     if(name!=null && name.trim()){ await api('/rename','POST',{id,name:name.trim()}); load(); }
     return;
   }
+  if(e.target.closest('.dv-remove')){ if(!await zConfirm('移除离线设备「'+(d.name||d.device_key)+'」？（仅从看板移除，设备重新上线会再出现）',{okText:'移除'})) return; await api('/remove','POST',{id}); load(); return; }
   if(e.target.closest('.dv-zoom')){ zAlert('实时屏幕投屏需要真机农场 + 安卓 App + 投屏服务，属独立工程，正在规划中。当前网页看板可管理设备状态、改名、开始/停止工作。',{title:'实时投屏 · 建设中'}); return; }
   if(e.target.closest('.dv-start')){ const menu=card.querySelector('.dd-menu'); document.querySelectorAll('.dd-menu.open').forEach(m=>{ if(m!==menu) m.classList.remove('open'); }); menu.classList.toggle('open'); return; }
   if(e.target.closest('.dv-wx')){ e.preventDefault(); zAlert('微信 AI 模块规划中。',{title:'微信 AI'}); return; }
@@ -144,6 +147,12 @@ async function load(){
   render();
 }
 $('#refreshBtn').addEventListener('click', load);
+$('#cleanBtn').addEventListener('click', async ()=>{
+  const off=DEVS.filter(d=>!d.online); if(!off.length){ zToast&&zToast('没有离线设备','ok'); return; }
+  if(!await zConfirm('清理 '+off.length+' 台离线设备？（设备重新上线会再出现）',{okText:'清理'})) return;
+  for(const d of off){ await api('/remove','POST',{id:d.id}); }
+  load();
+});
 load(); setInterval(load, 8000);
 
 document.getElementById('tkGen').onclick=async()=>{
