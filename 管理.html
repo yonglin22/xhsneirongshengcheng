@@ -138,10 +138,15 @@ const views = {
   async users() {
     const { j } = await aget('/api/admin/users');
     if (!j.ok) return '加载失败：' + (j.error || '');
-    const rows = (j.users || []).map(u => `<tr><td>${u.id}</td><td>${u.phone || ''}</td><td>${u.nickname || '—'}</td><td><span class="lv-tag">${u.level || '—'}</span></td><td class="r">${u.balance || 0}</td><td class="r">¥${yuan(u.recharge_cny)}</td><td>${u.invited_by ? '邀(' + u.invited_by + ')' : '—'}</td><td>${ts(u.created_at)}</td>
-      <td class="r" style="white-space:nowrap"><button class="led-view btn-ghost rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">查看流水</button></td>
-      <td class="r" style="white-space:nowrap"><button class="adj-add btn-go rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">＋充值</button> <button class="adj-sub btn-ghost rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">－扣减</button></td></tr>`).join('');
-    return `<div class="card p-4 overflow-x-auto"><table><thead><tr><th>ID</th><th>手机号</th><th>昵称</th><th>会员等级</th><th class="r">余额</th><th class="r">累计充值</th><th>邀请人</th><th>注册时间</th><th class="r">流水</th><th class="r">手动调账</th></tr></thead><tbody>${rows || '<tr><td colspan=10 class="text-center" style="color:var(--ink-soft)">暂无用户</td></tr>'}</tbody></table>
+    ALL_USERS = j.users || [];
+    const levels = [...new Set(ALL_USERS.map(u => u.level).filter(Boolean))];
+    return `<div class="card p-4 overflow-x-auto">
+      <div class="flex items-center gap-2 mb-3 flex-wrap">
+        <input id="uSearch" class="field rounded-lg px-3 py-1.5 text-[12px]" style="min-width:220px" placeholder="🔍 搜手机号 / 昵称 / ID" />
+        <select id="uLevel" class="field rounded-lg px-2 py-1.5 text-[12px]"><option value="">全部等级</option>${levels.map(l => `<option>${l}</option>`).join('')}</select>
+        <span id="uCount" class="text-[11px] text-[var(--ink-soft)]" style="margin-left:auto"></span>
+      </div>
+      <table><thead><tr><th>ID</th><th>手机号</th><th>昵称</th><th>会员等级</th><th class="r">余额</th><th class="r">累计充值</th><th>邀请人</th><th>注册时间</th><th class="r">流水</th><th class="r">手动调账</th></tr></thead><tbody id="uBody"></tbody></table>
       <div class="text-[11.5px] text-[var(--ink-soft)] mt-3">会员等级按累计充值自动判定。手动调账会写入对方流水（留痕）：「＋充值」正数入账、「－扣减」负数出账，不走支付通道，仅用于客服补偿 / 误扣修正等。</div></div>
       <div id="ledModal" style="display:none;position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px">
         <div class="card p-5" style="max-width:520px;width:100%;max-height:80vh;overflow-y:auto">
@@ -351,15 +356,36 @@ async function doAdjust(phone, sign) {
   else alert('失败：' + (j.error || ''));
 }
 function msg(el, txt, good) { const e = $(el); if (e) { e.textContent = txt; e.style.color = good ? '#00a052' : 'var(--cinnabar-deep)'; } }
+let ALL_USERS = [];
+function userRowHTML(u) {
+  return `<tr><td>${u.id}</td><td>${u.phone || ''}</td><td>${u.nickname || '—'}</td><td><span class="lv-tag">${u.level || '—'}</span></td><td class="r">${u.balance || 0}</td><td class="r">¥${yuan(u.recharge_cny)}</td><td>${u.invited_by ? '邀(' + u.invited_by + ')' : '—'}</td><td>${ts(u.created_at)}</td>
+    <td class="r" style="white-space:nowrap"><button class="led-view btn-ghost rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">查看流水</button></td>
+    <td class="r" style="white-space:nowrap"><button class="adj-add btn-go rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">＋充值</button> <button class="adj-sub btn-ghost rounded-md px-2 py-1 text-[11px]" data-phone="${u.phone}">－扣减</button></td></tr>`;
+}
+function renderUserRows() {
+  const tb = $('#uBody'); if (!tb) return;
+  const kw = ($('#uSearch')?.value || '').trim().toLowerCase();
+  const lv = $('#uLevel')?.value || '';
+  const list = ALL_USERS.filter(u => {
+    if (lv && (u.level || '') !== lv) return false;
+    if (kw) { const hay = ((u.phone || '') + ' ' + (u.nickname || '') + ' ' + u.id).toLowerCase(); if (!hay.includes(kw)) return false; }
+    return true;
+  });
+  tb.innerHTML = list.length ? list.map(userRowHTML).join('') : '<tr><td colspan=10 class="text-center" style="color:var(--ink-soft)">没有匹配的用户</td></tr>';
+  const c = $('#uCount'); if (c) c.textContent = list.length + ' / ' + ALL_USERS.length + ' 个用户';
+  tb.querySelectorAll('.adj-add').forEach(b => b.addEventListener('click', () => doAdjust(b.dataset.phone, 1)));
+  tb.querySelectorAll('.adj-sub').forEach(b => b.addEventListener('click', () => doAdjust(b.dataset.phone, -1)));
+  tb.querySelectorAll('.led-view').forEach(b => b.addEventListener('click', () => viewLedger(b.dataset.phone)));
+}
 async function renderView() {
   $('#view').innerHTML = '<div class="text-[13px] text-[var(--ink-soft)]">加载中…</div>';
   $('#view').innerHTML = await views[curView]();
   const V = $('#view');
   if (curView === 'orders') V.querySelectorAll('.oc-ok').forEach(b => b.addEventListener('click', async () => { if (!confirm('确认该订单已收款、给用户入账？')) return; const { ok, j } = await apost('/api/admin/order-confirm', { out_trade_no: b.dataset.otn }); if (ok && j.ok) renderView(); else alert('失败：' + (j.error || '')); }));
   if (curView === 'users') {
-    V.querySelectorAll('.adj-add').forEach(b => b.addEventListener('click', () => doAdjust(b.dataset.phone, 1)));
-    V.querySelectorAll('.adj-sub').forEach(b => b.addEventListener('click', () => doAdjust(b.dataset.phone, -1)));
-    V.querySelectorAll('.led-view').forEach(b => b.addEventListener('click', () => viewLedger(b.dataset.phone)));
+    renderUserRows();
+    $('#uSearch')?.addEventListener('input', renderUserRows);
+    $('#uLevel')?.addEventListener('change', renderUserRows);
     $('#ledClose')?.addEventListener('click', () => { $('#ledModal').style.display = 'none'; });
     $('#ledModal')?.addEventListener('click', e => { if (e.target === $('#ledModal')) $('#ledModal').style.display = 'none'; });
   }
