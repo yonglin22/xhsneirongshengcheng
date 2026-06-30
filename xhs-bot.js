@@ -186,8 +186,21 @@ async function startQrLogin() {
 async function _grabIfLoggedIn(s) {
   const cks = await s.ctx.cookies();
   const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
-  const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
+  // 访客访问小红书也会被写一个 web_session（空/占位/短值），不能只凭它存在就判定已登录。
+  const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 20);
   if (!sess) return null;
+  // UI 二次确认：登录二维码 / 登录入口还在 = 还没扫成功；必须页面已是登录态才算数（排除访客 web_session 误判）。
+  // 关键判据：登录二维码/登录入口是否还在。访客态会一直停在二维码弹窗(qrcode-img 常驻)，
+  // 只有真正扫码确认后弹窗才消失。弹窗还在 = 还没登录，避免访客 web_session 误判。
+  let loginUIPresent = true;
+  try {
+    loginUIPresent = await s.page.evaluate(() => {
+      const hasQr = !!document.querySelector('img.qrcode-img');
+      const t = (document.body && document.body.innerText) || '';
+      return hasQr || /扫码登录|手机号登录|二维码登录|新用户注册|登录后即可/.test(t);
+    });
+  } catch {}
+  if (loginUIPresent) return null;
   return xhs.map(c => c.name + '=' + c.value).join('; ');
 }
 // 检测短信验证 UI（扫码后风控触发）
