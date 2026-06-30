@@ -186,6 +186,8 @@ async function startQrLogin() {
 async function _grabIfLoggedIn(s) {
   const cks = await s.ctx.cookies();
   const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
+  // 【临时诊断】打印每次轮询抓到的 xhs cookie 名+长度，扫码成功后看 web_session 真实长度以定阈值
+  try { const ws = xhs.find(c => c.name === 'web_session'); console.log('[QR-DIAG] cookies=', xhs.map(c => c.name + ':' + (c.value || '').length).join(',') || '(none)', '| web_session.len=', ws ? (ws.value || '').length : 'MISSING'); } catch {}
   // 注意：扫码成功后 qrcode-img 仍留在 DOM（只盖一层"扫描成功"），不能用二维码是否在判断；
   //       也不要在轮询里另开创作中心页验证——VPS 上子域加载慢/二次跳登录，会把真登录也挡掉。
   // 真登录后小红书写的 web_session 是一长串 token（约 36+ 位）；访客即便被写也是空/很短值。
