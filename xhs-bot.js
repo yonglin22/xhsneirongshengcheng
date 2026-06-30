@@ -227,10 +227,14 @@ async function qrSendSms(token, phone) {
   try {
     const p = s.page;
     if (phone) { try { const pi = p.locator('input[placeholder*="手机"],input[type="tel"]').first(); if (await pi.count()) { await pi.fill(String(phone).trim()); await p.waitForTimeout(400); } } catch {} }
-    for (const sel of ['text=获取验证码', 'text=发送验证码', 'text=获取短信验证码', 'text=重新获取']) {
-      try { const b = p.locator(sel).first(); if (await b.count()) { await b.click({ timeout: 4000 }); return { ok: true }; } } catch {}
+    let clicked = '';
+    for (const sel of ['text=获取验证码', 'text=发送验证码', 'text=获取短信验证码', 'text=重新获取', 'text=获取', 'button:has-text("验证码")']) {
+      try { const b = p.locator(sel).first(); if (await b.count()) { await b.click({ timeout: 4000 }); clicked = sel; break; } } catch {}
     }
-    return { ok: false, reason: '没找到「获取验证码」按钮', info: await _detectVerify(p) };
+    await p.waitForTimeout(800);
+    const info = await _detectVerify(p);   // 点击后页面真实文字+按钮，回传供校准
+    if (clicked) return { ok: true, clicked, info };
+    return { ok: false, reason: '没找到「获取验证码」按钮（把下面调试信息截图发我对准）', info };
   } catch (e) { return { ok: false, reason: (e.message || '').slice(0, 100) }; }
 }
 // 提交完成登录：填验证码(若有)→点登录→用一次权威验证(verifyLogin)确认。
