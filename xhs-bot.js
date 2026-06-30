@@ -231,8 +231,13 @@ async function qrSendSms(token, phone) {
     let clicked = '';
     try {
       clicked = await p.evaluate(() => {
-        const els = [...document.querySelectorAll('button,[role=button],a,span,div')];
-        for (const e of els) { const t = (e.textContent || '').replace(/\s/g, ''); if (t.length <= 12 && /验证码/.test(t) && /获取|发送|重新/.test(t)) { e.click(); return (e.textContent || '').trim().slice(0, 12); } }
+        const norm = s => (s || '').replace(/\s/g, '');
+        const els = [...document.querySelectorAll('button,[role=button],a,span,div,p')];
+        // 只点「叶子元素」(无子元素)，文字正好是 获取/发送/重新…验证码，避免点到包裹整块的大容器
+        const leaf = e => e.children.length === 0;
+        let t = els.find(e => leaf(e) && /^(获取验证码|发送验证码|获取短信验证码|重新获取验证码|重新获取|重新发送)$/.test(norm(e.textContent)));
+        if (!t) t = els.find(e => leaf(e) && norm(e.textContent).length <= 10 && /验证码/.test(norm(e.textContent)) && /获取|发送|重新/.test(norm(e.textContent)));
+        if (t) { (t.closest('button,[role=button],a') || t).click(); return (t.textContent || '').trim().slice(0, 12); }
         return '';
       });
     } catch {}
