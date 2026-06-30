@@ -149,7 +149,7 @@ async function publishDraft(cookieStr, content) {
 
 // ===== 扫码登录：在 VPS 本地打开小红书登录页出二维码，手机扫码后取登录态（同 IP，不会失效）=====
 const _qr = new Map(); // token -> { browser, ctx, page, ts }
-function _qrGc() { const now = Date.now(); for (const [k, s] of _qr) { if (now - s.ts > 240000) { try { s.browser.close(); } catch {} _qr.delete(k); } } }
+function _qrGc() { const now = Date.now(); for (const [k, s] of _qr) { if (now - s.ts > 600000) { try { s.browser.close(); } catch {} _qr.delete(k); } } } // 10 分钟，给扫码+短信留足时间
 
 async function startQrLogin() {
   _qrGc();
@@ -180,95 +180,85 @@ async function startQrLogin() {
 }
 
 // 登录判定：扫码确认后 www 上下文会写入 web_session（域 .xiaohongshu.com，对 creator 子域同样有效）。
-// 直接读 cookie 判定，不跳创作中心（创作中心常二次跳登录导致永远取不到 → 卡“等待确认”）。
-async function _grabIfLoggedIn(s) {
+// ===== 扫码登录 · 一套统一逻辑 =====
+// 核心判据 _scan：在「同一个二维码页」上读取页面状态 + cookie，区分四种状态：
+//   loggedIn  —— 登录弹窗(二维码/登录入口/短信表单)全消失 且 有 web_session → 真登录(含无短信直接登录)
+//   sms       —— 出现短信/安全验证表单 → 需要填手机号取验证码
+//   scanned   —— 已扫码、等手机端确认(二维码还在但有"扫码成功"等字样)
+//   waiting   —— 还在显示二维码、未扫
+// 访客态虽也有 web_session，但登录弹窗一直在 → 不会判成 loggedIn，杜绝"没扫就成功"。
+async function _scan(s) {
+  const p = s.page;
+  if (!p || p.isClosed()) return { dead: true };
+  const r = await p.evaluate(() => {
+    const t = (document.body && document.body.innerText) || '';
+    const hasQr = !!document.querySelector('img.qrcode-img');
+    const smsForm = !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]') || /短信验证|安全验证|验证手机|输入验证码|绑定手机|新设备|身份验证/.test(t);
+    const loginEntry = hasQr || /扫码登录|手机号登录|二维码登录|新用户注册/.test(t);
+    const scanned = /扫码成功|扫描成功|已扫描|请在手机|手机端确认|确认登录|登录中|授权/.test(t);
+    const btns = [...document.querySelectorAll('button,[role=button],span,a')].map(e => (e.textContent || '').trim()).filter(x => x && x.length <= 12 && /验证|登录|获取|发送|确认/.test(x)).slice(0, 8);
+    return { hasQr, smsForm, loginEntry, scanned, btns, snippet: t.replace(/\s+/g, ' ').slice(0, 160) };
+  });
   const cks = await s.ctx.cookies();
   const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
-  // 只读当前 context 的 cookie，绝不在轮询里反复访问小红书（高频校验会触发风控、连累已登录的号）。
-  // 真登录/绑定手机完成后 web_session 会写入；登录由用户在弹窗里手动「提交验证码」驱动。
-  const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
-  if (!sess) return null;
-  return xhs.map(c => c.name + '=' + c.value).join('; ');
-}
-// 检测短信验证 UI（扫码后风控触发）
-async function _detectVerify(p) {
-  return await p.evaluate(() => {
-    const t = (document.body && document.body.innerText) || '';
-    const codeInput = !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]');
-    const need = codeInput || /短信验证|安全验证|验证手机|身份验证|登录验证|新设备|输入验证码/.test(t);
-    const phoneInput = !!document.querySelector('input[placeholder*="手机"],input[type="tel"]');
-    const btns = [...document.querySelectorAll('button,[role=button],span,a')].map(e => (e.textContent || '').trim()).filter(x => x && x.length <= 10 && /验证|登录|获取|发送|确认/.test(x)).slice(0, 8);
-    return { need, codeInput, phoneInput, btns, snippet: t.replace(/\s+/g, ' ').slice(0, 160) };
-  });
+  const ws = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
+  const cookie = ws ? xhs.map(c => c.name + '=' + c.value).join('; ') : '';
+  // 登录弹窗(二维码/登录入口/短信表单)全没了 且 有 web_session → 真登录
+  const loggedIn = cookie && !r.hasQr && !r.loginEntry && !r.smsForm;
+  return { ...r, ws: !!ws, cookie, loggedIn };
 }
 async function pollQrLogin(token) {
   const s = _qr.get(token);
   if (!s) return { ok: false, expired: true, reason: '二维码会话已过期，请重新获取' };
-  // 轮询给「状态反馈」：等待扫码 / 已扫码待确认 / 需短信验证。不自动判登录成功（避免访客 web_session 误报），
-  // 真正登录由用户点「完成登录」→ qrSubmitSms 一次权威验证完成。
   try {
-    const p = s.page;
-    if (!p || p.isClosed()) return { ok: false, expired: true, reason: '二维码会话已结束，请重新生成' };
-    const st = await p.evaluate(() => {
-      const t = (document.body && document.body.innerText) || '';
-      const hasQr = !!document.querySelector('img.qrcode-img');
-      const scanned = /扫码成功|扫描成功|已扫描|请在手机|手机端确认|确认登录|登录中|授权/.test(t);
-      const smsForm = !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]') || /短信验证|验证手机|安全验证|输入验证码|绑定手机|身份验证|新设备/.test(t);
-      return { hasQr, scanned, smsForm };
-    });
-    if (st.smsForm) return { ok: false, scanned: true, sms: true, msg: '✓ 已扫码 · 请填手机号取验证码，再点「完成登录」' };
-    if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码 · 请在手机上确认 / 填验证码后点「完成登录」' };
+    const st = await _scan(s);
+    if (st.dead) return { ok: false, expired: true, reason: '二维码会话已结束，请重新生成' };
+    if (st.loggedIn) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie: st.cookie }; } // 无短信直接登录 → 自动成功
+    if (st.smsForm) return { ok: false, scanned: true, sms: true, msg: '✓ 已扫码 · 请填手机号取验证码，再点「完成登录」', info: { btns: st.btns, snippet: st.snippet } };
+    if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码 · 请在手机确认；要短信就填验证码后点「完成登录」' };
     return { ok: false, pending: true };
   } catch (e) { return { ok: false, pending: true }; }
 }
-// 触发发送验证码（必要时先填手机号）
+// 发送验证码：填手机号 → 点页面上文字含「验证码」的获取/发送按钮（直接遍历元素点，比固定选择器稳）
 async function qrSendSms(token, phone) {
   const s = _qr.get(token); if (!s) return { ok: false, reason: '会话已过期，请重新生成二维码' };
   try {
     const p = s.page;
-    if (phone) { try { const pi = p.locator('input[placeholder*="手机"],input[type="tel"]').first(); if (await pi.count()) { await pi.fill(String(phone).trim()); await p.waitForTimeout(400); } } catch {} }
+    if (!p || p.isClosed()) return { ok: false, reason: '登录会话已结束，请重新生成二维码' };
+    if (phone) { try { const pi = p.locator('input[placeholder*="手机"],input[type="tel"],input[type="number"]').first(); if (await pi.count()) { await pi.fill(String(phone).trim()); await p.waitForTimeout(400); } } catch {} }
     let clicked = '';
-    for (const sel of ['text=获取验证码', 'text=发送验证码', 'text=获取短信验证码', 'text=重新获取', 'text=获取', 'button:has-text("验证码")']) {
-      try { const b = p.locator(sel).first(); if (await b.count()) { await b.click({ timeout: 4000 }); clicked = sel; break; } } catch {}
-    }
-    await p.waitForTimeout(800);
-    const info = await _detectVerify(p);   // 点击后页面真实文字+按钮，回传供校准
+    try {
+      clicked = await p.evaluate(() => {
+        const els = [...document.querySelectorAll('button,[role=button],a,span,div')];
+        for (const e of els) { const t = (e.textContent || '').replace(/\s/g, ''); if (t.length <= 12 && /验证码/.test(t) && /获取|发送|重新/.test(t)) { e.click(); return (e.textContent || '').trim().slice(0, 12); } }
+        return '';
+      });
+    } catch {}
+    await p.waitForTimeout(900);
+    const st = await _scan(s);
+    const info = { btns: st.btns, snippet: st.snippet, smsForm: st.smsForm };
     if (clicked) return { ok: true, clicked, info };
-    return { ok: false, reason: '没找到「获取验证码」按钮（把下面调试信息截图发我对准）', info };
+    return { ok: false, reason: '没找到「获取验证码」按钮（多半还没扫码，或本次不需要短信——直接点「完成登录」即可）', info };
   } catch (e) { return { ok: false, reason: (e.message || '').slice(0, 100) }; }
 }
-// 提交完成登录：填验证码→点登录→直接看「当前页面是否已离开登录界面」判定（不另开浏览器，快）。
-// 登录界面消失(无二维码/无验证码输入/无登录入口文案) + 有 web_session = 登录成功。
+// 完成登录：填验证码(若有)→点登录→轮询当前页 ≤10 秒，登录弹窗消失+有 web_session 即成功。
 async function qrSubmitSms(token, code) {
   const s = _qr.get(token); if (!s) return { ok: false, reason: '会话已过期，请重新生成二维码' };
   try {
     const p = s.page;
+    if (!p || p.isClosed()) return { ok: false, reason: '登录会话已结束，请重新生成二维码' };
     if (code) {
       try { const ci = p.locator('input[placeholder*="验证码"],input[placeholder*="短信"]').first(); if (await ci.count()) { await ci.fill(String(code).trim()); await p.waitForTimeout(300); } } catch {}
-      for (const sel of ['text=验证并登录', 'text=确认登录', 'text=登录', 'text=确认', 'text=验证']) {
-        try { const b = p.locator(sel).first(); if (await b.count()) { await b.click({ timeout: 4000 }); break; } } catch {}
-      }
+      try { await p.evaluate(() => { const els = [...document.querySelectorAll('button,[role=button],a,span')]; for (const e of els) { const t = (e.textContent || '').replace(/\s/g, ''); if (t.length <= 8 && /^(登录|验证并登录|确认登录|确认|验证)$/.test(t)) { e.click(); return; } } }); } catch {}
     }
-    // 轮询当前页面最多 ~8 秒：登录界面消失即视为成功
-    for (let i = 0; i < 8; i++) {
-      await p.waitForTimeout(1000);
-      let st = {};
-      try { st = await p.evaluate(() => {
-        const t = (document.body && document.body.innerText) || '';
-        const loginUI = !!document.querySelector('img.qrcode-img') || !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]') || /扫码登录|手机号登录|输入验证码|短信验证|获取验证码|安全验证/.test(t);
-        return { loginUI };
-      }); } catch {}
-      const cks = await s.ctx.cookies();
-      const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
-      const ws = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
-      if (!st.loginUI && ws) {                       // 登录界面没了 + 有 web_session = 成功
-        const cookieStr = xhs.map(c => c.name + '=' + c.value).join('; ');
-        try { await s.browser.close(); } catch {} _qr.delete(token);
-        return { ok: true, cookie: cookieStr };
-      }
+    for (let i = 0; i < 10; i++) {
+      const st = await _scan(s);
+      if (st.dead) return { ok: false, reason: '登录会话已结束，请重新生成二维码' };
+      if (st.loggedIn) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie: st.cookie }; }
+      await new Promise(r => setTimeout(r, 1000));
     }
-    const ver = await _detectVerify(p);
-    return { ok: false, reason: '验证码可能不对/已过期，或还没扫码，请重试', info: ver };
+    const st = await _scan(s);
+    return { ok: false, reason: st.smsForm ? '验证码可能不对/已过期，请重新获取再试' : '还没完成登录，请先扫码（需要短信就填验证码）', info: { btns: st.btns, snippet: st.snippet } };
   } catch (e) { return { ok: false, reason: (e.message || '').slice(0, 100) }; }
 }
 
