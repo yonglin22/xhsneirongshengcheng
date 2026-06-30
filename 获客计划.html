@@ -177,8 +177,20 @@ $('#resetBtn').addEventListener('click', reset);
 let PLANS=[];
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function fmtRun(t){ if(!t) return ''; const d=new Date(t),n=new Date(),p=x=>String(x).padStart(2,'0'); const sameDay=d.toDateString()===n.toDateString(); return sameDay?`今天 ${p(d.getHours())}:${p(d.getMinutes())}`:`${d.getMonth()+1}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+const DST_INLINE={ pending:['待领取','#e8a400'], running:['执行中','#2563eb'], done:['已完成','#00875a'] };
+let DISP={};   // planId -> [records]
+async function loadDispatch(){ DISP={}; try{ const r=await fetch('/api/dispatch'); const j=await r.json(); (j&&j.list||[]).forEach(d=>{ (DISP[d.plan_id]=DISP[d.plan_id]||[]).push(d); }); }catch{} }
+function dispCell(p){
+  const recs=DISP[p.id]||[];
+  if(!/_(nurture|intercept)$/.test(p.ptype)) return '';
+  if(!recs.length) return `<span style="text-align:center;min-width:88px"><b style="font-size:11px;font-weight:600;color:var(--ink-soft)">未下发</b><span style="display:block;font-size:10px;color:var(--ink-soft)">执行状态</span></span>`;
+  const c={pending:0,running:0,done:0}; recs.forEach(r=>{ if(c[r.status]!=null)c[r.status]++; });
+  const parts=[]; if(c.running)parts.push(`<b style="color:#2563eb">执行中${c.running}</b>`); if(c.pending)parts.push(`<b style="color:#e8a400">待领取${c.pending}</b>`); if(c.done)parts.push(`<b style="color:#00875a">完成${c.done}</b>`);
+  return `<span style="text-align:center;min-width:88px;line-height:1.3"><span style="font-size:11px">${parts.join(' · ')}</span><span style="display:block;font-size:10px;color:var(--ink-soft)">执行状态</span></span>`;
+}
 async function load(){
   const j=await api(''); PLANS=(j&&j.list)||[];
+  await loadDispatch();
   $('#list').innerHTML = PLANS.length ? PLANS.map(p=>{
     const st=p.stats||{}; const isIc=/_intercept$/.test(p.ptype);
     const statCell=(n,v,extra)=>`<span style="text-align:center;min-width:52px"><b style="font-size:15px;${extra||''}">${v||0}</b><span style="display:block;font-size:10px;color:var(--ink-soft)">${n}</span></span>`;
@@ -190,6 +202,7 @@ async function load(){
       ${isIc?statCell('收集',st.collected):''}
       ${isIc?statCell('回复',st.replied):''}
       ${isIc?statCell('私信',st.dmed):''}
+      ${dispCell(p)}
       <span style="text-align:center;min-width:74px"><b style="font-size:11px;font-weight:600;color:var(--ink-soft)">${st.lastRunAt?fmtRun(st.lastRunAt):'未执行'}</b><span style="display:block;font-size:10px;color:var(--ink-soft)">最近执行</span></span>
       ${isIc&&st.collected?`<a class="btn-ghost rounded-md px-2.5 py-1 text-[11px]" href="/评论收集.html?plan=${p.id}" style="text-decoration:none">👥 潜客</a>`:''}
       ${/_(nurture|intercept)$/.test(p.ptype)?`<button class="pl-run btn-ghost rounded-md px-2.5 py-1 text-[11px]" style="border-color:var(--cinnabar);color:var(--cinnabar)">▶ 执行</button>`:''}
@@ -255,7 +268,23 @@ function showPreview(p){
   if(/_(nurture|intercept)$/.test(p.ptype)) html+=row('养号·好感率',(nz.love||0)+'%')+row('点赞/收藏/关注/评论',`${nz.like||0}% / ${nz.fav||0}% / ${nz.follow||0}% / ${nz.comment||0}%`)+row('评论来源',SRC[nz.csrc]||nz.csrc)+row('每日上限',(nz.daily||0)+' 篇');
   if(/_intercept$/.test(p.ptype)) html+=row('收集评论',ic.collect?'开':'关')+row('多模态识别',ic.aiMatch!==false?'开':'关')+row('引流回复',`${ic.reply||0} 次/号·天 · 间隔≥${ic.replyInt||1}分钟`)+row('截流私信',`${ic.dm||0} 次/号·天 · 间隔≥${ic.dmInt||1}分钟`)+row('话术来源',SRC[ic.isrc]||ic.isrc);
   if(/^search_/.test(p.ptype)) html+=row('排序/类型/时间/范围',`${f.sort||'-'} / ${f.ctype||'-'} / ${f.ptime||'-'} / ${f.scope||'-'}`);
+  if(/_(nurture|intercept)$/.test(p.ptype)) html+='<div id="pvExec" style="margin-top:12px;border-top:1px solid #f0eae0;padding-top:10px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">任务执行情况</div><div style="font-size:12px;color:var(--ink-soft)">加载中…</div></div>';
   modal(esc(p.name),html);
+  if(/_(nurture|intercept)$/.test(p.ptype)) renderExec(p.id);
+}
+function fmtTs(t){ if(!t)return '—'; const d=new Date(t),pad=x=>String(x).padStart(2,'0'); return `${d.getMonth()+1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+async function renderExec(planId){
+  let recs=[]; try{ const r=await fetch('/api/dispatch?plan='+planId); const j=await r.json(); recs=(j&&j.list)||[]; }catch{}
+  const box=$('#pvExec'); if(!box) return;
+  if(!recs.length){ box.querySelector('div:last-child').innerHTML='<span style="font-size:12px;color:var(--ink-soft)">还没有下发执行。在列表里点「📤 下发」选账号后，设备插件会自动领取执行。</span>'; return; }
+  const rows=recs.map(r=>{ const [t,c]=DST_INLINE[r.status]||['—','#888']; return `<div style="display:flex;gap:8px;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid #f6f1e7;flex-wrap:wrap">
+      <b style="min-width:96px">${esc(r.account_name||'账号#'+(r.account_id||''))}</b>
+      <span style="color:${c};font-weight:700;min-width:52px">${t}</span>
+      ${r.device?`<span style="font-size:10px;color:var(--ink-soft)">📱${esc(r.device)}</span>`:'<span style="font-size:10px;color:var(--ink-soft)">未被设备领取</span>'}
+      <span style="font-size:10px;color:var(--ink-soft)">下发 ${fmtTs(r.created_at)}${r.picked_at?' · 领取 '+fmtTs(r.picked_at):''}${r.done_at?' · 完成 '+fmtTs(r.done_at):''}</span>
+      ${r.result?`<span style="font-size:11px;color:#444;width:100%;padding-left:4px">↳ ${esc(r.result)}</span>`:''}
+    </div>`; }).join('');
+  box.querySelector('div:last-child').innerHTML=rows;
 }
 function modal(title,bodyHtml,footHtml){
   let m=$('#plModal'); if(m) m.remove();
