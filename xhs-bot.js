@@ -227,7 +227,7 @@ async function qrSendSms(token, phone) {
   try {
     const p = s.page;
     if (!p || p.isClosed()) return { ok: false, reason: '登录会话已结束，请重新生成二维码' };
-    if (phone) { try { const pi = p.locator('input[placeholder*="手机"],input[type="tel"],input[type="number"]').first(); if (await pi.count()) { await pi.fill(String(phone).trim()); await p.waitForTimeout(400); } } catch {} }
+    if (phone) { s._phone = String(phone).trim(); try { const pi = p.locator('input[placeholder*="手机"],input[type="tel"],input[type="number"]').first(); if (await pi.count()) { await pi.fill(String(phone).trim()); await p.waitForTimeout(400); } } catch {} }
     let clicked = '';
     try {
       clicked = await p.evaluate(() => {
@@ -257,8 +257,16 @@ async function qrSubmitSms(token, code) {
     const p = s.page;
     if (!p || p.isClosed()) return { ok: false, reason: '登录会话已结束，请重新生成二维码' };
     if (code) {
-      try { const ci = p.locator('input[placeholder*="验证码"],input[placeholder*="短信"]').first(); if (await ci.count()) { await ci.fill(String(code).trim()); await p.waitForTimeout(300); } } catch {}
-      try { await p.evaluate(() => { const els = [...document.querySelectorAll('button,[role=button],a,span')]; for (const e of els) { const t = (e.textContent || '').replace(/\s/g, ''); if (t.length <= 8 && /^(登录|验证并登录|确认登录|确认|验证)$/.test(t)) { e.click(); return; } } }); } catch {}
+      // 填手机号(若页面有手机框且为空就回填)+验证码，回车提交，再补点真正的提交按钮
+      try { const pe = s._phone; if (pe) { const pi = p.locator('input[placeholder*="手机"],input[type="tel"],input[type="number"]').first(); if (await pi.count()) { const cur = await pi.inputValue().catch(() => ''); if (!cur) { await pi.fill(String(pe).trim()); await p.waitForTimeout(200); } } } } catch {}
+      try { const ci = p.locator('input[placeholder*="验证码"],input[placeholder*="短信"]').first(); if (await ci.count()) { await ci.fill(String(code).trim()); await p.waitForTimeout(200); await ci.press('Enter'); await p.waitForTimeout(400); } } catch {}
+      // 补点：优先 <button> 标签里文字正好是 登录/验证并登录/确认登录 的（排除导航里的"登录"链接）
+      try { await p.evaluate(() => {
+        const btns = [...document.querySelectorAll('button,[role=button]')];
+        const ex = btns.filter(e => /^(验证并登录|确认登录|登录|确认|验证)$/.test((e.textContent || '').replace(/\s/g, '')));
+        const tgt = ex.find(e => e.tagName === 'BUTTON') || ex[0];
+        if (tgt) tgt.click();
+      }); } catch {}
     }
     for (let i = 0; i < 10; i++) {
       const st = await _scan(s);
