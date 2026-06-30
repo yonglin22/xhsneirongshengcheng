@@ -29,23 +29,29 @@ async function verifyLogin(cookieStr) {
     const ctx = await b.newContext({ userAgent: UA, viewport: { width: 1280, height: 800 }, locale: 'zh-CN' });
     await ctx.addCookies(cookies);
     const p = await ctx.newPage();
-    // 创作中心：未登录必跳 /login，是可靠的登录信号（也正是发草稿要用的站点）
+    // ① 先查 www（扫码登录态真正所在的站点）：访问需要登录的"通知"页，未登录会跳 /login。
+    try {
+      await p.goto('https://www.xiaohongshu.com/notification', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await p.waitForTimeout(2800);
+      const winfo = await p.evaluate(() => {
+        const t = (document.body && document.body.innerText) || '';
+        return {
+          risk: /环境异常|滑动验证|拼图验证|拖动.*滑块/.test(t) && t.length < 1500,
+          loginBtn: [...document.querySelectorAll('button,a,div,span')].some(e => /^(登录|立即登录)$/.test((e.textContent || '').trim()) && e.offsetParent !== null),
+          nick: ((document.querySelector('[class*=nickname],[class*=name],.user-info .name') || {}).textContent || '').trim()
+        };
+      });
+      const wurl = p.url();
+      if (winfo.risk) return { ok: false, uncertain: true, reason: '小红书风控验证页（机房 IP 触发），无法确认登录态——未改动状态' };
+      if (!/\/login/i.test(wurl) && !winfo.loginBtn) return { ok: true, nickname: (winfo.nick || '').slice(0, 30) }; // www 登录态有效
+    } catch {}
+    // ② www 不确定 → 再查创作中心（发布用站点）：未登录跳 /login
     await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await p.waitForTimeout(3500);
+    await p.waitForTimeout(3000);
     const url = p.url();
-    const info = await p.evaluate(() => {
-      const t = (document.body && document.body.innerText) || '';
-      return {
-        risk: /环境异常|滑动验证|拼图验证|拖动.*滑块/.test(t) && t.length < 1500,
-        nick: ((document.querySelector('[class*=nickname],[class*=name],.user-info .name') || {}).textContent || '').trim(),
-        len: t.length
-      };
-    });
-    // 只按网址判：创作中心登录态停在 creator.xiaohongshu.com/，未登录才跳 /login。
-    // 不看页面文字——登录后页面也含"登录/手机号登录"字样，会把真登录误判成失效（之前的坑）。
-    if (info.risk) return { ok: false, uncertain: true, reason: '小红书风控验证页（机房 IP 触发），无法确认登录态——未改动状态' };
-    if (/\/login/i.test(url)) return { ok: false, invalid: true, reason: 'cookie 已失效/未登录，请重新扫码或导出新 cookie' };
-    return { ok: true, nickname: (info.nick || '').slice(0, 30) };
+    const nick = await p.evaluate(() => ((document.querySelector('[class*=nickname],[class*=name],.user-info .name') || {}).textContent || '').trim());
+    if (/\/login/i.test(url)) return { ok: false, invalid: true, reason: 'cookie 已失效/未登录，请重新扫码接入' };
+    return { ok: true, nickname: (nick || '').slice(0, 30) };
   } catch (e) {
     return { ok: false, uncertain: true, reason: '检测失败（网络/超时，未改动状态）：' + (e.message || String(e)).slice(0, 120) };
   } finally { try { if (b) await b.close(); } catch {} }
