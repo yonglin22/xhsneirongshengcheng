@@ -210,13 +210,29 @@ async function _scan(s) {
   const loggedIn = cookie && !r.hasQr && !r.loginEntry && !r.smsForm;
   return { ...r, ws: !!ws, cookie, loggedIn };
 }
-// 登录成功后：去创作中心(creator)转一圈拿到 creator 授权 cookie，再回传完整 cookie。
-// 否则只有 www 的 web_session，检测登录态/发布(都走 creator)会判失效。
+// 登录成功后：导航创作中心让 SSO 写入 creator 可用 cookie，并确认 creator 没跳回 /login（真授权）。
+// 这是关键——只有 www 的 web_session 时，检测登录态/发布(都走 creator)会判失效。带重试给 SSO 时间。
 async function _finishLogin(s) {
-  try { const p = s.page; if (p && !p.isClosed()) { await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 25000 }); await p.waitForTimeout(3000); } } catch {}
+  const p = s.page;
+  for (let i = 0; i < 5; i++) {
+    try { await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 25000 }); await p.waitForTimeout(2600); } catch {}
+    let bad = true;
+    try {
+      const url = p.url();
+      const loginUI = await p.evaluate(() => /扫码登录|手机号登录|登录创作|登录后即可|二维码登录/.test((document.body && document.body.innerText) || ''));
+      bad = /\/login/i.test(url) || loginUI;
+    } catch {}
+    if (!bad) {
+      const cks = await s.ctx.cookies();
+      const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
+      return { ok: true, cookie: xhs.map(c => c.name + '=' + c.value).join('; ') };
+    }
+    await p.waitForTimeout(1500);
+  }
+  // 5 次仍未授权创作中心：仍把 www cookie 存下(发布同 IP 或许可用)，但标注
   const cks = await s.ctx.cookies();
   const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
-  return xhs.map(c => c.name + '=' + c.value).join('; ');
+  return { ok: false, cookie: xhs.map(c => c.name + '=' + c.value).join('; ') };
 }
 async function pollQrLogin(token) {
   const s = _qr.get(token);
@@ -224,7 +240,7 @@ async function pollQrLogin(token) {
   try {
     const st = await _scan(s);
     if (st.dead) return { ok: false, expired: true, reason: '二维码会话已结束，请重新生成' };
-    if (st.loggedIn) { const cookie = await _finishLogin(s); try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; } // 扫码+手机确认后自动成功(并暖创作中心)
+    if (st.loggedIn) { const fin = await _finishLogin(s); try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie: fin.cookie, creator: fin.ok }; } // 扫码确认后成功(并授权创作中心)
     // 注：登录弹窗永远带"手机号登录"标签(自带验证码框)，不能据此判"需短信"。手机号/验证码框始终显示，按需用。
     if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码！在手机小红书上点【确认登录】会自动成功；或在下面用手机号+验证码登录' };
     return { ok: false, pending: true };
@@ -285,7 +301,7 @@ async function qrSubmitSms(token, code) {
     for (let i = 0; i < 10; i++) {
       const st = await _scan(s);
       if (st.dead) return { ok: false, reason: '登录会话已结束，请重新生成二维码' };
-      if (st.loggedIn) { const cookie = await _finishLogin(s); try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; }
+      if (st.loggedIn) { const fin = await _finishLogin(s); try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie: fin.cookie, creator: fin.ok }; }
       await new Promise(r => setTimeout(r, 1000));
     }
     const st = await _scan(s);
