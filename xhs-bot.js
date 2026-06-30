@@ -186,22 +186,12 @@ async function startQrLogin() {
 async function _grabIfLoggedIn(s) {
   const cks = await s.ctx.cookies();
   const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
-  // 访客访问小红书也会被写一个 web_session（空/占位/短值），不能只凭它存在就判定已登录。
-  const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 20);
+  // 注意：扫码成功后 qrcode-img 仍留在 DOM（只盖一层"扫描成功"），不能用二维码是否在判断；
+  //       也不要在轮询里另开创作中心页验证——VPS 上子域加载慢/二次跳登录，会把真登录也挡掉。
+  // 真登录后小红书写的 web_session 是一长串 token（约 36+ 位）；访客即便被写也是空/很短值。
+  // 用长度阈值最稳：既能识别真登录、又能挡住访客占位值。
+  const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length >= 25);
   if (!sess) return null;
-  // 注意：扫码成功后 qrcode-img 仍留在 DOM（只盖一层"扫描成功"），不能用二维码是否在判断。
-  // 权威验证：用同一 context 另开一页访问创作中心（共享 cookie，不打扰二维码页）。
-  // 未登录会跳 /login 或显示登录入口；真登录则停留在创作中心 → 区分访客 web_session 与真登录。
-  let confirmed = false, vp;
-  try {
-    vp = await s.ctx.newPage();
-    await vp.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await vp.waitForTimeout(1500);
-    const url = vp.url();
-    const loginUI = await vp.evaluate(() => /扫码登录|手机号登录|登录后即可|登录创作|二维码登录/.test((document.body && document.body.innerText) || ''));
-    confirmed = !/\/login/i.test(url) && !loginUI;
-  } catch {} finally { try { if (vp) await vp.close(); } catch {} }
-  if (!confirmed) return null;
   return xhs.map(c => c.name + '=' + c.value).join('; ');
 }
 // 检测短信验证 UI（扫码后风控触发）
