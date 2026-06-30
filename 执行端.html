@@ -40,6 +40,7 @@
       <label class="text-[13px] ml-2 flex items-center gap-1.5"><input type="checkbox" id="simRisk"/> 模拟风控熔断（测试用）</label>
       <label class="text-[13px] ml-2 flex items-center gap-1.5"><input type="checkbox" id="fast" checked/> 快速模式</label>
       <span class="ml-auto flex items-center gap-2">
+        <button id="testBtn" class="db">🧪 下发测试任务给本机</button>
         <button id="startBtn" class="db go">▶ 启动执行端</button>
         <button id="stopBtn" class="db stop" style="display:none">⏸ 停止</button>
       </span>
@@ -156,6 +157,36 @@ $('#stopBtn').onclick=async()=>{
   RUN=false; $('#startBtn').style.display=''; $('#stopBtn').style.display='none';
   if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
   $('#state').textContent='已停止'; log('执行端已停止','warn');
+};
+// 🧪 下发一条测试任务给本机：选养号/截流计划 + 账号 → 入队，本机执行端会领到（建议先关插件「执行设备」开关避免被抢）
+$('#testBtn').onclick=async()=>{
+  let plans=[],accs=[];
+  try{ const r=await fetch('/api/growth-plans'); const j=await r.json(); plans=((j&&j.list)||[]).filter(p=>/_(nurture|intercept)$/.test(p.ptype)); }catch{}
+  try{ const r=await fetch('/api/accounts'); const j=await r.json(); accs=((j&&j.list)||[]).filter(a=>(a.platform||'xhs')==='xhs'); }catch{}
+  if(!plans.length){ zAlert&&zAlert('还没有养号/截流计划。先去「养号·截流计划」建一个。',{title:'无可用计划'}); return; }
+  const m=document.createElement('div'); m.id='__testM';
+  m.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML=`<div class="card" style="width:min(460px,94vw);padding:20px">
+    <div style="font-weight:800;font-size:15px;margin-bottom:12px">🧪 下发测试任务给本机</div>
+    <div style="display:grid;gap:10px">
+      <label style="font-size:12px;color:var(--ink-soft)">选计划<select id="tmPlan" class="field" style="width:100%;margin-top:4px">${plans.map(p=>`<option value="${p.id}">${esc(p.name||p.ptype)}</option>`).join('')}</select></label>
+      <label style="font-size:12px;color:var(--ink-soft)">选账号<select id="tmAcc" class="field" style="width:100%;margin-top:4px">${accs.length?accs.map(a=>`<option value="${a.id}">${esc(a.nickname||'账号#'+a.id)}${a.status==='active'?'（已登录）':''}</option>`).join(''):'<option value="0">演示账号（无需登录）</option>'}</select></label>
+      <div style="font-size:11px;color:var(--ink-soft)">提示：插件的「执行设备」开着会跟本机抢任务。想只让本机跑，先去插件关掉它。</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button id="tmCancel" class="db">取消</button><button id="tmGo" class="db go">下发</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click',e=>{ if(e.target===m) m.remove(); });
+  m.querySelector('#tmCancel').onclick=()=>m.remove();
+  m.querySelector('#tmGo').onclick=async()=>{
+    const pid=+m.querySelector('#tmPlan').value;
+    const accSel=m.querySelector('#tmAcc'); const aid=+accSel.value; const aname=accSel.options[accSel.selectedIndex].text.replace(/（已登录）$/,'');
+    const r=await jpost('/api/dispatch',{planId:pid,accounts:[{id:aid||null,name:aname}]});
+    m.remove();
+    if(r&&r.ok){ log('已下发测试任务（计划#'+pid+' → '+aname+'）'+(RUN?'，本机执行端将领取':'，请点「▶ 启动执行端」'),'ok'); if(!RUN) zToast&&zToast('已下发，点「启动执行端」开始跑','ok'); }
+    else zToast&&zToast((r&&r.error)||'下发失败','err');
+  };
 };
 window.addEventListener('beforeunload',()=>{ RUN=false; });
 setStat();
