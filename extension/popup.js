@@ -23,6 +23,21 @@ document.getElementById('planNew').addEventListener('click', () => {
     });
   });
 })();
+// 前台观看模式开关：养号标签前台打开，实时可见
+(function () {
+  const sw = document.getElementById('watchSw'), knob = document.getElementById('watchKnob');
+  if (!sw) return;
+  function paint(on) { sw.style.background = on ? '#00a152' : '#ccc'; knob.style.left = on ? '20px' : '2px'; }
+  chrome.storage.local.get(['zsWatchMode'], st => {
+    paint(!!(st && st.zsWatchMode));
+    sw.addEventListener('click', () => {
+      chrome.storage.local.get(['zsWatchMode'], s2 => {
+        const next = !(s2 && s2.zsWatchMode);
+        chrome.storage.local.set({ zsWatchMode: next }, () => paint(next));
+      });
+    });
+  });
+})();
 const TYPE_NAME = { home_nurture: '首页养号', home_intercept: '首页截流', search_nurture: '搜索养号', search_intercept: '搜索截流' };
 function escH2(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 async function fetchPlans() {

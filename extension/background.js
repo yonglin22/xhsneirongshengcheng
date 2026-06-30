@@ -528,7 +528,9 @@ async function zsPollDispatch() {
       ? ('https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(kw))
       : 'https://www.xiaohongshu.com/explore';
     await new Promise(res => chrome.storage.local.set({ nurturePlan: plan }, res));
-    chrome.tabs.create({ url, active: false }); // 后台标签执行，nurture.js 载入后自动从 storage 取计划运行
+    // 前台观看模式（zsWatchMode）：把养号标签前台打开，用户能实时看着插件在真小红书里滑动/点赞；关则后台静默
+    const watch = await new Promise(res => chrome.storage.local.get(['zsWatchMode'], st => res(!!(st && st.zsWatchMode))));
+    chrome.tabs.create({ url, active: watch }); // nurture.js 载入后自动从 storage 取计划运行
     // 兜底：6 分钟内没收到 dispatchDone 就解锁，避免卡死（任务实际跑完会更早解锁）
     setTimeout(() => { _zsDispatchBusy = false; }, 6 * 60000);
   } catch (e) { _zsDispatchBusy = false; }
