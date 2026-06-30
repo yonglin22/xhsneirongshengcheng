@@ -189,18 +189,19 @@ async function _grabIfLoggedIn(s) {
   // 访客访问小红书也会被写一个 web_session（空/占位/短值），不能只凭它存在就判定已登录。
   const sess = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 20);
   if (!sess) return null;
-  // UI 二次确认：登录二维码 / 登录入口还在 = 还没扫成功；必须页面已是登录态才算数（排除访客 web_session 误判）。
-  // 关键判据：登录二维码/登录入口是否还在。访客态会一直停在二维码弹窗(qrcode-img 常驻)，
-  // 只有真正扫码确认后弹窗才消失。弹窗还在 = 还没登录，避免访客 web_session 误判。
-  let loginUIPresent = true;
+  // 注意：扫码成功后 qrcode-img 仍留在 DOM（只盖一层"扫描成功"），不能用二维码是否在判断。
+  // 权威验证：用同一 context 另开一页访问创作中心（共享 cookie，不打扰二维码页）。
+  // 未登录会跳 /login 或显示登录入口；真登录则停留在创作中心 → 区分访客 web_session 与真登录。
+  let confirmed = false, vp;
   try {
-    loginUIPresent = await s.page.evaluate(() => {
-      const hasQr = !!document.querySelector('img.qrcode-img');
-      const t = (document.body && document.body.innerText) || '';
-      return hasQr || /扫码登录|手机号登录|二维码登录|新用户注册|登录后即可/.test(t);
-    });
-  } catch {}
-  if (loginUIPresent) return null;
+    vp = await s.ctx.newPage();
+    await vp.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await vp.waitForTimeout(1500);
+    const url = vp.url();
+    const loginUI = await vp.evaluate(() => /扫码登录|手机号登录|登录后即可|登录创作|二维码登录/.test((document.body && document.body.innerText) || ''));
+    confirmed = !/\/login/i.test(url) && !loginUI;
+  } catch {} finally { try { if (vp) await vp.close(); } catch {} }
+  if (!confirmed) return null;
   return xhs.map(c => c.name + '=' + c.value).join('; ');
 }
 // 检测短信验证 UI（扫码后风控触发）
