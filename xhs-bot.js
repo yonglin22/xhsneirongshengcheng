@@ -237,29 +237,38 @@ async function qrSendSms(token, phone) {
     return { ok: false, reason: '没找到「获取验证码」按钮（把下面调试信息截图发我对准）', info };
   } catch (e) { return { ok: false, reason: (e.message || '').slice(0, 100) }; }
 }
-// 提交完成登录：填验证码(若有)→点登录→用一次权威验证(verifyLogin)确认。
-// 一次性验证不会触发风控；只有真登录才算成功，杜绝"没扫就成功"。
+// 提交完成登录：填验证码→点登录→直接看「当前页面是否已离开登录界面」判定（不另开浏览器，快）。
+// 登录界面消失(无二维码/无验证码输入/无登录入口文案) + 有 web_session = 登录成功。
 async function qrSubmitSms(token, code) {
   const s = _qr.get(token); if (!s) return { ok: false, reason: '会话已过期，请重新生成二维码' };
   try {
     const p = s.page;
     if (code) {
-      try { const ci = p.locator('input[placeholder*="验证码"],input[placeholder*="短信"]').first(); if (await ci.count()) { await ci.fill(String(code).trim()); await p.waitForTimeout(400); } } catch {}
-      for (const sel of ['text=登录', 'text=验证并登录', 'text=确认登录', 'text=确认', 'text=验证']) {
+      try { const ci = p.locator('input[placeholder*="验证码"],input[placeholder*="短信"]').first(); if (await ci.count()) { await ci.fill(String(code).trim()); await p.waitForTimeout(300); } } catch {}
+      for (const sel of ['text=验证并登录', 'text=确认登录', 'text=登录', 'text=确认', 'text=验证']) {
         try { const b = p.locator(sel).first(); if (await b.count()) { await b.click({ timeout: 4000 }); break; } } catch {}
       }
-      await p.waitForTimeout(3000);
     }
-    // 一次性权威验证（= 检测登录态同款，去创作中心确认真登录；只有真登录才算成功）
-    const cks = await s.ctx.cookies();
-    const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
-    const ws = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
-    if (!ws) { const ver = await _detectVerify(p); return { ok: false, reason: '还没检测到登录态（先扫码；要短信就填手机号取码再点完成）', info: ver }; }
-    const cookieStr = xhs.map(c => c.name + '=' + c.value).join('; ');
-    let r = null; try { r = await verifyLogin(cookieStr); } catch (e) { r = { ok: false, reason: (e.message || '').slice(0, 80) }; }
-    if (!r || !r.ok) { const ver = await _detectVerify(p); return { ok: false, reason: (r && r.reason) || '验证后仍未登录（扫码/验证码未完成？）', info: ver }; }
-    try { await s.browser.close(); } catch {} _qr.delete(token);
-    return { ok: true, cookie: cookieStr, nickname: r.nickname || '' };
+    // 轮询当前页面最多 ~8 秒：登录界面消失即视为成功
+    for (let i = 0; i < 8; i++) {
+      await p.waitForTimeout(1000);
+      let st = {};
+      try { st = await p.evaluate(() => {
+        const t = (document.body && document.body.innerText) || '';
+        const loginUI = !!document.querySelector('img.qrcode-img') || !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]') || /扫码登录|手机号登录|输入验证码|短信验证|获取验证码|安全验证/.test(t);
+        return { loginUI };
+      }); } catch {}
+      const cks = await s.ctx.cookies();
+      const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
+      const ws = xhs.find(c => c.name === 'web_session' && c.value && c.value.length > 8);
+      if (!st.loginUI && ws) {                       // 登录界面没了 + 有 web_session = 成功
+        const cookieStr = xhs.map(c => c.name + '=' + c.value).join('; ');
+        try { await s.browser.close(); } catch {} _qr.delete(token);
+        return { ok: true, cookie: cookieStr };
+      }
+    }
+    const ver = await _detectVerify(p);
+    return { ok: false, reason: '验证码可能不对/已过期，或还没扫码，请重试', info: ver };
   } catch (e) { return { ok: false, reason: (e.message || '').slice(0, 100) }; }
 }
 
