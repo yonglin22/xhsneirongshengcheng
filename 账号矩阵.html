@@ -152,13 +152,13 @@ function openAuthModal(id) {
     box.innerHTML = `<img src="${r.qr}" style="width:180px;height:180px;object-fit:contain;border:1px solid var(--line);border-radius:10px"/>
       <span style="font-size:12px;color:var(--ink)">① 用小红书 App「我」→ 右上角扫一扫</span>
       <div style="width:100%;border-top:1px dashed var(--line);margin:6px 0 2px;padding-top:10px;text-align:left">
-        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px">② 扫码后若要短信验证，在这里填（不需要可忽略）：</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px">② 若需短信验证就填手机号取码（不需要可跳过），最后点③完成：</div>
         <input id="amSmsPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin-bottom:8px" placeholder="手机号（小红书账号绑定的）" />
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input id="amSmsCode" class="field rounded-lg px-3 py-2 text-[13px]" style="flex:1" placeholder="短信验证码" />
+          <input id="amSmsCode" class="field rounded-lg px-3 py-2 text-[13px]" style="flex:1" placeholder="短信验证码（没要求可不填）" />
           <button id="amSmsSend" class="btn-ghost rounded-lg px-3 py-2 text-[12px] whitespace-nowrap">发送验证码</button>
         </div>
-        <button id="amSmsOk" class="btn-go rounded-xl w-full py-2.5 text-[13px] font-medium">③ 提交验证码登录</button>
+        <button id="amSmsOk" class="btn-go rounded-xl w-full py-2.5 text-[13px] font-medium">③ 扫码后点这 · 完成登录</button>
       </div>`;
     st.textContent = '等待扫码确认…（扫码后需短信验证就在上面填）'; st.style.color = 'var(--ink-soft)';
     // 手动短信：发送验证码
