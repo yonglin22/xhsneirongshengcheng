@@ -193,9 +193,11 @@ async function _scan(s) {
   const r = await p.evaluate(() => {
     const t = (document.body && document.body.innerText) || '';
     const hasQr = !!document.querySelector('img.qrcode-img');
-    const smsForm = !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]') || /短信验证|安全验证|验证手机|输入验证码|绑定手机|新设备|身份验证/.test(t);
-    const loginEntry = hasQr || /扫码登录|手机号登录|二维码登录|新用户注册/.test(t);
-    const scanned = /扫码成功|扫描成功|已扫描|请在手机|手机端确认|确认登录|登录中|授权/.test(t);
+    // 真短信验证：必须有「验证码输入框」存在。登录弹窗里"手机号登录"标签的"获取验证码"只是文字，不算。
+    const codeInput = !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]');
+    const smsForm = codeInput;
+    const loginEntry = hasQr || /扫码登录|二维码登录|新用户注册|微信.*扫码|手机号登录/.test(t);
+    const scanned = /扫码成功|扫描成功|已扫描|请在手机|手机端确认|登录中|授权/.test(t);
     const btns = [...document.querySelectorAll('button,[role=button],span,a')].map(e => (e.textContent || '').trim()).filter(x => x && x.length <= 12 && /验证|登录|获取|发送|确认/.test(x)).slice(0, 8);
     return { hasQr, smsForm, loginEntry, scanned, btns, snippet: t.replace(/\s+/g, ' ').slice(0, 160) };
   });
@@ -213,9 +215,9 @@ async function pollQrLogin(token) {
   try {
     const st = await _scan(s);
     if (st.dead) return { ok: false, expired: true, reason: '二维码会话已结束，请重新生成' };
-    if (st.loggedIn) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie: st.cookie }; } // 无短信直接登录 → 自动成功
-    if (st.smsForm) return { ok: false, scanned: true, sms: true, msg: '✓ 已扫码 · 请填手机号取验证码，再点「完成登录」', info: { btns: st.btns, snippet: st.snippet } };
-    if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码 · 请在手机确认；要短信就填验证码后点「完成登录」' };
+    if (st.loggedIn) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie: st.cookie }; } // 扫码+手机确认后自动成功
+    if (st.smsForm) return { ok: false, scanned: true, sms: true, msg: '⚠ 需要短信验证：填手机号 → 发送验证码 → 填码 → 点「完成登录」', info: { btns: st.btns, snippet: st.snippet } };
+    if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码！请在手机小红书 App 上点【确认登录】，确认后这里会自动登录成功' };
     return { ok: false, pending: true };
   } catch (e) { return { ok: false, pending: true }; }
 }
