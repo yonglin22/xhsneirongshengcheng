@@ -217,14 +217,11 @@ function openAuthModal(id) {
       try { const arr = JSON.parse(raw); const list = Array.isArray(arr) ? arr : (arr.cookies || []); const pairs = list.filter(c => c && c.name).map(c => c.name + '=' + (c.value == null ? '' : c.value)); if (pairs.length) cookie = pairs.join('; '); } catch {}
     }
     if (!/web_session/.test(cookie)) { st.textContent = '⚠ 粘的 cookie 里没有 web_session（登录关键 cookie）。请在 Cookie-Editor 里点「Export」导出完整 JSON 再粘（要在已登录的小红书页面导出）'; st.style.color = 'var(--cinnabar-deep)'; return; }
-    const btn = m.querySelector('#amCookieSave'); const o = btn.textContent; btn.disabled = true; btn.textContent = '保存并验证中…';
-    st.textContent = '正在保存并验证登录态…'; st.style.color = 'var(--ink-soft)';
-    const r = await api('/update', 'POST', { id, patch: { auth_blob: JSON.stringify({ cookie, ts: Date.now() }), status: 'active' } });
-    if (!(r && r.ok)) { st.textContent = '保存失败，请重试'; st.style.color = 'var(--cinnabar-deep)'; btn.disabled = false; btn.textContent = o; return; }
-    // 立即验证一次，给明确结果
-    const v = await api('/verify', 'POST', { id }, 30000);
-    if (v && v.ok) { st.textContent = '✓ 接入成功' + (v.nickname ? '（' + v.nickname + '）' : ''); st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 900); }
-    else { st.textContent = '⚠ 已保存，但验证未通过：' + ((v && v.reason) || '可能 cookie 不全/已失效，换新鲜 cookie 再试'); st.style.color = '#e8a400'; btn.disabled = false; btn.textContent = o; load(); }
+    const btn = m.querySelector('#amCookieSave'); const o = btn.textContent; btn.disabled = true; btn.textContent = '保存中…';
+    // 直接存为「已登录」并接入（机房 IP 上 creator 验证会误判，不拿它拦你；发布与 cookie 同 IP 才是真考验）
+    const r = await api('/update', 'POST', { id, patch: { auth_blob: JSON.stringify({ cookie, ts: Date.now() }), status: 'active', health: '✓ Cookie 接入 ' + new Date().toLocaleString('zh-CN') } });
+    if (r && r.ok) { st.textContent = '✓ 已接入'; st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 700); }
+    else { st.textContent = '保存失败，请重试'; st.style.color = 'var(--cinnabar-deep)'; btn.disabled = false; btn.textContent = o; }
   };
 }
 // 扫码后小红书要求短信验证 → 出手机号+验证码输入
