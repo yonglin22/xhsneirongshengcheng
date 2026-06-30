@@ -179,7 +179,13 @@ function openAuthModal(id) {
       if (sending) return; sending = true; const b = m.querySelector('#amSmsSend'); const o = b.textContent; b.textContent = '发送中…';
       const phone = (m.querySelector('#amSmsPhone') || {}).value || '';
       const rr = await api('/qr-sms-send', 'POST', { token: r.token, phone });
-      const dbg = rr.info ? `<details style="font-size:10px;color:var(--ink-soft);margin-top:6px;text-align:left"><summary style="cursor:pointer">调试信息（截图发我对准选择器）</summary>点中按钮: ${rr.clicked||'无'}<br>页面文字: ${(rr.info.snippet||'').replace(/</g,'&lt;')}<br>按钮: ${(rr.info.btns||[]).join(' / ')}<br>有手机输入:${rr.info.phoneInput} 有验证码输入:${rr.info.codeInput}</details>` : '';
+      const inf = rr.info || {};
+      const dbg = `<div style="font-size:10.5px;color:var(--ink-soft);margin-top:8px;text-align:left;border:1px dashed var(--line);border-radius:8px;padding:8px;background:var(--paper-2)">
+        <b style="color:var(--cinnabar-deep)">📋 调试信息（收不到码就截这块发我）</b><br>
+        点中按钮：${rr.clicked||'（没点到）'}<br>
+        有手机输入框：${inf.phoneInput?'有':'无'} · 有验证码输入框：${inf.codeInput?'有':'无'}<br>
+        页面按钮：${(inf.btns||[]).join(' / ')||'（无）'}<br>
+        页面文字：${(inf.snippet||'').replace(/</g,'&lt;')}</div>`;
       const dbgBox = m.querySelector('#amDbg'); if (dbgBox) dbgBox.innerHTML = dbg;
       if (rr.ok) { st.textContent = '已点「' + (rr.clicked||'获取验证码') + '」，若没收到短信看下方调试信息'; st.style.color = '#00a152'; let c = 60; b.disabled = true; const t = setInterval(() => { b.textContent = (--c) + 's'; if (c <= 0) { clearInterval(t); b.disabled = false; b.textContent = '重新发送'; } }, 1000); }
       else { st.textContent = '✗ ' + (rr.reason || '发送失败（先扫码再发）'); st.style.color = 'var(--cinnabar-deep)'; b.textContent = o; }

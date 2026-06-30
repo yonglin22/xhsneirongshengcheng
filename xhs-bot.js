@@ -235,8 +235,15 @@ async function qrSendSms(token, phone) {
       });
     } catch {}
     await p.waitForTimeout(900);
-    const st = await _scan(s);
-    const info = { btns: st.btns, snippet: st.snippet, smsForm: st.smsForm };
+    // 抓页面真实信息供校准：有没有手机输入框、所有可点按钮、页面文字
+    let probe = {};
+    try { probe = await p.evaluate(() => ({
+      phoneInput: !!document.querySelector('input[placeholder*="手机"],input[type="tel"]'),
+      codeInput: !!document.querySelector('input[placeholder*="验证码"],input[placeholder*="短信"]'),
+      btns: [...document.querySelectorAll('button,[role=button],a,span')].map(e => (e.textContent || '').trim()).filter(x => x && x.length <= 14 && /验证|登录|获取|发送|确认|短信|绑定|安全/.test(x)).slice(0, 12),
+      snippet: ((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').slice(0, 220)
+    })); } catch {}
+    const info = probe;
     if (clicked) return { ok: true, clicked, info };
     return { ok: false, reason: '没找到「获取验证码」按钮（多半还没扫码，或本次不需要短信——直接点「完成登录」即可）', info };
   } catch (e) { return { ok: false, reason: (e.message || '').slice(0, 100) }; }
