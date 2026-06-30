@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>数据复盘 · agent 工作室 · 朱砂操盘台</title>
+<link rel="stylesheet" href="/assets/tw.css?v=1" />
+<link rel="stylesheet" href="/assets/atelier.css?v=106" />
+<style>
+  .zt{width:100%;border-collapse:collapse;font-size:13px}
+  .zt th{text-align:left;font-size:11px;font-weight:600;color:var(--ink-soft);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:#faf7f1}
+  .zt td{padding:9px 12px;border-bottom:1px solid #f3eee4;vertical-align:middle}
+  .zt tbody tr:hover{background:#fcfaf6}
+  .zt tbody tr:last-child td{border-bottom:none}
+  .adv{display:inline-block;font-size:11px;border-radius:6px;padding:2px 7px;margin:1px 2px 1px 0}
+  .adv.warn{background:#fff1f0;color:#cf1322;border:1px solid #ffccc7}
+  .adv.tip{background:#fff7e6;color:#ad6800;border:1px solid #ffe7ba}
+  .adv.good{background:#f6ffed;color:#389e0d;border:1px solid #b7eb8f}
+  .field{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px}
+  .db{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--ink)}
+  .db.go{border-color:var(--cinnabar);color:var(--cinnabar)}
+  .db:hover{background:rgba(0,0,0,.04)}
+</style>
+</head>
+<body class="stage grain min-h-screen" data-page="matrix">
+<main class="ag-page">
+  <div class="mb-5">
+    <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">获客 AGENT · 工作室</div>
+    <h1 style="font-size:clamp(26px,3.4vw,40px);font-weight:300;line-height:1.02">数据<span class="italic" style="color:var(--cinnabar)">复盘</span></h1>
+    <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-2xl">发布后执行端会把每篇笔记的<b>小眼睛 / 点赞 / 收藏 / 评论</b>抓回来汇总到这里，系统按<b>数据红线</b>自动给出下一步调优建议。没接执行端时也可手动录入复盘。</p>
+  </div>
+
+  <div class="card p-3 mb-4 flex items-center gap-3 flex-wrap">
+    <span class="text-[13px]">共 <b id="cnt">0</b> 篇笔记</span>
+    <select id="fAcct" class="field" style="font-size:12px"><option value="">全部账号</option></select>
+    <input id="fKw" class="field" style="font-size:12px;min-width:150px" placeholder="🔍 搜标题/账号" />
+    <span class="ml-auto flex items-center gap-2">
+      <button id="addBtn" class="db go">＋ 手动录入</button>
+      <button id="refreshBtn" class="db">↻ 刷新</button>
+      <button id="exportBtn" class="db">⬇ 导出 CSV</button>
+    </span>
+  </div>
+
+  <div id="list"></div>
+</main>
+
+<script src="/assets/tracks.js?v=22"></script>
+<script src="/assets/app.js?v=60"></script>
+<script src="/assets/ui-dialog.js?v=1"></script>
+<script>
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let NOTES=[];
+async function api(path, method, body){
+  try{ const r=await fetch('/api/note-stats'+(path||''),{method:method||'GET',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined}); return await r.json(); }
+  catch{ return { ok:false }; }
+}
+function fmtTime(t){ if(!t) return '—'; const d=new Date(t),p=n=>String(n).padStart(2,'0'); return `${d.getMonth()+1}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function hoursSince(t){ if(!t) return 999; return (Date.now()-t)/3600000; }
+// 数据红线 → 调优建议引擎（对齐设计考研赛道 dataRedlines 的量化阈值）
+function advise(n){
+  const out=[]; const v=+n.views||0, lk=+n.likes||0, fv=+n.favs||0, cm=+n.comments||0; const h=hoursSince(n.published_at);
+  if(h<=2 && v<100 && v>0) out.push(['warn','发布2h内小眼睛<100：封面/标题不行，先换封面再换标题']);
+  else if(v>0 && v<200) out.push(['warn','小眼睛<200：标题不够抓人，下篇重写标题（加数字+情绪词）']);
+  if(v>=200 && lk<20) out.push(['tip','点赞<20：干货不够硬，加自创口诀 / 具体案例']);
+  if(fv>lk && lk>0) out.push(['good','收藏>点赞：内容有价值，保持这个选题方向和风格']);
+  if(cm>=15 && lk>0 && cm>lk*0.5) out.push(['tip','评论多：评论区置顶引导语优化（站内合规说法）']);
+  if(lk>=100) out.push(['good','点赞>100：可复制到矩阵其他号，换封面+改标题30%再发']);
+  if(!out.length) out.push(['tip', v===0?'还没有数据，执行端抓回后自动复盘':'数据正常，继续观察']);
+  return out;
+}
+function fillAcctFilter(){
+  const sel=document.getElementById('fAcct'); const cur=sel.value;
+  const names=[...new Set(NOTES.map(n=>n.account_name).filter(Boolean))];
+  sel.innerHTML='<option value="">全部账号</option>'+names.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('');
+}
+function shown(){
+  const af=document.getElementById('fAcct').value; const kw=(document.getElementById('fKw').value||'').trim().toLowerCase();
+  return NOTES.filter(n=>{
+    if(af && n.account_name!==af) return false;
+    if(kw){ const hay=((n.note_title||'')+' '+(n.account_name||'')).toLowerCase(); if(!hay.includes(kw)) return false; }
+    return true;
+  });
+}
+function render(){
+  document.getElementById('cnt').textContent=NOTES.length;
+  const arr=shown();
+  const list=document.getElementById('list');
+  if(!arr.length){ list.innerHTML='<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">'+(NOTES.length?'没有匹配的笔记。':'还没有回流数据。执行端发布后会自动上报；也可点右上「＋ 手动录入」先试试调优建议。')+'</div>'; return; }
+  list.innerHTML=`<div class="card" style="padding:0;overflow:auto"><table class="zt"><thead><tr>
+      <th style="width:120px">账号</th><th>笔记标题</th><th style="width:84px">发布</th><th style="width:60px">小眼睛</th><th style="width:48px">赞</th><th style="width:48px">藏</th><th style="width:48px">评论</th><th>调优建议</th><th style="width:56px"></th></tr></thead><tbody>${
+    arr.map(n=>`<tr data-id="${n.id}">
+      <td style="font-weight:600">${esc(n.account_name||'—')}</td>
+      <td>${n.note_url?`<a href="${esc(n.note_url)}" target="_blank" rel="noopener">${esc(n.note_title||'(无标题)')}↗</a>`:esc(n.note_title||'(无标题)')}</td>
+      <td style="font-size:11px;color:var(--ink-soft);white-space:nowrap">${fmtTime(n.published_at)}</td>
+      <td><b>${n.views||0}</b></td><td>${n.likes||0}</td><td>${n.favs||0}</td><td>${n.comments||0}</td>
+      <td>${advise(n).map(a=>`<span class="adv ${a[0]}">${esc(a[1])}</span>`).join('')}</td>
+      <td><button class="ns-del db" style="padding:3px 8px;font-size:11px">删</button></td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+document.getElementById('list').addEventListener('click', async e=>{
+  const row=e.target.closest('[data-id]'); if(!row) return;
+  if(e.target.closest('.ns-del')){ const id=+row.dataset.id; await api('/remove','POST',{id}); NOTES=NOTES.filter(x=>x.id!==id); render(); }
+});
+document.getElementById('fAcct').addEventListener('change',render);
+document.getElementById('fKw').addEventListener('input',render);
+document.getElementById('refreshBtn').addEventListener('click',load);
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const arr=shown(); if(!arr.length){ zToast&&zToast('没有可导出的数据','err'); return; }
+  const head=['账号','标题','发布时间','小眼睛','点赞','收藏','评论','调优建议'];
+  const rows=arr.map(n=>[n.account_name||'',n.note_title||'',fmtTime(n.published_at),n.views||0,n.likes||0,n.favs||0,n.comments||0,advise(n).map(a=>a[1]).join(' / ')]);
+  const csv=[head,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'})); a.download='数据复盘_'+Date.now()+'.csv'; a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById('addBtn').addEventListener('click',()=>{
+  modal('手动录入笔记数据',
+    `<div style="display:grid;gap:8px">
+      <input id="naAcct" class="field" placeholder="账号名（如 设计考研学姐）"/>
+      <input id="naTitle" class="field" placeholder="笔记标题"/>
+      <input id="naUrl" class="field" placeholder="笔记链接（可空，作去重）"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+        <input id="naV" class="field" type="number" placeholder="小眼睛"/>
+        <input id="naL" class="field" type="number" placeholder="点赞"/>
+        <input id="naF" class="field" type="number" placeholder="收藏"/>
+        <input id="naC" class="field" type="number" placeholder="评论"/>
+      </div></div>`,
+    `<button id="naCancel" class="db">取消</button><button id="naSave" class="db go">保存</button>`);
+  document.getElementById('naCancel').onclick=()=>document.getElementById('plModal')?.remove();
+  document.getElementById('naSave').onclick=async()=>{
+    const g=id=>document.getElementById(id).value;
+    const d={ account_name:g('naAcct'), note_title:g('naTitle'), note_url:g('naUrl'), views:g('naV'), likes:g('naL'), favs:g('naF'), comments:g('naC'), platform:'xhs' };
+    if(!d.note_title&&!d.note_url){ zToast&&zToast('至少填标题或链接','err'); return; }
+    const r=await api('','POST',d); document.getElementById('plModal')?.remove();
+    if(r&&r.ok){ zToast&&zToast('已保存','ok'); load(); } else zToast&&zToast('保存失败','err');
+  };
+});
+function modal(title, body, foot){
+  document.getElementById('plModal')?.remove();
+  const m=document.createElement('div'); m.id='plModal'; m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML=`<div class="card" style="max-width:480px;width:100%;padding:20px"><div style="font-size:15px;font-weight:700;margin-bottom:12px">${esc(title)}</div><div>${body}</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">${foot||''}</div></div>`;
+  m.addEventListener('click',e=>{ if(e.target===m) m.remove(); });
+  document.body.appendChild(m);
+}
+async function load(){ const j=await api(''); NOTES=(j&&j.list)||[]; fillAcctFilter(); render(); }
+load();
+</script>
+</body>
+</html>

@@ -1239,7 +1239,7 @@ const server = http.createServer(async (req, res) => {
   // ============ 账号 / 钱包 / 订单 / 支付 / 管理（计费）============
   if (pathname.startsWith('/api/auth/') || pathname === '/api/wallet' || pathname === '/api/price'
     || pathname.startsWith('/api/order') || pathname.startsWith('/api/pay/') || pathname.startsWith('/api/admin/')
-    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts') || pathname.startsWith('/api/growth-plans') || pathname.startsWith('/api/script-libs') || pathname.startsWith('/api/collected-leads') || pathname.startsWith('/api/dispatch') || pathname.startsWith('/api/content-dispatch') || pathname === '/api/media-put' || pathname.startsWith('/api/devices')) {
+    || pathname.startsWith('/api/history') || pathname.startsWith('/api/agent-config') || pathname === '/api/invite' || pathname.startsWith('/api/partner') || pathname.startsWith('/api/agent/') || pathname.startsWith('/api/template/') || pathname.startsWith('/api/accounts') || pathname.startsWith('/api/growth-plans') || pathname.startsWith('/api/script-libs') || pathname.startsWith('/api/collected-leads') || pathname.startsWith('/api/dispatch') || pathname.startsWith('/api/content-dispatch') || pathname === '/api/media-put' || pathname.startsWith('/api/devices') || pathname.startsWith('/api/note-stats')) {
     if (!billing) return sendJSON(res, 503, { error: '计费模块未启用（需 Node ≥ 22 的内置 node:sqlite）' });
 
     // 智能体配置（人设/KB/skills/配图风格，按账号存，跨设备）
@@ -1400,6 +1400,23 @@ const server = http.createServer(async (req, res) => {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       const b = JSON.parse((await readBody(req)) || '{}');
       return sendJSON(res, 200, { ok: billing.dispatchCancel(uid, b.id) });
+    }
+    // 内容数据回流：执行端发布后抓回笔记真实数据（token 或 cookie），按 note_url 去重 upsert
+    if (pathname === '/api/note-stats' && req.method === 'POST') {
+      const dev = authDevice(req); const uid = dev ? dev.uid : authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录或提供有效设备 token' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      const items = Array.isArray(b.list) ? b.list : [b];
+      let n = 0; for (const it of items.slice(0, 100)) { if (billing.noteStatPut(uid, it).ok) n++; }
+      return sendJSON(res, 200, { ok: true, saved: n });
+    }
+    if (pathname === '/api/note-stats' && req.method === 'GET') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      return sendJSON(res, 200, { ok: true, list: billing.noteStatsList(uid) });
+    }
+    if (pathname === '/api/note-stats/remove' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.noteStatRemove(uid, b.id) });
     }
 
     // 内容分发：把一张 PNG(data URL) 落地成短链（复用 gen/ 静态目录），供分发任务存 URL 而非大体积 base64

@@ -158,6 +158,25 @@ function leadRemove(uid, id){ db.prepare('DELETE FROM collected_leads WHERE id=?
 function leadsClear(uid){ db.prepare('DELETE FROM collected_leads WHERE user_id=?').run(uid); return true; }
 function leadStatus(uid, id, status){ db.prepare('UPDATE collected_leads SET status=? WHERE id=? AND user_id=?').run(String(status||'new').slice(0,16), id, uid); return true; }
 
+// ===== 内容数据回流：执行端发布后抓回笔记真实数据（小眼睛/赞/藏/评论），按 note_url 去重 upsert，供数据红线复盘 =====
+try { db.exec("CREATE TABLE IF NOT EXISTS note_stats(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, account_id INTEGER, account_name TEXT, platform TEXT, note_title TEXT, note_url TEXT, views INTEGER DEFAULT 0, likes INTEGER DEFAULT 0, favs INTEGER DEFAULT 0, comments INTEGER DEFAULT 0, published_at INTEGER, collected_at INTEGER, nkey TEXT)"); } catch {}
+try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_note_uniq ON note_stats(user_id, nkey)"); } catch {}
+function noteStatPut(uid, d){
+  d=d||{}; const now=Date.now();
+  const note_url=String(d.note_url||'').slice(0,300).trim();
+  const title=String(d.note_title||'').slice(0,120).trim();
+  const nkey=(note_url||title).slice(0,300); if(!nkey) return { ok:false, error:'缺少 note_url 或标题' };
+  const n=k=>Math.max(0,parseInt(d[k])||0);
+  const cur=db.prepare('SELECT id FROM note_stats WHERE user_id=? AND nkey=?').get(uid,nkey);
+  if(cur){ db.prepare('UPDATE note_stats SET account_id=?,account_name=?,platform=?,note_title=?,note_url=?,views=?,likes=?,favs=?,comments=?,published_at=COALESCE(?,published_at),collected_at=? WHERE id=?')
+    .run(parseInt(d.account_id)||null,String(d.account_name||'').slice(0,80),String(d.platform||'xhs').slice(0,16),title,note_url,n('views'),n('likes'),n('favs'),n('comments'),parseInt(d.published_at)||null,now,cur.id); }
+  else { db.prepare('INSERT INTO note_stats(user_id,account_id,account_name,platform,note_title,note_url,views,likes,favs,comments,published_at,collected_at,nkey) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run(uid,parseInt(d.account_id)||null,String(d.account_name||'').slice(0,80),String(d.platform||'xhs').slice(0,16),title,note_url,n('views'),n('likes'),n('favs'),n('comments'),parseInt(d.published_at)||now,now,nkey); }
+  return { ok:true };
+}
+function noteStatsList(uid){ return db.prepare('SELECT id,account_id,account_name,platform,note_title,note_url,views,likes,favs,comments,published_at,collected_at FROM note_stats WHERE user_id=? ORDER BY collected_at DESC LIMIT 500').all(uid); }
+function noteStatRemove(uid, id){ if(id==='all'){ db.prepare('DELETE FROM note_stats WHERE user_id=?').run(uid); return true; } db.prepare('DELETE FROM note_stats WHERE id=? AND user_id=?').run(id,uid); return true; }
+
 // ===== 获客 Agent · 多设备/多账号任务下发队列 =====
 // 把一个计划下发给多个账号，生成待领取任务；任一登录了同一朱砂账号的设备(插件)可拉取并执行，跑完回报。
 try { db.exec("CREATE TABLE IF NOT EXISTS plan_dispatch(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, plan_id INTEGER, account_id INTEGER, account_name TEXT, device TEXT, status TEXT DEFAULT 'pending', result TEXT, created_at INTEGER, picked_at INTEGER, done_at INTEGER)"); } catch {}
@@ -683,6 +702,7 @@ module.exports = {
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
   leadsList, leadsAdd, leadRemove, leadsClear, leadStatus,
   dispatchAdd, dispatchList, dispatchPull, dispatchDone, dispatchCancel, dispatchReport, dispatchSet,
+  noteStatPut, noteStatsList, noteStatRemove,
   cdispAdd, cdispList, cdispPull, cdispDone, cdispCancel,
   deviceHeartbeat, devicesList, deviceRename, deviceCmd, deviceRemove, deviceTokenIssue, deviceTokenReset, verifyDeviceToken,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
