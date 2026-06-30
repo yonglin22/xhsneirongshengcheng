@@ -210,13 +210,21 @@ async function _scan(s) {
   const loggedIn = cookie && !r.hasQr && !r.loginEntry && !r.smsForm;
   return { ...r, ws: !!ws, cookie, loggedIn };
 }
+// 登录成功后：去创作中心(creator)转一圈拿到 creator 授权 cookie，再回传完整 cookie。
+// 否则只有 www 的 web_session，检测登录态/发布(都走 creator)会判失效。
+async function _finishLogin(s) {
+  try { const p = s.page; if (p && !p.isClosed()) { await p.goto('https://creator.xiaohongshu.com/', { waitUntil: 'domcontentloaded', timeout: 25000 }); await p.waitForTimeout(3000); } } catch {}
+  const cks = await s.ctx.cookies();
+  const xhs = cks.filter(c => /xiaohongshu/.test(c.domain || ''));
+  return xhs.map(c => c.name + '=' + c.value).join('; ');
+}
 async function pollQrLogin(token) {
   const s = _qr.get(token);
   if (!s) return { ok: false, expired: true, reason: '二维码会话已过期，请重新获取' };
   try {
     const st = await _scan(s);
     if (st.dead) return { ok: false, expired: true, reason: '二维码会话已结束，请重新生成' };
-    if (st.loggedIn) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie: st.cookie }; } // 扫码+手机确认后自动成功
+    if (st.loggedIn) { const cookie = await _finishLogin(s); try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; } // 扫码+手机确认后自动成功(并暖创作中心)
     if (st.smsForm) return { ok: false, scanned: true, sms: true, msg: '⚠ 需要短信验证：填手机号 → 发送验证码 → 填码 → 点「完成登录」', info: { btns: st.btns, snippet: st.snippet } };
     if (st.scanned) return { ok: false, scanned: true, msg: '✓ 已扫码！请在手机小红书 App 上点【确认登录】，确认后这里会自动登录成功' };
     return { ok: false, pending: true };
@@ -277,7 +285,7 @@ async function qrSubmitSms(token, code) {
     for (let i = 0; i < 10; i++) {
       const st = await _scan(s);
       if (st.dead) return { ok: false, reason: '登录会话已结束，请重新生成二维码' };
-      if (st.loggedIn) { try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie: st.cookie }; }
+      if (st.loggedIn) { const cookie = await _finishLogin(s); try { await s.browser.close(); } catch {} _qr.delete(token); return { ok: true, cookie }; }
       await new Promise(r => setTimeout(r, 1000));
     }
     const st = await _scan(s);
