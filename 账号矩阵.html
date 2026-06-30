@@ -172,8 +172,8 @@ function showSms(m, token, id, info) {
   const box = m.querySelector('#amQrBox'); const st = m.querySelector('#amStatus');
   box.innerHTML = `<div style="width:100%;text-align:left">
     <div style="font-size:13px;font-weight:700;margin-bottom:6px">📲 需短信验证（小红书风控）</div>
-    <div style="font-size:11px;color:var(--ink-soft);margin-bottom:8px">扫码已确认，小红书要求手机验证码。${info.phoneInput ? '请填手机号并' : ''}点「发送验证码」，收到后填入。</div>
-    ${info.phoneInput ? `<input id="amSmsPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin-bottom:8px" placeholder="手机号（小红书账号绑定的）" />` : ''}
+    <div style="font-size:11px;color:var(--ink-soft);margin-bottom:8px">扫码已确认，小红书要求手机验证。填手机号 → 点「发送验证码」→ 收到后填验证码 → 提交。</div>
+    <input id="amSmsPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin-bottom:8px" value="${info.phoneVal || ''}" placeholder="手机号（小红书账号绑定的）" />
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <input id="amSmsCode" class="field rounded-lg px-3 py-2 text-[13px]" style="flex:1" placeholder="短信验证码" />
       <button id="amSmsSend" class="btn-ghost rounded-lg px-3 py-2 text-[12px] whitespace-nowrap">发送验证码</button>
