@@ -126,28 +126,17 @@ let _qrTimer = null;
 function openAuthModal(id) {
   const m = document.createElement('div'); m.id = '__authM';
   m.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px';
-  m.innerHTML = `<div class="card" style="width:min(480px,94vw);padding:22px;text-align:left;max-height:90vh;overflow:auto">
-    <div class="font-song" style="font-weight:800;font-size:16px;margin-bottom:10px;text-align:center">接入小红书登录态</div>
-    <!-- 方式 A：Cookie 粘贴（最稳·推荐） -->
-    <div style="border:1.5px solid var(--cinnabar);border-radius:12px;padding:13px;margin-bottom:14px">
-      <div style="font-size:13.5px;font-weight:700;color:var(--cinnabar-deep);margin-bottom:6px">✅ 方式 A · 粘贴 Cookie（最稳，推荐）</div>
-      <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:8px">
-        1. <b>自己电脑</b> Chrome 登录小红书（要接的那个号）<br>
-        2. 装插件「Cookie-Editor」→ 在小红书页点它 → <b>Export</b>（复制）<br>
-        3. 粘到下面 → 点「保存接入」
-      </div>
-      <textarea id="amCookie" class="field w-full rounded-lg px-3 py-2 text-[12px]" rows="3" style="margin-bottom:8px" placeholder="粘贴 www.xiaohongshu.com 的完整 Cookie（JSON 或 name=value; 都行）"></textarea>
-      <button id="amCookieSave" class="btn-go rounded-lg w-full py-2 text-[13px] font-medium">保存接入（推荐）</button>
+  m.innerHTML = `<div class="card" style="width:min(460px,94vw);padding:22px;text-align:center">
+    <div class="font-song" style="font-weight:800;font-size:16px;margin-bottom:4px">📱 扫码登录小红书</div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">用<b>手机小红书 App</b>扫码 → 登录态在服务器本地生成（同 IP，不会失效）。<br>cookie 粘贴在机房 IP 多半被判失效，推荐扫码。</div>
+    <div id="amQrBox" style="min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+      <button id="amQrStart" class="btn-go rounded-xl px-6 py-3 text-[14px] font-medium">📷 生成登录二维码</button>
+      <span style="font-size:11px;color:var(--ink-soft)">点击后约 10 秒出码</span>
     </div>
-    <!-- 方式 B：扫码（机房 IP 风控大，备选） -->
-    <details style="border:1px solid var(--line);border-radius:12px;padding:12px">
-      <summary style="cursor:pointer;font-size:13px;font-weight:600">📱 方式 B · 扫码 + 短信（备选，机房 IP 易被风控）</summary>
-      <div id="amQrBox" style="min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;margin-top:10px">
-        <button id="amQrStart" class="btn-ghost rounded-xl px-6 py-3 text-[14px] font-medium">📷 生成登录二维码</button>
-        <span style="font-size:11px;color:var(--ink-soft)">点击后约 10 秒出码</span>
-      </div>
-    </details>
-    <div id="amStatus" style="font-size:12px;min-height:16px;margin:8px 0;text-align:center"></div>
+    <div id="amStatus" style="font-size:12px;min-height:16px;margin:8px 0"></div>
+    <details style="font-size:11px;color:var(--ink-soft);margin-bottom:10px;text-align:left"><summary style="cursor:pointer">扫不出码？用 Cookie 粘贴（备选）</summary>
+      <textarea id="amCookie" class="field w-full rounded-lg px-3 py-2 text-[12px]" rows="3" style="margin:6px 0" placeholder="粘贴 www.xiaohongshu.com 完整 Cookie（注意：机房 IP 多半会判失效）"></textarea>
+      <button id="amCookieSave" class="btn-ghost rounded-lg px-4 py-1.5 text-[12px]">保存 Cookie</button></details>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button id="amCancel" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">关闭</button>
     </div></div>`;
@@ -160,68 +149,22 @@ function openAuthModal(id) {
     box.innerHTML = '<span style="font-size:13px;color:var(--ink-soft)">正在打开小红书登录…（首次较慢，最多约 50 秒，请耐心等）</span>';
     const r = await api('/qr-start', 'POST', {}, 55000);
     if (!r.ok) { box.innerHTML = `<button id="amQrStart2" class="btn-go rounded-xl px-6 py-3 text-[13px]">重试</button>`; st.textContent = '✗ ' + (r.reason || r.error || '出码失败'); st.style.color = 'var(--cinnabar-deep)'; m.querySelector('#amQrStart2').onclick = () => openAuthModal(id) && close(); return; }
-    box.innerHTML = `<img src="${r.qr}" style="width:180px;height:180px;object-fit:contain;border:1px solid var(--line);border-radius:10px"/>
-      <span style="font-size:12px;color:var(--ink)">① 用小红书 App「我」→ 右上角扫一扫</span>
-      <div style="width:100%;border-top:1px dashed var(--line);margin:6px 0 2px;padding-top:10px;text-align:left">
-        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px">② 若需短信验证就填手机号取码（不需要可跳过），最后点③完成：</div>
-        <input id="amSmsPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin-bottom:8px" placeholder="手机号（小红书账号绑定的）" />
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input id="amSmsCode" class="field rounded-lg px-3 py-2 text-[13px]" style="flex:1" placeholder="短信验证码（没要求可不填）" />
-          <button id="amSmsSend" class="btn-ghost rounded-lg px-3 py-2 text-[12px] whitespace-nowrap">发送验证码</button>
-        </div>
-        <button id="amSmsOk" class="btn-go rounded-xl w-full py-2.5 text-[13px] font-medium">③ 扫码后点这 · 完成登录</button>
-        <div id="amDbg"></div>
-      </div>`;
-    st.textContent = '等待扫码确认…（扫码后需短信验证就在上面填）'; st.style.color = 'var(--ink-soft)';
-    // 手动短信：发送验证码
-    let sending = false;
-    m.querySelector('#amSmsSend').onclick = async () => {
-      if (sending) return; sending = true; const b = m.querySelector('#amSmsSend'); const o = b.textContent; b.textContent = '发送中…';
-      const phone = (m.querySelector('#amSmsPhone') || {}).value || '';
-      const rr = await api('/qr-sms-send', 'POST', { token: r.token, phone });
-      const inf = rr.info || {};
-      const dbg = `<div style="font-size:10.5px;color:var(--ink-soft);margin-top:8px;text-align:left;border:1px dashed var(--line);border-radius:8px;padding:8px;background:var(--paper-2)">
-        <b style="color:var(--cinnabar-deep)">📋 调试信息（收不到码就截这块发我）</b><br>
-        点中按钮：${rr.clicked||'（没点到）'}<br>
-        有手机输入框：${inf.phoneInput?'有':'无'} · 有验证码输入框：${inf.codeInput?'有':'无'}<br>
-        页面按钮：${(inf.btns||[]).join(' / ')||'（无）'}<br>
-        页面文字：${(inf.snippet||'').replace(/</g,'&lt;')}</div>`;
-      const dbgBox = m.querySelector('#amDbg'); if (dbgBox) dbgBox.innerHTML = dbg;
-      if (rr.ok) { st.textContent = '已点「' + (rr.clicked||'获取验证码') + '」，若没收到短信看下方调试信息'; st.style.color = '#00a152'; let c = 60; b.disabled = true; const t = setInterval(() => { b.textContent = (--c) + 's'; if (c <= 0) { clearInterval(t); b.disabled = false; b.textContent = '重新发送'; } }, 1000); }
-      else { st.textContent = '✗ ' + (rr.reason || '发送失败（先扫码再发）'); st.style.color = 'var(--cinnabar-deep)'; b.textContent = o; }
-      sending = false;
-    };
-    // 手动短信：提交验证码登录
-    m.querySelector('#amSmsOk').onclick = async () => {
-      const code = (m.querySelector('#amSmsCode') || {}).value.trim(); if (!code) { st.textContent = '请填短信验证码'; st.style.color = 'var(--cinnabar-deep)'; return; }
-      const b = m.querySelector('#amSmsOk'); b.disabled = true; const o = b.textContent; b.textContent = '验证中…'; st.textContent = '正在登录…';
-      const rr = await api('/qr-sms-submit', 'POST', { token: r.token, code, id });
-      if (rr.ok) { if (_qrTimer) { clearInterval(_qrTimer); _qrTimer = null; } st.textContent = '✓ 登录成功！'; st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 800); }
-      else { st.textContent = '✗ ' + (rr.reason || '验证失败'); st.style.color = 'var(--cinnabar-deep)'; b.disabled = false; b.textContent = o; }
-    };
+    box.innerHTML = `<img src="${r.qr}" style="width:200px;height:200px;object-fit:contain;border:1px solid var(--line);border-radius:10px"/><span style="font-size:12px;color:var(--ink)">用小红书 App「我」→ 右上角扫一扫</span>`;
+    st.textContent = '等待扫码确认…'; st.style.color = 'var(--ink-soft)';
     let n = 0;
     _qrTimer = setInterval(async () => {
-      n++; if (n > 80) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码可能超时，没成功就重新生成'; return; }
+      n++; if (n > 60) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码超时，请重新生成'; st.style.color = 'var(--cinnabar-deep)'; return; }
       const p = await api('/qr-poll', 'POST', { token: r.token, id });
       if (p.ok) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '✓ 登录成功！'; st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 800); }
       else if (p.expired) { clearInterval(_qrTimer); _qrTimer = null; st.textContent = '二维码已过期，请重新生成'; st.style.color = 'var(--cinnabar-deep)'; }
-      else if (p.scanned) { st.textContent = p.msg || '✓ 已扫码，请完成验证'; st.style.color = '#00a152'; }   // 扫码状态反馈
+      else if (p.needSms) { clearInterval(_qrTimer); _qrTimer = null; showSms(m, r.token, id, p.info || {}); }
     }, 2500);
   };
   m.querySelector('#amCookieSave').onclick = async () => {
-    const raw = m.querySelector('#amCookie').value.trim(); const st = m.querySelector('#amStatus');
-    if (raw.length < 20) { st.textContent = '请粘贴有效 Cookie'; st.style.color = 'var(--cinnabar-deep)'; return; }
-    // 兼容 Cookie-Editor 的 JSON 导出：[{name,value,...}] → 转成 name=value; …
-    let cookie = raw;
-    if (raw[0] === '[' || raw[0] === '{') {
-      try { const arr = JSON.parse(raw); const list = Array.isArray(arr) ? arr : (arr.cookies || []); const pairs = list.filter(c => c && c.name).map(c => c.name + '=' + (c.value == null ? '' : c.value)); if (pairs.length) cookie = pairs.join('; '); } catch {}
-    }
-    if (!/web_session/.test(cookie)) { st.textContent = '⚠ 粘的 cookie 里没有 web_session（登录关键 cookie）。请在 Cookie-Editor 里点「Export」导出完整 JSON 再粘（要在已登录的小红书页面导出）'; st.style.color = 'var(--cinnabar-deep)'; return; }
-    const btn = m.querySelector('#amCookieSave'); const o = btn.textContent; btn.disabled = true; btn.textContent = '保存中…';
-    // 直接存为「已登录」并接入（机房 IP 上 creator 验证会误判，不拿它拦你；发布与 cookie 同 IP 才是真考验）
-    const r = await api('/update', 'POST', { id, patch: { auth_blob: JSON.stringify({ cookie, ts: Date.now() }), status: 'active', health: '✓ Cookie 接入 ' + new Date().toLocaleString('zh-CN') } });
-    if (r && r.ok) { st.textContent = '✓ 已接入'; st.style.color = '#00a152'; setTimeout(() => { close(); load(); }, 700); }
-    else { st.textContent = '保存失败，请重试'; st.style.color = 'var(--cinnabar-deep)'; btn.disabled = false; btn.textContent = o; }
+    const cookie = m.querySelector('#amCookie').value.trim(); const st = m.querySelector('#amStatus');
+    if (cookie.length < 20) { st.textContent = '请粘贴有效 Cookie'; st.style.color = 'var(--cinnabar-deep)'; return; }
+    const r = await api('/update', 'POST', { id, patch: { auth_blob: JSON.stringify({ cookie, ts: Date.now() }), status: 'active' } });
+    if (r && r.ok) { close(); load(); }
   };
 }
 // 扫码后小红书要求短信验证 → 出手机号+验证码输入
@@ -230,7 +173,7 @@ function showSms(m, token, id, info) {
   box.innerHTML = `<div style="width:100%;text-align:left">
     <div style="font-size:13px;font-weight:700;margin-bottom:6px">📲 需短信验证（小红书风控）</div>
     <div style="font-size:11px;color:var(--ink-soft);margin-bottom:8px">扫码已确认，小红书要求手机验证。填手机号 → 点「发送验证码」→ 收到后填验证码 → 提交。</div>
-    <input id="amSmsPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin-bottom:8px" value="${info.phoneVal || ''}" placeholder="手机号（小红书账号绑定的）" />
+    <input id="amSmsPhone" class="field w-full rounded-lg px-3 py-2 text-[13px]" style="margin-bottom:8px" placeholder="手机号（小红书账号绑定的）" />
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <input id="amSmsCode" class="field rounded-lg px-3 py-2 text-[13px]" style="flex:1" placeholder="短信验证码" />
       <button id="amSmsSend" class="btn-ghost rounded-lg px-3 py-2 text-[12px] whitespace-nowrap">发送验证码</button>
