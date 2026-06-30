@@ -161,6 +161,10 @@ function leadStatus(uid, id, status){ db.prepare('UPDATE collected_leads SET sta
 // ===== 获客 Agent · 多设备/多账号任务下发队列 =====
 // 把一个计划下发给多个账号，生成待领取任务；任一登录了同一朱砂账号的设备(插件)可拉取并执行，跑完回报。
 try { db.exec("CREATE TABLE IF NOT EXISTS plan_dispatch(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, plan_id INTEGER, account_id INTEGER, account_name TEXT, device TEXT, status TEXT DEFAULT 'pending', result TEXT, created_at INTEGER, picked_at INTEGER, done_at INTEGER)"); } catch {}
+// 执行端结构化回报：进度/数据(浏览·赞·藏·评论)/风控信号,供「执行情况」展示与数据红线回流
+try { db.exec("ALTER TABLE plan_dispatch ADD COLUMN progress INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE plan_dispatch ADD COLUMN data TEXT"); } catch {}
+try { db.exec("ALTER TABLE plan_dispatch ADD COLUMN reported_at INTEGER"); } catch {}
 const _DISPATCH_TTL = 1000*60*30; // 领取后 30 分钟没回报，视为可重新领取（设备掉线兜底）
 function dispatchAdd(uid, planId, accounts){
   const plan=db.prepare('SELECT id,name FROM growth_plans WHERE id=? AND user_id=?').get(planId,uid); if(!plan) return { ok:false, error:'计划不存在' };
@@ -170,7 +174,7 @@ function dispatchAdd(uid, planId, accounts){
   try{ txn(run); }catch{ run(); }
   return { ok:true, created:n };
 }
-function dispatchList(uid, planId){ const where=planId?' AND plan_id=?':''; const args=planId?[uid,parseInt(planId)]:[uid]; return db.prepare('SELECT id,plan_id,account_id,account_name,device,status,result,created_at,picked_at,done_at FROM plan_dispatch WHERE user_id=?'+where+' ORDER BY id DESC LIMIT 200').all(...args); }
+function dispatchList(uid, planId){ const where=planId?' AND plan_id=?':''; const args=planId?[uid,parseInt(planId)]:[uid]; return db.prepare('SELECT id,plan_id,account_id,account_name,device,status,result,progress,data,reported_at,created_at,picked_at,done_at FROM plan_dispatch WHERE user_id=?'+where+' ORDER BY id DESC LIMIT 200').all(...args).map(r=>{ let data=null; try{ data=r.data?JSON.parse(r.data):null; }catch{} return {...r, data}; }); }
 // 设备拉取一条待执行任务（claim：pending→running，附带计划完整配置）。也回收超时 running。
 function dispatchPull(uid, device){
   const now=Date.now();
@@ -183,7 +187,30 @@ function dispatchPull(uid, device){
   let cfg={}; try{ cfg=JSON.parse(plan.config||'{}'); }catch{}
   return { ok:true, task:{ dispatchId:row.id, accountId:row.account_id, accountName:row.account_name, plan:{ id:plan.id, name:plan.name, ptype:plan.ptype, platform:plan.platform, config:cfg } } };
 }
-function dispatchDone(uid, id, result){ const r=db.prepare("UPDATE plan_dispatch SET status='done', result=?, done_at=? WHERE id=? AND user_id=?").run(String(result||'').slice(0,300), Date.now(), id, uid); return r.changes>0; }
+// 执行端完成回报：ok=false → 标记 failed（含风控熔断）；可带结构化 data（浏览/赞/藏/评论 + 风控）
+function dispatchDone(uid, id, result, opts){
+  opts=opts||{}; const st=(opts.ok===false||opts.failed)?'failed':'done'; const now=Date.now();
+  let dataStr=null; if(opts.data&&typeof opts.data==='object'){ try{ dataStr=JSON.stringify(opts.data).slice(0,2000); }catch{} }
+  const r=db.prepare("UPDATE plan_dispatch SET status=?, result=?, data=COALESCE(?,data), reported_at=?, done_at=? WHERE id=? AND user_id=?").run(st, String(result||'').slice(0,300), dataStr, now, now, id, uid);
+  return r.changes>0;
+}
+// 执行端进度回报（不结束任务）：更新 progress(0-100) / 结构化 data / 中途结果
+function dispatchReport(uid, id, b){
+  b=b||{}; const sets=['reported_at=?']; const args=[Date.now()];
+  if(b.progress!=null){ sets.push('progress=?'); args.push(Math.max(0,Math.min(100,parseInt(b.progress)||0))); }
+  if(b.result!=null){ sets.push('result=?'); args.push(String(b.result).slice(0,300)); }
+  if(b.data&&typeof b.data==='object'){ try{ sets.push('data=?'); args.push(JSON.stringify(b.data).slice(0,2000)); }catch{} }
+  args.push(id, uid);
+  const r=db.prepare("UPDATE plan_dispatch SET "+sets.join(',')+" WHERE id=? AND user_id=? AND status='running'").run(...args);
+  return r.changes>0;
+}
+// 网页端手动闭环：把某条任务设为完成/失败/重新排队（解决「执行中」永久卡死）
+function dispatchSet(uid, id, status){
+  const now=Date.now();
+  if(status==='requeue'){ const r=db.prepare("UPDATE plan_dispatch SET status='pending', device=NULL, picked_at=NULL, done_at=NULL WHERE id=? AND user_id=?").run(id,uid); return r.changes>0; }
+  if(status==='done'||status==='failed'){ const r=db.prepare("UPDATE plan_dispatch SET status=?, done_at=?, result=COALESCE(NULLIF(result,''),'手动标记"+(status==='done'?'完成':'失败')+"') WHERE id=? AND user_id=?").run(status,now,id,uid); return r.changes>0; }
+  return false;
+}
 function dispatchCancel(uid, id){ if(id==='all'||id===0){ db.prepare("DELETE FROM plan_dispatch WHERE user_id=? AND status IN('pending','done')").run(uid); return true; } db.prepare("DELETE FROM plan_dispatch WHERE id=? AND user_id=?").run(id,uid); return true; }
 
 // ===== 内容矩阵分发：一稿多发到各账号草稿箱（B方案=走各设备本机已登录小红书，避开机房IP风控）=====
@@ -228,6 +255,26 @@ function devicesList(uid){ const now=Date.now(); return db.prepare('SELECT id,de
 function deviceRename(uid,id,name){ db.prepare('UPDATE devices SET name=? WHERE id=? AND user_id=?').run(String(name||'').slice(0,40), id, uid); return true; }
 function deviceCmd(uid,id,cmd){ db.prepare('UPDATE devices SET cmd=? WHERE id=? AND user_id=?').run(String(cmd||'').slice(0,40), id, uid); return true; }
 function deviceRemove(uid,id){ db.prepare('DELETE FROM devices WHERE id=? AND user_id=?').run(id,uid); return true; }
+
+// ===== 执行端 token 鉴权：真机/外部脚本无浏览器 cookie，用一次签发的设备 token 接入 =====
+try { db.exec("ALTER TABLE devices ADD COLUMN token TEXT"); } catch {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_dev_token ON devices(token)"); } catch {}
+// 网页端为某设备签发/取回 token（绑定 uid+device_key）。真机把它存起来,后续 pull/done/heartbeat 带上。
+function deviceTokenIssue(uid, key, name){
+  key=String(key||'').slice(0,60); if(!key) return { ok:false, error:'缺少设备标识' };
+  const now=Date.now(); let cur=db.prepare('SELECT * FROM devices WHERE user_id=? AND device_key=?').get(uid,key);
+  if(!cur){ db.prepare("INSERT INTO devices(user_id,device_key,name,status,last_seen,created_at) VALUES(?,?,?,?,?,?)").run(uid,key,String(name||key).slice(0,40),'idle',now,now); cur=db.prepare('SELECT * FROM devices WHERE user_id=? AND device_key=?').get(uid,key); }
+  let tok=cur.token;
+  if(!tok){ tok='zd_'+crypto.randomBytes(24).toString('base64url'); db.prepare('UPDATE devices SET token=? WHERE id=?').run(tok,cur.id); }
+  return { ok:true, token:tok, deviceId:cur.id, deviceKey:key };
+}
+function deviceTokenReset(uid, id){ const tok='zd_'+crypto.randomBytes(24).toString('base64url'); const r=db.prepare('UPDATE devices SET token=? WHERE id=? AND user_id=?').run(tok,id,uid); return r.changes>0?{ ok:true, token:tok }:{ ok:false }; }
+// 校验设备 token → 返回 {uid, deviceId, deviceKey, name}；删除设备即吊销
+function verifyDeviceToken(token){
+  token=String(token||'').trim(); if(!token||token.indexOf('zd_')!==0) return null;
+  const d=db.prepare('SELECT id,user_id,device_key,name FROM devices WHERE token=?').get(token);
+  return d?{ uid:d.user_id, deviceId:d.id, deviceKey:d.device_key, name:d.name }:null;
+}
 
 function txn(fn) { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; } }
 
@@ -635,9 +682,9 @@ module.exports = {
   plansList, planAdd, planUpdate, planRemove, planStat,
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
   leadsList, leadsAdd, leadRemove, leadsClear, leadStatus,
-  dispatchAdd, dispatchList, dispatchPull, dispatchDone, dispatchCancel,
+  dispatchAdd, dispatchList, dispatchPull, dispatchDone, dispatchCancel, dispatchReport, dispatchSet,
   cdispAdd, cdispList, cdispPull, cdispDone, cdispCancel,
-  deviceHeartbeat, devicesList, deviceRename, deviceCmd, deviceRemove,
+  deviceHeartbeat, devicesList, deviceRename, deviceCmd, deviceRemove, deviceTokenIssue, deviceTokenReset, verifyDeviceToken,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,
 };
 

@@ -42,6 +42,21 @@
   <div id="empty" class="card p-8 text-center text-[13px] text-[var(--ink-soft)]" style="display:none">
     还没有设备上线。在要做执行机的电脑上安装并启用「朱砂助手」插件、登录朱砂账号，打开插件弹窗里的「本机作为执行设备」开关，约 1 分钟后会出现在这里。
   </div>
+
+  <div class="card p-5 mt-6" style="border:1px dashed var(--line)">
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:4px">接入真机 / 外部脚本（执行端协议）</h3>
+    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">没有浏览器插件的安卓真机或自写脚本，可用「设备 token」接入：拉取养号/截流任务、回报进度与结果。token 即身份，请勿外泄；删除设备即吊销。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <input id="tkName" class="field" style="border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;min-width:160px" placeholder="设备名，如 红米K60-01" maxlength="20"/>
+      <button id="tkGen" class="db go">生成接入 token</button>
+    </div>
+    <div id="tkOut" style="display:none">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px">设备 token（点击复制）</div>
+      <code id="tkVal" style="display:block;background:#1f1b16;color:#e8d9a8;border-radius:8px;padding:9px 11px;font-size:12px;word-break:break-all;cursor:pointer"></code>
+      <div style="font-size:12px;font-weight:600;margin:10px 0 4px">接入示例（设备端循环调用）</div>
+      <pre id="tkCurl" style="background:#1f1b16;color:#cfe8cf;border-radius:8px;padding:11px;font-size:11px;overflow:auto;white-space:pre-wrap"></pre>
+    </div>
+  </div>
 </main>
 
 <script src="/assets/tracks.js?v=21"></script>
@@ -118,6 +133,37 @@ function zPrompt(title, val){
 async function load(){ const j=await api(''); DEVS=(j&&j.list)||[]; render(); }
 $('#refreshBtn').addEventListener('click', load);
 load(); setInterval(load, 8000);
+
+document.getElementById('tkGen').onclick=async()=>{
+  const name=(document.getElementById('tkName').value||'').trim();
+  if(!name){ zToast&&zToast('先填设备名','err'); return; }
+  const key='dev-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const r=await api('/token','POST',{key,name});
+  if(!r||!r.ok){ zToast&&zToast((r&&r.error)||'生成失败','err'); return; }
+  const base=location.origin;
+  document.getElementById('tkVal').textContent=r.token;
+  document.getElementById('tkCurl').textContent=
+`# 1) 心跳上线（每 30-60s）
+curl -s ${base}/api/devices/heartbeat -H "Authorization: Bearer ${r.token}" \\
+  -H "content-type: application/json" -d '{"status":"working"}'
+
+# 2) 领取一条任务（pending→running，返回完整计划配置）
+curl -s ${base}/api/dispatch/pull -H "Authorization: Bearer ${r.token}" -X POST
+
+# 3) 执行中回报进度/数据（可选，多次）
+curl -s ${base}/api/dispatch/report -H "Authorization: Bearer ${r.token}" \\
+  -H "content-type: application/json" \\
+  -d '{"id":<dispatchId>,"progress":40,"data":{"viewed":6,"liked":2,"faved":1}}'
+
+# 4) 完成回报（ok=false 标记失败/风控熔断）
+curl -s ${base}/api/dispatch/done -H "Authorization: Bearer ${r.token}" \\
+  -H "content-type: application/json" \\
+  -d '{"id":<dispatchId>,"ok":true,"result":"养号完成","data":{"viewed":8,"liked":3}}'`;
+  document.getElementById('tkOut').style.display='';
+  document.getElementById('tkName').value='';
+  load();
+};
+document.getElementById('tkVal').onclick=()=>{ const t=document.getElementById('tkVal').textContent; navigator.clipboard&&navigator.clipboard.writeText(t); zToast&&zToast('已复制 token','ok'); };
 </script>
 </body>
 </html>

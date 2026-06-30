@@ -282,6 +282,8 @@ function readBodyBuffer(req, max = 25e6) {
 function sendJSON(res, code, obj, headers = {}) { send(res, code, JSON.stringify(obj), { 'content-type': 'application/json', ...headers }); }
 function parseCookies(req) { const out = {}; (req.headers.cookie || '').split(';').forEach(p => { const i = p.indexOf('='); if (i > 0) out[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1).trim()); }); return out; }
 function authUid(req) { if (!billing) return null; const t = parseCookies(req).sid; return t ? billing.verifySession(t) : null; }
+// 执行端鉴权：Authorization: Bearer zd_xxx 或 x-device-token 头 → 返回设备信息（真机/脚本用）
+function authDevice(req) { if (!billing) return null; const h = req.headers['authorization'] || ''; const m = /^Bearer\s+(\S+)/i.exec(h); const t = (m && m[1]) || req.headers['x-device-token'] || ''; return t ? billing.verifyDeviceToken(t) : null; }
 // 是否管理员：① 运维令牌 x-admin-token，或 ② 登录用户手机号在白名单
 function isAdminReq(req) {
   if (ADMIN_TOKEN && req.headers['x-admin-token'] === ADMIN_TOKEN) return true;
@@ -1373,14 +1375,26 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, billing.dispatchAdd(uid, b.planId, b.accounts || []));
     }
     if (pathname === '/api/dispatch/pull' && req.method === 'POST') {
-      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const dev = authDevice(req); const uid = dev ? dev.uid : authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录或提供有效设备 token' });
       const b = JSON.parse((await readBody(req)) || '{}');
-      return sendJSON(res, 200, billing.dispatchPull(uid, b.device));
+      return sendJSON(res, 200, billing.dispatchPull(uid, b.device || (dev && (dev.name || dev.deviceKey))));
     }
     if (pathname === '/api/dispatch/done' && req.method === 'POST') {
+      const dev = authDevice(req); const uid = dev ? dev.uid : authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录或提供有效设备 token' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.dispatchDone(uid, b.id, b.result, { ok: b.ok, failed: b.failed, data: b.data }) });
+    }
+    // 执行端中途进度/数据回报（不结束任务）：progress / 结构化 data（浏览·赞·藏·评论·风控）
+    if (pathname === '/api/dispatch/report' && req.method === 'POST') {
+      const dev = authDevice(req); const uid = dev ? dev.uid : authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录或提供有效设备 token' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.dispatchReport(uid, b.id, b) });
+    }
+    // 网页端手动闭环：done / failed / requeue（解决执行中永久卡死）
+    if (pathname === '/api/dispatch/set' && req.method === 'POST') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       const b = JSON.parse((await readBody(req)) || '{}');
-      return sendJSON(res, 200, { ok: billing.dispatchDone(uid, b.id, b.result) });
+      return sendJSON(res, 200, { ok: billing.dispatchSet(uid, b.id, b.status) });
     }
     if (pathname === '/api/dispatch/cancel' && req.method === 'POST') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
@@ -1438,9 +1452,20 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { ok: true, list: billing.devicesList(uid) });
     }
     if (pathname === '/api/devices/heartbeat' && req.method === 'POST') {
+      const dev = authDevice(req); const uid = dev ? dev.uid : authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录或提供有效设备 token' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, billing.deviceHeartbeat(uid, b.key || (dev && dev.deviceKey), { status: b.status, name: b.name || (dev && dev.name) }));
+    }
+    // 网页端为设备签发执行 token（真机/外部脚本拿去接入 pull/done/report/heartbeat）
+    if (pathname === '/api/devices/token' && req.method === 'POST') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       const b = JSON.parse((await readBody(req)) || '{}');
-      return sendJSON(res, 200, billing.deviceHeartbeat(uid, b.key, { status: b.status, name: b.name }));
+      return sendJSON(res, 200, billing.deviceTokenIssue(uid, b.key, b.name));
+    }
+    if (pathname === '/api/devices/token/reset' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, billing.deviceTokenReset(uid, b.id));
     }
     if (pathname === '/api/devices/rename' && req.method === 'POST') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });

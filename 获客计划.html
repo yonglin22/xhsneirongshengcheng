@@ -277,14 +277,23 @@ async function renderExec(planId){
   let recs=[]; try{ const r=await fetch('/api/dispatch?plan='+planId); const j=await r.json(); recs=(j&&j.list)||[]; }catch{}
   const box=$('#pvExec'); if(!box) return;
   if(!recs.length){ box.querySelector('div:last-child').innerHTML='<span style="font-size:12px;color:var(--ink-soft)">还没有下发执行。在列表里点「📤 下发」选账号后，设备插件会自动领取执行。</span>'; return; }
-  const rows=recs.map(r=>{ const [t,c]=DST_INLINE[r.status]||['—','#888']; return `<div style="display:flex;gap:8px;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid #f6f1e7;flex-wrap:wrap">
+  const DSTX=Object.assign({failed:['已失败','#d4380d']},DST_INLINE);
+  const dataLine=d=>{ if(!d||typeof d!=='object')return ''; const m=[]; if(d.viewed!=null)m.push('浏览'+d.viewed); if(d.liked!=null)m.push('赞'+d.liked); if(d.faved!=null)m.push('藏'+d.faved); if(d.commented!=null)m.push('评论'+d.commented); if(d.risk)m.push('<b style="color:#d4380d">风控:'+esc(d.risk)+'</b>'); return m.length?`<span style="font-size:11px;color:#666;width:100%;padding-left:4px">📊 ${m.join(' · ')}</span>`:''; };
+  const rows=recs.map(r=>{ const [t,c]=DSTX[r.status]||['—','#888']; const running=r.status==='running'; const stuck=running&&r.picked_at&&(Date.now()-r.picked_at>1000*60*30); return `<div style="display:flex;gap:8px;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid #f6f1e7;flex-wrap:wrap">
       <b style="min-width:96px">${esc(r.account_name||'账号#'+(r.account_id||''))}</b>
-      <span style="color:${c};font-weight:700;min-width:52px">${t}</span>
+      <span style="color:${c};font-weight:700;min-width:52px">${t}${running&&r.progress?` ${r.progress}%`:''}</span>
       ${r.device?`<span style="font-size:10px;color:var(--ink-soft)">📱${esc(r.device)}</span>`:'<span style="font-size:10px;color:var(--ink-soft)">未被设备领取</span>'}
       <span style="font-size:10px;color:var(--ink-soft)">下发 ${fmtTs(r.created_at)}${r.picked_at?' · 领取 '+fmtTs(r.picked_at):''}${r.done_at?' · 完成 '+fmtTs(r.done_at):''}</span>
+      ${stuck?'<span style="font-size:10px;color:#d4380d">⚠ 超30分钟无回报,疑似设备掉线</span>':''}
+      <span style="margin-left:auto;display:flex;gap:4px">
+        ${running?`<button class="ex-set" data-id="${r.id}" data-st="done" style="font-size:10px;border:1px solid #00875a;color:#00875a;background:#fff;border-radius:5px;padding:1px 6px;cursor:pointer">标记完成</button>`:''}
+        ${(running||r.status==='failed')?`<button class="ex-set" data-id="${r.id}" data-st="requeue" style="font-size:10px;border:1px solid #e8a400;color:#b06f00;background:#fff;border-radius:5px;padding:1px 6px;cursor:pointer">重新排队</button>`:''}
+      </span>
       ${r.result?`<span style="font-size:11px;color:#444;width:100%;padding-left:4px">↳ ${esc(r.result)}</span>`:''}
+      ${dataLine(r.data)}
     </div>`; }).join('');
   box.querySelector('div:last-child').innerHTML=rows;
+  box.querySelectorAll('.ex-set').forEach(btn=>btn.onclick=async()=>{ btn.disabled=true; await fetch('/api/dispatch/set',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:+btn.dataset.id,status:btn.dataset.st})}); await renderExec(planId); load(); });
 }
 function modal(title,bodyHtml,footHtml){
   let m=$('#plModal'); if(m) m.remove();
