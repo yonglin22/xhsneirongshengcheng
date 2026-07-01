@@ -103,7 +103,7 @@
   </footer>
 </main>
 
-<script src="/assets/tracks.js?v=23"></script>
+<script src="/assets/tracks.js?v=24"></script>
 <script src="/assets/app.js?v=63"></script>
 <script>
 // 嵌入模式：被流水线弹框以 iframe 载入（?embed=1）。隐藏外壳，选中后回传父窗口而非跳页。
@@ -211,6 +211,7 @@ $('#genBtn').addEventListener('click', async () => {
  C 资料衍生（热点本身是资料）：标题《蹭个热点：XX 的作品我都帮你整理成考点了》；正文＝「作品名-作者-年代-考点方向」表格/思维导图。
 铁律：不编造画家/作品/事件/真题数据，不确定的史实一律标「需核实」。` : '';
   const prompt = `基于人设【${persona}】和方向【${direction}】，产出 3–5 个${tk.domain}方向的小红书选题${extra ? `（结合：${extra}）` : ''}。
+今天是 ${today}，选题要贴合当前真实时节；涉及年份/季节/时间点时以今天为准，绝不能用过时的年份或季节（严禁默认成 2024/2025 或与当前不符的季节）。
 要求：紧扣「${tk.audience}」当下最关心的话题与痛点；${tk.compliance}，涉及${tk.hardInfo}等硬信息不编造、不确定标「需核实」；3–5 个里恰好 1 个标 recommended=true（最推荐先做）。${funnel}${hotspot}
 只输出 JSON 对象，不要任何解释或代码块标记，结构严格如下：
 {"topics":[{"topic":"一句话选题（像标题）","layer":"${isKaoyan ? '时间轴/爆款仿写/痛点填空/热点 之一' : ''}","audience_pain":"受众+戳的痛点","why_now":"为什么这个时间点能火","recommended":false,"reason":"仅 recommended 为 true 时填，说明为什么先做这个"}]}`;
@@ -260,8 +261,9 @@ $('#hotBtn').addEventListener('click', async () => {
 $('#suggestBtn').addEventListener('click', async () => {
   const tk = getTrack();
   const isKaoyan = /考研/.test(tk.domain || '') || tk.id === 'art-grad';
-  let stageInfo = '';
-  if (isKaoyan) { const s = kaoyanStage(); stageInfo = `今天 ${new Date().toLocaleDateString('zh-CN')}，正处【${s.stage}·${s.months}】，该阶段适合：${s.pool}`; }
+  const _todayStr = new Date().toLocaleDateString('zh-CN');
+  let stageInfo = `今天是 ${_todayStr}，选题必须贴合当前真实时节，绝不能用过时的年份/季节（严禁默认成 2024/2025 或不符的季节）。`;
+  if (isKaoyan) { const s = kaoyanStage(); stageInfo += ` 正处【${s.stage}·${s.months}】，该阶段适合：${s.pool}`; }
   const btn = $('#suggestBtn'), old = btn.textContent; btn.disabled = true; btn.textContent = '思考中…';
   try {
     const _egP = (tk.placeholders && tk.placeholders.persona) || (tk.name + '博主');

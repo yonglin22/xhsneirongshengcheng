@@ -321,8 +321,16 @@ window.hydrateCloudTrack = function (t) {
 // 重命名自定义赛道（名称/emoji）：更新本地 + 云端持久化，跨设备同步
 window.renameCustomTrack = function (id, name, emoji) {
   const store = __ctLoad(); const t = store[id] || window.TRACKS[id]; if (!t) return false;
-  if (name != null && String(name).trim()) t.name = String(name).trim().slice(0, 20);
   if (emoji != null && String(emoji).trim()) t.emoji = String(emoji).trim().slice(0, 4);
+  if (name != null && String(name).trim()) {
+    const nm = String(name).trim().slice(0, 20);
+    t.name = nm;
+    // 重命名＝改整个赛道：让领域/受众/占位/标签跟随新名字（保留已训练的人设/知识库/模板）
+    t.domain = nm;
+    t.audience = nm + '相关人群';
+    t.bigTags = ['#' + nm];
+    t.placeholders = { persona: nm + '博主', direction: nm, topic: nm + ' 新手必看的几点' };
+  }
   store[id] = t; __ctSave(store); window.TRACKS[id] = t;
   __persistTrackCloud(t); // 同步云端，换设备可见
   return true;
