@@ -384,6 +384,7 @@
   </div>
 </div>
 
+<script src="/assets/ui-dialog.js?v=2"></script>
 <script src="/assets/tracks.js?v=25"></script>
 <script src="/assets/app.js?v=63"></script>
 <script>
@@ -402,8 +403,8 @@ function renderChips(){
   $('#addTrackChip').addEventListener('click', openModal);
   const ctn = document.getElementById('curTrackName'); if (ctn && TRACKS[cur]) ctn.textContent = TRACKS[cur].name;
 }
-function delTrack(id){
-  if (!confirm('删除赛道「' + (TRACKS[id] ? TRACKS[id].name : id) + '」？该智能体的配置也会一并移除。')) return;
+async function delTrack(id){
+  if (!await zConfirm('删除赛道「' + (TRACKS[id] ? TRACKS[id].name : id) + '」？该智能体的配置也会一并移除。', { title: '删除赛道', okText: '删除' })) return;
   const wasCur = activeId() === id;
   removeCustomTrack(id);
   try { localStorage.removeItem('ag_cfg_' + id); } catch {}
@@ -461,10 +462,11 @@ $('#createTrack').addEventListener('click', async () => {
   const role = (q && q.ok) ? q.role : 'user';
   const used = (window.TRACK_ORDER || []).filter(id => typeof isCustomTrack === 'function' && isCustomTrack(id)).length;
   if (role !== 'admin' && used >= limit) {
-    const reason = prompt(`你的角色「${roleCn(role)}」最多可建 ${limit} 个自定义智能体（已用 ${used}）。再新增需后台审批，请填写申请理由：`, '');
+    const reason = await zPrompt(`你的角色「${roleCn(role)}」最多可建 ${limit} 个自定义智能体（已用 ${used}）。再新增需后台审批，请填写申请理由：`, '', { title: '📝 申请新增智能体', placeholder: '例：需要为新赛道单独运营一个矩阵账号', okText: '提交申请' });
     if (reason === null) return;
     let r = {}; try { r = await (await fetch('/api/agent/apply', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, reason }) })).json(); } catch {}
-    ms.textContent = r.ok ? '✓ 已提交申请，等待后台审批通过后即可新增' : ('申请失败：' + (r.error || '请先登录')); ms.style.color = r.ok ? '#00a052' : 'var(--cinnabar-deep)';
+    if (r.ok) { closeModal(); if (window.zToast) zToast('✓ 申请已提交，等待后台审批通过后即可新增', 'ok'); else if (window.zAlert) zAlert('申请已提交，等待后台审批通过后即可新增', { title: '提交成功' }); }
+    else { ms.textContent = '申请失败：' + (r.error || '请先登录'); ms.style.color = 'var(--cinnabar-deep)'; }
     return;
   }
   const tags = $('#mTags').value.trim().split(/[\s,，]+/).filter(Boolean).map(x => x.startsWith('#') ? x : '#' + x);
@@ -525,7 +527,7 @@ function renderWorks(filter) {
   grid.querySelectorAll('.hm-work').forEach(c => c.addEventListener('click', e => { if (e.target.closest('.hm-wacts')) return; openWork(c.dataset.id, '/流水线.html'); }));
   grid.querySelectorAll('.wk-export').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openWork(b.dataset.id, '/成稿预览.html'); }));
   grid.querySelectorAll('.wk-del').forEach(b => b.addEventListener('click', async e => {
-    e.stopPropagation(); const id = b.dataset.id; if (!confirm('删除这个作品？')) return;
+    e.stopPropagation(); const id = b.dataset.id; if (!await zConfirm('删除这个作品？', { title: '删除作品', okText: '删除' })) return;
     try { await Cloud.del(id); } catch {}
     // 若删的是「当前正在编辑的草稿」，本地 ag_draft 也清掉——否则下次进流水线会被自动回存到云端，看起来「删不掉」
     try { const cur = Draft.load(); if (cur && cur._runId === id) Draft.clear(); } catch {}
