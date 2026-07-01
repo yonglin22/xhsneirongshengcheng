@@ -62,6 +62,24 @@
     border-top:1px solid var(--line); padding:12px 20px; display:flex; justify-content:center; }
   .sticky .cta{ margin-top:0; width:100%; max-width:520px; height:50px; }
   .foot{ text-align:center; font-size:11.5px; color:var(--ink-soft); padding:8px 20px 20px; line-height:1.7; }
+  /* 三大核心竞争力 */
+  .edges{ margin-top:20px; display:grid; grid-template-columns:1fr; gap:12px; }
+  .edge{ border:1px solid var(--line); border-radius:16px; padding:16px 16px; background:#fff; }
+  .edge .ee{ font-size:26px; }
+  .edge .et{ font-size:16px; font-weight:800; margin-top:6px; }
+  .edge .ed{ font-size:13px; color:var(--ink-soft); line-height:1.7; margin-top:5px; }
+  .edge .eg{ display:inline-block; margin-top:8px; font-size:11px; font-weight:700; color:var(--cinnabar-deep); background:rgba(255,36,66,.08); border-radius:6px; padding:2px 8px; }
+  /* 桌面端加宽自适应 */
+  @media (min-width:820px){
+    .wrap{ max-width:960px; }
+    .hero{ padding:56px 40px 46px; border-radius:0 0 28px 28px; }
+    .h1{ font-size:52px; }
+    .sub{ font-size:17px; max-width:640px; }
+    .edges{ grid-template-columns:repeat(3,1fr); }
+    .pairs{ display:grid; grid-template-columns:1fr 1fr; }
+    .sec-h{ font-size:28px; }
+    .sticky{ display:none; }   /* 桌面用 hero 内 CTA，不要底部固定条 */
+  }
 </style>
 </head>
 <body>
@@ -74,22 +92,35 @@
 
   <!-- Hero -->
   <div class="hero">
-    <span class="pain">😩 憋选题 · 写不出爆款 · 不会做封面 · 怕限流？</span>
-    <h1 class="h1">最懂你赛道的<b>AI</b><br><b>3 分钟一篇</b>，篇篇是<b>爆款</b></h1>
-    <p class="sub">给个方向，AI 一条流水线跑完：选题 → 对标拆解 → 框架 → 正文 → 封面配图 → 合规自检。0 基础也能上手。</p>
-    <a href="/登录.html" class="cta" id="ctaTop">立即免费试用 →</a>
+    <span class="pain">😩 憋选题 · 写不出爆款 · 单号做不大 · 不会获客？</span>
+    <h1 class="h1">最懂你赛道的 <b>AI 操盘手</b><br>从<b>一篇爆款</b>到<b>矩阵起号</b></h1>
+    <p class="sub">垂直赛道智能体帮你把小红书从 0 做起来：<b>一条流水线出可发笔记</b>（选题→正文→封面→合规自检），再用<b>账号矩阵养号截流</b>自动获客涨粉。0 基础也能上手。</p>
+    <a href="/登录.html" class="cta" id="ctaTop">▶ 免费生成第一篇笔记</a>
     <div class="cta-sub">🎁 注册即送 <b style="color:var(--cinnabar)">200 积分</b>，够你先跑几篇</div>
   </div>
 
+  <!-- 三大核心竞争力 -->
+  <section>
+    <div class="sec-k">核心竞争力</div>
+    <div class="sec-h">别人给你个对话框，我们给你整套操盘台</div>
+    <div class="edges">
+      <div class="edge"><div class="ee">🎯</div><div class="et">赛道级智能体</div><div class="ed">懂你的专业（设计考研 / 艺术考研…），带板块知识与热点映射，不是通用 AI 瞎写。</div><span class="eg">选题有数据 · 正文有框架</span></div>
+      <div class="edge"><div class="ee">🏭</div><div class="et">一条流水线出可发笔记</div><div class="ed">选题→对标拆解→框架→正文→封面配图→合规自检，全自动串起来，新手也能日更不踩雷。</div><span class="eg">3 分钟一篇 · 发布前自检</span></div>
+      <div class="edge"><div class="ee">📡</div><div class="et">矩阵获客闭环</div><div class="ed">多号一键铺号、拟人养号 + 截流收潜客、数据红线自动复盘调优——从内容到涨粉到转化打通。</div><span class="eg">养号截流 · 数据复盘</span></div>
+    </div>
+  </section>
+
   <!-- 痛点 → 解法 -->
   <section>
-    <div class="sec-k">为什么用它</div>
-    <div class="sec-h">把四件最难的事，交给 AI</div>
+    <div class="sec-k">解决什么问题</div>
+    <div class="sec-h">你踩过的坑，一个个替你填上</div>
     <div class="pairs">
       <div class="pair"><span class="ic">🎯</span><div><div class="tt">不知道发什么</div><div class="dd">三层漏斗选题，结合赛道+实时热点</div></div><span class="ar">→ 智能选题</span></div>
       <div class="pair"><span class="ic">🧩</span><div><div class="tt">写不出爆款</div><div class="dd">对标拆解 + 框架 + 正文，一条龙</div></div><span class="ar">→ 爆款结构</span></div>
       <div class="pair"><span class="ic">🎨</span><div><div class="tt">不会做封面</div><div class="dd">AI 自动出封面与配图，套版即用</div></div><span class="ar">→ 封面配图</span></div>
       <div class="pair"><span class="ic">🛡️</span><div><div class="tt">怕违规限流</div><div class="dd">发布前合规自检，规避敏感/导流</div></div><span class="ar">→ 合规自检</span></div>
+      <div class="pair"><span class="ic">🗂️</span><div><div class="tt">单号做不大</div><div class="dd">账号矩阵一键铺号，一稿多发到多号</div></div><span class="ar">→ 账号矩阵</span></div>
+      <div class="pair"><span class="ic">🌱</span><div><div class="tt">不会获客涨粉</div><div class="dd">拟人养号+截流收潜客，数据红线复盘</div></div><span class="ar">→ 养号截流</span></div>
     </div>
   </section>
 
