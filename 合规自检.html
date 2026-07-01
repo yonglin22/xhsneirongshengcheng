@@ -521,7 +521,16 @@ function renderPlaybook() {
 }
 try { renderPlaybook(); } catch (e) {}
 // 进入页面自动导入「当前草稿」（= 流水线刚生成/正在编辑的这篇），无需手动筛选；换别篇再点「从流水线导入」。
-(function () { try { const d = Draft.load(); if (d && (d.body || d.best || d.title)) { importDraftData(d); if (/[?&]auto=1/.test(location.search)) setTimeout(() => { const b = document.querySelector('#checkBtn'); if (b && !b.disabled) b.click(); }, 400); } } catch {} })();
+(function () { try { const d = Draft.load(); if (d && (d.body || d.best || d.title)) { importDraftData(d);
+  // 自动生成/导入后：自动并行跑「开始自检」+「爆款潜力」，无需手动点（同一篇只自动跑一次）
+  const _sig = String((d.title || '') + '|' + (d.body || d.best || '')).slice(0, 200);
+  if (window.__autoRan !== _sig) { window.__autoRan = _sig;
+    setTimeout(() => {
+      const b = document.querySelector('#checkBtn'); if (b && !b.disabled) b.click();
+      if (typeof runViral === 'function') runViral();
+    }, 450);
+  }
+} } catch {} })();
 
 // 上传图片
 $('#imgUp').addEventListener('click', () => $('#cImgFile').click());
