@@ -685,7 +685,11 @@ async function regenOneCover(i) {
   if (curU.startsWith('note://')) {
     const idx = +curU.slice(7); const refVis = (state.refVisions || [])[i] || '';
     const page = await planNotePage(i, refVis, i === 0, ((state.cover && state.cover.cover_lines) || []).join(' '), t);
-    state.notePages = state.notePages || []; state.notePages[idx] = page; persist(); return;
+    state.notePages = state.notePages || []; state.notePages[idx] = page; persist();
+    // 重排后：重渲染并测量——若这页内容超容量被压小，自动拆成两页、后半填到下一张（仅纯长图笔记场景生效）
+    try { if (typeof renderCoverImages === 'function') renderCoverImages(); } catch {}
+    try { if (typeof resplitTooSmallNotes === 'function') await resplitTooSmallNotes(); } catch {}
+    return;
   }
   const refOne = (state.refVisions && state.refVisions[i]) ? `\n★ 叠字要照搬对标第${i + 1}张的版式/条目数/形式：「${state.refVisions[i]}」，内容换成我的。` : '';
   const role = i === 0 ? `封面：title 用主标题「${((state.cover && state.cover.cover_lines) || []).join(' ')}」，layout=封面` : `正文配图：title+lines 对应一个干货板块`;
