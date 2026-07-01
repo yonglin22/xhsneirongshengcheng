@@ -269,8 +269,26 @@ window.CloudAgent = {
 window.syncAgentConfigsDown = async () => {
   if (!(await Cloud.loggedIn())) return false;
   const list = await CloudAgent.all();
-  list.forEach(x => { if (x.trackId) localStorage.setItem('ag_cfg_' + x.trackId, JSON.stringify(x.config || {})); });
-  return true;
+  let restored = false;
+  list.forEach(x => {
+    if (!x.trackId) return;
+    const cfg = x.config || {};
+    localStorage.setItem('ag_cfg_' + x.trackId, JSON.stringify(cfg));
+    // ★ 数据恢复：把云端存的自定义赛道回灌到本地（跨设备 / 清缓存不丢）
+    if (cfg._track && cfg._track.id && typeof window.hydrateCloudTrack === 'function') {
+      if (window.hydrateCloudTrack(cfg._track)) restored = true;
+    } else if (/^custom-/.test(x.trackId) && window.TRACKS && !window.TRACKS[x.trackId]
+      && (cfg.persona || cfg.kb1 || cfg.kb2 || cfg.kb3 || cfg.kb4 || (cfg.skills && cfg.skills.length))
+      && typeof window.buildTrack === 'function' && typeof window.hydrateCloudTrack === 'function') {
+      // 旧数据没存 _track：用已训练的人设/知识库重建一个可用赛道壳，避免训练成果丢失（用户可重命名）
+      const rb = window.buildTrack({ name: '恢复的智能体', persona: cfg.persona || '' });
+      rb.id = x.trackId;
+      if (window.hydrateCloudTrack(rb)) restored = true;
+    }
+  });
+  // 恢复了赛道 → 重建「我的智能体」导航 + 顶栏切换器
+  if (restored) { try { if (typeof buildMyAgentNav === 'function') buildMyAgentNav(); } catch {} }
+  return restored;
 };
 
 /* ---- 深色模式 ---- */
@@ -666,7 +684,7 @@ window.refreshTopNav = async function (force) {
 document.addEventListener('DOMContentLoaded', () => {
   buildShell();
   buildMyAgentNav();
-  if (document.body.getAttribute('data-page') !== 'agent') { try { syncAgentConfigsDown(); } catch {} }
+  if (document.body.getAttribute('data-page') !== 'agent') { try { syncAgentConfigsDown().then(r => { if (r && typeof window.rerenderTracks === 'function') window.rerenderTracks(); }); } catch {} }
   refreshTopNav();
   if ($('#healthDot') || $('#healthTxt')) checkHealth();
 });

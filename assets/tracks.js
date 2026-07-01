@@ -287,13 +287,36 @@ window.reloadCustomTracks = function () {
 };
 window.reloadCustomTracks(); // 初次按当前账号载入
 
-window.addCustomTrack = function (t) {
+// 仅把赛道登记进本地 TRACKS/localStorage（供新建与「云端回灌」共用）
+function __registerCustomTrack(t, opts) {
   const store = __ctLoad(); store[t.id] = t; __ctSave(store);
   window.TRACKS[t.id] = t;
   if (!window.TRACK_ORDER.includes(t.id)) window.TRACK_ORDER.push(t.id);
   if (!__loadedCustom.includes(t.id)) __loadedCustom.push(t.id);
-  // 新建即设为「我的智能体」当前激活赛道（顶栏立即显示这个新智能体，而非公共赛道）
-  try { localStorage.setItem('ag_track', t.id); } catch {}
+  if (opts && opts.select) { try { localStorage.setItem('ag_track', t.id); } catch {} } // 新建即设为当前激活赛道
+}
+// 把赛道定义持久化到云端（跨设备 / 清缓存不丢）：塞进该赛道的 agent_config，保存点统一保留 _track
+function __persistTrackCloud(t) {
+  try {
+    if (!(window.CloudAgent && window.Cloud)) return;
+    Cloud.loggedIn().then(ok => {
+      if (!ok) return;
+      let cur = {}; try { cur = JSON.parse(localStorage.getItem('ag_cfg_' + t.id) || '{}'); } catch {}
+      cur._track = t; try { localStorage.setItem('ag_cfg_' + t.id, JSON.stringify(cur)); } catch {}
+      CloudAgent.save(t.id, cur);
+    });
+  } catch {}
+}
+window.addCustomTrack = function (t) {
+  __registerCustomTrack(t, { select: true });
+  __persistTrackCloud(t); // ★ 云端持久化，换设备/清缓存后登录可自动恢复
+};
+// 云端回灌：登录后把服务端存的自定义赛道合并回本地（不改当前选择、不回写云端，避免回环）
+window.hydrateCloudTrack = function (t) {
+  if (!t || !t.id) return false;
+  if (__ctLoad()[t.id]) return false; // 本地已有则跳过
+  __registerCustomTrack(t, { select: false });
+  return true;
 };
 window.removeCustomTrack = function (id) {
   const store = __ctLoad(); delete store[id]; __ctSave(store);

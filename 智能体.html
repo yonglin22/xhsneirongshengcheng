@@ -153,8 +153,8 @@
   </div>
 </div>
 
-<script src="/assets/tracks.js?v=21"></script>
-<script src="/assets/app.js?v=62"></script>
+<script src="/assets/tracks.js?v=22"></script>
+<script src="/assets/app.js?v=63"></script>
 <script>
 const SKILLS = [
   ['S1','选题','产出 3–5 个当下最该发的选题，标最推荐'],
@@ -257,6 +257,8 @@ $('#saveBtn').addEventListener('click', () => {
     prefs: $('#bPrefs').value.trim(), // 反思机制·创作偏好
     styleRefs: styleRefs, // A1④ 配图风格库（参考图）
   };
+  // 自定义赛道：把赛道定义一并存进 config（_track），保证云端有完整定义、换设备可恢复
+  try { if (typeof isCustomTrack === 'function' && isCustomTrack(curId) && TRACKS[curId]) cfg._track = TRACKS[curId]; } catch {}
   setAgentConfig(curId, cfg);
   updateKbStat(cfg);
   const s = kbStats(cfg);

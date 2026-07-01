@@ -384,8 +384,8 @@
   </div>
 </div>
 
-<script src="/assets/tracks.js?v=21"></script>
-<script src="/assets/app.js?v=62"></script>
+<script src="/assets/tracks.js?v=22"></script>
+<script src="/assets/app.js?v=63"></script>
 <script>
 function activeId(){ return localStorage.getItem('ag_track') || TRACK_ORDER[0]; }
 
@@ -644,6 +644,8 @@ function renderAgents() {
 
 applyTrack();
 loadWorks();
+// 云端恢复自定义赛道后（换设备/清缓存重新登录）→ 重绘赛道切换器 + 作品赛道筛选
+window.rerenderTracks = function(){ try{ renderChips(); }catch{} try{ applyTrack(); }catch{} try{ fillTrackFilter(); }catch{} };
 
 // 从顶栏「我的智能体 · ＋创建」过来（/?create=1）→ 自动打开新增赛道弹窗并滚到赛道区
 (function autoOpenCreate(){
