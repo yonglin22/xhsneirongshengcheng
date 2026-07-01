@@ -1363,6 +1363,10 @@ ${isCover ? '⓪【手帐标注风·本封面卡专用】重点名词/数字用 
       // 防截断残留：剔除空块（无文字且无有效 items），并去掉末尾孤立小标题（截断时 sec 返回了但其内容被切掉→显示空框/缺内容）
       j.blocks = j.blocks.filter(b => b && (b.t === 'tags' || (b.text && b.text.trim()) || (Array.isArray(b.items) && b.items.some(x => String((x && (x.text || x)) || '').trim()))));
       while (j.blocks.length && ['sec', 'sub', 'title'].includes(j.blocks[j.blocks.length - 1].t)) j.blocks.pop();
+      // ★ 硬闸门·内容充分性校验：必须有正文/列表/总结框且总字数够，否则判为截断/残缺 → 本次不接受，交给下一次重试或正文兜底（杜绝空框/缺内容/只有标题的页复现）
+      const _clen = j.blocks.reduce((a, b) => a + String(b.text || '').length + (Array.isArray(b.items) ? b.items.reduce((s, x) => s + String((x && (x.text || x)) || '').length, 0) : 0), 0);
+      const _hasBody = j.blocks.some(b => ['p', 'ol', 'box', 'sub'].includes(b.t));
+      if (!(_hasBody && _clen >= 40)) { throw new Error('note page content insufficient (len=' + _clen + ')'); }
       // 兜底：首块若不是标题，补一个顶部标题，保证各页标题对齐
       const head = j.blocks[0] && j.blocks[0].t;
       if (isCover && head !== 'title') j.blocks.unshift({ t: 'title', text: (title || state.topic || '').slice(0, 16) });
