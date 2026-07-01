@@ -684,15 +684,8 @@ async function regenOneCover(i) {
   const curU = (state.coverImages || [])[i] || '';
   if (curU.startsWith('note://')) {
     const idx = +curU.slice(7); const refVis = (state.refVisions || [])[i] || '';
-    const prev = (state.notePages || [])[idx] || {};
     const page = await planNotePage(i, refVis, i === 0, ((state.cover && state.cover.cover_lines) || []).join(' '), t);
-    // 继承原页样式：单页重排时 planNotePage 会重判 memo，若没检测到"备忘录"关键词会退回普通卡 → 强制保持原来的备忘录样式与底色
-    if (page && prev.memo) { page.memo = true; if (!page.bg && prev.bg) page.bg = prev.bg; }
-    state.notePages = state.notePages || []; state.notePages[idx] = page; persist();
-    // 重排后：重渲染并测量——若这页内容超容量被压小，自动拆成两页、后半填到下一张（仅纯长图笔记场景生效）
-    try { if (typeof renderCoverImages === 'function') renderCoverImages(); } catch {}
-    try { if (typeof resplitTooSmallNotes === 'function') await resplitTooSmallNotes(); } catch {}
-    return;
+    state.notePages = state.notePages || []; state.notePages[idx] = page; persist(); return;
   }
   const refOne = (state.refVisions && state.refVisions[i]) ? `\n★ 叠字要照搬对标第${i + 1}张的版式/条目数/形式：「${state.refVisions[i]}」，内容换成我的。` : '';
   const role = i === 0 ? `封面：title 用主标题「${((state.cover && state.cover.cover_lines) || []).join(' ')}」，layout=封面` : `正文配图：title+lines 对应一个干货板块`;
@@ -1334,13 +1327,12 @@ async function planNotePage(i, refVis, isCover, title, t, extra) {
     for (const [re, hex] of map) if (re.test(styleAll)) return hex;
     return '';
   })();
-  let bestPage = null;   // 记录「AI 写得最充实的一次」——若无一次完全达标，用它，绝不降级到框架文字兜底
-  for (let attempt = 0; attempt < 3; attempt++) {   // AI 不达标自动重试，最多 3 次
+  for (let attempt = 0; attempt < 2; attempt++) {   // AI 失败自动重试一次，避免直接掉到"原始规划文本"兜底
   try {
     const j = extractJSON(await callClaude({
       // 带上智能体人设/KB，让文字符合本账号设定；再叠加排版任务
       system: (persona ? persona + '\n\n' : '') + '【当前任务】你在做小红书长图笔记排版，只输出 JSON，文字口吻/事实都遵守上面的人设与知识库。',
-      json: true, max_tokens: 2200, action: 'imgplan',
+      json: true, max_tokens: 1400, action: 'imgplan',
       prompt: `把第 ${i + 1} 页长图笔记（竖版 3:4）写出来。下面的「骨架」只告诉你这页该讲哪一块，真正的文字内容要用【本篇正文】里对应的内容、用我的人设口吻写成完整口语句子。
 ==【最重要·绝不照抄骨架/不许出现元信息】这是给读者看的成品笔记，不是框架说明书：title/sec/正文里==绝不能==出现「S3 / 框架 / 框架详解 / 配图规划 / 生图提示词 / 文字要点 / 版式 / 作用 / 第N张 / 第N页」这类结构词或元信息；title 必须是这页真实的小标题（点出这节具体讲什么），==绝不能写成"第N页""S3框架详解""框架"这种==。骨架里的每一条都要展开成有信息量的句子（具体做法/数字/例子/类比），不能只把骨架的小标题原样抄上去。==
 ${styleGuide ? '【配图风格库 · 文字排版风格（==最高优先级：背景色/高亮色/主色/标题对齐/框线/字色 全部照这段来，不要自由发挥==）】\n' + styleGuide + '\n把这段描述里的颜色全部转成十六进制填进 style；版式（标题居中/左对齐、有无框线、列表/表格样式）也照它。\n' : ''}
@@ -1368,13 +1360,6 @@ ${isCover ? '⓪【手帐标注风·本封面卡专用】重点名词/数字用 
     }));
     if (j.blocks && j.blocks.length) {
       j.blocks = stripMetaLeak(j.blocks, title || state.topic); // 永久兜底：剔除 S3/框架/配图规划等元信息泄漏
-      // 防截断残留：剔除空块（无文字且无有效 items），并去掉末尾孤立小标题（截断时 sec 返回了但其内容被切掉→显示空框/缺内容）
-      j.blocks = j.blocks.filter(b => b && (b.t === 'tags' || (b.text && b.text.trim()) || (Array.isArray(b.items) && b.items.some(x => String((x && (x.text || x)) || '').trim()))));
-      while (j.blocks.length && ['sec', 'sub', 'title'].includes(j.blocks[j.blocks.length - 1].t)) j.blocks.pop();
-      // ★ 内容充分性：必须有正文/列表/总结框且总字数够，否则判为截断/残缺（不接受，留作候选继续重试）
-      const _clen = j.blocks.reduce((a, b) => a + String(b.text || '').length + (Array.isArray(b.items) ? b.items.reduce((s, x) => s + String((x && (x.text || x)) || '').length, 0) : 0), 0);
-      const _hasBody = j.blocks.some(b => ['p', 'ol', 'box', 'sub'].includes(b.t));
-      const _sufficient = _hasBody && _clen >= 40;
       // 兜底：首块若不是标题，补一个顶部标题，保证各页标题对齐
       const head = j.blocks[0] && j.blocks[0].t;
       if (isCover && head !== 'title') j.blocks.unshift({ t: 'title', text: (title || state.topic || '').slice(0, 16) });
@@ -1388,14 +1373,10 @@ ${isCover ? '⓪【手帐标注风·本封面卡专用】重点名词/数字用 
       // 备忘录纸面永远是浅色：AI 偶尔给封面页返回深色 bg / dark:true → 卡片变全黑。memo 卡强制不深色、深色 bg 丢弃回白底
       const isDarkHex = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) < 150; };
       if (memo && isDarkHex(pageBg)) pageBg = '';
-      const _res = { blocks: j.blocks, bg: pageBg, accent: s.accent, hl: s.hl, dark: memo ? false : !!s.dark, memo };
-      if (_sufficient) return _res;                                   // 达标：直接用
-      if (!bestPage || _clen > bestPage._clen) { _res._clen = _clen; bestPage = _res; } // 不达标：暂存「最充实的一次」，继续重试
+      return { blocks: j.blocks, bg: pageBg, accent: s.accent, hl: s.hl, dark: memo ? false : !!s.dark, memo };
     }
   } catch {}
-  }   // —— 三次都不达标才到这 ——
-  // 用「AI 写得最充实的那次」，绝不降级到框架文字拼凑（保证内容仍是 AI 成文、不是骨架碎片）
-  if (bestPage) { delete bestPage._clen; return bestPage; }
+  }   // —— 两次都失败才到这 ——
   // 兜底：清洗 S3 规划，去掉"第X张/作用/生图提示词/版式"等元信息，只留「文字要点」当内容；套 memo；内容页用自己的小标题（不再都顶着封面标题→避免重复）
   const cleanParts = (() => {
     const m = String(frameSrc || '').match(/文字要点[：:]\s*([^\n]+)/);
@@ -1594,21 +1575,19 @@ function noteWeight(blocks) {
   let w = 0;
   for (const b of (blocks || [])) {
     const txt = String(b.text || '').replace(/[=*]/g, '');
-    if (b.t === 'title') w += txt.length + 18;
-    else if (b.t === 'sec') w += txt.length + 16;   // 小节标题带编号方块，纵向占位更大
-    else if (b.t === 'sub') w += txt.length + 10;
-    else if (b.t === 'ol') w += (b.items || []).reduce((a, x) => a + olStr(x).replace(/[=*]/g, '').length + 12, 0) + 6; // 每条带编号圆点，逐行占位
-    else if (b.t === 'box') w += (b.items || []).reduce((a, x) => a + olStr(x).replace(/[=*]/g, '').length + 11, 0) + 22; // ✅绿框：逐行 + 内边距/边框整体占位（此前被当普通段落严重低估）
-    else if (b.t === 'tags') w += 10;
-    else w += txt.length + 8; // p / meta
+    if (b.t === 'title') w += txt.length + 16;
+    else if (b.t === 'sec') w += txt.length + 12;
+    else if (b.t === 'sub') w += txt.length + 8;
+    else if (b.t === 'ol') w += (b.items || []).reduce((a, x) => a + olStr(x).replace(/[=*]/g, '').length + 8, 0);
+    else if (b.t === 'tags') w += 8;
+    else w += txt.length + 6; // p / meta
   }
   return w;
 }
 // 单页内容容量随比例走：9:16 长竖屏装得更多（更密、像参考图的长图干货笔记），少拆页
 // 每页字数上限＝按画框高度估的"写满量"。2:3 比 3:4 更高更长 → 应更大（之前 2:3=220 反而最小，导致页面很空）。整体上调让内容填满、不留大片空白。
 // 每页容量适当下调 → 单页内容少一点、自适应少缩放 → 正文字号更大更清晰（用户反馈"内页字太小"）
-// 容量适当下调：密集内容多分一页→单页字更大（稀疏页由 fitNote 自动放大填充，不怕留白）
-function notePageCap() { return ({ '2:3': 300, '3:4': 260, '9:16': 370 })[curRatio()] || 260; }
+function notePageCap() { return ({ '2:3': 370, '3:4': 320, '9:16': 445 })[curRatio()] || 320; }
 const NOTE_PAGE_CAP = 300; // 兜底常量（splitHeavyPage 实际用 notePageCap()）
 // 太重的页 → 在块边界拆成多页（第二页起加"（续）"小标题）。封面不拆。
 function splitHeavyPage(page) {
@@ -1768,8 +1747,6 @@ function fitNote(noteEl) {
   fit.style.transform = ''; fit.style.width = '100%';
   const cs = getComputedStyle(noteEl); const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
   const avail = noteEl.clientHeight - padV; const need = fit.scrollHeight; let s = 1;
-  // 只做「溢出时缩小」：缩小是加宽内容(width=100/s>100%)、行数变少，安全不切字。
-  // 绝不放大——放大会缩窄内容宽度→文字重新换行→实际变高→超出卡片被切断(已验证会切字，故禁用)。
   if (need > avail + 1 && avail > 0) { s = Math.max(0.45, avail / need); fit.style.transform = 'scale(' + s + ')'; fit.style.width = (100 / s) + '%'; }
   noteEl.dataset.fitScale = String(s); return s;
 }
