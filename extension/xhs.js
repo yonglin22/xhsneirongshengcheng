@@ -189,42 +189,48 @@
 // ⚠️ 创作中心页面结构会改版，选择器为最佳猜测，需在真实页面校准（打开 note-manager 看 console）。
 (function () {
   if (!/creator\.xiaohongshu\.com/.test(location.host)) return;
-  if (!/note-manager|note-manage|noteManager|publish\/success|creator-home|\/home/i.test(location.href)) return;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const toNum = s => { s = String(s || '').replace(/[,\s]/g, ''); const m = s.match(/([\d.]+)\s*(万|w|k)?/i); if (!m) return 0; let n = parseFloat(m[1]) || 0; const u = (m[2] || '').toLowerCase(); if (u === '万' || u === 'w') n *= 10000; if (u === 'k') n *= 1000; return Math.round(n); };
-  // 从一个笔记卡片里按标签取数：观看/浏览/曝光→views，赞→likes，收藏→favs，评论→comments
-  function pick(card, labels) {
-    const txt = card.innerText || '';
-    for (const lab of labels) {
-      // 形如 "观看 1234" / "1234 观看" / "赞 12"
-      let m = txt.match(new RegExp(lab + '[\\s:：]*([\\d.,]+\\s*[万wk]?)', 'i')) || txt.match(new RegExp('([\\d.,]+\\s*[万wk]?)[\\s]*' + lab, 'i'));
-      if (m) return toNum(m[1]);
-    }
-    return 0;
-  }
-  async function scrape() {
-    await sleep(4500); // 等异步数据渲染
-    let cards = [...document.querySelectorAll('[class*="note-item"],[class*="noteItem"],[class*="note-card"],[class*="tableRow"],tbody tr')];
-    if (!cards.length) cards = [...document.querySelectorAll('[class*="note"]')].filter(e => /观看|浏览|曝光|赞|收藏|评论/.test(e.innerText || '') && (e.innerText || '').length < 400);
-    const list = [];
-    for (const c of cards.slice(0, 40)) {
-      const titleEl = c.querySelector('[class*="title"],[class*="name"],a[href*="/note"]');
-      const title = ((titleEl && titleEl.textContent) || (c.innerText || '').split('\n')[0] || '').trim().slice(0, 80);
+  const DATE_RE = /\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/;          // 卡片里的发布时间
+  const NUM_RE = /^\d[\d.]*\s*[万wk]?$/i;                     // 纯数字（含 1.2万/3k）
+  // 卡片图标行的数字按顺序是：👁观看 · 💬评论 · ♡点赞 · ☆收藏 · ↗分享（无文字标签，只能按位置取）
+  async function scrape(attempt) {
+    attempt = attempt || 0;
+    await sleep(attempt ? 2500 : 4500);
+    // 找"最小卡片"：含一个发布时间 + 一串数字、且内部没有同样带时间的子卡片
+    const cards = [...document.querySelectorAll('div,li,section')].filter(el => {
+      const t = el.innerText || '';
+      if (t.length > 340 || !DATE_RE.test(t)) return false;
+      return ![...el.children].some(c => DATE_RE.test(c.innerText || '') && (c.innerText || '').length < 340);
+    });
+    const list = [], seen = new Set();
+    for (const c of cards.slice(0, 60)) {
+      const lines = (c.innerText || '').split('\n').map(s => s.trim()).filter(Boolean);
+      const title = (lines.find(l => !DATE_RE.test(l) && !NUM_RE.test(l) && !/^(置顶|仅自己可见|已发布|审核中)$/.test(l) && l.length > 3) || lines[0] || '').slice(0, 80);
+      // 叶子元素中"纯数字"的按 DOM 顺序 → 末尾 5 个 = [观看,评论,点赞,收藏,分享]
+      const nums = [...c.querySelectorAll('*')].filter(e => e.children.length === 0 && NUM_RE.test((e.textContent || '').trim())).map(e => toNum(e.textContent));
+      const st = nums.slice(-5);
+      if (!title || st.length < 4) continue;
+      const key = title + '|' + (lines.find(l => DATE_RE.test(l)) || '');
+      if (seen.has(key)) continue; seen.add(key);
       const urlEl = c.querySelector('a[href*="/note"],a[href*="explore"]');
-      const views = pick(c, ['观看', '浏览', '曝光', '阅读']);
-      const likes = pick(c, ['点赞', '赞']);
-      const favs = pick(c, ['收藏']);
-      const comments = pick(c, ['评论']);
-      if (title && (views || likes || favs || comments)) list.push({ note_title: title, note_url: (urlEl && urlEl.href) || '', views, likes, favs, comments, platform: 'xhs' });
+      list.push({ note_title: title, note_url: (urlEl && urlEl.href) || '', views: st[0] || 0, comments: st[1] || 0, likes: st[2] || 0, favs: st[3] || 0, platform: 'xhs' });
     }
     if (list.length) {
       chrome.runtime.sendMessage({ type: 'reportNoteStats', list }, () => {
-        console.log('[朱砂助手] 数据回流：已上报', list.length, '篇');
+        console.log('[朱砂助手] 数据回流：已上报', list.length, '篇', list);
         setTimeout(() => { try { window.close(); } catch {} }, 1500);
       });
+    } else if (attempt < 3) {
+      scrape(attempt + 1); // 页面还没渲染完，重试
     } else {
-      console.log('[朱砂助手] 数据回流：没抓到笔记数据（页面结构可能已改版，需校准选择器）');
+      console.log('[朱砂助手] 数据回流：没抓到笔记数据（可能不在笔记管理页，或页面改版需校准）');
     }
   }
-  scrape();
+  // 页面出现"笔记管理"字样或已有带时间的卡片时才抓（避免在发布页误触发）
+  function maybe() {
+    const t = document.body.innerText || '';
+    if (/笔记管理|已发布|发布笔记/.test(t) && DATE_RE.test(t)) scrape(0);
+  }
+  setTimeout(maybe, 3500);
 })();
