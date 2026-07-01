@@ -669,7 +669,7 @@ async function zsPullNoteStats() {
   if (_zsStatsBusy) return; _zsStatsBusy = true;
   try {
     // 后台标签打开笔记管理页；xhs.js 检测到该页会自动抓取并 reportNoteStats，然后自己关闭
-    chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/new/note-manager', active: false });
+    chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/new/home', active: false });
   } catch {}
   setTimeout(() => { _zsStatsBusy = false; }, 3 * 60000);
 }
