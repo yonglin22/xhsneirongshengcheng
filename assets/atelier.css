@@ -554,7 +554,7 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .ag-dd.open .ag-dd-menu{ display:block; }
 .ag-dd-h{ font-size:10.5px; color:var(--ink-soft); padding:6px 9px 3px; letter-spacing:.05em; }
 .ag-dd-sep{ height:1px; background:var(--line); margin:5px 4px; }
-.ag-dd-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:9px; font-size:13px; color:var(--ink); cursor:pointer; text-decoration:none; }
+.ag-dd-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:9px; font-size:13.5px; color:var(--ink); cursor:pointer; text-decoration:none; font-family:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif; font-weight:600; }
 .ag-dd-item:hover{ background:rgba(165,129,58,.07); }
 .ag-dd-item.on{ background:rgba(165,129,58,.1); font-weight:700; color:var(--cinnabar-deep); }
 .ag-dd-item.add{ color:var(--cinnabar); font-weight:600; }
