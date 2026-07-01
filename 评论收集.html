@@ -6,14 +6,14 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>评论收集 · 潜客列表 · 获客 Agent · 朱砂操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=113" />
+<link rel="stylesheet" href="/assets/atelier.css?v=114" />
 <style>
   .lead-card{ display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
   .lead-main{ flex:1; min-width:200px; }
   .lead-text{ font-size:13.5px; line-height:1.55; margin-top:3px; }
   .lead-meta{ font-size:11px; color:var(--ink-soft); margin-top:5px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .lead-meta a{ color:var(--cinnabar-deep); }
-  .badge{ font-size:11px; color:#fff; background:var(--cinnabar); border-radius:6px; padding:2px 8px; }
+  .badge{ font-size:11px; color:#fff; background:var(--cinnabar); border-radius:6px; padding:2px 8px; white-space:nowrap; display:inline-block; }
   .st{ font-size:11px; border:1px solid var(--line); border-radius:999px; padding:2px 10px; cursor:pointer; background:#fff; color:var(--ink-soft); }
   .st.done{ background:#ecfdf3; border-color:#ace6c4; color:#00875a; }
   .tool-btn{ border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; }
@@ -50,7 +50,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=25"></script>
-<script src="/assets/app.js?v=69"></script>
+<script src="/assets/app.js?v=70"></script>
 <script src="/assets/ui-dialog.js?v=1"></script>
 <script>
 let LEADS=[], filter='all';
@@ -75,7 +75,7 @@ function render(){
   $('#list').innerHTML = arr.length ? `<div class="card" style="padding:0;overflow:auto"><table class="zt"><thead><tr>
       <th style="width:72px">平台</th><th style="width:120px">潜客</th><th>评论内容</th><th style="width:150px">来源笔记</th><th style="width:96px">收集时间</th><th style="width:80px">状态</th><th style="width:110px">操作</th></tr></thead><tbody>${
     arr.map(l=>`<tr data-id="${l.id}">
-      <td><span class="badge">${PLAT[l.platform]||l.platform||'小红书'}</span></td>
+      <td><span class="badge">${(PLAT[l.platform]||l.platform||'小红书').split(' ').pop()}</span></td>
       <td><b style="font-size:13px">${esc(l.lead_user)||'匿名用户'}</b>${l.lead_link?` <a href="${esc(l.lead_link)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--cinnabar-deep)">↗</a>`:''}</td>
       <td style="font-size:12px;max-width:340px">${esc(l.lead_text)}</td>
       <td style="font-size:11px;color:var(--ink-soft)">${l.note_title?(l.note_url?`<a href="${esc(l.note_url)}" target="_blank" rel="noopener">${esc(l.note_title)}↗</a>`:esc(l.note_title)):'—'}</td>

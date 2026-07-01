@@ -1,6 +1,6 @@
 /* ===== 赛道智能体操盘台 · 共享设计系统（小红书风） ===== */
 :root{
-  --ink:#241f1a; --ink-soft:#8f8578; --paper:#ffffff; --paper-2:#f7f4ee;
+  --ink:#241f1a; --ink-soft:#8f8578; --paper:#ffffff; --paper-2:#faf8f2;
   /* 品牌主色：朱砂红 → 金色（深金作强调，保证白底可读）*/
   --cinnabar:#a5813a; --cinnabar-deep:#846527; --indigo:#2b3a52;
   --brand-gold-1:#d9bd7a; --brand-gold-2:#b3903f; --brand-gold-ink:#3a2c0e;
@@ -8,7 +8,7 @@
   /* 语义色（统一各处写死的金/合伙人/朱砂浅底）· 金色=PPT 高级质感主辅色 */
   --gold:#9a6b1e; --gold-bg:#fff3da; --gold-line:#f0d09a; --partner:#8a5a22;
   --gold-lt:#c9a85f; --gold-deep:#a5813a; --gold-hair:#e8dcbf;
-  --tint:#faf3e0; --tint-2:#f7efda; --tint-deep:#f1e4c2;
+  --tint:#fcf7ea; --tint-2:#faf4e6; --tint-deep:#f4e8cc;
   /* 圆角尺度（4 档）*/
   --r-pill:999px; --r-lg:14px; --r-md:10px; --r-sm:8px;
   /* 卡片阴影 */
@@ -40,7 +40,7 @@ body{ font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC",
 .hd-kick{ color:var(--gold-deep); letter-spacing:.28em; font-size:12px; font-weight:600; }
 
 /* 浅灰页面底 + 白卡片，出层次（小红书 feed 风）*/
-.stage{ background:#f7f4ee; position:relative; isolation:isolate; }
+.stage{ background:#faf8f2; position:relative; isolation:isolate; }
 html[data-theme="dark"] .stage{ background:#121212; }
 .grain::after{ content:none; display:none; }
 
@@ -67,9 +67,10 @@ html[data-theme="dark"] select.field option{ background:#2a2a2c; }
 
 /* 按钮（小红书现代风 · 红色胶囊 + 按压手感）*/
 /* 默认金按钮=次级：淡金底 + 深金字（降级，避免满屏金色抢焦点）*/
-.btn-go{ background:linear-gradient(180deg,#f2e6c8,#e6d1a1); color:#7a5c1e; border-radius:999px !important; font-weight:600; letter-spacing:.01em;
+.btn-go{ display:inline-flex; align-items:center; justify-content:center; gap:6px; background:linear-gradient(180deg,#f2e6c8,#e6d1a1); color:#7a5c1e; border-radius:999px !important; font-weight:600; letter-spacing:.01em;
   box-shadow:0 1px 3px rgba(150,110,30,.18), inset 0 1px 0 rgba(255,255,255,.5);
   transition:transform .14s ease, filter .15s, box-shadow .15s; }
+.btn-go svg{ flex:none; }
 .btn-go:hover{ filter:brightness(1.02); transform:translateY(-1px); box-shadow:0 4px 10px -3px rgba(150,110,30,.3), inset 0 1px 0 rgba(255,255,255,.5); }
 /* 主行动按钮=主级：实金底 + 白字白 icon，突出唯一主 CTA（如「开始创作」「去获客」）*/
 .btn-go.primary{ background:linear-gradient(180deg,#e6cf8e,#cca552); color:#fff; font-weight:700; text-shadow:0 1px 2px rgba(120,88,20,.55); box-shadow:0 5px 14px -4px rgba(190,150,50,.5), inset 0 1px 0 rgba(255,255,255,.55); }

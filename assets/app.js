@@ -495,8 +495,8 @@ window.buildShell = function () {
   const side = document.createElement('aside'); side.id = 'agSide'; side.className = 'ag-side';
   side.innerHTML =
     `<a href="/" class="ag-brand"><img src="/assets/logo-mark.svg" alt="朱砂"/><div><div class="bn">朱砂 · 操盘台</div><div class="bs">VERTICAL AGENT STUDIO</div></div></a>
-     <a href="/流水线.html?new=1" class="ag-create"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f8f0dd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>开始创作笔记</a>
-     <a href="/账号矩阵.html" class="ag-growth-cta"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a6a24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="#8a6a24"/></svg>获客 · 账号矩阵</a>
+     <a href="/流水线.html?new=1" class="ag-create"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>开始创作笔记</a>
+     <a href="/账号矩阵.html" class="ag-growth-cta"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>获客 · 账号矩阵</a>
      <div class="ag-side-hint">选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签 → 合规自检，一条流水线出一篇可发笔记。</div>
      <div class="ag-grow"></div>
      <div class="ag-usage" id="agUsage"></div>`;
@@ -708,10 +708,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function el(html) { const d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
   function mk(t) { return window.mark ? window.mark(t) : String(t || ''); }
   // 悬浮按钮：左侧中部（避开右下角「一键对标生成」等按钮）
-  const fab = el(`<button id="xhsFab" title="创作助手 · 帮助中心" style="position:fixed;right:22px;bottom:22px;z-index:130;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(180deg,#e6cf8e,#cca552);color:#fff;font-size:24px;box-shadow:0 8px 24px -6px rgba(190,150,50,.55),inset 0 1px 0 rgba(255,255,255,.5)">📕</button>`);
+  const fab = el(`<button id="xhsFab" title="创作助手 · 帮助中心" style="position:fixed;right:22px;bottom:22px;z-index:130;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(180deg,#e6cf8e,#cca552);color:#fff;font-size:24px;box-shadow:0 8px 24px -6px rgba(190,150,50,.55),inset 0 1px 0 rgba(255,255,255,.5)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff9ee" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5z"/></svg></button>`);
   const panel = el(`<div id="xhsPanel" style="position:fixed;right:22px;bottom:88px;z-index:131;width:min(380px,93vw);height:min(540px,82vh);background:var(--paper,#fff);color:var(--ink,#222);border:1px solid var(--line,#eee);border-radius:16px;box-shadow:0 18px 50px -12px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden">
     <div id="xhsHeader" style="background:${cin};color:#fff;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none">
-      <div style="font-weight:700;font-size:14px">📕 创作助手 · 帮助中心（小红书+公众号） <span style="opacity:.7;font-weight:400;font-size:11px">⠿ 可拖动</span></div>
+      <div style="font-weight:700;font-size:14px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff9ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5z"/></svg>创作助手 · 帮助中心（小红书+公众号） <span style="opacity:.7;font-weight:400;font-size:11px">⠿ 可拖动</span></div>
       <button id="xhsClose" title="收起" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1">×</button></div>
     <div style="display:flex;border-bottom:1px solid var(--line,#eee);font-size:12.5px">
       <button class="xhs-tab" data-t="doc" style="flex:1;border:none;background:none;padding:9px 0;cursor:pointer;font-weight:600">📘 操作文档</button>
