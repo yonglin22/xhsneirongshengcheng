@@ -1365,6 +1365,8 @@ ${isCover ? '⓪【手帐标注风·本封面卡专用】重点名词/数字用 
       const head = j.blocks[0] && j.blocks[0].t;
       if (isCover && head !== 'title') j.blocks.unshift({ t: 'title', text: (title || state.topic || '').slice(0, 16) });
       else if (!isCover && head !== 'sec' && head !== 'title') j.blocks.unshift({ t: 'sec', text: (title || state.topic || '').slice(0, 16) });
+      // 内页统一用「小节标题」(nt-sec)：AI 偶尔在内页误用 t=title(大标题 nt-h1)→显得过大，全部降为 sec（仅内页，封面页不动）
+      if (!isCover) j.blocks.forEach(b => { if (b && b.t === 'title') b.t = 'sec'; });
       // 框架「版式」里点名要高亮的关键词 → 强制套到标题上（AI 漏了也补）
       const kws = hlKeywordsFromSeg(frameSrc);
       if (kws.length) { const hb = j.blocks.find(b => b.t === 'title' || b.t === 'sec'); if (hb) hb.text = forceHighlight(hb.text, kws); }
