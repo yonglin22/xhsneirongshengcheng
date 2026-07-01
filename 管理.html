@@ -193,8 +193,16 @@ const views = {
   },
   async prices() {
     const { j } = await aget('/api/admin/prices'); if (!j.ok) return '加载失败：' + (j.error || '');
-    const label = { text: '文字(选题/拆解/框架/正文…)', image_std: '配图·标清', image_hd: '配图·高清(可灵)', image_premium: '配图·高级(Seedream)', compliance: '合规质检', vision: '对标图视觉解析' };
-    const rows = (j.prices || []).map(p => `<tr data-k="${p.action_key}"><td>${label[p.action_key] || p.action_key}</td><td class="text-[var(--ink-soft)]">${p.action_key}</td><td class="r"><input class="pr-c field rounded px-2 py-1 text-[12px] r" style="width:80px" type="number" value="${p.credits}"> 积分</td></tr>`).join('');
+    const label = {
+      topic: '选题', skeleton: '对标拆解', frame: '框架', copy: '正文', cover: '封面文案', text: '文字(选题/拆解/框架/正文…)', rule_query: '规则查询', imgplan: '配图规划', compliance: '合规质检', vision: '对标图视觉解析',
+      image_i2i: '图生图', image_card: '生卡片图', image_std: '配图·标清', image_hd: '配图·高清(可灵)', image_premium: '配图·高级(Seedream)',
+      account_matrix: '账号矩阵·接入', comment: '拟人评论生成', deai: '去AI味 / 爆款诊断'
+    };
+    // 归类：矩阵获客相关 vs 内容创作（其余默认内容创作）
+    const HK = { account_matrix: 1, comment: 1 };
+    const grp = k => HK[k] ? '<span style="display:inline-block;font-size:10px;font-weight:700;color:#2563eb;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);border-radius:6px;padding:1px 6px;margin-right:7px">矩阵获客</span>' : '<span style="display:inline-block;font-size:10px;font-weight:700;color:var(--cinnabar-deep);background:rgba(255,36,66,.08);border:1px solid rgba(255,36,66,.2);border-radius:6px;padding:1px 6px;margin-right:7px">内容创作</span>';
+    // 矩阵获客项排前面，方便查看
+    const rows = (j.prices || []).slice().sort((a, b) => (HK[b.action_key] || 0) - (HK[a.action_key] || 0)).map(p => `<tr data-k="${p.action_key}"><td>${grp(p.action_key)}${label[p.action_key] || p.action_key}</td><td class="text-[var(--ink-soft)]">${p.action_key}</td><td class="r"><input class="pr-c field rounded px-2 py-1 text-[12px] r" style="width:80px" type="number" value="${p.credits}"> 积分</td></tr>`).join('');
     return `<div class="card p-4 overflow-x-auto">
       <div class="flex items-center gap-2 mb-3 flex-wrap">
         <input id="prSearch" class="field rounded-lg px-3 py-1.5 text-[12px]" style="min-width:200px" placeholder="🔍 搜计费点 / key" />
@@ -202,7 +210,7 @@ const views = {
       </div>
       <table><thead><tr><th>计费点</th><th>key</th><th class="r">单价</th></tr></thead><tbody id="prBody">${rows}</tbody></table>
       <div class="flex items-center gap-2 mt-3"><button id="prSave" class="btn-go rounded-lg px-4 py-1.5 text-[12px]">保存计费</button><span id="prMsg" class="text-[12px] text-[var(--ink-soft)]"></span></div>
-      <p class="text-[12px] text-[var(--ink-soft)] mt-2">1 积分≈¥0.01。PRD §8 建议：选题5/拆解框架10/正文10/配图60/质检免费/规则5（文字类目前统一按 text 计价；如需分步差异化需在流水线按 action 传不同 key，可后续接）。</p></div>`;
+      <p class="text-[12px] text-[var(--ink-soft)] mt-2">1 积分≈¥0.01。<b style="color:#2563eb">矩阵获客计费</b>：账号矩阵接入<b>免费</b>（account_matrix=0）；养号/截流的互动由「朱砂助手」插件在本机执行、<b>不逐条扣费</b>，唯一 AI 成本是「拟人评论生成(comment)」按此单价计。<b style="color:var(--cinnabar-deep)">内容创作计费</b>：图生图/生卡片图/文字步骤等按上表。改完点「保存计费」即时生效。</p></div>`;
   },
   async rules() {
     const { j } = await aget('/api/admin/kb');
