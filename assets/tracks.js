@@ -279,11 +279,26 @@ function __ctSave(o) { try { localStorage.setItem(__ctKey(), JSON.stringify(o ||
 })();
 
 let __loadedCustom = []; // 当前已合并进 TRACKS 的自定义赛道 id（用于换账号时卸载）
+// 自愈：早期「恢复的智能体」壳把 domain/audience/占位写成占位词，导致选题跑偏到"恢复/康复"。
+// 只要用户已把名字改成别的，就把领域/受众/占位/标签同步成新名字（人设/知识库不动），并回写云端。
+const __RECOVER_PLACEHOLDER = /恢复的智能体/;
+function __healTrack(t) {
+  if (!t || !t.id || !t.name || __RECOVER_PLACEHOLDER.test(t.name)) return false;
+  const stale = __RECOVER_PLACEHOLDER.test(t.domain || '') || __RECOVER_PLACEHOLDER.test(t.audience || '')
+    || __RECOVER_PLACEHOLDER.test((t.placeholders && (t.placeholders.persona + t.placeholders.direction + t.placeholders.topic)) || '');
+  if (!stale) return false;
+  t.domain = t.name;
+  t.audience = t.name + '相关人群';
+  t.bigTags = ['#' + t.name];
+  t.placeholders = { persona: t.name + '博主', direction: t.name, topic: t.name + ' 新手必看的几点' };
+  return true;
+}
 window.reloadCustomTracks = function () {
   __loadedCustom.forEach(id => { delete window.TRACKS[id]; const i = window.TRACK_ORDER.indexOf(id); if (i >= 0) window.TRACK_ORDER.splice(i, 1); });
   __loadedCustom = [];
-  const c = __ctLoad();
-  Object.keys(c).forEach(id => { window.TRACKS[id] = c[id]; if (!window.TRACK_ORDER.includes(id)) window.TRACK_ORDER.push(id); __loadedCustom.push(id); });
+  const c = __ctLoad(); let dirty = false;
+  Object.keys(c).forEach(id => { if (__healTrack(c[id])) dirty = true; window.TRACKS[id] = c[id]; if (!window.TRACK_ORDER.includes(id)) window.TRACK_ORDER.push(id); __loadedCustom.push(id); });
+  if (dirty) { __ctSave(c); Object.keys(c).forEach(id => { try { __persistTrackCloud(c[id]); } catch {} }); }
 };
 window.reloadCustomTracks(); // 初次按当前账号载入
 
@@ -315,7 +330,9 @@ window.addCustomTrack = function (t) {
 window.hydrateCloudTrack = function (t) {
   if (!t || !t.id) return false;
   if (__ctLoad()[t.id]) return false; // 本地已有则跳过
+  const healed = __healTrack(t); // 云端存的旧壳也顺手自愈
   __registerCustomTrack(t, { select: false });
+  if (healed) { try { __persistTrackCloud(t); } catch {} }
   return true;
 };
 // 重命名自定义赛道（名称/emoji）：更新本地 + 云端持久化，跨设备同步
