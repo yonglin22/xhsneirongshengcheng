@@ -357,6 +357,9 @@ window.removeCustomTrack = function (id) {
   delete window.TRACKS[id];
   const i = window.TRACK_ORDER.indexOf(id); if (i >= 0) window.TRACK_ORDER.splice(i, 1);
   const j = __loadedCustom.indexOf(id); if (j >= 0) __loadedCustom.splice(j, 1);
+  try { localStorage.removeItem('ag_cfg_' + id); } catch {}
+  // ★ 同步删除云端配置，否则登录后 syncAgentConfigsDown 会把它回灌，表现为「删不掉」
+  try { return (window.CloudAgent && CloudAgent.remove) ? CloudAgent.remove(id) : Promise.resolve(); } catch { return Promise.resolve(); }
 };
 window.isCustomTrack = function (id) { try { return !!__ctLoad()[id]; } catch { return false; } };
 /* 用 名称/领域/受众 拼一个可用的赛道对象（带默认值，保证全站能跑）*/

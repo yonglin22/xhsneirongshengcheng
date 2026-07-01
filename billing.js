@@ -717,6 +717,10 @@ function agentConfigAll(uid) {
 function agentConfigSave(uid, trackId, config) {
   db.prepare('INSERT OR REPLACE INTO agent_config(user_id,track_id,config,updated_at) VALUES(?,?,?,?)').run(uid, String(trackId), JSON.stringify(config || {}), Date.now());
 }
+// 删除某用户某赛道智能体的云端配置（用于删除自定义赛道，避免登录后又被同步回灌导致「删不掉」）
+function agentConfigDelete(uid, trackId) {
+  db.prepare('DELETE FROM agent_config WHERE user_id=? AND track_id=?').run(uid, String(trackId));
+}
 // 管理排查：按手机号查该用户在服务端存的全部智能体(赛道)配置，含赛道定义(_track)与人设/知识库概览，供核对/导出/恢复
 function adminUserAgents(phone) {
   const u = getUserByPhone(String(phone || '').trim());
@@ -751,7 +755,7 @@ module.exports = {
   grant, deduct, adminAdjust, createOrder, getOrder, markPaid, recentLedger, SIGNUP_GRANT,
   historyList, historyGet, historyUpsert, historyRemove, adminTasks, adminTaskStats,
   templatePurchasedList, templateBuy, TEMPLATE_PRICE, funnelStats,
-  agentConfigAll, agentConfigSave, adminUserAgents,
+  agentConfigAll, agentConfigSave, agentConfigDelete, adminUserAgents,
   ensureInviteCode, inviteStats,
   adminOrders, adminUsers, adminSummary,
   levelsGet, levelsSet, getAllPrices, setPrice,

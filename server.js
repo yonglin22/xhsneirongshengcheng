@@ -1305,6 +1305,13 @@ const server = http.createServer(async (req, res) => {
       billing.agentConfigSave(uid, trackId, config || {});
       return sendJSON(res, 200, { ok: true });
     }
+    if (pathname === '/api/agent-config/delete' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const { trackId } = JSON.parse((await readBody(req)) || '{}');
+      if (!trackId) return sendJSON(res, 400, { error: '缺少 trackId' });
+      billing.agentConfigDelete(uid, trackId);
+      return sendJSON(res, 200, { ok: true });
+    }
 
     // 获客 Agent · 社媒账号矩阵（按用户存）
     if (pathname === '/api/accounts' && req.method === 'GET') {

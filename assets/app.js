@@ -264,6 +264,7 @@ window.Cloud = {
 window.CloudAgent = {
   async all() { try { const j = await (await fetch('/api/agent-config/all')).json(); return j.ok ? j.list : []; } catch { return []; } },
   async save(trackId, config) { try { await fetch('/api/agent-config', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ trackId, config }) }); } catch {} },
+  async remove(trackId) { try { await fetch('/api/agent-config/delete', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ trackId }) }); } catch {} },
 };
 // 登录后把云端智能体配置同步进 localStorage（供 effectivePersona 同步读取）。返回是否同步过。
 window.syncAgentConfigsDown = async () => {
@@ -573,15 +574,19 @@ window.buildMyAgentNav = function () {
     if (!wasOpen) dd.classList.add('open');
   }));
   if (!window.__ddCloseBound) { window.__ddCloseBound = 1; document.addEventListener('click', () => document.querySelectorAll('.ag-dd.open').forEach(x => x.classList.remove('open'))); }
-  el.querySelectorAll('.ag-dd-item[data-id]').forEach(b => b.addEventListener('click', e => {
+  el.querySelectorAll('.ag-dd-item[data-id]').forEach(b => b.addEventListener('click', async e => {
     const del = e.target && e.target.dataset && e.target.dataset.del;
     if (del) {
       e.stopPropagation();
       const nm = (window.TRACKS[del] && window.TRACKS[del].name) || del;
-      if (!confirm('删除赛道「' + nm + '」？该智能体的配置也会一并移除。')) return;
+      const ask = (typeof window.zConfirm === 'function')
+        ? await window.zConfirm('删除赛道「' + nm + '」？该智能体的配置也会一并移除。', { okText: '删除' })
+        : confirm('删除赛道「' + nm + '」？该智能体的配置也会一并移除。');
+      if (!ask) return;
       try { if (localStorage.getItem('ag_track') === del) localStorage.removeItem('ag_track'); } catch {}
       try { localStorage.removeItem('ag_cfg_' + del); } catch {}
-      if (window.removeCustomTrack) window.removeCustomTrack(del);
+      // 先等云端删除完成再跳转，避免导航中断请求导致云端残留 → 重新回灌
+      try { if (window.removeCustomTrack) await window.removeCustomTrack(del); } catch {}
       location.href = isHome ? '/' : '/流水线.html'; return;
     }
     if (typeof setTrack === 'function') setTrack(b.dataset.id);
