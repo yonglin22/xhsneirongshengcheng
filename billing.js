@@ -453,6 +453,16 @@ const RECHARGE_BONUS_MIN = parseInt(process.env.RECHARGE_BONUS_MIN_CENTS || '100
 // ===== 通用设置存储（后台可配：等级/价格/规则KB 等）=====
 function settingsGet(key, def) { const r = db.prepare('SELECT v FROM app_settings WHERE k=?').get(key); if (!r) return def; try { return JSON.parse(r.v); } catch { return def; } }
 function settingsSet(key, val) { db.prepare('INSERT OR REPLACE INTO app_settings(k,v,updated_at) VALUES(?,?,?)').run(key, JSON.stringify(val), Date.now()); return val; }
+// 公共赛道名称/图标覆盖（超级管理员改，全平台共用）
+function trackOverridesGet() { const o = settingsGet('track_overrides', {}); return (o && typeof o === 'object') ? o : {}; }
+function trackOverrideSet(trackId, name, emoji) {
+  const id = String(trackId || '').trim(); if (!id) return { ok: false, error: '缺少 trackId' };
+  const ov = trackOverridesGet(); const cur = ov[id] || {};
+  if (name != null && String(name).trim()) cur.name = String(name).trim().slice(0, 20);
+  if (emoji != null && String(emoji).trim()) cur.emoji = String(emoji).trim().slice(0, 4);
+  ov[id] = cur; settingsSet('track_overrides', ov);
+  return { ok: true, overrides: ov };
+}
 
 const DEFAULT_LEVELS = [
   { key: '普通', name: '普通会员', min: 0, bonus: 0.10, perks: '充值赠分 10%（满¥100） · 完整创作闭环' },
@@ -768,6 +778,7 @@ module.exports = {
   historyList, historyGet, historyUpsert, historyRemove, adminTasks, adminTaskStats,
   templatePurchasedList, templateBuy, TEMPLATE_PRICE, funnelStats,
   agentConfigAll, agentConfigSave, agentConfigDelete, adminUserAgents, adminDeleteUserAgents,
+  trackOverridesGet, trackOverrideSet,
   ensureInviteCode, inviteStats,
   adminOrders, adminUsers, adminSummary,
   levelsGet, levelsSet, getAllPrices, setPrice,

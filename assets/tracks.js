@@ -384,3 +384,40 @@ window.buildTrack = function ({ name, emoji, domain, audience, persona, bigTags,
     custom: true,
   };
 };
+
+/* ===== 公共赛道名称/图标覆盖：超级管理员可改，全平台共用 =====
+   服务端 app_settings.track_overrides = { [trackId]: {name, emoji} }。
+   localStorage 缓存做同步首屏应用（避免闪烁/脚本顺序问题），再从服务端拉最新刷新。*/
+window.PRESET_TRACK_IDS = ['art-grad', 'design-grad', 'career'];
+function __applyTrackOverrides(ov) {
+  if (!ov || typeof ov !== 'object') return false;
+  let changed = false;
+  Object.keys(ov).forEach(id => {
+    const t = window.TRACKS[id]; if (!t) return;
+    const o = ov[id] || {};
+    if (o.name && t.name !== String(o.name)) { t.name = String(o.name).slice(0, 20); changed = true; }
+    if (o.emoji && t.emoji !== String(o.emoji)) { t.emoji = String(o.emoji).slice(0, 4); changed = true; }
+  });
+  return changed;
+}
+try { __applyTrackOverrides(JSON.parse(localStorage.getItem('track_overrides_cache') || '{}')); } catch {}
+(function () {
+  try {
+    fetch('/api/track-overrides').then(r => r.json()).then(j => {
+      if (!j || !j.ok) return;
+      try { localStorage.setItem('track_overrides_cache', JSON.stringify(j.overrides || {})); } catch {}
+      if (__applyTrackOverrides(j.overrides || {})) {
+        try { if (typeof window.buildMyAgentNav === 'function') window.buildMyAgentNav(); } catch {}
+        try { document.dispatchEvent(new CustomEvent('tracks-overrides-applied')); } catch {}
+      }
+    }).catch(() => {});
+  } catch {}
+})();
+// 管理员本地即时应用（服务端持久化由调用方 POST /api/admin/track-override）
+window.setPresetTrackName = function (id, name, emoji) {
+  const t = window.TRACKS[id]; if (!t) return false;
+  if (name && String(name).trim()) t.name = String(name).trim().slice(0, 20);
+  if (emoji && String(emoji).trim()) t.emoji = String(emoji).trim().slice(0, 4);
+  try { const c = JSON.parse(localStorage.getItem('track_overrides_cache') || '{}'); c[id] = { name: t.name, emoji: t.emoji }; localStorage.setItem('track_overrides_cache', JSON.stringify(c)); } catch {}
+  return true;
+};

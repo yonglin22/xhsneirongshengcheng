@@ -154,7 +154,7 @@
 </div>
 
 <script src="/assets/ui-dialog.js?v=3"></script>
-<script src="/assets/tracks.js?v=26"></script>
+<script src="/assets/tracks.js?v=27"></script>
 <script src="/assets/app.js?v=71"></script>
 <script>
 const SKILLS = [
@@ -181,14 +181,27 @@ function renderChips() {
 document.addEventListener('click', async e => {
   if (!e.target.closest('#renameBtn')) return;
   const t = TRACKS[curId]; if (!t) return;
+  const isCustom = (typeof isCustomTrack === 'function' && isCustomTrack(curId));
   const name = await zPrompt('给这个智能体起个名字', t.name || '', { title: '✏️ 重命名智能体', placeholder: '如：全域营销智能体', maxlength: 20, okText: '保存' });
   if (name == null || !name.trim()) return;
   const emoji = await zPrompt('图标 emoji（可留空保持不变）', t.emoji || '🧩', { title: '选个图标', placeholder: '🌐', maxlength: 4, okText: '保存' });
-  if (typeof renameCustomTrack === 'function' && renameCustomTrack(curId, name, emoji)) {
-    load();
-    if (window.zToast) zToast('已重命名为「' + TRACKS[curId].name + '」·已云端同步', 'ok');
-    $('#status').textContent = '✓ 已重命名为「' + TRACKS[curId].name + '」（已云端同步）';
-    $('#status').style.color = '#00a152';
+  if (isCustom) {
+    if (typeof renameCustomTrack === 'function' && renameCustomTrack(curId, name, emoji)) {
+      load();
+      if (window.zToast) zToast('已重命名为「' + TRACKS[curId].name + '」·已云端同步', 'ok');
+      $('#status').textContent = '✓ 已重命名为「' + TRACKS[curId].name + '」（已云端同步）';
+      $('#status').style.color = '#00a152';
+    }
+  } else {
+    // 公共赛道：仅超级管理员可改，改名全平台共用
+    if (typeof setPresetTrackName === 'function') setPresetTrackName(curId, name, emoji);
+    const r = await fetch('/api/admin/track-override', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ trackId: curId, name, emoji }) }).then(x => x.json()).catch(() => ({ ok: false }));
+    if (r && r.ok) {
+      renderChips(); load();
+      if (window.zToast) zToast('已重命名为「' + TRACKS[curId].name + '」·全平台共用已生效', 'ok');
+      $('#status').textContent = '✓ 公共赛道已重命名为「' + TRACKS[curId].name + '」（全平台共用）';
+      $('#status').style.color = '#00a152';
+    } else if (window.zAlert) { zAlert('保存失败：' + ((r && r.error) || '需超级管理员权限'), { title: '重命名失败' }); }
   }
 });
 function renderSkills() {
@@ -206,8 +219,14 @@ function load() {
   $('#kb1').value = c.kb1 || ''; $('#kb3').value = c.kb3 || ''; $('#kb2').value = c.kb2 || ''; $('#kb4').value = c.kb4 || '';
   $('#agentName').textContent = t.emoji + ' ' + t.name;
   $('#agentDomain').textContent = '领域：' + t.domain + ' · 受众：' + t.audience;
-  // 自定义赛道可重命名（公共赛道不可改名）
-  const rb = $('#renameBtn'); if (rb) rb.style.display = (typeof isCustomTrack === 'function' && isCustomTrack(curId)) ? '' : 'none';
+  // 自定义赛道可重命名；公共赛道仅超级管理员可改名（全平台共用）
+  const rb = $('#renameBtn');
+  if (rb) {
+    const mine = (typeof isCustomTrack === 'function' && isCustomTrack(curId));
+    const admin = !!(window.__me && window.__me.isAdmin);
+    rb.style.display = (mine || admin) ? '' : 'none';
+    rb.textContent = (!mine && admin) ? '✏️ 重命名（公共）' : '✏️ 重命名';
+  }
   $('#status').textContent = '';
   kbFiles = { kb1: c.kb1_files || [], kb2: c.kb2_files || [], kb3: c.kb3_files || [], kb4: c.kb4_files || [] };
   customSkills = Array.isArray(c.skills) ? c.skills.map(s => ({ name: s.name || '', prompt: s.prompt || '', github: s.github || '' })) : [];
@@ -501,7 +520,7 @@ $('#filePreview').addEventListener('click', e => { if (e.target === $('#filePrev
 document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#filePreview').classList.remove('open'); });
 
 // 先把云端配置同步进本地（登录则跨设备），再渲染
-(async () => { try { if (window.syncAgentConfigsDown) await syncAgentConfigsDown(); } catch {} load(); })();
+(async () => { try { if (window.meFetch) { const m = await window.meFetch(); window.__me = (m && m.ok) ? m : window.__me; } } catch {} try { if (window.syncAgentConfigsDown) await syncAgentConfigsDown(); } catch {} load(); })();
 </script>
 </body>
 </html>
