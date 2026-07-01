@@ -204,6 +204,11 @@ function noteStatPut(uid, d){
 }
 function noteStatsList(uid){ return db.prepare('SELECT id,account_id,account_name,platform,note_title,note_url,views,likes,favs,comments,published_at,collected_at FROM note_stats WHERE user_id=? ORDER BY collected_at DESC LIMIT 500').all(uid); }
 function noteStatRemove(uid, id){ if(id==='all'){ db.prepare('DELETE FROM note_stats WHERE user_id=?').run(uid); return true; } db.prepare('DELETE FROM note_stats WHERE id=? AND user_id=?').run(id,uid); return true; }
+// 手动改账号名（插件没抓到昵称时补录）；id='all' 或传 ids 数组可批量置为同一账号
+function noteStatSetAccount(uid, id, name){ const nm=String(name||'').slice(0,80);
+  if(Array.isArray(id)){ const st=db.prepare('UPDATE note_stats SET account_name=? WHERE id=? AND user_id=?'); id.forEach(x=>st.run(nm,parseInt(x)||0,uid)); return true; }
+  if(id==='all'){ db.prepare('UPDATE note_stats SET account_name=? WHERE user_id=?').run(nm,uid); return true; }
+  db.prepare('UPDATE note_stats SET account_name=? WHERE id=? AND user_id=?').run(nm,parseInt(id)||0,uid); return true; }
 
 // ===== 获客 Agent · 多设备/多账号任务下发队列 =====
 // 把一个计划下发给多个账号，生成待领取任务；任一登录了同一朱砂账号的设备(插件)可拉取并执行，跑完回报。
@@ -792,7 +797,7 @@ module.exports = {
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
   leadsList, leadsAdd, leadRemove, leadsClear, leadStatus,
   dispatchAdd, dispatchList, dispatchPull, dispatchDone, dispatchCancel, dispatchReport, dispatchSet,
-  noteStatPut, noteStatsList, noteStatRemove,
+  noteStatPut, noteStatsList, noteStatRemove, noteStatSetAccount,
   cdispAdd, cdispList, cdispPull, cdispDone, cdispCancel,
   deviceHeartbeat, devicesList, deviceRename, deviceCmd, deviceRemove, deviceTokenIssue, deviceTokenReset, verifyDeviceToken,
   agentQuota, agentRegister, agentUnregister, agentApply, agentAppsAll, agentAppDecide,

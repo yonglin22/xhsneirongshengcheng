@@ -97,7 +97,7 @@ function render(){
   list.innerHTML=`<div class="card" style="padding:0;overflow:auto"><table class="zt"><thead><tr>
       <th style="width:120px">账号</th><th>笔记标题</th><th style="width:84px">发布</th><th style="width:60px">小眼睛</th><th style="width:48px">赞</th><th style="width:48px">藏</th><th style="width:48px">评论</th><th>调优建议</th><th style="width:56px"></th></tr></thead><tbody>${
     arr.map(n=>`<tr data-id="${n.id}">
-      <td style="font-weight:600">${esc(n.account_name||'—')}</td>
+      <td class="ns-acct" style="font-weight:600;cursor:pointer" title="点击修改账号">${esc(n.account_name||'—')} <span style="opacity:.4;font-size:10px">✎</span></td>
       <td>${n.note_url?`<a href="${esc(n.note_url)}" target="_blank" rel="noopener">${esc(n.note_title||'(无标题)')}↗</a>`:esc(n.note_title||'(无标题)')}</td>
       <td style="font-size:11px;color:var(--ink-soft);white-space:nowrap">${fmtTime(n.published_at)}</td>
       <td><b>${n.views||0}</b></td><td>${n.likes||0}</td><td>${n.favs||0}</td><td>${n.comments||0}</td>
@@ -107,7 +107,15 @@ function render(){
 }
 document.getElementById('list').addEventListener('click', async e=>{
   const row=e.target.closest('[data-id]'); if(!row) return;
-  if(e.target.closest('.ns-del')){ const id=+row.dataset.id; await api('/remove','POST',{id}); NOTES=NOTES.filter(x=>x.id!==id); render(); }
+  if(e.target.closest('.ns-del')){ const id=+row.dataset.id; await api('/remove','POST',{id}); NOTES=NOTES.filter(x=>x.id!==id); render(); return; }
+  if(e.target.closest('.ns-acct')){
+    const id=+row.dataset.id; const n=NOTES.find(x=>x.id===id); if(!n) return;
+    const name=await zPrompt('账号名（该笔记发布/所属的小红书账号）', n.account_name||'', {title:'✏️ 修改账号', placeholder:'如 设计考研学姐', maxlength:40, okText:'保存'});
+    if(name==null) return;
+    const r=await api('/account','POST',{id, account_name:name.trim()});
+    if(r&&r.ok){ n.account_name=name.trim(); fillAcctFilter(); render(); zToast&&zToast('已更新账号','ok'); } else zToast&&zToast('保存失败','err');
+    return;
+  }
 });
 document.getElementById('fAcct').addEventListener('change',render);
 document.getElementById('fKw').addEventListener('input',render);

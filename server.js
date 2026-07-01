@@ -1482,6 +1482,11 @@ const server = http.createServer(async (req, res) => {
       const b = JSON.parse((await readBody(req)) || '{}');
       return sendJSON(res, 200, { ok: billing.noteStatRemove(uid, b.id) });
     }
+    if (pathname === '/api/note-stats/account' && req.method === 'POST') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      const b = JSON.parse((await readBody(req)) || '{}');
+      return sendJSON(res, 200, { ok: billing.noteStatSetAccount(uid, b.id, b.account_name) });
+    }
 
     // 内容分发：把一张 PNG(data URL) 落地成短链（复用 gen/ 静态目录），供分发任务存 URL 而非大体积 base64
     if (pathname === '/api/media-put' && req.method === 'POST') {
