@@ -746,6 +746,18 @@ function adminUserAgents(phone) {
   });
   return { ok: true, user: { id: u.id, phone: u.phone, nickname: u.nickname || '', level: u.level || '' }, agents };
 }
+// 管理清理：删除某手机号用户在服务端的智能体配置。trackId 传具体值=删单个；传 '*' 或空=清空该用户全部
+function adminDeleteUserAgents(phone, trackId) {
+  const u = getUserByPhone(String(phone || '').trim());
+  if (!u) return { ok: false, error: '用户不存在' };
+  let removed;
+  if (!trackId || trackId === '*') {
+    removed = db.prepare('DELETE FROM agent_config WHERE user_id=?').run(u.id).changes;
+  } else {
+    removed = db.prepare('DELETE FROM agent_config WHERE user_id=? AND track_id=?').run(u.id, String(trackId)).changes;
+  }
+  return { ok: true, removed };
+}
 
 priceMigrateV2(); // 一次性对齐 PRD §8 价格（幂等）
 priceMigrateV3(); // 一次性对齐 v3 价目（图生图100/卡片图30/自检免费/矩阵免费/其余50）（幂等）
@@ -755,7 +767,7 @@ module.exports = {
   grant, deduct, adminAdjust, createOrder, getOrder, markPaid, recentLedger, SIGNUP_GRANT,
   historyList, historyGet, historyUpsert, historyRemove, adminTasks, adminTaskStats,
   templatePurchasedList, templateBuy, TEMPLATE_PRICE, funnelStats,
-  agentConfigAll, agentConfigSave, agentConfigDelete, adminUserAgents,
+  agentConfigAll, agentConfigSave, agentConfigDelete, adminUserAgents, adminDeleteUserAgents,
   ensureInviteCode, inviteStats,
   adminOrders, adminUsers, adminSummary,
   levelsGet, levelsSet, getAllPrices, setPrice,
