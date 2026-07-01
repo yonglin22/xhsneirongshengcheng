@@ -227,7 +227,9 @@
   <section style="margin-top:32px">
     <div class="hm-sechead">
       <h2 class="hm-sectitle">📒 我的作品</h2>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <select id="worksTrack" class="hm-search" style="width:auto;cursor:pointer"><option value="">全部赛道</option></select>
+        <select id="worksPlat" class="hm-search" style="width:auto;cursor:pointer"><option value="">全部平台</option><option value="xhs">📕 小红书</option><option value="gzh">📰 公众号</option></select>
         <input id="worksSearch" class="hm-search" placeholder="🔍 搜索作品名称" />
         <a href="/流水线.html" class="hm-more">历史记录 →</a>
       </div>
@@ -492,6 +494,8 @@ function fmtD(ts) { const d = new Date(ts); const p = n => String(n).padStart(2,
 function renderWorks(filter) {
   const grid = document.getElementById('worksGrid'); if (!grid) return;
   let list = _works.slice(); if (filter) { const f = filter.toLowerCase(); list = list.filter(w => String(w.topic || '').toLowerCase().includes(f)); }
+  const tSel = ($('#worksTrack') || {}).value || ''; if (tSel) list = list.filter(w => String(w.track || '') === tSel);
+  const pSel = ($('#worksPlat') || {}).value || ''; if (pSel) list = list.filter(w => (w.platform === 'gzh' ? 'gzh' : 'xhs') === pSel);
   if (!list.length) { grid.innerHTML = `<div class="hm-empty">${_works.length ? '没有匹配的作品。' : '还没有作品 —— 点上方「✍️ 开始创作」生成你的第一篇爆款笔记吧。'}</div>`; return; }
   grid.innerHTML = list.slice(0, 12).map(w => { const s = workStatus(w);
     // ① 有真实出图(http) → 显示首图；② 长文笔记款 → 用首张笔记卡的底色/标题渲染彩色封面缩略图；③ 还没出图 → 浅色标题占位
@@ -529,7 +533,14 @@ function renderWorks(filter) {
   }));
 }
 async function openWork(id, dest) { try { const d = await Cloud.get(id); if (d) { Draft.clear(); d._runId = id; Draft.save(d); } } catch {} location.href = dest; }
-async function loadWorks() { try { _works = await Cloud.list(); } catch { _works = []; } renderWorks(); }
+function fillTrackFilter() {
+  const sel = $('#worksTrack'); if (!sel) return;
+  const cur = sel.value;
+  const tracks = [...new Set(_works.map(w => String(w.track || '')).filter(Boolean))];
+  sel.innerHTML = '<option value="">全部赛道</option>' + tracks.map(t => `<option value="${t.replace(/"/g, '&quot;')}">${workEmoji(t)} ${t.replace(/</g, '&lt;')}</option>`).join('');
+  sel.value = cur;
+}
+async function loadWorks() { try { _works = await Cloud.list(); } catch { _works = []; } fillTrackFilter(); renderWorks(); }
 
 // ===== 付费成品模板（120 积分/套，买了进「我的作品」可改；预览免费）=====
 let _tplCatalog = null, _tplPrice = 120, _tplOwned = {};
@@ -610,6 +621,8 @@ async function tplBuy(btn) {
   } catch (e) { btn.disabled = false; btn.textContent = old; toast('网络错误，请重试', 'err'); }
 }
 $('#worksSearch')?.addEventListener('input', e => renderWorks(e.target.value.trim()));
+$('#worksTrack')?.addEventListener('change', () => renderWorks(($('#worksSearch') || {}).value || ''));
+$('#worksPlat')?.addEventListener('change', () => renderWorks(($('#worksSearch') || {}).value || ''));
 
 // ===== 我的智能体（赛道卡片）=====
 function renderAgents() {
