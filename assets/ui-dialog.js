@@ -14,7 +14,9 @@
     + '.zdlg-btn.go:hover{filter:brightness(1.05)}'
     + '.ztoast-wrap{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:100030;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}'
     + '.ztoast{background:rgba(22,24,29,.94);color:#fff;font-size:13px;padding:10px 18px;border-radius:10px;box-shadow:0 10px 30px -8px rgba(0,0,0,.45);max-width:80vw;animation:zdlgFade .14s ease}'
-    + '.ztoast.ok{background:#0a7d43}.ztoast.err{background:#c0341f}';
+    + '.ztoast.ok{background:#0a7d43}.ztoast.err{background:#c0341f}'
+    + '.zdlg-input{width:100%;margin-top:12px;border:1px solid var(--line,#e7e0d4);border-radius:9px;padding:9px 12px;font-size:14px;color:var(--ink,#2a2520);background:var(--paper,#fff);box-sizing:border-box}'
+    + '.zdlg-input:focus{outline:none;border-color:var(--cinnabar,#ff2442);box-shadow:0 0 0 3px rgba(255,36,66,.12)}';
   var st=document.createElement('style'); st.textContent=css; (document.head||document.documentElement).appendChild(st);
 
   function build(opts){
@@ -39,6 +41,25 @@
 
   window.zAlert=function(message,opt){ opt=opt||{}; return build({message:message,title:opt.title,okText:opt.okText,confirm:false}); };
   window.zConfirm=function(message,opt){ opt=opt||{}; return build({message:message,title:opt.title||'确认操作',okText:opt.okText||'确定',cancelText:opt.cancelText,confirm:true}); };
+  // 输入弹框：返回 Promise<string|null>（取消/关闭=null）。opt: {title, okText, cancelText, placeholder, maxlength}
+  window.zPrompt=function(message,defVal,opt){
+    opt=opt||{};
+    return new Promise(function(resolve){
+      var mask=document.createElement('div'); mask.className='zdlg-mask';
+      mask.innerHTML='<div class="zdlg" role="dialog">'
+        + (opt.title?'<div class="zdlg-t">'+esc(opt.title)+'</div>':'')
+        + (message?'<div class="zdlg-b">'+esc(message)+'</div>':'')
+        + '<input class="zdlg-input" type="text" '+(opt.maxlength?('maxlength="'+opt.maxlength+'" '):'')+'placeholder="'+esc(opt.placeholder||'')+'" />'
+        + '<div class="zdlg-f"><button class="zdlg-btn" data-r="0">'+(opt.cancelText||'取消')+'</button><button class="zdlg-btn go" data-r="1">'+(opt.okText||'确定')+'</button></div></div>';
+      document.body.appendChild(mask);
+      var inp=mask.querySelector('.zdlg-input'); inp.value=(defVal==null?'':String(defVal));
+      var done=function(v){ if(mask.parentNode) mask.parentNode.removeChild(mask); document.removeEventListener('keydown',onKey); resolve(v); };
+      function onKey(e){ if(e.key==='Escape') done(null); else if(e.key==='Enter') done(inp.value); }
+      mask.addEventListener('click',function(e){ if(e.target===mask){ done(null); return; } var r=e.target.getAttribute&&e.target.getAttribute('data-r'); if(r!=null) done(r==='1'?inp.value:null); });
+      document.addEventListener('keydown',onKey);
+      setTimeout(function(){ inp.focus(); inp.select(); },30);
+    });
+  };
   window.zToast=function(message,type){
     var wrap=document.querySelector('.ztoast-wrap'); if(!wrap){ wrap=document.createElement('div'); wrap.className='ztoast-wrap'; document.body.appendChild(wrap); }
     var t=document.createElement('div'); t.className='ztoast'+(type?(' '+type):''); t.textContent=message; wrap.appendChild(t);

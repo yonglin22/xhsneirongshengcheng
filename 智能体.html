@@ -153,6 +153,7 @@
   </div>
 </div>
 
+<script src="/assets/ui-dialog.js?v=2"></script>
 <script src="/assets/tracks.js?v=23"></script>
 <script src="/assets/app.js?v=63"></script>
 <script>
@@ -177,14 +178,15 @@ function renderChips() {
   $$('#chips .tk-chip').forEach(b => b.addEventListener('click', () => { curId = b.dataset.id; load(); }));
 }
 // 重命名当前自定义赛道
-document.addEventListener('click', e => {
+document.addEventListener('click', async e => {
   if (!e.target.closest('#renameBtn')) return;
   const t = TRACKS[curId]; if (!t) return;
-  const name = prompt('给这个智能体起个名字：', t.name || '');
-  if (name == null) return;
-  const emoji = prompt('图标 emoji（可留空保持不变）：', t.emoji || '🧩');
+  const name = await zPrompt('给这个智能体起个名字', t.name || '', { title: '✏️ 重命名智能体', placeholder: '如：全域营销智能体', maxlength: 20, okText: '保存' });
+  if (name == null || !name.trim()) return;
+  const emoji = await zPrompt('图标 emoji（可留空保持不变）', t.emoji || '🧩', { title: '选个图标', placeholder: '🌐', maxlength: 4, okText: '保存' });
   if (typeof renameCustomTrack === 'function' && renameCustomTrack(curId, name, emoji)) {
     load();
+    if (window.zToast) zToast('已重命名为「' + TRACKS[curId].name + '」·已云端同步', 'ok');
     $('#status').textContent = '✓ 已重命名为「' + TRACKS[curId].name + '」（已云端同步）';
     $('#status').style.color = '#00a152';
   }
