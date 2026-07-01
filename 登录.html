@@ -52,11 +52,13 @@
   .lg-label{ font-size:13px; color:var(--ink-soft); }
   .lg-mobile-brand{ display:none; }
   @media(max-width:880px){
-    .lg-wrap{ grid-template-columns:1fr; }
+    .lg-wrap{ grid-template-columns:1fr; min-height:auto; }
     .lg-brand{ display:none; }
     .lg-mobile-brand{ display:flex; align-items:center; gap:10px; justify-content:center; padding:22px 0 4px; }
     .lg-mobile-brand img{ width:34px; height:34px; border-radius:9px; }
     .lg-mobile-brand .nm{ font-weight:800; font-size:16px; }
+    /* 手机：表单顶部对齐、不垂直居中，避免弹键盘时视口高度突变导致页面跳动/偏移 */
+    .lg-form{ align-items:flex-start; justify-content:center; padding:8px 20px 40px; min-height:auto; }
   }
 </style>
 </head>
