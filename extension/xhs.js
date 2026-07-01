@@ -194,9 +194,26 @@
   const DATE_RE = /\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/;          // 卡片里的发布时间
   const NUM_RE = /^\d[\d.]*\s*[万wk]?$/i;                     // 纯数字（含 1.2万/3k）
   // 卡片图标行的数字按顺序是：👁观看 · 💬评论 · ♡点赞 · ☆收藏 · ↗分享（无文字标签，只能按位置取）
+  // 取当前登录的创作者昵称（作为 account_name 回传，数据复盘按账号区分）
+  function creatorName() {
+    try {
+      const st = window.__INITIAL_STATE__ || window.__INITIAL_SSR_STATE__ || {};
+      const u = (st.user && (st.user.userInfo || st.user.info)) || st.userInfo || {};
+      const nm = u.nickname || u.nickName || u.name;
+      if (nm) return String(nm).trim().slice(0, 40);
+    } catch {}
+    const sels = ['[class*="nickname"]', '[class*="userName"]', '[class*="user-name"]', '.name', '[class*="account"] [class*="name"]'];
+    for (const s of sels) {
+      const el = document.querySelector(s);
+      const t = el && (el.textContent || '').trim();
+      if (t && t.length <= 40 && !/登录|发布|创作/.test(t)) return t;
+    }
+    return '';
+  }
   async function scrape(attempt) {
     attempt = attempt || 0;
     await sleep(attempt ? 2500 : 4500);
+    const acct = creatorName();
     // 找"最小卡片"：同时含 发布时间 + ≥4个纯数字，且没有同样满足的子元素（日期与数字常在不同分支，必须以两者的最近公共祖先为界）
     const numLeaves = el => [...el.querySelectorAll('*')].filter(e => e.children.length === 0 && NUM_RE.test((e.textContent || '').trim())).length;
     const cards = [...document.querySelectorAll('div,li,section')].filter(el => {
@@ -215,7 +232,7 @@
       const key = title + '|' + (lines.find(l => DATE_RE.test(l)) || '');
       if (seen.has(key)) continue; seen.add(key);
       const urlEl = c.querySelector('a[href*="/note"],a[href*="explore"]');
-      list.push({ note_title: title, note_url: (urlEl && urlEl.href) || '', views: st[0] || 0, comments: st[1] || 0, likes: st[2] || 0, favs: st[3] || 0, platform: 'xhs' });
+      list.push({ note_title: title, note_url: (urlEl && urlEl.href) || '', account_name: acct, views: st[0] || 0, comments: st[1] || 0, likes: st[2] || 0, favs: st[3] || 0, platform: 'xhs' });
     }
     if (list.length) {
       chrome.runtime.sendMessage({ type: 'reportNoteStats', list }, () => {
