@@ -684,7 +684,10 @@ async function regenOneCover(i) {
   const curU = (state.coverImages || [])[i] || '';
   if (curU.startsWith('note://')) {
     const idx = +curU.slice(7); const refVis = (state.refVisions || [])[i] || '';
+    const prev = (state.notePages || [])[idx] || {};
     const page = await planNotePage(i, refVis, i === 0, ((state.cover && state.cover.cover_lines) || []).join(' '), t);
+    // 继承原页样式：单页重排时 planNotePage 会重判 memo，若没检测到"备忘录"关键词会退回普通卡 → 强制保持原来的备忘录样式与底色
+    if (page && prev.memo) { page.memo = true; if (!page.bg && prev.bg) page.bg = prev.bg; }
     state.notePages = state.notePages || []; state.notePages[idx] = page; persist();
     // 重排后：重渲染并测量——若这页内容超容量被压小，自动拆成两页、后半填到下一张（仅纯长图笔记场景生效）
     try { if (typeof renderCoverImages === 'function') renderCoverImages(); } catch {}
