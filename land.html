@@ -31,6 +31,12 @@
     border-radius:999px; background:linear-gradient(180deg,#ff4259,#ff2442 60%,#f81537); color:#fff; font-size:17px; font-weight:800;
     box-shadow:0 14px 30px -10px rgba(255,36,66,.6); text-decoration:none; }
   .cta-sub{ font-size:12px; color:var(--ink-soft); margin-top:10px; }
+  /* CTA 主次：主=实心红，次=描边幽灵 */
+  .cta-row{ display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:22px; }
+  .cta-row .cta{ margin-top:0; }
+  .cta-ghost{ display:inline-flex; align-items:center; height:52px; padding:0 22px; border-radius:999px; background:#fff;
+    color:var(--cinnabar-deep); font-size:15px; font-weight:700; border:1.5px solid rgba(255,36,66,.28); text-decoration:none; }
+  .cta-ghost:hover{ background:rgba(255,36,66,.05); }
   /* 区块 */
   section{ padding:30px 22px; }
   .sec-k{ font-size:12px; letter-spacing:.24em; color:var(--cinnabar); font-weight:700; text-align:center; }
@@ -98,12 +104,15 @@
     <span class="pain">😩 憋选题 · 写不出爆款 · 单号做不大 · 不会获客？</span>
     <h1 class="h1">最懂你赛道的 <b>AI 操盘手</b><br>从<b>一篇爆款</b>到<b>矩阵起号</b></h1>
     <p class="sub">垂直赛道智能体帮你把小红书从 0 做起来：<b>一条流水线出可发笔记</b>（选题→正文→封面→合规自检），再用<b>账号矩阵养号截流</b>自动获客涨粉。0 基础也能上手。</p>
-    <a href="/登录.html" class="cta" id="ctaTop">▶ 免费生成第一篇笔记</a>
+    <div class="cta-row">
+      <a href="/登录.html" class="cta" id="ctaTop">▶ 免费生成第一篇笔记</a>
+      <a href="#edges" class="cta-ghost">看核心竞争力 ↓</a>
+    </div>
     <div class="cta-sub">🎁 注册即送 <b style="color:var(--cinnabar)">200 积分</b>，够你先跑几篇</div>
   </div>
 
   <!-- 三大核心竞争力 -->
-  <section>
+  <section id="edges">
     <div class="sec-k">核心竞争力</div>
     <div class="sec-h">别人给你个对话框，我们给你整套操盘台</div>
     <div class="edges">
