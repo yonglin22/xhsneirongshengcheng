@@ -566,7 +566,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .ag-dd-x:hover{ background:rgba(0,0,0,.08); color:var(--cinnabar); }
 /* 边栏「获客·账号矩阵」次要入口（弱化，避免跟「开始创作」抢视觉重点）*/
 .ag-growth-cta{ display:flex; align-items:center; justify-content:center; gap:7px; margin:9px 4px 0; padding:10px;
-  border-radius:14px; background:rgba(165,129,58,.08); color:#8a6a24; font-weight:600; font-size:13px;
+  border-radius:14px; background:rgba(165,129,58,.08); color:#8a6a24; font-weight:600; font-size:13.5px;
+  font-family:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif;
   border:1px solid rgba(165,129,58,.22); transition:background .15s; }
 .ag-growth-cta:hover{ background:rgba(165,129,58,.14); }
 .ag-growth-cta:active{ background:rgba(165,129,58,.18); }
@@ -610,7 +611,8 @@ html[data-theme="dark"] .ag-side{ background:var(--paper); border-right-color:#2
 .ag-brand .bs{ font-size:9px; letter-spacing:.22em; color:var(--ink-soft); }
 /* 边栏唯一核心 CTA：开始创作——全站只留这一个强红色，其余入口都弱化，突出重点 */
 .ag-create{ display:flex; align-items:center; justify-content:center; gap:7px; margin:6px 4px 0; padding:13px;
-  border-radius:14px; background:linear-gradient(180deg,#f2e6c8,#e6d1a1); color:#7a5c1e; font-weight:700; font-size:14.5px;
+  border-radius:14px; background:linear-gradient(180deg,#f2e6c8,#e6d1a1); color:#7a5c1e; font-weight:700; font-size:15px;
+  font-family:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif;
   box-shadow:0 5px 14px -4px rgba(190,150,50,.4), inset 0 1px 0 rgba(255,255,255,.55); transition:transform .14s ease, filter .15s; }
 .ag-create:hover{ transform:translateY(-1px); filter:brightness(.96); }
 .ag-create:active{ transform:translateY(0); filter:brightness(.92); }
