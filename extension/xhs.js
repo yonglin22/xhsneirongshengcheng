@@ -227,10 +227,18 @@
       console.log('[朱砂助手] 数据回流：没抓到笔记数据（可能不在笔记管理页，或页面改版需校准）');
     }
   }
-  // 页面出现"笔记管理"字样或已有带时间的卡片时才抓（避免在发布页误触发）
+  // 仅在"笔记管理"列表页抓：URL 命中 note-manager，或页面有 全部/已发布 标签 + 笔记卡片
+  let _lastRun = 0;
   function maybe() {
-    const t = document.body.innerText || '';
-    if (/笔记管理|已发布|发布笔记/.test(t) && DATE_RE.test(t)) scrape(0);
+    const onList = /note-manager|notes-manager|note_manager/i.test(location.href) ||
+      (/笔记管理/.test(document.body.innerText || '') && /全部\s*\d+|已发布/.test(document.body.innerText || ''));
+    if (!onList) return;
+    if (Date.now() - _lastRun < 8000) return; // 防抖
+    if (!DATE_RE.test(document.body.innerText || '')) return;
+    _lastRun = Date.now(); scrape(0);
   }
   setTimeout(maybe, 3500);
+  // SPA 路由变化也重试（小红书创作中心是单页应用，内部切换不会重载内容脚本）
+  let _lastHref = location.href;
+  setInterval(() => { if (location.href !== _lastHref) { _lastHref = location.href; setTimeout(maybe, 2500); } }, 1500);
 })();
