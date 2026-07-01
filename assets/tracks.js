@@ -318,6 +318,15 @@ window.hydrateCloudTrack = function (t) {
   __registerCustomTrack(t, { select: false });
   return true;
 };
+// 重命名自定义赛道（名称/emoji）：更新本地 + 云端持久化，跨设备同步
+window.renameCustomTrack = function (id, name, emoji) {
+  const store = __ctLoad(); const t = store[id] || window.TRACKS[id]; if (!t) return false;
+  if (name != null && String(name).trim()) t.name = String(name).trim().slice(0, 20);
+  if (emoji != null && String(emoji).trim()) t.emoji = String(emoji).trim().slice(0, 4);
+  store[id] = t; __ctSave(store); window.TRACKS[id] = t;
+  __persistTrackCloud(t); // 同步云端，换设备可见
+  return true;
+};
 window.removeCustomTrack = function (id) {
   const store = __ctLoad(); delete store[id]; __ctSave(store);
   delete window.TRACKS[id];

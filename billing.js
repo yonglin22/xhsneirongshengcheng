@@ -717,6 +717,31 @@ function agentConfigAll(uid) {
 function agentConfigSave(uid, trackId, config) {
   db.prepare('INSERT OR REPLACE INTO agent_config(user_id,track_id,config,updated_at) VALUES(?,?,?,?)').run(uid, String(trackId), JSON.stringify(config || {}), Date.now());
 }
+// 管理排查：按手机号查该用户在服务端存的全部智能体(赛道)配置，含赛道定义(_track)与人设/知识库概览，供核对/导出/恢复
+function adminUserAgents(phone) {
+  const u = getUserByPhone(String(phone || '').trim());
+  if (!u) return { ok: false, error: '用户不存在' };
+  const rows = db.prepare('SELECT track_id, config, updated_at FROM agent_config WHERE user_id=? ORDER BY updated_at DESC').all(u.id);
+  const agents = rows.map(r => {
+    let c = {}; try { c = JSON.parse(r.config); } catch {}
+    const t = c._track || null;
+    const persona = c.persona || (t && t.persona) || '';
+    const kbChars = ['kb1', 'kb2', 'kb3', 'kb4'].reduce((n, k) => n + String(c[k] || '').length, 0);
+    return {
+      trackId: r.track_id,
+      name: (t && t.name) || (/^custom-/.test(r.track_id) ? '(未命名·仅人设/知识库)' : r.track_id),
+      emoji: (t && t.emoji) || '',
+      isCustom: /^custom-/.test(r.track_id),
+      hasTrackDef: !!t,
+      personaLen: persona.length,
+      kbChars,
+      skills: Array.isArray(c.skills) ? c.skills.length : 0,
+      updatedAt: r.updated_at,
+      config: c, // 完整配置，供导出/恢复
+    };
+  });
+  return { ok: true, user: { id: u.id, phone: u.phone, nickname: u.nickname || '', level: u.level || '' }, agents };
+}
 
 priceMigrateV2(); // 一次性对齐 PRD §8 价格（幂等）
 priceMigrateV3(); // 一次性对齐 v3 价目（图生图100/卡片图30/自检免费/矩阵免费/其余50）（幂等）
@@ -726,7 +751,7 @@ module.exports = {
   grant, deduct, adminAdjust, createOrder, getOrder, markPaid, recentLedger, SIGNUP_GRANT,
   historyList, historyGet, historyUpsert, historyRemove, adminTasks, adminTaskStats,
   templatePurchasedList, templateBuy, TEMPLATE_PRICE, funnelStats,
-  agentConfigAll, agentConfigSave,
+  agentConfigAll, agentConfigSave, adminUserAgents,
   ensureInviteCode, inviteStats,
   adminOrders, adminUsers, adminSummary,
   levelsGet, levelsSet, getAllPrices, setPrice,

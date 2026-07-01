@@ -126,7 +126,7 @@
     <aside class="space-y-5">
       <div class="card p-5">
         <div class="text-[13px] font-medium mb-1">正在配置</div>
-        <div id="agentName" class="font-song font-bold text-[20px] mb-1">—</div>
+        <div class="flex items-center gap-2 mb-1"><div id="agentName" class="font-song font-bold text-[20px]">—</div><button id="renameBtn" class="btn-ghost rounded-md px-2 py-0.5 text-[11px]" style="display:none">✏️ 重命名</button></div>
         <div id="agentDomain" class="text-[12px] text-[var(--ink-soft)]"></div>
       </div>
       <div class="card p-5">
@@ -153,7 +153,7 @@
   </div>
 </div>
 
-<script src="/assets/tracks.js?v=22"></script>
+<script src="/assets/tracks.js?v=23"></script>
 <script src="/assets/app.js?v=63"></script>
 <script>
 const SKILLS = [
@@ -176,6 +176,19 @@ function renderChips() {
     return `<button class="tk-chip ${id===curId?'on':''}" data-id="${id}">${t.emoji} ${t.name}</button>`; }).join('');
   $$('#chips .tk-chip').forEach(b => b.addEventListener('click', () => { curId = b.dataset.id; load(); }));
 }
+// 重命名当前自定义赛道
+document.addEventListener('click', e => {
+  if (!e.target.closest('#renameBtn')) return;
+  const t = TRACKS[curId]; if (!t) return;
+  const name = prompt('给这个智能体起个名字：', t.name || '');
+  if (name == null) return;
+  const emoji = prompt('图标 emoji（可留空保持不变）：', t.emoji || '🧩');
+  if (typeof renameCustomTrack === 'function' && renameCustomTrack(curId, name, emoji)) {
+    load();
+    $('#status').textContent = '✓ 已重命名为「' + TRACKS[curId].name + '」（已云端同步）';
+    $('#status').style.color = '#00a152';
+  }
+});
 function renderSkills() {
   $('#skills').innerHTML = SKILLS.map(s =>
     `<div class="flex items-start gap-2.5">
@@ -191,6 +204,8 @@ function load() {
   $('#kb1').value = c.kb1 || ''; $('#kb3').value = c.kb3 || ''; $('#kb2').value = c.kb2 || ''; $('#kb4').value = c.kb4 || '';
   $('#agentName').textContent = t.emoji + ' ' + t.name;
   $('#agentDomain').textContent = '领域：' + t.domain + ' · 受众：' + t.audience;
+  // 自定义赛道可重命名（公共赛道不可改名）
+  const rb = $('#renameBtn'); if (rb) rb.style.display = (typeof isCustomTrack === 'function' && isCustomTrack(curId)) ? '' : 'none';
   $('#status').textContent = '';
   kbFiles = { kb1: c.kb1_files || [], kb2: c.kb2_files || [], kb3: c.kb3_files || [], kb4: c.kb4_files || [] };
   customSkills = Array.isArray(c.skills) ? c.skills.map(s => ({ name: s.name || '', prompt: s.prompt || '', github: s.github || '' })) : [];

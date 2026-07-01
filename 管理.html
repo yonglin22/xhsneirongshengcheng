@@ -140,7 +140,17 @@ const views = {
     if (!j.ok) return '加载失败：' + (j.error || '');
     ALL_USERS = j.users || [];
     const levels = [...new Set(ALL_USERS.map(u => u.level).filter(Boolean))];
-    return `<div class="card p-4 overflow-x-auto">
+    return `<div class="card p-4 mb-3">
+      <div class="text-[13px] font-medium mb-2">🧩 智能体排查 / 恢复（按手机号查该用户服务端存的赛道）</div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <input id="agqPhone" class="field rounded-lg px-3 py-1.5 text-[12px]" style="min-width:200px" placeholder="输入手机号，如 13757133019" />
+        <button id="agqBtn" class="btn-go rounded-lg px-4 py-1.5 text-[12px]">查询</button>
+        <span id="agqMsg" class="text-[11.5px] text-[var(--ink-soft)]"></span>
+      </div>
+      <div id="agqOut" class="mt-3"></div>
+      <div class="text-[11.5px] text-[var(--ink-soft)] mt-2">显示该用户在服务端（agent_config）存的每个智能体：赛道名、是否含完整定义、人设/知识库规模。可「导出 JSON」备份或发还用户。若一条都没有，说明其赛道当时仅存在本地浏览器、服务端无备份（需回原设备找回）。</div>
+    </div>
+    <div class="card p-4 overflow-x-auto">
       <div class="flex items-center gap-2 mb-3 flex-wrap">
         <input id="uSearch" class="field rounded-lg px-3 py-1.5 text-[12px]" style="min-width:220px" placeholder="🔍 搜手机号 / 昵称 / ID" />
         <select id="uLevel" class="field rounded-lg px-2 py-1.5 text-[12px]"><option value="">全部等级</option>${levels.map(l => `<option>${l}</option>`).join('')}</select>
@@ -425,6 +435,26 @@ async function renderView() {
   if (curView === 'qaLog') wireFilter('qaSearch', 'qaBody');
   if (curView === 'users') {
     renderUserRows();
+    const runAgq = async () => {
+      const phone = ($('#agqPhone')?.value || '').trim();
+      if (!phone) { msg('#agqMsg', '请输入手机号', false); return; }
+      msg('#agqMsg', '查询中…', true);
+      const { j } = await aget('/api/admin/user-agents?phone=' + encodeURIComponent(phone));
+      if (!j.ok) { $('#agqOut').innerHTML = ''; msg('#agqMsg', '未找到：' + (j.error || ''), false); return; }
+      msg('#agqMsg', `用户 ${j.user.phone}（ID ${j.user.id}）· 共 ${j.agents.length} 个智能体`, true);
+      window.__agq = j;
+      if (!j.agents.length) { $('#agqOut').innerHTML = '<div class="text-[12.5px]" style="color:var(--cinnabar-deep)">服务端没有该用户的任何智能体配置 —— 其赛道当时仅存在本地浏览器，需回原设备找回。</div>'; return; }
+      $('#agqOut').innerHTML = `<table><thead><tr><th>赛道名</th><th>trackId</th><th>自定义</th><th>完整定义</th><th class="r">人设字数</th><th class="r">知识库字数</th><th class="r">skills</th><th>更新时间</th><th class="r">导出</th></tr></thead><tbody>${j.agents.map((a, i) => `<tr><td>${a.emoji} ${(a.name || '').replace(/</g, '&lt;')}</td><td style="font-size:11px;color:var(--ink-soft)">${a.trackId}</td><td>${a.isCustom ? '是' : '否'}</td><td>${a.hasTrackDef ? '✓' : '<span style="color:var(--cinnabar-deep)">缺</span>'}</td><td class="r">${a.personaLen}</td><td class="r">${a.kbChars}</td><td class="r">${a.skills}</td><td>${ts(a.updatedAt)}</td><td class="r"><button class="agq-exp btn-ghost rounded px-2 py-1 text-[11px]" data-i="${i}">导出 JSON</button></td></tr>`).join('')}</tbody></table>`;
+      $('#agqOut').querySelectorAll('.agq-exp').forEach(b => b.addEventListener('click', () => {
+        const a = window.__agq.agents[+b.dataset.i];
+        const blob = new Blob([JSON.stringify(a, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob); const el = document.createElement('a');
+        el.href = url; el.download = '智能体_' + window.__agq.user.phone + '_' + a.trackId + '.json'; el.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }));
+    };
+    $('#agqBtn')?.addEventListener('click', runAgq);
+    $('#agqPhone')?.addEventListener('keydown', e => { if (e.key === 'Enter') runAgq(); });
     $('#uSearch')?.addEventListener('input', renderUserRows);
     $('#uLevel')?.addEventListener('change', renderUserRows);
     $('#ledClose')?.addEventListener('click', () => { $('#ledModal').style.display = 'none'; });

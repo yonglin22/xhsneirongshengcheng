@@ -1767,6 +1767,8 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { ok: true, id: u.id, phone: u.phone, balance: billing.getBalance(u.id), ledger: billing.recentLedger(u.id, 30) });
     }
     // 管理后台：概览 / 充值单据 / 用户列表 / 会员体系（只读）
+    // 排查/恢复：按手机号查该用户服务端存的智能体(赛道)配置
+    if (pathname === '/api/admin/user-agents') { if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' }); const r = billing.adminUserAgents(url.searchParams.get('phone') || ''); return sendJSON(res, r.ok ? 200 : 404, r); }
     if (pathname === '/api/admin/summary') { if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' }); return sendJSON(res, 200, { ok: true, ...billing.adminSummary() }); }
     if (pathname === '/api/admin/funnel') { if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' }); return sendJSON(res, 200, { ok: true, ...billing.funnelStats() }); }
     if (pathname === '/api/admin/orders') { if (!isAdminReq(req)) return sendJSON(res, 403, { error: '无权限' }); return sendJSON(res, 200, { ok: true, orders: billing.adminOrders(80) }); }
