@@ -1327,7 +1327,8 @@ async function planNotePage(i, refVis, isCover, title, t, extra) {
     for (const [re, hex] of map) if (re.test(styleAll)) return hex;
     return '';
   })();
-  for (let attempt = 0; attempt < 2; attempt++) {   // AI 失败自动重试一次，避免直接掉到"原始规划文本"兜底
+  let bestPage = null;   // 记录「AI 写得最充实的一次」——若无一次完全达标，用它，绝不降级到框架文字兜底
+  for (let attempt = 0; attempt < 3; attempt++) {   // AI 不达标自动重试，最多 3 次
   try {
     const j = extractJSON(await callClaude({
       // 带上智能体人设/KB，让文字符合本账号设定；再叠加排版任务
@@ -1363,10 +1364,10 @@ ${isCover ? '⓪【手帐标注风·本封面卡专用】重点名词/数字用 
       // 防截断残留：剔除空块（无文字且无有效 items），并去掉末尾孤立小标题（截断时 sec 返回了但其内容被切掉→显示空框/缺内容）
       j.blocks = j.blocks.filter(b => b && (b.t === 'tags' || (b.text && b.text.trim()) || (Array.isArray(b.items) && b.items.some(x => String((x && (x.text || x)) || '').trim()))));
       while (j.blocks.length && ['sec', 'sub', 'title'].includes(j.blocks[j.blocks.length - 1].t)) j.blocks.pop();
-      // ★ 硬闸门·内容充分性校验：必须有正文/列表/总结框且总字数够，否则判为截断/残缺 → 本次不接受，交给下一次重试或正文兜底（杜绝空框/缺内容/只有标题的页复现）
+      // ★ 内容充分性：必须有正文/列表/总结框且总字数够，否则判为截断/残缺（不接受，留作候选继续重试）
       const _clen = j.blocks.reduce((a, b) => a + String(b.text || '').length + (Array.isArray(b.items) ? b.items.reduce((s, x) => s + String((x && (x.text || x)) || '').length, 0) : 0), 0);
       const _hasBody = j.blocks.some(b => ['p', 'ol', 'box', 'sub'].includes(b.t));
-      if (!(_hasBody && _clen >= 40)) { throw new Error('note page content insufficient (len=' + _clen + ')'); }
+      const _sufficient = _hasBody && _clen >= 40;
       // 兜底：首块若不是标题，补一个顶部标题，保证各页标题对齐
       const head = j.blocks[0] && j.blocks[0].t;
       if (isCover && head !== 'title') j.blocks.unshift({ t: 'title', text: (title || state.topic || '').slice(0, 16) });
@@ -1380,10 +1381,14 @@ ${isCover ? '⓪【手帐标注风·本封面卡专用】重点名词/数字用 
       // 备忘录纸面永远是浅色：AI 偶尔给封面页返回深色 bg / dark:true → 卡片变全黑。memo 卡强制不深色、深色 bg 丢弃回白底
       const isDarkHex = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) < 150; };
       if (memo && isDarkHex(pageBg)) pageBg = '';
-      return { blocks: j.blocks, bg: pageBg, accent: s.accent, hl: s.hl, dark: memo ? false : !!s.dark, memo };
+      const _res = { blocks: j.blocks, bg: pageBg, accent: s.accent, hl: s.hl, dark: memo ? false : !!s.dark, memo };
+      if (_sufficient) return _res;                                   // 达标：直接用
+      if (!bestPage || _clen > bestPage._clen) { _res._clen = _clen; bestPage = _res; } // 不达标：暂存「最充实的一次」，继续重试
     }
   } catch {}
-  }   // —— 两次都失败才到这 ——
+  }   // —— 三次都不达标才到这 ——
+  // 用「AI 写得最充实的那次」，绝不降级到框架文字拼凑（保证内容仍是 AI 成文、不是骨架碎片）
+  if (bestPage) { delete bestPage._clen; return bestPage; }
   // 兜底：清洗 S3 规划，去掉"第X张/作用/生图提示词/版式"等元信息，只留「文字要点」当内容；套 memo；内容页用自己的小标题（不再都顶着封面标题→避免重复）
   const cleanParts = (() => {
     const m = String(frameSrc || '').match(/文字要点[：:]\s*([^\n]+)/);
