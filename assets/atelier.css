@@ -287,9 +287,10 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
    之前用「悬挂缩进 + 负 text-indent」在 html2canvas 导出时会把序号挤到单独一行/左上角错位，
    改 flex 后预览与导出都稳定对齐。 */
 /* 列表项不用 flexbox（html2canvas 对 flex 支持不稳、缩放导出时会把序号堆到左边）→ 序号绝对定位在左、文字左缩进，html2canvas 渲染稳定，根治序号偏移 */
-.cv-note .nt-ol li{ list-style:none; position:relative; padding-left:7.6cqw; margin:1.7cqw 0; font-size:3.7cqw; line-height:1.55; color:var(--nt-ink2); }
-.cv-note .nt-num{ position:absolute; left:0; top:.1cqw; width:5.6cqw; height:5.6cqw; overflow:visible; }
-.cv-note .nt-tx{ display:block; }
+/* 编号列表：flex 布局让序号 SVG 天然与文字首行对齐（不再靠绝对定位猜 top 偏移，行高/换行都不会错位）*/
+.cv-note .nt-ol li{ list-style:none; display:flex; align-items:flex-start; gap:2cqw; padding-left:0; margin:1.7cqw 0; font-size:3.7cqw; line-height:1.55; color:var(--nt-ink2); }
+.cv-note .nt-num{ position:static; flex:none; margin-top:.5cqw; width:5.6cqw; height:5.6cqw; overflow:visible; }
+.cv-note .nt-tx{ flex:1; min-width:0; }
 .cv-note .nt-ol b{ color:var(--nt-ink); }
 .cv-note .nt-tags{ font-size:3.7cqw; color:var(--nt-tag); margin-top:auto; padding-top:3cqw; line-height:1.75; }
 /* 高亮：marker 厚度/位置都用 em（跟字号走，不随行高漂移）；clone 让跨行各自包住文字 */
@@ -357,10 +358,9 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .cv-note.is-memo .nt-p,.cv-note.is-memo .nt-ol li{ font-size:3.7cqw; line-height:1.42; }
 .cv-note.is-memo .nt-p{ margin:.7cqw 0; }
 .cv-note.is-memo .nt-ol li{ margin:.8cqw 0; }
-/* 编号圆圈跟随缩小并与首行 ✅/文字垂直居中（按行高居中算 margin） */
-/* 备忘录：序号圈绝对定位（左0、按首行行高居中），文字左缩进留出序号位；跨平台 + html2canvas 缩放导出都不偏 */
-.cv-note.is-memo .nt-ol li{ padding-left:6.4cqw; }
-.cv-note.is-memo .nt-num{ width:4.5cqw; height:4.5cqw; top:.1cqw; }
+/* 备忘录：序号 SVG 用 flex 列跟随，天然与首行文字对齐（不再靠绝对定位/左缩进），跨平台 + html2canvas 导出都不偏 */
+.cv-note.is-memo .nt-ol li{ padding-left:0; gap:1.8cqw; }
+.cv-note.is-memo .nt-num{ width:4.5cqw; height:4.5cqw; margin-top:.35cqw; }
 .cv-note.is-memo .nt-box-li{ font-size:3.7cqw; }
 .cv-note.is-memo .nt-p{ margin:.8cqw 0; line-height:1.45; }
 .cv-note.is-memo .nt-sec .nt-dot{ display:none; }
