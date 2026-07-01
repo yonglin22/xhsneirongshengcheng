@@ -15,13 +15,13 @@
   /* 海报本体 3:4（朋友圈竖图）· 浅色暖调 */
   /* 固定 540×720（3:4）：html2canvas 对 aspect-ratio 支持差，用固定像素更稳，下载不丢内容 */
   .poster{ width:540px; height:720px; position:relative; overflow:hidden; border-radius:26px;
-    background:linear-gradient(168deg,#fff7f3 0%,#fffdfb 44%,#fff 100%); box-shadow:0 26px 60px -28px rgba(0,0,0,.4);
+    background:linear-gradient(168deg,#faf3e0 0%,#fffdf8 46%,#fff 100%); box-shadow:0 26px 60px -28px rgba(0,0,0,.4);
     padding:40px 38px; display:flex; flex-direction:column; }
   /* 小屏等比缩放显示（不影响导出的 540×720 PNG）*/
   @media (max-width:580px){ .poster{ transform:scale(calc((100vw - 32px)/540)); transform-origin:top center; } }
   .poster::after{ content:""; position:absolute; inset:0; pointer-events:none; background:
-    radial-gradient(440px 340px at 92% -6%,rgba(255,36,66,.13),transparent 62%),
-    radial-gradient(380px 380px at -8% 106%,rgba(224,145,47,.08),transparent 60%); }
+    radial-gradient(440px 340px at 92% -6%,rgba(201,168,95,.22),transparent 62%),
+    radial-gradient(380px 380px at -8% 106%,rgba(165,129,58,.12),transparent 60%); }
   .poster > *{ position:relative; z-index:1; }
   .pp-logo{ display:flex; align-items:center; gap:12px; }
   .pp-logo img{ width:44px; height:44px; border-radius:12px; box-shadow:0 8px 18px -8px rgba(225,15,41,.5); }

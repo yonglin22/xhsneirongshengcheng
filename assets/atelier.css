@@ -8,7 +8,7 @@
   /* 语义色（统一各处写死的金/合伙人/朱砂浅底）· 金色=PPT 高级质感主辅色 */
   --gold:#9a6b1e; --gold-bg:#fff3da; --gold-line:#f0d09a; --partner:#8a5a22;
   --gold-lt:#c9a85f; --gold-deep:#a5813a; --gold-hair:#e8dcbf;
-  --tint:#fff3f4; --tint-2:#fff0f2; --tint-deep:#ffe1e6;
+  --tint:#faf3e0; --tint-2:#f7efda; --tint-deep:#f1e4c2;
   /* 圆角尺度（4 档）*/
   --r-pill:999px; --r-lg:14px; --r-md:10px; --r-sm:8px;
   /* 卡片阴影 */
@@ -55,21 +55,25 @@ html[data-theme="dark"] .panel{ background:var(--paper-2); }
 
 /* 小红书红徽标（原朱砂印章位）*/
 /* 步骤序号标签：只是个标记不是按钮，弱化成浅底红字，别跟真正的 CTA 一样抢眼 */
-.stamp{ background:rgba(255,36,66,.08); color:var(--cinnabar-deep); border-radius:7px; font-weight:600; box-shadow:none; }
+.stamp{ background:rgba(165,129,58,.12); color:var(--cinnabar-deep); border-radius:7px; font-weight:600; box-shadow:none; }
 .vlabel{ writing-mode:vertical-rl; text-orientation:upright; letter-spacing:.35em; }
 
 /* 输入：浅灰填充、聚焦变白描红边 */
 .field{ background:var(--paper-2); border:1px solid transparent; color:var(--ink); border-radius:12px; transition:.15s; }
-.field:focus{ outline:none; background:#fff; border-color:var(--cinnabar); box-shadow:0 0 0 3px rgba(255,36,66,.12); }
+.field:focus{ outline:none; background:#fff; border-color:var(--cinnabar); box-shadow:0 0 0 3px rgba(165,129,58,.18); }
 html[data-theme="dark"] .field{ background:#2a2a2c; }
 html[data-theme="dark"] .field:focus{ background:#1c1c1e; }
 html[data-theme="dark"] select.field option{ background:#2a2a2c; }
 
 /* 按钮（小红书现代风 · 红色胶囊 + 按压手感）*/
-.btn-go{ background:linear-gradient(180deg,var(--brand-gold-1,#d9bd7a),var(--brand-gold-2,#b3903f)); color:var(--brand-gold-ink,#3a2c0e); border-radius:999px !important; font-weight:700; letter-spacing:.01em;
-  box-shadow:0 2px 6px -1px rgba(150,110,30,.35), inset 0 1px 0 rgba(255,255,255,.4);
+/* 默认金按钮=次级：淡金底 + 深金字（降级，避免满屏金色抢焦点）*/
+.btn-go{ background:linear-gradient(180deg,#f2e6c8,#e6d1a1); color:#7a5c1e; border-radius:999px !important; font-weight:600; letter-spacing:.01em;
+  box-shadow:0 1px 3px rgba(150,110,30,.18), inset 0 1px 0 rgba(255,255,255,.5);
   transition:transform .14s ease, filter .15s, box-shadow .15s; }
-.btn-go:hover{ filter:brightness(1.04); transform:translateY(-1px); box-shadow:0 5px 14px -3px rgba(150,110,30,.45), inset 0 1px 0 rgba(255,255,255,.4); }
+.btn-go:hover{ filter:brightness(1.02); transform:translateY(-1px); box-shadow:0 4px 10px -3px rgba(150,110,30,.3), inset 0 1px 0 rgba(255,255,255,.5); }
+/* 主行动按钮=主级：实金底 + 白字白 icon，突出唯一主 CTA（如「开始创作」「去获客」）*/
+.btn-go.primary{ background:linear-gradient(180deg,#caa85e,#a5813a); color:#fff; font-weight:700; text-shadow:0 1px 2px rgba(90,66,16,.5); box-shadow:0 4px 12px -3px rgba(150,110,30,.5), inset 0 1px 0 rgba(255,255,255,.35); }
+.btn-go.primary:hover{ filter:brightness(1.05); }
 .btn-go:active{ transform:translateY(0); filter:brightness(.92); box-shadow:0 1px 2px rgba(0,0,0,.1); }
 .btn-go:disabled{ opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
 .btn-ghost{ background:#fff; border:1px solid var(--line); color:#444; border-radius:999px !important; font-weight:500;
@@ -87,7 +91,7 @@ html[data-theme="dark"] .theme-toggle{ background:var(--paper-2); }
 /* 顶栏 tab：选中＝粉底红字 */
 .tab{ padding:6px 14px; border-radius:999px; font-size:13.5px; color:var(--ink-soft); transition:.15s; white-space:nowrap; font-weight:500; }
 .tab:hover{ color:var(--ink); background:var(--paper-2); }
-.tab.active{ background:rgba(255,36,66,.1); color:var(--cinnabar); font-weight:600; }
+.tab.active{ background:rgba(165,129,58,.12); color:var(--cinnabar); font-weight:600; }
 .tab.disabled{ opacity:.4; pointer-events:none; }
 
 .needverify{ background:rgba(255,36,66,.1); color:var(--cinnabar-deep); border-bottom:1px dashed var(--cinnabar); padding:0 3px; border-radius:3px; }
@@ -561,10 +565,10 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 .ag-dd-x:hover{ background:rgba(0,0,0,.08); color:var(--cinnabar); }
 /* 边栏「获客·账号矩阵」次要入口（弱化，避免跟「开始创作」抢视觉重点）*/
 .ag-growth-cta{ display:flex; align-items:center; justify-content:center; gap:7px; margin:9px 4px 0; padding:10px;
-  border-radius:14px; background:rgba(255,138,0,.08); color:#c97200; font-weight:600; font-size:13px;
-  border:1px solid rgba(255,138,0,.18); transition:background .15s; }
-.ag-growth-cta:hover{ background:rgba(255,138,0,.14); }
-.ag-growth-cta:active{ background:rgba(255,138,0,.18); }
+  border-radius:14px; background:rgba(165,129,58,.08); color:#8a6a24; font-weight:600; font-size:13px;
+  border:1px solid rgba(165,129,58,.22); transition:background .15s; }
+.ag-growth-cta:hover{ background:rgba(165,129,58,.14); }
+.ag-growth-cta:active{ background:rgba(165,129,58,.18); }
 
 /* 封面模板·微调（位置/对齐/字号）——叠加在各模板之上 */
 .cv-ctpl.adj-top{ justify-content:flex-start; }
@@ -602,8 +606,8 @@ html[data-theme="dark"] .ag-side{ background:var(--paper); border-right-color:#2
 .ag-brand .bs{ font-size:9px; letter-spacing:.22em; color:var(--ink-soft); }
 /* 边栏唯一核心 CTA：开始创作——全站只留这一个强红色，其余入口都弱化，突出重点 */
 .ag-create{ display:flex; align-items:center; justify-content:center; gap:7px; margin:6px 4px 0; padding:13px;
-  border-radius:14px; background:var(--cinnabar); color:#fff; font-weight:700; font-size:14.5px;
-  box-shadow:0 2px 6px -2px rgba(255,36,66,.35); transition:transform .14s ease, filter .15s; }
+  border-radius:14px; background:linear-gradient(180deg,#caa85e,#a5813a); color:#fff; font-weight:700; font-size:14.5px; text-shadow:0 1px 2px rgba(90,66,16,.5);
+  box-shadow:0 4px 12px -3px rgba(150,110,30,.5), inset 0 1px 0 rgba(255,255,255,.35); transition:transform .14s ease, filter .15s; }
 .ag-create:hover{ transform:translateY(-1px); filter:brightness(.96); }
 .ag-create:active{ transform:translateY(0); filter:brightness(.92); }
 .ag-side-hint{ margin:14px 6px 0; font-size:11.5px; line-height:1.7; color:var(--ink-soft); }

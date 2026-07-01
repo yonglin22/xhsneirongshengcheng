@@ -6,19 +6,19 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>登录 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=110" />
+<link rel="stylesheet" href="/assets/atelier.css?v=111" />
 <style>
   html,body{ height:100%; }
   .lg-wrap{ min-height:100vh; display:grid; grid-template-columns:1.05fr .95fr; }
   /* 左：品牌讲解背景 —— 与首页左侧边栏一致的浅粉→白渐变 + 玻璃感 */
   .lg-brand{ position:relative; overflow:hidden; padding:60px 64px; display:flex; flex-direction:column;
     align-items:flex-start; justify-content:center; text-align:left; color:var(--ink);
-    background:linear-gradient(160deg, rgba(255,226,231,.96) 0%, rgba(255,243,245,.85) 48%, rgba(255,255,255,.8) 100%);
+    background:linear-gradient(160deg, rgba(250,243,224,.96) 0%, rgba(253,248,236,.85) 48%, rgba(255,255,255,.8) 100%);
     backdrop-filter:blur(16px) saturate(1.5); -webkit-backdrop-filter:blur(16px) saturate(1.5);
-    border-right:1px solid rgba(255,36,66,.12); }
+    border-right:1px solid rgba(165,129,58,.2); }
   .lg-brand::after{ content:""; position:absolute; inset:0; pointer-events:none; background:
-    radial-gradient(640px 460px at 84% 10%,rgba(255,36,66,.10),transparent 62%),
-    radial-gradient(560px 560px at 8% 94%,rgba(255,36,66,.07),transparent 60%); }
+    radial-gradient(640px 460px at 84% 10%,rgba(201,168,95,.16),transparent 62%),
+    radial-gradient(560px 560px at 8% 94%,rgba(165,129,58,.10),transparent 60%); }
   .lg-brand > *{ position:relative; z-index:1; }
   .lg-inner{ width:100%; max-width:540px; }   /* 自定义行宽：控制标题断行 */
   .lg-logo{ display:flex; align-items:center; gap:14px; }
@@ -26,8 +26,8 @@
   .lg-logo .nm{ font-weight:800; font-size:20px; letter-spacing:.02em; }
   .lg-logo .en{ font-size:11px; letter-spacing:.32em; color:var(--ink-soft); }
   .lg-kicker{ font-size:12px; letter-spacing:.3em; color:var(--cinnabar); font-weight:600; margin-top:26px; }
-  .lg-pain{ margin-top:14px; font-size:14px; font-weight:600; color:#b23a48; background:rgba(255,36,66,.07);
-    border:1px solid rgba(255,36,66,.16); border-radius:10px; padding:8px 13px; display:inline-block; max-width:460px; line-height:1.55; }
+  .lg-pain{ margin-top:14px; font-size:14px; font-weight:600; color:#b23a48; background:rgba(165,129,58,.08);
+    border:1px solid rgba(165,129,58,.2); border-radius:10px; padding:8px 13px; display:inline-block; max-width:460px; line-height:1.55; }
   html[data-theme="dark"] .lg-pain{ color:#ff9aa8; }
   .lg-h1{ font-size:clamp(36px,3.8vw,52px); font-weight:400; line-height:1.12; letter-spacing:-.01em; margin-top:12px; font-family:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif; }
   .lg-h1 span{ display:block; white-space:nowrap; }   /* 每行整体不断字 */
@@ -35,13 +35,13 @@
   .lg-sub{ font-size:16px; line-height:1.6; color:var(--ink-soft); margin:14px 0 0; max-width:420px; }
   .lg-chips{ margin-top:22px; display:grid; grid-template-columns:repeat(2,1fr); gap:10px; max-width:420px; }
   .lg-chip{ display:flex; align-items:center; gap:11px; text-align:left; background:rgba(255,255,255,.58);
-    border:1px solid rgba(255,36,66,.14); border-radius:14px; padding:11px 14px; }
+    border:1px solid rgba(165,129,58,.2); border-radius:14px; padding:11px 14px; }
   .lg-chip .ic{ flex:0 0 auto; font-size:21px; }
   .lg-chip .tx{ font-size:15px; font-weight:700; }
   .lg-flow{ margin-top:32px; font-size:12px; color:var(--ink-soft); letter-spacing:.01em; line-height:2.2; max-width:480px; }
   .lg-flow b{ background:rgba(255,36,66,.10); color:var(--cinnabar-deep); padding:3px 10px; border-radius:8px; font-weight:600; white-space:nowrap; }
   .lg-perk{ margin-top:18px; display:inline-flex; align-items:center; gap:8px; max-width:440px; font-size:12.5px; font-weight:600;
-    color:#fff; background:linear-gradient(100deg,var(--cinnabar),#ff5b73); padding:9px 15px; border-radius:12px;
+    color:#fff; background:linear-gradient(100deg,#caa85e,#a5813a); padding:9px 15px; border-radius:12px;
     box-shadow:0 8px 20px -8px rgba(255,36,66,.55); line-height:1.5; }
   .lg-foot{ margin-top:16px; font-size:12px; color:var(--ink-soft); }
   /* 右：登录表单 */
