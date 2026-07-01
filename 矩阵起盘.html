@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>矩阵起盘 SOP · 朱砂操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 <style>
   .ph-num{ font-family:Times New Roman,serif; font-size:34px; line-height:1; color:var(--cinnabar); opacity:.9; }
   .tline{ position:relative; padding-left:18px; }
@@ -33,7 +33,7 @@
   </footer>
 </main>
 <script src="/assets/tracks.js?v=25"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/app.js?v=68"></script>
 <script>
 (function render(){
   const box=document.getElementById('sop');
@@ -55,7 +55,7 @@
     <div class="flex items-start gap-4">
       <div class="ph-num">${i+1}</div>
       <div class="flex-1">
-        <div class="flex items-baseline gap-2 flex-wrap"><div class="font-song font-bold text-[15px]">${M(p.name)}</div><span class="text-[11px] px-2 py-0.5 rounded-full" style="background:rgba(255,36,66,.1);color:var(--cinnabar-deep)">${M(p.span)}</span></div>
+        <div class="flex items-baseline gap-2 flex-wrap"><div class="font-song font-bold text-[15px]">${M(p.name)}</div><span class="text-[11px] px-2 py-0.5 rounded-full" style="background:rgba(165,129,58,.1);color:var(--cinnabar-deep)">${M(p.span)}</span></div>
         <div class="text-[12.5px] text-[var(--ink-soft)] mt-1 mb-2.5">🎯 ${M(p.goal)}</div>
         <div class="space-y-1.5">${(p.todo||[]).map(t=>`<div class="tline text-[13px] leading-snug">${M(t)}</div>`).join('')}</div>
       </div>

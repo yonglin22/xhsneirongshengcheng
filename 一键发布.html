@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>一键发布 · 获客 Agent · 朱砂操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
@@ -26,7 +26,7 @@
 
   <div class="card p-4 mt-5">
     <div class="flex items-center gap-3 flex-wrap">
-      <button id="extPubBtn" class="rounded-xl px-6 py-3 text-[14px] font-medium" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🧩 用插件发布到草稿箱（零风控）</button>
+      <button id="extPubBtn" class="rounded-xl px-6 py-3 text-[14px] font-medium" style="background:linear-gradient(180deg,#caa85e,#a5813a);color:#fff">🧩 用插件发布到草稿箱（零风控）</button>
       <span id="pubStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
     </div>
     <div id="extHint" class="mt-2 text-[12px]" style="display:none"></div>
@@ -51,7 +51,7 @@
 
 <script src="/assets/tracks.js?v=25"></script>
 <script src="/assets/pinyin.js?v=1"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/app.js?v=68"></script>
 <script>
 let WORK = null, sel = new Set();
 function fmtD(ts){ try{ const d=new Date(ts); return (d.getMonth()+1)+'/'+d.getDate(); }catch{ return ''; } }
@@ -103,7 +103,7 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
   const adj=[parts[1]?'adj-'+parts[1]:'',parts[2]?'adj-'+parts[2]:'',parts[3]?'tsz-'+parts[3]:''].filter(Boolean).join(' ');
   lines=(lines||[]).filter(Boolean);
   const title=autoEm(lines[0]||''); const sub=(lines.slice(1).join(' ')||'').replace(/==(.+?)==/g,'$1');
-  const acc=((parts[5]&&/^[0-9a-f]{6}$/i.test(parts[5]))?('#'+parts[5]):'')||'#ff2442';
+  const acc=((parts[5]&&/^[0-9a-f]{6}$/i.test(parts[5]))?('#'+parts[5]):'')||'#a5813a';
   const adjBg=(parts[4]&&/^[0-9a-f]{6}$/i.test(parts[4]))?('#'+parts[4]):'';
   const bg=adjBg||'#ffffff';
   const isDark=(h=>{const m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return false;const n=parseInt(m[1],16);return (0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))<110;})(bg);
@@ -272,7 +272,7 @@ async function loadWorks(){
   const draft = loadDraft();
   const draftImgs = (draft.coverImages||(draft.coverImage?[draft.coverImage]:[])).filter(Boolean).length;
   const draftHtml = draftImgs ? `
-    <label class="flex items-center gap-2.5" style="border:1.5px solid var(--cinnabar);border-radius:10px;padding:9px 11px;cursor:pointer;background:rgba(255,36,66,.04)" data-id="__draft__">
+    <label class="flex items-center gap-2.5" style="border:1.5px solid var(--cinnabar);border-radius:10px;padding:9px 11px;cursor:pointer;background:rgba(165,129,58,.04)" data-id="__draft__">
       <input type="radio" name="wk" value="__draft__" checked style="width:15px;height:15px"/>
       <span style="flex:1;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 当前编辑中这篇（最新 · ${draftImgs} 张图）${(draft.topic||'').trim()?'：'+(draft.topic||'').trim().replace(/</g,'&lt;'):''}</span>
       <span style="font-size:10px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:1px 6px">推荐</span>
@@ -281,7 +281,7 @@ async function loadWorks(){
     <label class="flex items-center gap-2.5" style="border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer" data-id="${w.id}">
       <input type="radio" name="wk" value="${w.id}" style="width:15px;height:15px"/>
       <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(w.topic||'（未命名）').replace(/</g,'&lt;')}</span>
-      <span style="font-size:10px;color:#fff;background:${w.platform==='gzh'?'#07c160':'#ff2442'};border-radius:6px;padding:1px 6px">${w.platform==='gzh'?'公众号':'小红书'}</span>
+      <span style="font-size:10px;color:#fff;background:${w.platform==='gzh'?'#07c160':'#a5813a'};border-radius:6px;padding:1px 6px">${w.platform==='gzh'?'公众号':'小红书'}</span>
       <span style="font-size:11px;color:var(--ink-soft)">${fmtD(w.ts)}</span>
     </label>`).join('') : (draftHtml?'':'<div class="text-[13px] text-[var(--ink-soft)] text-center py-6">还没有成稿，先去创作流水线生成。</div>'));
   function setStatus(WORK){

@@ -315,10 +315,10 @@ window.creditModal = function (need, bal) {
   m.innerHTML = '<div style="background:var(--paper,#fff);border-radius:18px;width:min(360px,92vw);padding:24px 22px;box-shadow:0 30px 70px -20px rgba(0,0,0,.5);text-align:center">'
     + '<div style="font-size:34px">💎</div>'
     + '<div style="font-size:17px;font-weight:800;margin-top:6px;color:var(--ink,#222)">积分不足</div>'
-    + '<div style="font-size:13px;color:var(--ink-soft,#9499a0);line-height:1.7;margin-top:8px">本次约需 <b style="color:var(--cinnabar,#ff2442)">' + (need ?? '') + '</b> 积分，当前余额 <b>' + (bal ?? 0) + '</b>。<br>充值后即可继续生成。</div>'
+    + '<div style="font-size:13px;color:var(--ink-soft,#9499a0);line-height:1.7;margin-top:8px">本次约需 <b style="color:var(--cinnabar,#a5813a)">' + (need ?? '') + '</b> 积分，当前余额 <b>' + (bal ?? 0) + '</b>。<br>充值后即可继续生成。</div>'
     + '<div style="display:flex;gap:10px;margin-top:18px">'
     + '<button id="agCreditCancel" style="flex:1;height:42px;border-radius:999px;border:1px solid var(--line,#eee);background:var(--paper,#fff);color:#555;font-size:14px;cursor:pointer">再想想</button>'
-    + '<a href="/充值.html" style="flex:1;height:42px;border-radius:999px;background:var(--cinnabar,#ff2442);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;text-decoration:none">去充值 →</a>'
+    + '<a href="/充值.html" style="flex:1;height:42px;border-radius:999px;background:var(--cinnabar,#a5813a);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;text-decoration:none">去充值 →</a>'
     + '</div></div>';
   document.body.appendChild(m);
   const close = () => m.remove();
@@ -495,8 +495,8 @@ window.buildShell = function () {
   const side = document.createElement('aside'); side.id = 'agSide'; side.className = 'ag-side';
   side.innerHTML =
     `<a href="/" class="ag-brand"><img src="/assets/logo-mark.svg" alt="朱砂"/><div><div class="bn">朱砂 · 操盘台</div><div class="bs">VERTICAL AGENT STUDIO</div></div></a>
-     <a href="/流水线.html?new=1" class="ag-create">✍️ 开始创作笔记</a>
-     <a href="/账号矩阵.html" class="ag-growth-cta">🎯 获客 · 账号矩阵</a>
+     <a href="/流水线.html?new=1" class="ag-create"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f8f0dd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>开始创作笔记</a>
+     <a href="/账号矩阵.html" class="ag-growth-cta"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a6a24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="#8a6a24"/></svg>获客 · 账号矩阵</a>
      <div class="ag-side-hint">选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签 → 合规自检，一条流水线出一篇可发笔记。</div>
      <div class="ag-grow"></div>
      <div class="ag-usage" id="agUsage"></div>`;
@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ===== 全站悬浮「小红书助手」Agent 入口：默认首次打开，可直接问规则/用法 ===== */
 (function xhsAssistant() {
   if (window.__xhsWidget) return; window.__xhsWidget = 1;
-  const cin = 'var(--cinnabar,#ff2442)';
+  const cin = 'var(--cinnabar,#a5813a)';
   let loaded = false, KB = '', DOCS = [], FAQ = [], RULES = [];
   function ensureHelpKB() { return new Promise(r => { if (window.HELP_DOCS) return r(); const s = document.createElement('script'); s.src = '/assets/help-kb.js?v=5'; s.onload = () => r(); s.onerror = () => r(); document.head.appendChild(s); }); }
   async function loadKB() {
@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function el(html) { const d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
   function mk(t) { return window.mark ? window.mark(t) : String(t || ''); }
   // 悬浮按钮：左侧中部（避开右下角「一键对标生成」等按钮）
-  const fab = el(`<button id="xhsFab" title="创作助手 · 帮助中心" style="position:fixed;right:22px;bottom:22px;z-index:130;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:${cin};color:#fff;font-size:24px;box-shadow:0 8px 24px -6px rgba(255,36,66,.5)">📕</button>`);
+  const fab = el(`<button id="xhsFab" title="创作助手 · 帮助中心" style="position:fixed;right:22px;bottom:22px;z-index:130;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:${cin};color:#fff;font-size:24px;box-shadow:0 8px 24px -6px rgba(165,129,58,.5)">📕</button>`);
   const panel = el(`<div id="xhsPanel" style="position:fixed;right:22px;bottom:88px;z-index:131;width:min(380px,93vw);height:min(540px,82vh);background:var(--paper,#fff);color:var(--ink,#222);border:1px solid var(--line,#eee);border-radius:16px;box-shadow:0 18px 50px -12px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden">
     <div id="xhsHeader" style="background:${cin};color:#fff;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none">
       <div style="font-weight:700;font-size:14px">📕 创作助手 · 帮助中心（小红书+公众号） <span style="opacity:.7;font-weight:400;font-size:11px">⠿ 可拖动</span></div>
@@ -743,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 实时联网：附「查小红书最新相关笔记」按钮（真实笔记链接，规则以官方为准）
       const live = document.createElement('div'); live.style.cssText = 'margin-top:8px';
       const lb = document.createElement('button'); lb.textContent = '🔄 查小红书最新相关笔记';
-      lb.style.cssText = 'border:1px dashed var(--cinnabar,#ff2442);background:transparent;color:var(--cinnabar,#ff2442);border-radius:999px;padding:3px 11px;font-size:11.5px;cursor:pointer';
+      lb.style.cssText = 'border:1px dashed var(--cinnabar,#a5813a);background:transparent;color:var(--cinnabar,#a5813a);border-radius:999px;padding:3px 11px;font-size:11.5px;cursor:pointer';
       lb.onclick = () => liveSearch(q, live, lb);
       live.appendChild(lb); wait.appendChild(live);
     } catch (e) { wait.textContent = '失败：' + (e.message || e); }
@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
           + w.results.slice(0, 6).map(r => `<a href="${r.url}" target="_blank" rel="noopener" style="display:block;border:1px solid var(--line,#eee);border-radius:9px;padding:7px 10px;margin-bottom:6px;text-decoration:none;color:inherit">
               <div style="font-size:12.5px;font-weight:600;line-height:1.4">${mk(r.title || r.url)}</div>
               ${r.snippet ? `<div style="font-size:10.5px;color:var(--ink-soft,#999);margin-top:3px;line-height:1.5">${mk(r.snippet.slice(0, 120))}…</div>` : ''}
-              <div style="font-size:10px;color:var(--cinnabar,#ff2442);margin-top:3px">${(r.url || '').replace(/^https?:\/\//, '').split('/')[0]}${r.date ? ' · ' + String(r.date).slice(0, 10) : ''}</div></a>`).join('');
+              <div style="font-size:10px;color:var(--cinnabar,#a5813a);margin-top:3px">${(r.url || '').replace(/^https?:\/\//, '').split('/')[0]}${r.date ? ' · ' + String(r.date).slice(0, 10) : ''}</div></a>`).join('');
       }
     } catch {}
     // 先渲染网页结果（若有），社区笔记区占位 loading；网页失败则该区承载社区结果
@@ -825,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
       box.appendChild(c);
     }
     const more = document.createElement('button'); more.textContent = '🔄 换一换';
-    more.style.cssText = 'border:1px dashed var(--cinnabar,#ff2442);background:transparent;color:var(--cinnabar,#ff2442);border-radius:999px;padding:3px 10px;font-size:11.5px;cursor:pointer';
+    more.style.cssText = 'border:1px dashed var(--cinnabar,#a5813a);background:transparent;color:var(--cinnabar,#a5813a);border-radius:999px;padding:3px 10px;font-size:11.5px;cursor:pointer';
     more.onclick = () => { quickIdx = (quickIdx + n) % QUICK_POOL.length; renderChips(); };
     box.appendChild(more);
   }
@@ -865,7 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!inited) {
       inited = true; await loadKB();
       const dlHTML = `<div style="display:flex;gap:8px;margin-bottom:10px">
-        <a href="/downloads/朱砂助手插件安装教程.pdf?v=20260701b" download style="flex:1;display:flex;flex-direction:column;gap:2px;text-decoration:none;border:1px solid ${cin};background:rgba(255,36,66,.06);border-radius:10px;padding:9px 10px">
+        <a href="/downloads/朱砂助手插件安装教程.pdf?v=20260701b" download style="flex:1;display:flex;flex-direction:column;gap:2px;text-decoration:none;border:1px solid ${cin};background:rgba(165,129,58,.06);border-radius:10px;padding:9px 10px">
           <span style="font-size:12.5px;font-weight:700;color:${cin}">🧩 插件安装教程</span>
           <span style="font-size:10.5px;color:var(--ink-soft,#999)">下载 PDF · 含产品截图</span></a>
         <a href="/downloads/朱砂操盘台·平台操作手册.pdf?v=20260701" download style="flex:1;display:flex;flex-direction:column;gap:2px;text-decoration:none;border:1px solid var(--line,#eee);background:var(--paper,#fff);border-radius:10px;padding:9px 10px">

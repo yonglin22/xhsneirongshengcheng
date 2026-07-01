@@ -8,17 +8,17 @@
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
 <script src="/assets/html2canvas.min.js?v=1"></script>
 <script src="/assets/jszip.min.js?v=1"></script>
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 <script src="/assets/tracks.js?v=25"></script>
 <script src="/assets/pinyin.js?v=1"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/app.js?v=68"></script>
 <style>
   :root{
     --ink:#222226; --ink-soft:#9499a0; --paper:#ffffff; --paper-2:#f5f6f8;
-    --cinnabar:#ff2442; --cinnabar-deep:#e51e3d; --indigo:#2b3a52;
-    --line:#eef0f2; --xhs-red:#ff2442; --xhs-tag:#3a5a8c;
+    --cinnabar:#a5813a; --cinnabar-deep:#846527; --indigo:#2b3a52;
+    --line:#eef0f2; --xhs-red:#a5813a; --xhs-tag:#3a5a8c;
   }
-  html[data-theme="dark"]{ --ink:#ececec; --ink-soft:#8a8d93; --paper:#161616; --paper-2:#222224; --line:#2c2c2e; --cinnabar:#ff385c; --cinnabar-deep:#ff5c78; }
+  html[data-theme="dark"]{ --ink:#ececec; --ink-soft:#8a8d93; --paper:#161616; --paper-2:#222224; --line:#2c2c2e; --cinnabar:#b3903f; --cinnabar-deep:#d9bd7a; }
   *{ -webkit-font-smoothing:antialiased; }
   body{ font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC",sans-serif; color:var(--ink); background:var(--paper); transition:background .3s, color .3s; }
   .font-display{ font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; letter-spacing:-.01em; }
@@ -35,11 +35,11 @@
   .vlabel{ writing-mode:vertical-rl; text-orientation:upright; letter-spacing:.35em; }
 
   .field{ background:var(--paper-2); border:1px solid transparent; color:var(--ink); border-radius:12px; transition:.15s; }
-  .field:focus{ outline:none; background:#fff; border-color:var(--cinnabar); box-shadow:0 0 0 3px rgba(255,36,66,.12); }
+  .field:focus{ outline:none; background:#fff; border-color:var(--cinnabar); box-shadow:0 0 0 3px rgba(165,129,58,.12); }
   html[data-theme="dark"] .field{ background:#2a2a2c; }
 
-  .btn-go{ background:linear-gradient(180deg,#ff4259 0%,#ff2442 52%,#f81537 100%); color:#fff; border-radius:999px !important; font-weight:600; box-shadow:0 4px 12px -3px rgba(255,36,66,.45); transition:transform .16s cubic-bezier(.34,1.45,.5,1), filter .15s, box-shadow .15s; }
-  .btn-go:hover{ filter:brightness(1.05) saturate(1.05); transform:translateY(-2px); box-shadow:0 10px 24px -5px rgba(255,36,66,.55); }
+  .btn-go{ background:linear-gradient(180deg,#caa85e 0%,#a5813a 52%,#f81537 100%); color:#fff; border-radius:999px !important; font-weight:600; box-shadow:0 4px 12px -3px rgba(165,129,58,.45); transition:transform .16s cubic-bezier(.34,1.45,.5,1), filter .15s, box-shadow .15s; }
+  .btn-go:hover{ filter:brightness(1.05) saturate(1.05); transform:translateY(-2px); box-shadow:0 10px 24px -5px rgba(165,129,58,.55); }
   .btn-go:active{ transform:translateY(0) scale(.96); }
   .btn-go:disabled{ opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
   .btn-ghost{ border:1px solid var(--line); background:#fff; color:#444; border-radius:999px !important; font-weight:500; transition:transform .16s cubic-bezier(.34,1.45,.5,1), background .15s, border-color .15s; }
@@ -199,7 +199,7 @@
           <button id="exportBtn" class="btn-go flex-1 rounded-xl py-2.5 text-[13px] font-medium tracking-wide flex items-center justify-center gap-2"><span>⬇</span><span>导出图文包</span></button>
           <button id="copyTextBtn" class="btn-ghost rounded-xl px-4 py-2.5 text-[13px] whitespace-nowrap">复制文案</button>
         </div>
-        <button id="toPublishBtn" class="rounded-xl w-full py-2.5 text-[13px] font-medium mt-2.5" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🚀 一键发布 → 推到小红书草稿箱</button>
+        <button id="toPublishBtn" class="rounded-xl w-full py-2.5 text-[13px] font-medium mt-2.5" style="background:linear-gradient(180deg,#caa85e,#a5813a);color:#fff">🚀 一键发布 → 推到小红书草稿箱</button>
         <p class="text-[11px] text-[var(--ink-soft)] mt-2.5 leading-relaxed">导出含封面轮播当前页 + 正文标签的整图 PNG；复制文案把标题 + 正文 + 标签一键进剪贴板。</p>
       </div>
     </section>
@@ -396,7 +396,7 @@
 </div>
 <style>
   .imp-row{ display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:var(--paper-2); }
-  .imp-row:hover{ border-color:rgba(255,36,66,.3); }
+  .imp-row:hover{ border-color:rgba(165,129,58,.3); }
   .imp-go{ flex:0 0 auto; font-size:12px; font-weight:600; color:#444; background:#f5f5f5; border:1px solid #ddd; border-radius:999px; padding:6px 16px; cursor:pointer; transition:.15s; }
   .imp-go:hover{ filter:brightness(.98); transform:translateY(-1px); }
 </style>
@@ -756,7 +756,7 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
   const adj=[parts[1]?'adj-'+parts[1]:'',parts[2]?'adj-'+parts[2]:'',parts[3]?'tsz-'+parts[3]:''].filter(Boolean).join(' ');
   lines=(lines||[]).filter(Boolean);
   const title=autoEm(lines[0]||''); const sub=(lines.slice(1).join(' ')||'').replace(/==(.+?)==/g,'$1');
-  const acc=((parts[5]&&/^[0-9a-f]{6}$/i.test(parts[5]))?('#'+parts[5]):'')||opt.accent||'#ff2442';
+  const acc=((parts[5]&&/^[0-9a-f]{6}$/i.test(parts[5]))?('#'+parts[5]):'')||opt.accent||'#a5813a';
   const adjBg=(parts[4]&&/^[0-9a-f]{6}$/i.test(parts[4]))?('#'+parts[4]):'';
   const bg=adjBg||opt.bg||'#ffffff';
   const isDark=(h=>{const m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return false;const n=parseInt(m[1],16);return (0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))<110;})(bg);

@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>账号矩阵 · 获客 Agent · 朱砂操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
 <main class="ag-page">
@@ -58,7 +58,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=25"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/app.js?v=68"></script>
 <script src="/assets/ui-dialog.js?v=1"></script>
 <script src="/assets/onboard.js?v=1"></script>
 <script>pageIntro({key:'matrix',emoji:'📇',title:'账号矩阵',intro:'集中管理你的多个小红书号。接入登录态后，才能做养号/截流、并让数据自动回流。',steps:[{t:'＋ 添加账号',d:'填昵称、分组，先建档。'},{t:'接入登录态',d:'推荐用「朱砂助手」插件回传——住宅 IP 更稳、每 75 分钟自动续期。'},{t:'（可选）一键铺设赛道矩阵',d:'主号 / 资料号 / 热点号 + 店铺，一键成型。'}],tips:['机房扫码接入的号，几小时后 cookie 可能被判失效；插件回传最稳。','账号越多，养号/截流/数据复盘越能规模化。']});</script>
@@ -79,7 +79,7 @@ function row(a) {
   return `<div class="flex items-center gap-3 flex-wrap" style="border:1px solid var(--line);border-radius:12px;padding:11px 14px;background:var(--paper-2)" data-id="${a.id}">
     <span style="font-size:13px;font-weight:700;min-width:80px">${PLAT[a.platform] || a.platform}</span>
     <span style="font-size:14px;font-weight:700;flex:1;min-width:120px">${a.nickname || '(未命名)'}</span>
-    ${a.grp ? `<span style="font-size:11px;color:var(--ink-soft);background:rgba(255,36,66,.07);border-radius:6px;padding:2px 8px">${a.grp}</span>` : ''}
+    ${a.grp ? `<span style="font-size:11px;color:var(--ink-soft);background:rgba(165,129,58,.07);border-radius:6px;padding:2px 8px">${a.grp}</span>` : ''}
     ${statChip(a.status)}
     <span style="font-size:11px;color:var(--ink-soft)">${a.health || a.note || ''}</span>
     ${a.has_auth ? `<button class="acc-verify btn-ghost rounded-md px-2.5 py-1 text-[11px]" style="margin-left:auto">🔍 检测登录态</button>` : ''}

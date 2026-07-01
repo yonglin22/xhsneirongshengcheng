@@ -15,7 +15,7 @@
     + '#agModNav a{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:10px;text-decoration:none;'
     + 'color:var(--ink,#2a2520);font-size:13.5px;font-weight:700;transition:.15s;white-space:nowrap}'
     + '#agModNav a:hover{background:rgba(0,0,0,.045)}'
-    + '#agModNav a.on{background:var(--cinnabar,#ff2442);color:#fff;box-shadow:0 4px 14px rgba(255,36,66,.28)}'
+    + '#agModNav a.on{background:var(--cinnabar,#a5813a);color:#fff;box-shadow:0 4px 14px rgba(165,129,58,.28)}'
     + '#agModNav a .agmn-ic{font-size:15px;line-height:1}';
   function mount(){
     if(document.getElementById('agModNav')) return;

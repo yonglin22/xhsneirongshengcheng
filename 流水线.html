@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>创作流水线 · 选题→正文→封面 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 </head>
 <body class="stage grain min-h-screen" data-page="pipeline">
 
@@ -54,7 +54,7 @@
       <div class="border-t hairline mt-2.5 pt-2.5 px-1.5 pb-1 space-y-1.5">
         <a id="toPreview" href="/成稿预览.html" class="btn-go rounded-lg w-full block text-center py-2.5 text-[13px] font-medium">去成稿预览 →</a>
         <a id="toCompliance" href="/合规自检.html" class="btn-ghost rounded-lg w-full block text-center py-2.5 text-[13px]">去合规自检 →</a>
-        <a id="toPublish" href="/一键发布.html" class="rounded-lg w-full block text-center py-2.5 text-[13px] font-medium" style="background:linear-gradient(180deg,#3a2c1a,#2a2013);color:#f2e9d6;box-shadow:0 3px 10px -3px rgba(58,44,26,.5)">🚀 一键发布 →</a>
+        <a id="toPublish" href="/一键发布.html" class="rounded-lg w-full block text-center py-2.5 text-[13px] font-medium" style="background:linear-gradient(180deg,#3a2c1a,#2a2013);color:#f2e9d6;box-shadow:0 3px 10px -3px rgba(58,44,26,.5)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f2e9d6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M4.5 16.5c-1.5 1-2 5-2 5s4-.5 5-2M9 15c-2-1-2.5-3-2-5 3-1 6 0 8 2 1 3 0 6-2 8-2-.5-4-1-6-3ZM15 9l3-6 3 3-6 3"/></svg>一键发布 →</a>
       </div>
     </aside>
 
@@ -69,7 +69,7 @@
 </main>
 
 <!-- 悬浮：一键按对标生成全套 -->
-<button id="autoBtn" class="btn-go font-medium" style="position:fixed;right:26px;bottom:90px;z-index:40;border-radius:999px;padding:14px 24px;font-size:14px;box-shadow:0 10px 30px -6px rgba(255,36,66,.55);white-space:nowrap">▶ 一键按对标生成全套</button>
+<button id="autoBtn" class="btn-go font-medium" style="position:fixed;right:26px;bottom:90px;z-index:40;border-radius:999px;padding:14px 24px;font-size:14px;box-shadow:0 10px 30px -6px rgba(165,129,58,.55);white-space:nowrap">▶ 一键按对标生成全套</button>
 <button id="autoPauseBtn" style="display:none;position:fixed;right:26px;bottom:148px;z-index:41;border-radius:999px;padding:11px 20px;font-size:13px;font-weight:600;background:#fff;color:var(--ink);border:1.5px solid var(--cinnabar);box-shadow:0 8px 24px -8px rgba(0,0,0,.35);white-space:nowrap;cursor:pointer">⏸ 暂停</button>
 <style>
 /* 自动生成中：除「暂停/继续」「停止」外，全站按钮置灰不可点，防误触打断流程 */
@@ -101,7 +101,7 @@ body.auto-running #autoBtn { opacity:.7; }
 
 <script src="/assets/tracks.js?v=25"></script>
 <script src="/assets/pinyin.js?v=1"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/app.js?v=68"></script>
 <script src="/assets/onboard.js?v=1"></script>
 <script>pageIntro({key:'pipeline',emoji:'🏭',title:'创作流水线',intro:'给个方向，AI 一条流水线把「一篇可发笔记」跑完；每一步产出都能改、能重跑。',steps:[{t:'选题 → 对标拆解 → 框架',d:'先定选题，再拆对标爆款、搭出正文骨架。'},{t:'正文 → 标题 → 封面/配图',d:'AI 按框架写正文、起标题、出封面与配图。'},{t:'合规自检',d:'发布前逐项查违禁/导流/绝对化，给「改后可发」版。'},{t:'一键发布 / 导出图文包',d:'推小红书草稿箱，或导出 1080P 图文包。'}],tips:['每一步都可单独「重跑本步」，不满意就改提示词重出。','实拍图优先点「上传真实图」，比 AI 图更稳更真。','长文笔记图零乱码、最稳；AI 配图在每张卡点「重排这页」。']});</script>
 <script>
@@ -113,7 +113,7 @@ function uiConfirm(opt) {
     ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(20,18,22,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;animation:uic-fade .15s ease';
     ov.innerHTML = `<div style="width:min(420px,92vw);background:var(--paper,#fff);border-radius:18px;box-shadow:0 24px 70px -12px rgba(0,0,0,.4);overflow:hidden;animation:uic-pop .18s cubic-bezier(.2,.9,.3,1.2)">
       <div style="padding:22px 22px 6px;display:flex;gap:13px;align-items:flex-start">
-        <div style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:20px;background:${opt.danger ? 'rgba(255,36,66,.1)' : 'rgba(58,90,140,.1)'}">${opt.icon || '❓'}</div>
+        <div style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:20px;background:${opt.danger ? 'rgba(165,129,58,.1)' : 'rgba(58,90,140,.1)'}">${opt.icon || '❓'}</div>
         <div style="flex:1;min-width:0;padding-top:2px">
           <div style="font-size:16px;font-weight:700;color:var(--ink,#1c1c1e);line-height:1.3">${opt.title || '确认操作'}</div>
           <div style="font-size:13px;color:var(--ink-soft,#6b7178);line-height:1.6;margin-top:7px">${opt.body || ''}</div>
@@ -121,7 +121,7 @@ function uiConfirm(opt) {
       </div>
       <div style="display:flex;gap:10px;padding:16px 22px 20px;justify-content:flex-end">
         <button data-uic="0" style="border:1px solid var(--line,#e5e5ea);background:var(--paper,#fff);color:var(--ink,#1c1c1e);border-radius:11px;padding:9px 18px;font-size:13.5px;font-weight:600;cursor:pointer">${opt.cancelText || '取消'}</button>
-        <button data-uic="1" style="border:none;background:${opt.danger ? 'linear-gradient(180deg,#ff4259,#ff2442)' : 'linear-gradient(180deg,#3a7afe,#2f6ae0)'};color:#fff;border-radius:11px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 16px -6px ${opt.danger ? 'rgba(255,36,66,.5)' : 'rgba(58,122,254,.5)'}">${opt.okText || '确定'}</button>
+        <button data-uic="1" style="border:none;background:${opt.danger ? 'linear-gradient(180deg,#caa85e,#a5813a)' : 'linear-gradient(180deg,#3a7afe,#2f6ae0)'};color:#fff;border-radius:11px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 16px -6px ${opt.danger ? 'rgba(165,129,58,.5)' : 'rgba(58,122,254,.5)'}">${opt.okText || '确定'}</button>
       </div></div>`;
     if (!document.getElementById('uic-style')) { const s = document.createElement('style'); s.id = 'uic-style'; s.textContent = '@keyframes uic-fade{from{opacity:0}to{opacity:1}}@keyframes uic-pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}'; document.head.appendChild(s); }
     const done = v => { ov.remove(); resolve(v); };
@@ -517,14 +517,14 @@ function outputHTML(st) {
     const _ratioBtns = ['2:3','3:4','9:16'].map(r=>{const on=((state.imgRatio||'3:4')===r);return `<button class="img-ratio" data-r="${r}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 10px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${r}</button>`;}).join('');
     return `<div class="out p-4 space-y-3">
       <!-- 主操作：一键出醇备忘录真字图（封面+内页） -->
-      <button id="genNote" style="width:100%;border:none;border-radius:12px;padding:13px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#ff4259,#ff2442);color:#fff;box-shadow:0 6px 18px -6px rgba(255,36,66,.5)">📒 生成长图笔记（备忘录真字封面 + AI图封面 + 内页）</button>
+      <button id="genNote" style="width:100%;border:none;border-radius:12px;padding:13px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#caa85e,#a5813a);color:#fff;box-shadow:0 6px 18px -6px rgba(165,129,58,.5)">📒 生成长图笔记（备忘录真字封面 + AI图封面 + 内页）</button>
       <!-- 紧凑副操作行：比例 + 上传真实图 -->
       <div class="flex items-center gap-2 flex-wrap text-[12px]">
         <span class="text-[var(--ink-soft)]">比例</span>${_ratioBtns}
         <span style="width:1px;height:15px;background:var(--line);margin:0 2px"></span>
         <button id="upImg" style="border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;background:var(--paper);color:var(--ink)">📎 上传真实图</button>
         <span style="width:1px;height:15px;background:var(--line);margin:0 2px"></span>
-        <label id="aiCoverToggle" title="开：生成长图/一键全套时默认多出一张 AI 图封面（更慢·耗积分）；关：只出备忘录真字封面卡" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none;border:1px solid ${autoAiCoverOn() ? 'var(--cinnabar)' : 'var(--line)'};border-radius:8px;padding:4px 10px;background:${autoAiCoverOn() ? 'rgba(255,36,66,.06)' : 'var(--paper)'}">
+        <label id="aiCoverToggle" title="开：生成长图/一键全套时默认多出一张 AI 图封面（更慢·耗积分）；关：只出备忘录真字封面卡" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none;border:1px solid ${autoAiCoverOn() ? 'var(--cinnabar)' : 'var(--line)'};border-radius:8px;padding:4px 10px;background:${autoAiCoverOn() ? 'rgba(165,129,58,.06)' : 'var(--paper)'}">
           <input id="aiCoverChk" type="checkbox" ${autoAiCoverOn() ? 'checked' : ''} style="accent-color:var(--cinnabar);cursor:pointer"/>
           <span style="color:${autoAiCoverOn() ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'};font-weight:600">默认出 AI 封面</span>
         </label>
@@ -534,7 +534,7 @@ function outputHTML(st) {
       <!-- 笔记底色：点一下全篇统一换色 -->
       <div class="flex items-center gap-1.5 flex-wrap text-[12px]">
         <span class="text-[var(--ink-soft)]">笔记底色</span>
-        ${NOTE_BG_PRESETS.map(([hex, name]) => { const on = (state.noteBg || '') === hex; return `<button class="note-bg-pick" data-bg="${hex}" title="${name}" style="width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid ${on ? 'var(--cinnabar)' : 'var(--line)'};background:${hex || 'repeating-linear-gradient(45deg,#fff,#fff 3px,#eee 3px,#eee 6px)'};box-shadow:${on ? '0 0 0 2px rgba(255,36,66,.18)' : 'none'}"></button>`; }).join('')}
+        ${NOTE_BG_PRESETS.map(([hex, name]) => { const on = (state.noteBg || '') === hex; return `<button class="note-bg-pick" data-bg="${hex}" title="${name}" style="width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid ${on ? 'var(--cinnabar)' : 'var(--line)'};background:${hex || 'repeating-linear-gradient(45deg,#fff,#fff 3px,#eee 3px,#eee 6px)'};box-shadow:${on ? '0 0 0 2px rgba(165,129,58,.18)' : 'none'}"></button>`; }).join('')}
         <input id="noteBgCustom" type="color" value="${/^#[0-9a-f]{6}$/i.test(state.noteBg || '') ? state.noteBg : '#eaf1fb'}" title="自定义颜色" style="width:24px;height:24px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:none;padding:0" />
       </div>
       <!-- 一句话提示，详情可展开 -->
@@ -547,7 +547,7 @@ function outputHTML(st) {
       </details>
       <!-- 更多封面玩法（默认收起）：封面文案 / 封面模板 / 解析对标爆款 -->
       <details id="moreCoverDetails" style="margin-top:4px">
-        <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;border:1.5px dashed var(--cinnabar);border-radius:10px;padding:10px 14px;background:linear-gradient(180deg,rgba(255,36,66,.06),rgba(255,36,66,.02));font-size:13px;font-weight:700;color:var(--cinnabar-deep)">
+        <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;border:1.5px dashed var(--cinnabar);border-radius:10px;padding:10px 14px;background:linear-gradient(180deg,rgba(165,129,58,.06),rgba(165,129,58,.02));font-size:13px;font-weight:700;color:var(--cinnabar-deep)">
           <span style="font-size:15px">🎨</span>
           <span>更多封面玩法：封面模板 · 解析对标爆款 · 文案叠字</span>
           <span class="mcd-arrow" style="margin-left:auto;font-size:12px;background:var(--cinnabar);color:#fff;border-radius:999px;padding:2px 10px;font-weight:600">点击展开 ▾</span>
@@ -1663,7 +1663,7 @@ function coverTemplateHTML(spec, lines, opt) {
   lines = (lines || (state.cover && state.cover.cover_lines) || []).filter(Boolean);
   const title = autoEm(lines[0] || state.topic || ''); const sub = (lines.slice(1).join(' ') || '').replace(/==(.+?)==/g, '$1');
   const adjAcc = (parts[5] && /^[0-9a-f]{6}$/i.test(parts[5])) ? ('#' + parts[5]) : '';
-  const acc = adjAcc || opt.accent || (state.cover && state.cover.accent) || '#ff2442';
+  const acc = adjAcc || opt.accent || (state.cover && state.cover.accent) || '#a5813a';
   const adjBg = (parts[4] && /^[0-9a-f]{6}$/i.test(parts[4])) ? ('#' + parts[4]) : '';
   const bg = adjBg || opt.bg || (state.cover && state.cover.bg) || '#ffffff';
   const isDark = (h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) < 110; })(bg);

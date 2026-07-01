@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>管理后台 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 <style>
   .seg{ display:inline-flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; flex-wrap:wrap }
   .seg button{ border:none; background:transparent; padding:7px 14px; font-size:12.5px; cursor:pointer; color:var(--ink-soft) }
@@ -57,8 +57,8 @@
   </div>
 </main>
 
-<script src="/assets/ui-dialog.js?v=2"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/ui-dialog.js?v=3"></script>
+<script src="/assets/app.js?v=68"></script>
 <script src="/assets/help-kb.js?v=5"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -200,7 +200,7 @@ const views = {
     };
     // 归类：矩阵获客相关 vs 内容创作（其余默认内容创作）
     const HK = { account_matrix: 1, comment: 1 };
-    const grp = k => HK[k] ? '<span style="display:inline-block;font-size:10px;font-weight:700;color:#2563eb;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);border-radius:6px;padding:1px 6px;margin-right:7px">矩阵获客</span>' : '<span style="display:inline-block;font-size:10px;font-weight:700;color:var(--cinnabar-deep);background:rgba(255,36,66,.08);border:1px solid rgba(255,36,66,.2);border-radius:6px;padding:1px 6px;margin-right:7px">内容创作</span>';
+    const grp = k => HK[k] ? '<span style="display:inline-block;font-size:10px;font-weight:700;color:#2563eb;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.25);border-radius:6px;padding:1px 6px;margin-right:7px">矩阵获客</span>' : '<span style="display:inline-block;font-size:10px;font-weight:700;color:var(--cinnabar-deep);background:rgba(165,129,58,.08);border:1px solid rgba(165,129,58,.2);border-radius:6px;padding:1px 6px;margin-right:7px">内容创作</span>';
     // 矩阵获客项排前面，方便查看
     const rows = (j.prices || []).slice().sort((a, b) => (HK[b.action_key] || 0) - (HK[a.action_key] || 0)).map(p => `<tr data-k="${p.action_key}"><td>${grp(p.action_key)}${label[p.action_key] || p.action_key}</td><td class="text-[var(--ink-soft)]">${p.action_key}</td><td class="r"><input class="pr-c field rounded px-2 py-1 text-[12px] r" style="width:80px" type="number" value="${p.credits}"> 积分</td></tr>`).join('');
     return `<div class="card p-4 overflow-x-auto">

@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>合规自检 · 第八步 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 </head>
 <body class="stage grain min-h-screen" data-page="compliance">
 
@@ -93,14 +93,14 @@
 </div>
 <style>
   .imp-row{ display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:var(--paper-2); }
-  .imp-row:hover{ border-color:rgba(255,36,66,.3); }
+  .imp-row:hover{ border-color:rgba(165,129,58,.3); }
   .imp-go{ flex:0 0 auto; font-size:12px; font-weight:600; color:#444; background:#f5f5f5; border:1px solid #ddd; border-radius:999px; padding:6px 16px; cursor:pointer; transition:.15s; }
   .imp-go:hover{ filter:brightness(.98); transform:translateY(-1px); }
 </style>
 
 <script src="/assets/tracks.js?v=25"></script>
 <script src="/assets/pinyin.js?v=1"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/app.js?v=68"></script>
 <script src="/assets/onboard.js?v=1"></script>
 <script>pageIntro({key:'compliance',emoji:'🛡️',title:'合规自检 · 发布前体检',intro:'发布前逐项查违禁词/导流/绝对化，并给「改后可直接发」的版本，降低限流封号风险。',steps:[{t:'导入待检内容',d:'从流水线自动带入，或点「从流水线导入」选一篇，也可手动粘正文。'},{t:'自动跑「自检 + 爆款潜力」',d:'内容一进来会自动并行诊断，无需手动点。'},{t:'看右侧风险清单',d:'🟡 中风险=微调，🔴 高风险=必改；每条都给具体改法。'},{t:'用「改后版本」去发布',d:'复制改后稿，或直接去成稿预览/一键发布。'}],tips:['爆款潜力给出更强的标题/封面，点一下即可替换。','这只是辅助自检，最终以各平台官方规则为准。']});</script>
 <script>
@@ -112,7 +112,7 @@ function uiConfirm(opt) {
     ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(20,18,22,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;animation:uic-fade .15s ease';
     ov.innerHTML = `<div style="width:min(420px,92vw);background:var(--paper,#fff);border-radius:18px;box-shadow:0 24px 70px -12px rgba(0,0,0,.4);overflow:hidden;animation:uic-pop .18s cubic-bezier(.2,.9,.3,1.2)">
       <div style="padding:22px 22px 6px;display:flex;gap:13px;align-items:flex-start">
-        <div style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:20px;background:${opt.danger ? 'rgba(255,36,66,.1)' : 'rgba(58,90,140,.1)'}">${opt.icon || '❓'}</div>
+        <div style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:20px;background:${opt.danger ? 'rgba(165,129,58,.1)' : 'rgba(58,90,140,.1)'}">${opt.icon || '❓'}</div>
         <div style="flex:1;min-width:0;padding-top:2px">
           <div style="font-size:16px;font-weight:700;color:var(--ink,#1c1c1e);line-height:1.3">${opt.title || '确认操作'}</div>
           <div style="font-size:13px;color:var(--ink-soft,#6b7178);line-height:1.6;margin-top:7px">${opt.body || ''}</div>
@@ -120,7 +120,7 @@ function uiConfirm(opt) {
       </div>
       <div style="display:flex;gap:10px;padding:16px 22px 20px;justify-content:flex-end">
         <button data-uic="0" style="border:1px solid var(--line,#e5e5ea);background:var(--paper,#fff);color:var(--ink,#1c1c1e);border-radius:11px;padding:9px 18px;font-size:13.5px;font-weight:600;cursor:pointer">${opt.cancelText || '取消'}</button>
-        <button data-uic="1" style="border:none;background:${opt.danger ? 'linear-gradient(180deg,#ff4259,#ff2442)' : 'linear-gradient(180deg,#3a7afe,#2f6ae0)'};color:#fff;border-radius:11px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 16px -6px ${opt.danger ? 'rgba(255,36,66,.5)' : 'rgba(58,122,254,.5)'}">${opt.okText || '确定'}</button>
+        <button data-uic="1" style="border:none;background:${opt.danger ? 'linear-gradient(180deg,#caa85e,#a5813a)' : 'linear-gradient(180deg,#3a7afe,#2f6ae0)'};color:#fff;border-radius:11px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 16px -6px ${opt.danger ? 'rgba(165,129,58,.5)' : 'rgba(58,122,254,.5)'}">${opt.okText || '确定'}</button>
       </div></div>`;
     if (!document.getElementById('uic-style')) { const s = document.createElement('style'); s.id = 'uic-style'; s.textContent = '@keyframes uic-fade{from{opacity:0}to{opacity:1}}@keyframes uic-pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}'; document.head.appendChild(s); }
     const done = v => { ov.remove(); resolve(v); };
@@ -169,7 +169,7 @@ function coverTemplateHTML(spec, lines, opt){ opt=opt||{}; const parts=String(sp
   const adj=[parts[1]?'adj-'+parts[1]:'',parts[2]?'adj-'+parts[2]:'',parts[3]?'tsz-'+parts[3]:''].filter(Boolean).join(' ');
   lines=(lines||[]).filter(Boolean);
   const title=autoEm(lines[0]||''); const sub=(lines.slice(1).join(' ')||'').replace(/==(.+?)==/g,'$1');
-  const acc=((parts[5]&&/^[0-9a-f]{6}$/i.test(parts[5]))?('#'+parts[5]):'')||opt.accent||'#ff2442';
+  const acc=((parts[5]&&/^[0-9a-f]{6}$/i.test(parts[5]))?('#'+parts[5]):'')||opt.accent||'#a5813a';
   const adjBg=(parts[4]&&/^[0-9a-f]{6}$/i.test(parts[4]))?('#'+parts[4]):'';
   const bg=adjBg||opt.bg||'#ffffff';
   const isDark=(h=>{const m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return false;const n=parseInt(m[1],16);return (0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))<110;})(bg);
@@ -633,7 +633,7 @@ function renderReport(r) {
       </div>
       <div class="flex flex-wrap gap-2.5 mt-4 pt-3 border-t hairline">
         <button id="regenImgBtn" class="btn-go rounded-lg px-4 py-2 text-[12.5px] font-medium">🔄 按改后内容重新出图</button>
-        <button id="toPublishBtn" class="rounded-lg px-4 py-2 text-[12.5px] font-medium" style="background:linear-gradient(180deg,#ffb02e,#ff8a00);color:#fff">🚀 一键发布 →</button>
+        <button id="toPublishBtn" class="rounded-lg px-4 py-2 text-[12.5px] font-medium" style="background:linear-gradient(180deg,#caa85e,#a5813a);color:#fff">🚀 一键发布 →</button>
         <button id="toPreviewBtn" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">去成稿预览 →</button>
         <button id="dlPackBtn" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">⬇ 下载图文包</button>
         <span class="text-[11px] text-[var(--ink-soft)] self-center w-full">重新出图＝按改后正文 + 你在「智能体」设的配图视觉风格生成</span>

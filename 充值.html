@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>充值 · 积分包 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 </head>
 <body class="stage grain min-h-screen" data-page="recharge">
 
@@ -20,7 +20,7 @@
   </div>
 
   <!-- 计费未开启提示 -->
-  <div id="offBanner" class="card p-4 mb-6 hidden" style="border-color:rgba(255,36,66,.4);background:rgba(255,36,66,.05)">
+  <div id="offBanner" class="card p-4 mb-6 hidden" style="border-color:rgba(165,129,58,.4);background:rgba(165,129,58,.05)">
     <div class="text-[13px] text-[var(--cinnabar-deep)] font-medium">⚠ 计费未开启</div>
     <div class="text-[12.5px] text-[var(--ink-soft)] mt-1">服务端 <code>BILLING_ENABLED=false</code>，无法下单充值。</div>
   </div>
@@ -63,7 +63,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=25"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/app.js?v=68"></script>
 <script>
 const $ = s => document.querySelector(s);
 // 主题切换：已由全局外壳（app.js）统一处理，此处移除
@@ -111,7 +111,7 @@ async function loadPacks(retried) {
         <div class="text-[11px] mt-1 font-medium" style="color:var(--ink-soft)">✓ 已购买（每人限一次）</div>
       </div>`
     : `<button class="packBtn text-left rounded-xl p-4 transition hover:shadow-md" data-id="${p.id}" style="border:1px solid ${RECO[p.id] ? 'var(--cinnabar)' : 'var(--line)'};background:var(--paper-2);position:relative">
-        ${RECO[p.id] ? `<span style="position:absolute;top:-9px;right:12px;background:var(--cinnabar);color:#fff;font-size:10px;font-weight:600;padding:2px 9px;border-radius:999px;box-shadow:0 3px 8px -2px rgba(255,36,66,.5);white-space:nowrap">${RECO[p.id]}</span>` : ''}
+        ${RECO[p.id] ? `<span style="position:absolute;top:-9px;right:12px;background:var(--cinnabar);color:#fff;font-size:10px;font-weight:600;padding:2px 9px;border-radius:999px;box-shadow:0 3px 8px -2px rgba(165,129,58,.5);white-space:nowrap">${RECO[p.id]}</span>` : ''}
         <div class="flex items-baseline justify-between gap-2">
           <span class="font-song font-bold text-[14px]">${p.name}</span>
           <span class="font-display font-light leading-none" style="font-size:26px;color:var(--cinnabar)">¥${yuan(p.cny)}</span>

@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>赛道智能体 · 操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=111" />
+<link rel="stylesheet" href="/assets/atelier.css?v=112" />
 <style>
   .hm-hero{ display:flex; gap:24px; align-items:center; padding:30px 34px; background:linear-gradient(120deg,var(--paper),var(--tint)); }
   .hm-hero-l{ flex:1; min-width:0; }
@@ -50,7 +50,7 @@
   .hm-work .meta{ padding:10px 12px 12px; }
   .hm-work .ttl{ font-size:13px; font-weight:600; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .hm-work .dt{ font-size:11px; color:var(--ink-soft); margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  .hm-work .trk{ display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:700; color:var(--cinnabar-deep); background:rgba(255,36,66,.09); border:1px solid rgba(255,36,66,.18); border-radius:999px; padding:1px 8px; line-height:1.5; }
+  .hm-work .trk{ display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:700; color:var(--cinnabar-deep); background:rgba(165,129,58,.09); border:1px solid rgba(165,129,58,.18); border-radius:999px; padding:1px 8px; line-height:1.5; }
   .hm-wacts{ position:absolute; right:9px; top:9px; z-index:4; display:flex; gap:5px; opacity:0; transition:.15s; }
   .hm-work:hover .hm-wacts{ opacity:1; }
   .hm-wacts button{ width:27px; height:27px; border-radius:8px; border:none; background:rgba(255,255,255,.94); box-shadow:0 2px 8px rgba(0,0,0,.22); cursor:pointer; font-size:12.5px; display:grid; place-items:center; }
@@ -58,7 +58,7 @@
   .hm-empty{ grid-column:1/-1; text-align:center; padding:42px 20px; color:var(--ink-soft); font-size:13.5px; border:1px dashed var(--line); border-radius:var(--r-lg); }
   .hm-agents{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
   .hm-agent{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r-lg); padding:16px; cursor:pointer; transition:.18s; position:relative; }
-  .hm-agent:hover{ box-shadow:var(--shadow-card); transform:translateY(-2px); border-color:rgba(255,36,66,.25); }
+  .hm-agent:hover{ box-shadow:var(--shadow-card); transform:translateY(-2px); border-color:rgba(165,129,58,.25); }
   .hm-agent.on{ border-color:var(--cinnabar); box-shadow:0 0 0 1px var(--cinnabar) inset; }
   .hm-agent .em{ font-size:28px; }
   .hm-agent .nm{ font-size:15px; font-weight:700; margin-top:6px; }
@@ -104,7 +104,7 @@
           <h1 class="hm-h1">最懂你赛道的 <span style="color:var(--cinnabar)">AI 操盘手</span>，从<span style="color:var(--cinnabar)">一篇爆款</span>到<span style="color:var(--cinnabar)">矩阵起号</span></h1>
           <p id="heroTagline" class="hm-sub">一条流水线出可发笔记（选题→正文→封面→合规自检），再用账号矩阵养号截流自动获客涨粉。0 基础也能上手。</p>
           <div class="hm-acts">
-            <a href="/流水线.html?new=1" class="btn-go">✍️ 开始创作 →</a>
+            <a href="/流水线.html?new=1" class="btn-go primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>开始创作 →</a>
             <button id="replayGuide" class="btn-ghost">🔰 新手引导</button>
           </div>
         </div>
@@ -166,7 +166,7 @@
         <div style="font-size:20px;font-weight:800">🏭 内容创作</div>
         <div style="font-size:13px;color:var(--ink-soft);margin-top:3px">一条流水线出可发笔记：选题→对标→框架→正文→封面→合规自检，新手也能日更。</div>
       </div>
-      <a href="/流水线.html?new=1" class="btn-go primary" style="text-decoration:none;white-space:nowrap;padding:15px 34px;font-size:16px">✍️ 开始创作 →</a>
+      <a href="/流水线.html?new=1" class="btn-go primary" style="text-decoration:none;white-space:nowrap;padding:15px 34px;font-size:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>开始创作 →</a>
     </div>
   <div class="hm-steps" style="margin-top:14px">
     <a href="/流水线.html?new=1" class="card p-5 block group" style="transition:.18s">
@@ -198,7 +198,7 @@
         <div style="font-size:20px;font-weight:800">📡 矩阵获客</div>
         <div style="font-size:13px;color:var(--ink-soft);margin-top:3px">多号一键铺号、拟人养号+截流收潜客、数据红线复盘——从内容到涨粉到转化打通。</div>
       </div>
-      <a href="/账号矩阵.html" class="btn-go primary" style="text-decoration:none;white-space:nowrap;padding:15px 34px;font-size:16px">🎯 去获客 →</a>
+      <a href="/账号矩阵.html" class="btn-go primary" style="text-decoration:none;white-space:nowrap;padding:15px 34px;font-size:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="#fff"/></svg>去获客 →</a>
     </div>
   <div class="hm-steps" style="margin-top:14px">
     <a href="/账号矩阵.html" class="card p-5 block group" style="transition:.18s">
@@ -352,7 +352,7 @@
       <h3 class="font-song font-bold text-[18px]">创建我的智能体（赛道）</h3>
       <button id="closeModal" class="text-[var(--ink-soft)] text-[20px] leading-none">✕</button>
     </div>
-    <div class="rounded-lg p-3 mb-4" style="background:linear-gradient(135deg,rgba(255,66,89,.08),rgba(255,36,66,.03));border:1px solid rgba(255,36,66,.18)">
+    <div class="rounded-lg p-3 mb-4" style="background:linear-gradient(135deg,rgba(201,168,95,.08),rgba(165,129,58,.03));border:1px solid rgba(165,129,58,.18)">
       <div class="text-[12.5px] font-medium mb-1" style="color:var(--cinnabar-deep)">💡 「赛道」就是你的专属内容智能体</div>
       <div class="text-[11.5px] text-[var(--ink-soft)] leading-relaxed">一个赛道 = 一个垂直方向的 AI 操盘手（如母婴 / 考公 / 家居）。它会按你设的<b>人设、合规红线、爆文风格</b>来产出整条笔记（选题→正文→封面→标签→合规自检），<b>多篇风格统一、不串味</b>。填下面几项即可生成，全站立即可用；之后还能在「智能体」页继续喂人设与知识库。</div>
     </div>
@@ -384,9 +384,9 @@
   </div>
 </div>
 
-<script src="/assets/ui-dialog.js?v=2"></script>
+<script src="/assets/ui-dialog.js?v=3"></script>
 <script src="/assets/tracks.js?v=25"></script>
-<script src="/assets/app.js?v=67"></script>
+<script src="/assets/app.js?v=68"></script>
 <script>
 function activeId(){ return localStorage.getItem('ag_track') || TRACK_ORDER[0]; }
 
@@ -560,7 +560,7 @@ async function renderTemplates(trackName) {
     const owned = _tplOwned[tp.id];
     const badge = owned
       ? '<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full" style="background:var(--gold-bg);color:var(--gold)">已拥有</span>'
-      : `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full" style="background:rgba(255,36,66,.1);color:var(--cinnabar-deep)">💎 ${_tplPrice} 积分</span>`;
+      : `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full" style="background:rgba(165,129,58,.1);color:var(--cinnabar-deep)">💎 ${_tplPrice} 积分</span>`;
     return `<div class="tpl card p-4">
       <div class="flex items-start justify-between gap-2 mb-1"><div class="font-medium text-[14px]">${esc(tp.emoji || '')} ${esc(tp.name)}</div>${badge}</div>
       <div class="text-[12px] text-[var(--ink-soft)] leading-relaxed">${esc(tp.desc || '')}</div>
