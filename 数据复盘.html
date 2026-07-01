@@ -40,6 +40,7 @@
     <input id="fKw" class="field" style="font-size:12px;min-width:150px" placeholder="🔍 搜标题/账号" />
     <span class="ml-auto flex items-center gap-2">
       <button id="pullBtn" class="db">📥 从创作中心抓取</button>
+      <button id="bulkBtn" class="db">📋 批量导入</button>
       <button id="addBtn" class="db go">＋ 手动录入</button>
       <button id="refreshBtn" class="db">↻ 刷新</button>
       <button id="exportBtn" class="db">⬇ 导出 CSV</button>
@@ -108,6 +109,19 @@ document.getElementById('list').addEventListener('click', async e=>{
 });
 document.getElementById('fAcct').addEventListener('change',render);
 document.getElementById('fKw').addEventListener('input',render);
+document.getElementById('bulkBtn').addEventListener('click',()=>{
+  modal('批量导入笔记数据',
+    `<div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">在小红书「笔记管理」页控制台跑我给的抓取代码，复制结果 JSON 粘到这里 → 导入。</div>
+     <textarea id="bulkTa" class="field" style="width:100%;height:180px;font-family:monospace;font-size:12px" placeholder='[{"note_title":"…","views":8,"likes":0,"favs":0,"comments":0}]'></textarea>`,
+    `<button id="bkCancel" class="db">取消</button><button id="bkGo" class="db go">导入</button>`);
+  document.getElementById('bkCancel').onclick=()=>document.getElementById('plModal')?.remove();
+  document.getElementById('bkGo').onclick=async()=>{
+    let arr; try{ arr=JSON.parse(document.getElementById('bulkTa').value.trim()); }catch{ zToast&&zToast('JSON 格式错，请直接粘贴抓取代码的输出','err'); return; }
+    if(!Array.isArray(arr)||!arr.length){ zToast&&zToast('没有可导入的数据','err'); return; }
+    const r=await api('','POST',{list:arr}); document.getElementById('plModal')?.remove();
+    if(r&&r.ok){ zToast&&zToast('已导入 '+(r.saved||arr.length)+' 篇','ok'); load(); } else zToast&&zToast('导入失败','err');
+  };
+});
 document.getElementById('refreshBtn').addEventListener('click',load);
 document.getElementById('pullBtn').addEventListener('click',()=>{
   let done=false;

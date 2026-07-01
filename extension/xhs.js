@@ -197,11 +197,12 @@
   async function scrape(attempt) {
     attempt = attempt || 0;
     await sleep(attempt ? 2500 : 4500);
-    // 找"最小卡片"：含一个发布时间 + 一串数字、且内部没有同样带时间的子卡片
+    // 找"最小卡片"：同时含 发布时间 + ≥4个纯数字，且没有同样满足的子元素（日期与数字常在不同分支，必须以两者的最近公共祖先为界）
+    const numLeaves = el => [...el.querySelectorAll('*')].filter(e => e.children.length === 0 && NUM_RE.test((e.textContent || '').trim())).length;
     const cards = [...document.querySelectorAll('div,li,section')].filter(el => {
       const t = el.innerText || '';
-      if (t.length > 340 || !DATE_RE.test(t)) return false;
-      return ![...el.children].some(c => DATE_RE.test(c.innerText || '') && (c.innerText || '').length < 340);
+      if (t.length > 340 || !DATE_RE.test(t) || numLeaves(el) < 4) return false;
+      return ![...el.children].some(c => DATE_RE.test(c.innerText || '') && numLeaves(c) >= 4);
     });
     const list = [], seen = new Set();
     for (const c of cards.slice(0, 60)) {
