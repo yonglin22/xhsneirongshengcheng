@@ -506,6 +506,9 @@ window.buildShell = function () {
   top.innerHTML =
     `<div class="ag-top-l"><button class="ag-burger" id="agBurger" aria-label="菜单">☰</button>${backBtn}<span class="ag-title" id="agTitle">${PAGE_TITLES[cur] || '工作台'}</span><div class="ag-tracks" id="agTracks"></div></div>
      <div class="ag-top-r" id="agTopR"></div>`;
+  // 当前所在菜单高亮：获客(矩阵/复盘/评论/计划)=matrix；创作线=pipeline/topic/preview/compliance
+  if (cur === 'matrix') side.querySelector('.ag-growth-cta')?.classList.add('active');
+  else if (['pipeline', 'topic', 'preview', 'compliance'].includes(cur)) side.querySelector('.ag-create')?.classList.add('active');
   body.insertBefore(side, body.firstChild);
   side.after(top);
   document.getElementById('agBurger')?.addEventListener('click', () => body.classList.toggle('ag-side-open'));

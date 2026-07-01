@@ -570,6 +570,9 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
   border:1px solid rgba(165,129,58,.22); transition:background .15s; }
 .ag-growth-cta:hover{ background:rgba(165,129,58,.14); }
 .ag-growth-cta:active{ background:rgba(165,129,58,.18); }
+/* 当前所在菜单高亮：让用户清楚停留在哪个模块 */
+.ag-growth-cta.active{ background:rgba(165,129,58,.16); color:var(--cinnabar-deep); border-color:rgba(165,129,58,.5); font-weight:700; box-shadow:inset 3px 0 0 var(--cinnabar); }
+.ag-create.active{ box-shadow:0 5px 14px -4px rgba(190,150,50,.5), inset 3px 0 0 var(--cinnabar-deep); }
 
 /* 封面模板·微调（位置/对齐/字号）——叠加在各模板之上 */
 .cv-ctpl.adj-top{ justify-content:flex-start; }
