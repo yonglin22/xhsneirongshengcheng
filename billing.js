@@ -83,6 +83,20 @@ function priceMigrateV2() {
   [['topic', 5], ['skeleton', 5], ['frame', 5], ['copy', 10], ['cover', 0], ['rule_query', 5], ['imgplan', 0], ['compliance', 0], ['image_std', 20], ['image_hd', 60], ['image_premium', 60]].forEach(([k, c]) => setPrice(k, c));
   settingsSet('pricing_v2', 1);
 }
+// v3 价目（用户拍板）：图生图 100/张、生卡片图 30/张、自检自查免费、账号矩阵免费，其余步骤默认 50。执行一次后后台改价不再被重置。
+function priceMigrateV3() {
+  if (settingsGet('pricing_v3')) return;
+  [
+    ['image_i2i', 100],   // 图生图（垫参考图重出）
+    ['image_card', 30],   // 生卡片图（文生图/封面配图）
+    ['image_std', 30], ['image_hd', 30], ['image_premium', 30], // 旧图像键统一对齐生卡片图价
+    ['compliance', 0], ['vision', 0], ['imgplan', 0], // 自检自查/视觉解析/配图规划：免费
+    ['account_matrix', 0], // 账号矩阵：免费
+    // 内容创作/获客其余步骤：默认 50
+    ['text', 50], ['topic', 50], ['skeleton', 50], ['frame', 50], ['copy', 50], ['cover', 50], ['rule_query', 50], ['comment', 50],
+  ].forEach(([k, c]) => setPrice(k, c));
+  settingsSet('pricing_v3', 1);
+}
 
 // 迁移：邀请字段（旧库平滑升级；已存在则忽略）
 try { db.exec("ALTER TABLE users ADD COLUMN invite_code TEXT"); } catch {}
@@ -705,6 +719,7 @@ function agentConfigSave(uid, trackId, config) {
 }
 
 priceMigrateV2(); // 一次性对齐 PRD §8 价格（幂等）
+priceMigrateV3(); // 一次性对齐 v3 价目（图生图100/卡片图30/自检免费/矩阵免费/其余50）（幂等）
 module.exports = {
   signSession, verifySession, setCode, checkCode,
   getOrCreateUser, getUser, getUserByPhone, setNickname, userStats, getBalance, getPrice,

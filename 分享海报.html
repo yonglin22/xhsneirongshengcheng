@@ -8,50 +8,50 @@
 <script src="/assets/qrcode.min.js?v=1"></script>
 <script src="/assets/html2canvas.min.js?v=1"></script>
 <style>
-  :root{ --red:#ff2442; --red2:#ff5b73; --ink:#16181d; --soft:#8b9096; }
+  :root{ --coral:#ff6b7f; --gold:#ffd27a; --ink:#f6f2ee; --soft:#a79db0; }
   *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; margin:0; }
   body{ background:#eceef1; font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; color:var(--ink);
     min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:18px; padding:30px 16px 60px; }
-  /* 海报本体 3:4（朋友圈竖图）*/
+  /* 海报本体 3:4（朋友圈竖图）· 深色高级质感（换色调/主题）*/
   /* 固定 540×720（3:4）：html2canvas 对 aspect-ratio 支持差，用固定像素更稳，下载不丢内容 */
   .poster{ width:540px; height:720px; position:relative; overflow:hidden; border-radius:26px;
-    background:linear-gradient(170deg,#fff5f6 0%,#ffffff 42%,#fff 100%); box-shadow:0 26px 60px -28px rgba(0,0,0,.4);
+    background:linear-gradient(165deg,#221a2e 0%,#2b1d2c 46%,#1c1622 100%); box-shadow:0 26px 60px -28px rgba(0,0,0,.5);
     padding:40px 38px; display:flex; flex-direction:column; }
   /* 小屏等比缩放显示（不影响导出的 540×720 PNG）*/
   @media (max-width:580px){ .poster{ transform:scale(calc((100vw - 32px)/540)); transform-origin:top center; } }
   .poster::after{ content:""; position:absolute; inset:0; pointer-events:none; background:
-    radial-gradient(420px 320px at 92% -4%,rgba(255,36,66,.16),transparent 60%),
-    radial-gradient(360px 360px at -6% 104%,rgba(255,36,66,.10),transparent 60%); }
+    radial-gradient(440px 340px at 92% -6%,rgba(255,107,127,.24),transparent 62%),
+    radial-gradient(380px 380px at -8% 106%,rgba(255,210,122,.12),transparent 60%); }
   .poster > *{ position:relative; z-index:1; }
   .pp-logo{ display:flex; align-items:center; gap:12px; }
-  .pp-logo img{ width:44px; height:44px; border-radius:12px; box-shadow:0 8px 18px -8px rgba(225,15,41,.5); }
-  .pp-logo .nm{ font-weight:800; font-size:18px; }
+  .pp-logo img{ width:44px; height:44px; border-radius:12px; box-shadow:0 8px 20px -8px rgba(255,107,127,.6); }
+  .pp-logo .nm{ font-weight:800; font-size:18px; color:#fff; }
   .pp-logo .en{ font-size:10px; letter-spacing:.3em; color:var(--soft); }
-  .pp-kick{ margin-top:30px; font-size:13px; letter-spacing:.22em; color:var(--red); font-weight:700; }
-  .pp-h1{ margin-top:12px; font-size:42px; line-height:1.16; font-weight:400; letter-spacing:-.01em; }
-  .pp-h1 b{ font-weight:900; color:var(--red); }
-  .pp-sub{ margin-top:14px; font-size:15px; line-height:1.7; color:#4a4f56; max-width:400px; }
+  .pp-kick{ margin-top:30px; font-size:13px; letter-spacing:.22em; color:var(--coral); font-weight:700; }
+  .pp-h1{ margin-top:12px; font-size:40px; line-height:1.18; font-weight:400; letter-spacing:-.01em; color:#fff; }
+  .pp-h1 b{ font-weight:900; background:linear-gradient(92deg,var(--coral),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .pp-sub{ margin-top:14px; font-size:14.5px; line-height:1.7; color:#cfc6d4; max-width:404px; }
   .pp-chips{ margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .pp-chip{ display:flex; align-items:center; gap:9px; background:#fff; border:1px solid #ffe0e5; border-radius:13px; padding:10px 12px; font-weight:700; font-size:14px; }
+  .pp-chip{ display:flex; align-items:center; gap:9px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:13px; padding:10px 12px; font-weight:700; font-size:13.5px; color:#f0ebf2; }
   .pp-chip .ic{ font-size:18px; }
   /* 福利 + 二维码区 */
   /* 底部福利+二维码：顶部对齐、各自按内容收紧（不再 stretch 撑高），整体更紧凑 */
   .pp-bottom{ margin-top:auto; display:flex; gap:12px; align-items:flex-start; }
-  .pp-perk{ flex:1; background:linear-gradient(135deg,var(--red),var(--red2)); color:#fff; border-radius:16px; padding:11px 15px;
-    display:flex; flex-direction:column; justify-content:center; gap:5px; box-shadow:0 14px 28px -12px rgba(255,36,66,.6); }
-  .pp-perk .pt{ font-size:11.5px; font-weight:600; display:flex; align-items:center; gap:7px; line-height:1.25; }
-  .pp-perk .pt b{ font-weight:900; }
-  .pp-qr{ flex:0 0 auto; width:96px; background:#fff; border-radius:14px; padding:8px 8px 7px; text-align:center; box-shadow:0 10px 24px -14px rgba(0,0,0,.3); border:1px solid #f0f1f3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; }
+  .pp-perk{ flex:1; background:linear-gradient(135deg,rgba(255,210,122,.16),rgba(255,107,127,.14)); color:#fff; border:1px solid rgba(255,210,122,.3); border-radius:16px; padding:12px 15px;
+    display:flex; flex-direction:column; justify-content:center; gap:6px; }
+  .pp-perk .pt{ font-size:11.5px; font-weight:600; display:flex; align-items:center; gap:7px; line-height:1.25; color:#efe7dc; }
+  .pp-perk .pt b{ font-weight:900; color:var(--gold); }
+  .pp-qr{ flex:0 0 auto; width:96px; background:#fff; border-radius:14px; padding:8px 8px 7px; text-align:center; box-shadow:0 12px 28px -12px rgba(0,0,0,.5); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; }
   .pp-qr #qr{ width:64px; height:64px; display:flex; align-items:center; justify-content:center; }
   .pp-qr #qr img,.pp-qr #qr canvas{ width:64px!important; height:64px!important; display:block; }
-  .pp-qr .qh{ font-size:10px; color:var(--soft); line-height:1.4; }
-  .pp-qr .qh b{ color:var(--red); }
+  .pp-qr .qh{ font-size:10px; color:#8b8690; line-height:1.4; }
+  .pp-qr .qh b{ color:#d94a63; }
   .pp-foot{ margin-top:16px; font-size:11.5px; color:var(--soft); display:flex; justify-content:space-between; }
   /* 控制条（不进截图）*/
   .ctrl{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
-  .ctrl button{ height:40px; padding:0 20px; border-radius:999px; border:none; cursor:pointer; font-size:14px; font-weight:700; background:var(--red); color:#fff; box-shadow:0 8px 18px -6px rgba(255,36,66,.5); }
+  .ctrl button{ height:40px; padding:0 20px; border-radius:999px; border:none; cursor:pointer; font-size:14px; font-weight:700; background:linear-gradient(135deg,#3a2b3e,#26202e); color:#fff; box-shadow:0 8px 18px -6px rgba(40,30,45,.5); }
   .ctrl .ghost{ background:#fff; color:#555; border:1px solid #dfe2e6; box-shadow:none; }
-  .ctrl .hint{ font-size:12px; color:var(--soft); }
+  .ctrl .hint{ font-size:12px; color:#8b9096; }
   .ctrl input{ height:40px; border:1px solid #dfe2e6; border-radius:999px; padding:0 16px; font-size:13px; width:200px; }
 </style>
 </head>
@@ -64,15 +64,15 @@
       <div><div class="nm">赛道智能体 · 操盘台</div><div class="en">VERTICAL AGENT STUDIO</div></div>
     </div>
 
-    <div class="pp-kick">小红书 · AI 内容操盘台</div>
-    <h1 class="pp-h1">最懂你赛道的<b>AI</b><br><b>3 分钟一篇</b>，篇篇是<b>爆款</b></h1>
-    <p class="pp-sub">给个方向，AI 一条流水线跑完：选题 → 对标拆解 → 框架 → 正文 → 封面配图 → 合规自检。0 基础也能上手。</p>
+    <div class="pp-kick">小红书 · 内容 + 获客 一整套</div>
+    <h1 class="pp-h1">最懂你赛道的 <b>AI 操盘手</b><br>从<b>一篇爆款</b>到<b>矩阵起号</b></h1>
+    <p class="pp-sub">一条流水线出可发笔记，再用账号矩阵养号截流、自动获客涨粉。0 基础也能上手。</p>
 
     <div class="pp-chips">
-      <div class="pp-chip"><span class="ic">🎯</span>智能选题</div>
-      <div class="pp-chip"><span class="ic">🧩</span>爆款结构</div>
-      <div class="pp-chip"><span class="ic">🎨</span>封面配图</div>
-      <div class="pp-chip"><span class="ic">🛡️</span>合规自检</div>
+      <div class="pp-chip"><span class="ic">🎯</span>赛道级智能体</div>
+      <div class="pp-chip"><span class="ic">🏭</span>全自动可发笔记</div>
+      <div class="pp-chip"><span class="ic">📡</span>账号矩阵获客</div>
+      <div class="pp-chip"><span class="ic">🌱</span>养号截流涨粉</div>
     </div>
 
     <div class="pp-bottom">
@@ -147,7 +147,7 @@ $('#saveBtn').addEventListener('click', async () => {
     try { await document.fonts.ready; } catch {}      // 等字体加载完再截，避免文字渲染不出/发虚
     el.style.transform = 'none';                       // 取消小屏缩放，按原始 540×720 截图
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, width: 540, height: 720, windowWidth: 1200 });
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#1c1622', useCORS: true, width: 540, height: 720, windowWidth: 1200 });
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png'); a.download = '朱砂操盘台_分享海报.png'; a.click();
   } catch (e) { alert('生成失败：' + (e.message || e)); }

@@ -636,11 +636,10 @@ const server = http.createServer(async (req, res) => {
       if (provider !== 'kling' && !ikey) return send(res, 500, JSON.stringify({ error: '未配置该图像供应商的 key（provider=' + provider + '）' }), { 'content-type': 'application/json' });
       if (provider !== 'kling' && !/^[\x20-\x7E]+$/.test(ikey)) return send(res, 500, JSON.stringify({ error: 'GPT_IMAGE_API_KEY 包含非法字符，请检查 .env 文件——填的是中文占位符而非真实 key，请用 sudo nano /opt/zhusha/.env 改成真实 key 后重启服务。' }), { 'content-type': 'application/json' });
 
-      // 三档计价：premium（Seedream/顶级）> hd（可灵/cogview-4/FLUX/Kolors）> std（flash）
-      const isPremium = provider === 'ark' || provider === 'gptimage' || /gpt-image|dall-?e|imagen|seedream|flux\.1-pro|midjourney/i.test(model) || reqBody.tier === 'premium';
-      const isHd = !isPremium && (provider === 'kling' || /cogview-4|flux\.1-dev|kolors/i.test(model) || reqBody.hd === true);
-      const imgKey = isPremium ? 'image_premium' : isHd ? 'image_hd' : 'image_std';
-      const imgDef = isPremium ? 30 : isHd ? 12 : 5;
+      // 两档计价（v3）：垫参考图重出=图生图(image_i2i, 100)；否则文生图/封面卡片=生卡片图(image_card, 30)
+      const isI2I = !!(reqBody.init_image || reqBody.ref_image);
+      const imgKey = isI2I ? 'image_i2i' : 'image_card';
+      const imgDef = isI2I ? 100 : 30;
       const gate = billingGate(req, res, imgKey, imgDef, 1);
       if (!gate) return;
 
@@ -1688,7 +1687,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/price') {
       const priceUid = authUid(req); // 登录则标记 once 包是否已购（前端置灰）
       const packs = Object.values(PACKS).map(p => (p.once && priceUid && billing.hasPaidPack(priceUid, p.id)) ? { ...p, used: true } : p);
-      return sendJSON(res, 200, { ok: true, rules: { text: billing.getPrice('text', 3), image_std: billing.getPrice('image_std', 5), image_hd: billing.getPrice('image_hd', 12), image_premium: billing.getPrice('image_premium', 30), compliance: billing.getPrice('compliance', 5), vision: 0 }, packs });
+      return sendJSON(res, 200, { ok: true, rules: { text: billing.getPrice('text', 50), image_i2i: billing.getPrice('image_i2i', 100), image_card: billing.getPrice('image_card', 30), image_std: billing.getPrice('image_card', 30), image_hd: billing.getPrice('image_card', 30), image_premium: billing.getPrice('image_i2i', 100), compliance: billing.getPrice('compliance', 0), vision: 0 }, packs });
     }
     // 钱包：余额 + 近期流水
     if (pathname === '/api/wallet') {
