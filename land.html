@@ -69,17 +69,20 @@
   .edge .et{ font-size:16px; font-weight:800; margin-top:6px; }
   .edge .ed{ font-size:13px; color:var(--ink-soft); line-height:1.7; margin-top:5px; }
   .edge .eg{ display:inline-block; margin-top:8px; font-size:11px; font-weight:700; color:var(--cinnabar-deep); background:rgba(255,36,66,.08); border-radius:6px; padding:2px 8px; }
-  /* 桌面端加宽自适应 */
+  /* 桌面端加宽自适应：内容加宽 + Hero 通栏满屏 */
   @media (min-width:820px){
-    .wrap{ max-width:960px; }
-    .hero{ padding:56px 40px 46px; border-radius:0 0 28px 28px; }
-    .h1{ font-size:52px; }
-    .sub{ font-size:17px; max-width:640px; }
-    .edges{ grid-template-columns:repeat(3,1fr); }
-    .pairs{ display:grid; grid-template-columns:1fr 1fr; }
-    .sec-h{ font-size:28px; }
-    .sticky{ display:none; }   /* 桌面用 hero 内 CTA，不要底部固定条 */
+    .wrap{ max-width:1200px; }
+    /* Hero 背景做成整屏通栏（负边距突破 wrap），内部文字仍居中 */
+    .hero{ width:100vw; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); padding:70px 40px 60px; border-radius:0 0 32px 32px; }
+    .hero .pain,.h1,.sub,.cta,.cta-sub{ } .h1{ font-size:56px; } .sub{ font-size:18px; max-width:720px; }
+    section{ padding:40px 30px; }
+    .edges{ grid-template-columns:repeat(3,1fr); gap:18px; }
+    .pairs{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .spot,.perk{ margin:0; }
+    .sec-h{ font-size:30px; }
+    .sticky{ display:none; }
   }
+  @media (min-width:1500px){ .wrap{ max-width:1360px; } .h1{ font-size:62px; } }
 </style>
 </head>
 <body>
