@@ -57,7 +57,7 @@
       </div>
       <div class="flex items-center gap-2.5 pt-1">
         <button id="checkBtn" class="btn-go flex-1 rounded-xl py-3 text-[14px] font-medium flex items-center justify-center gap-2"><span id="ci">🛡</span><span id="ct">开始自检</span></button>
-        <button id="viralBtn" class="rounded-xl py-3 px-4 text-[13px] font-medium" style="background:linear-gradient(180deg,#ff7a59,#ff3f5c);color:#fff">🔥 爆款潜力</button>
+        <button id="viralBtn" class="rounded-xl py-3 px-4 text-[13px] font-medium" style="background:linear-gradient(180deg,#e6cf8e,#cca552);color:#fff;text-shadow:0 1px 2px rgba(120,88,20,.5)">🔥 爆款潜力</button>
         <select id="model" class="field rounded-xl px-3 py-3 text-[12px] hidden">
           <option value="claude-opus-4-8">Opus 4.8</option>
           <option value="claude-sonnet-4-6">Sonnet 4.6</option>
@@ -756,7 +756,7 @@ function checkupOverview(paras) {
   return `<div style="margin-bottom:10px;background:#fff;border:1px solid var(--line,#eee);border-radius:10px;padding:11px 8px;display:flex;align-items:center;box-shadow:0 2px 10px -7px rgba(0,0,0,.2)">
     <div style="font-size:12px;font-weight:800;writing-mode:horizontal-tb;padding:0 8px;color:#333">发布前<br>体检</div>
     ${cell('原创度', o ? o.score : null, '无对标')}${cell('互动力', e ? e.score : null)}
-    <div style="flex:1;text-align:center"><div style="font-size:11px;color:#888">爆款潜力</div><div style="font-size:12px;color:#ff3f5c;font-weight:700;margin-top:3px">点🔥诊断</div></div>
+    <div style="flex:1;text-align:center"><div style="font-size:11px;color:#888">爆款潜力</div><div style="font-size:12px;color:var(--cinnabar-deep);font-weight:700;margin-top:3px">点🔥诊断</div></div>
   </div>`;
 }
 // ===== 免费「合规红线扫描」：不调接口，本地秒标广告法绝对化/效果承诺/站外导流/夸大违规词 =====
