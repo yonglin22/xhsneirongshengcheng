@@ -176,9 +176,9 @@
 
   <!-- ③ 三大核心竞争力 -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px">
-    <div class="card" style="padding:14px 16px"><div style="font-weight:800;font-size:14px">🎯 赛道级智能体</div><div style="font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6">懂你的专业，不是通用 AI 瞎写</div></div>
-    <div class="card" style="padding:14px 16px"><div style="font-weight:800;font-size:14px">🏭 全自动可发笔记</div><div style="font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6">流水线串起来，3 分钟一篇不踩雷</div></div>
-    <div class="card" style="padding:14px 16px"><div style="font-weight:800;font-size:14px">📡 获客闭环</div><div style="font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6">养号截流+数据复盘，内容到转化</div></div>
+    <a href="/智能体.html" class="card block group" style="padding:14px 16px;text-decoration:none;transition:.15s"><div style="font-weight:800;font-size:14px">🎯 赛道级智能体 <span class="text-[var(--ink-soft)] group-hover:translate-x-1 inline-block transition">→</span></div><div style="font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6">懂你的专业，不是通用 AI 瞎写</div></a>
+    <a href="/流水线.html?new=1" class="card block group" style="padding:14px 16px;text-decoration:none;transition:.15s"><div style="font-weight:800;font-size:14px">🏭 全自动可发笔记 <span class="text-[var(--ink-soft)] group-hover:translate-x-1 inline-block transition">→</span></div><div style="font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6">流水线串起来，3 分钟一篇不踩雷</div></a>
+    <a href="/获客计划.html" class="card block group" style="padding:14px 16px;text-decoration:none;transition:.15s"><div style="font-weight:800;font-size:14px">📡 获客闭环 <span class="text-[var(--ink-soft)] group-hover:translate-x-1 inline-block transition">→</span></div><div style="font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6">养号截流+数据复盘，内容到转化</div></a>
   </div>
 
   <!-- ⑤ 快捷入口 · 创作 -->
@@ -243,8 +243,8 @@
     <div id="worksGrid" class="hm-works"></div>
   </section>
 
-  <!-- 当前赛道模板 -->
-  <section style="margin-top:32px">
+  <!-- 当前赛道模板（付费成品模板入口 · 暂隐藏）-->
+  <section style="margin-top:32px;display:none">
     <div class="hm-sechead"><h2 id="tplTitle" class="hm-sectitle">模板</h2><span class="hm-more" style="cursor:default;color:var(--ink-soft)">点模板带着方向去创作 →</span></div>
     <div id="tplGrid" class="hm-tpl"></div>
   </section>
@@ -419,7 +419,7 @@ function delTrack(id){
 
 function applyTrack(){
   const t = TRACKS[activeId()];
-  $('#heroTagline').textContent = `${t.tagline || t.domain || t.name || '内容创作'}：选题 → 对标拆解 → 框架 → 正文 → 标题 → 封面 → 标签 → 合规自检。两个人审节点兜底质量与合规。`;
+  $('#heroTagline').textContent = `${t.name || t.domain || '你的赛道'}：一条流水线出可发笔记（选题→对标→框架→正文→封面→合规自检），再用账号矩阵养号截流自动获客涨粉。0 基础也能上手。`;
   window.__curTrackName = t.name;
   renderTemplates(t.name);
   const hc = document.querySelector('#trackChip'); if (hc) hc.textContent = t.emoji + ' ' + t.name;
