@@ -308,7 +308,8 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
 /* 顶部品牌横条：左品牌（斜体衬线）—— 金线 —— 右栏目 */
 .cv-poster .pst-top{ display:flex; align-items:center; gap:1.8cqw; font-size:2.6cqw; letter-spacing:.35cqw; color:var(--gold-lt); font-family:"Times New Roman",serif; }
 .cv-poster .pst-top .l{ font-style:italic; flex:none; white-space:nowrap; }
-.cv-poster .pst-top i{ flex:1 1 auto; min-width:0; height:.34cqw; background:linear-gradient(90deg,rgba(201,168,95,.7),rgba(201,168,95,.15),rgba(201,168,95,.7)); }
+/* 分隔线改用内联 SVG：几何居中，html2canvas 导出/预览都精确对齐两侧文字（不再用 cqw 细条被挤偏） */
+.cv-poster .pst-top .pst-line{ flex:1 1 auto; min-width:0; align-self:center; height:1em; display:block; }
 .cv-poster .pst-top .r{ flex:none; white-space:nowrap; letter-spacing:.28cqw; }
 /* 标题：大号中文衬线 + 烫金英文副标 */
 .cv-poster .pst-head{ margin:6.5cqw 0 5cqw; }
