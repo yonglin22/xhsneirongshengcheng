@@ -18,17 +18,18 @@
   .toolbar button{ background:linear-gradient(180deg,#e6cf8e,#cca552); color:#5a4415; border:none; border-radius:999px; padding:8px 20px; font-size:13px; font-weight:700; cursor:pointer; }
   .toolbar span{ color:#b6ac96; font-size:12px; align-self:center; }
   .slide{
-    width:1280px; min-height:720px; background:var(--paper); position:relative; overflow:hidden;
-    margin:0 auto 26px; border-radius:8px; box-shadow:0 24px 64px -24px rgba(0,0,0,.6);
-    padding:60px 70px 72px; display:flex; flex-direction:column;
+    width:1280px; min-height:auto; background:var(--paper); position:relative; overflow:hidden;
+    margin:0 auto 22px; border-radius:8px; box-shadow:0 24px 64px -24px rgba(0,0,0,.6);
+    padding:52px 70px 64px; display:flex; flex-direction:column;
   }
+  .slide.center{ min-height:600px; }
   .slide::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:7px; background:linear-gradient(180deg,var(--gold-lt),var(--gold-deep)); }
   .kicker{ font-size:12.5px; color:var(--gold-deep); font-weight:800; letter-spacing:.26em; text-transform:uppercase; margin-bottom:12px; }
   h1{ font-size:42px; font-weight:300; line-height:1.2; color:var(--ink); }
   h2{ font-size:30px; font-weight:700; margin-bottom:8px; color:var(--ink); }
   h2 .num{ color:var(--gold); margin-right:12px; font-weight:800; }
   .sub{ font-size:15.5px; color:var(--ink-soft); margin-top:12px; line-height:1.75; max-width:960px; }
-  .lead{ margin-top:auto; padding-top:18px; font-size:14px; color:#514c42; line-height:1.7; border-top:1px dashed var(--gold-hair); }
+  .lead{ margin-top:22px; padding-top:16px; font-size:14px; color:#514c42; line-height:1.7; border-top:1px dashed var(--gold-hair); }
   .lead b{ color:var(--gold-deep); }
   .grid{ display:grid; gap:16px; margin-top:22px; }
   .g2{ grid-template-columns:1fr 1fr; } .g3{ grid-template-columns:repeat(3,1fr); } .g4{ grid-template-columns:repeat(4,1fr); }
@@ -70,7 +71,8 @@
   .quote b{ color:var(--gold-deep); }
   @media print{
     html,body{ background:#fff; } .toolbar{ display:none; } .deck{ padding:0; }
-    .slide{ box-shadow:none; margin:0; border-radius:0; page-break-after:always; width:100%; min-height:100vh; }
+    .slide{ box-shadow:none; margin:0; border-radius:0; page-break-after:always; break-after:page; width:100%; min-height:96vh; justify-content:center; padding:44px 64px 56px; }
+    .slide > .lead{ margin-bottom:6px; }
   }
 </style>
 </head>
@@ -86,7 +88,40 @@
   <div class="meta">垂直赛道 AI 内容操盘系统 · 内容创作 + 矩阵获客一体化<br>融资需求：¥150–200 万 · 天使轮 · 2026.06</div>
 </section>
 
-<!-- 2 总览 -->
+<!-- 目录 -->
+<section class="slide">
+  <div class="logo"><div class="lm">朱</div><div><div class="lt">朱砂操盘台</div><div class="ls">VERTICAL AGENT STUDIO</div></div></div>
+  <div class="kicker">Contents · 目录</div>
+  <h2>目录导航</h2>
+  <div class="grid g3" style="margin-top:18px">
+    <div class="card"><h3><span class="ic">Ⅰ</span>商业计划书</h3><ul>
+      <li>01 用户痛点 · 四座大山 — P04</li>
+      <li>02 解决方案 · 八步流水线 — P05</li>
+      <li>03 核心壁垒 · 赛道智能体 — P06</li>
+      <li>04 目标用户与场景 — P07</li>
+      <li>05 市场测算 TAM/SAM/SOM — P08</li>
+      <li>06 竞争格局对比 — P09</li>
+      <li>07 商业模式 — P10</li>
+      <li>08 增长引擎 — P11</li>
+      <li>09 财务预测 — P12</li>
+      <li>10 团队与融资需求 — P13</li></ul></div>
+    <div class="card"><h3><span class="ic">Ⅱ</span>近一年推广方案</h3><ul>
+      <li>北极星指标与打法总览 — P15</li>
+      <li>11 渠道矩阵 — P16</li>
+      <li>12 12 个月推广节奏 — P17</li>
+      <li>13 内容矩阵与裂变机制 — P18</li>
+      <li>14 年度预算分配 — P19</li></ul></div>
+    <div class="card"><h3><span class="ic">Ⅲ</span>落地指标体系</h3><ul>
+      <li>分层指标 AARRR — P21</li>
+      <li>15 季度 OKR 对照表 — P22</li>
+      <li>16 关键风险与预案 — P23</li>
+      <li>★ 三年蓝图 — P24</li></ul></div>
+  </div>
+  <div class="lead">全书按「<b>商业计划书 → 推广方案 → 落地指标</b>」三部分递进：先讲清<b>凭什么值得投</b>，再讲清<b>钱怎么花出增长</b>，最后讲清<b>如何按季度验证</b>——财务预测、节奏表与季度 OKR 三者数据同源、可交叉校验。</div>
+  <div class="page">02</div><div class="foot">朱砂操盘台 · 商业计划书 2026</div>
+</section>
+
+<!-- 3 总览 -->
 <section class="slide">
   <div class="logo"><div class="lm">朱</div><div><div class="lt">朱砂操盘台</div><div class="ls">VERTICAL AGENT STUDIO</div></div></div>
   <div class="kicker">Executive Summary · 三份文件，一套打法</div>
@@ -447,5 +482,13 @@
 </section>
 
 </div>
+<script>
+  // 自动页码：无论增删页，页脚页码始终连续正确
+  document.querySelectorAll('.deck .slide').forEach(function(s, i){
+    var p = s.querySelector('.page');
+    if(!p){ p = document.createElement('div'); p.className='page'; s.appendChild(p); }
+    p.textContent = String(i+1).padStart(2,'0');
+  });
+</script>
 </body>
 </html>
