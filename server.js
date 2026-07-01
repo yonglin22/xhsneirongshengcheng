@@ -1846,7 +1846,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ---- 静态文件 ----
-  let rel = pathname === '/' ? '/index.html' : pathname;
+  // 根目录：未登录访客看官网(land.html)，已登录看工作台(index.html)
+  let rel = pathname === '/' ? (authUid(req) ? '/index.html' : '/land.html') : pathname;
   const filePath = path.join(__dirname, path.normalize(rel));
   if (!filePath.startsWith(__dirname)) return send(res, 403, 'Forbidden'); // 防目录穿越
   // 禁止访问敏感文件：dotfiles(.env/.git…)、后端源码与依赖清单

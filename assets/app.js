@@ -541,7 +541,6 @@ window.buildMyAgentNav = function () {
       <button class="ag-dd-btn" type="button">🎯 获客 Agent <i>▾</i></button>
       <div class="ag-dd-menu">
         <a href="/设备看板.html" class="ag-dd-item">📡 设备看板（投屏）</a>
-        <a href="/执行端.html" class="ag-dd-item">🖥 网页执行端</a>
         <a href="/账号矩阵.html" class="ag-dd-item">🗂 账号矩阵</a>
         <a href="/获客计划.html" class="ag-dd-item">🌱 养号 / 截流计划</a>
         <a href="/话术库.html" class="ag-dd-item">💬 话术库</a>

@@ -37,9 +37,12 @@
   <!-- 赛道矩阵预设：一键填养号/截流计划（赛道写 matrix 才显示） -->
   <div id="gpPreset" class="mb-5"></div>
 
-  <!-- 新建/编辑 计划 -->
-  <div class="card p-5 mb-5">
-    <div class="font-song font-bold text-[15px] mb-3">＋ 新建计划</div>
+  <!-- 新建/编辑 计划（默认隐藏，点「新建计划」按钮展开） -->
+  <div id="createCard" class="card p-5 mb-5" style="display:none">
+    <div class="flex items-center justify-between mb-3">
+      <div class="font-song font-bold text-[15px]" id="createTitle">＋ 新建计划</div>
+      <button id="createClose" class="btn-ghost rounded-lg px-3 py-1 text-[12px]">收起 ✕</button>
+    </div>
     <div class="grid sm:grid-cols-2 gap-3">
       <div><div class="gp-hint mb-1">* 计划名称</div><input id="pName" class="field w-full" placeholder="如：母婴号-6月起号养号" /></div>
       <div><div class="gp-hint mb-1">计划描述（可选）</div><input id="pDesc" class="field w-full" placeholder="备注用途" /></div>
@@ -119,6 +122,7 @@
 
   <div class="flex items-center gap-2 mb-3 flex-wrap" style="margin-top:6px">
     <h3 style="font-size:15px;font-weight:700">计划列表</h3>
+    <button id="newPlanBtn" class="btn-go rounded-lg px-3 py-1.5 text-[12px]">＋ 新建计划</button>
     <select id="fType" class="field" style="font-size:12px"><option value="">全部类型</option><option value="link">口令刷量</option><option value="home_nurture">首页养号</option><option value="search_nurture">搜索养号</option><option value="home_intercept">首页截流</option><option value="search_intercept">搜索截流</option></select>
     <select id="fExec" class="field" style="font-size:12px"><option value="">全部状态</option><option value="running">执行中</option><option value="pending">待领取</option><option value="done">已完成</option><option value="none">未下发</option></select>
     <input id="fKw" class="field" style="font-size:12px;min-width:150px" placeholder="🔍 搜计划名/关键词" />
@@ -129,7 +133,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=21"></script>
-<script src="/assets/app.js?v=61"></script>
+<script src="/assets/app.js?v=62"></script>
 <script src="/assets/ui-dialog.js?v=1"></script>
 <script>
 let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'ai', isrc:'ai' }, collectOn=false, aiMatchOn=true;
@@ -179,7 +183,7 @@ $('#saveBtn').addEventListener('click', async ()=>{
   if(/^(home|search)_/.test(p.ptype) && !kws.length){ $('#saveStatus').textContent='请至少加 1 个关键词'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
   if(editId) p.id=editId;
   const r=await api('','POST',p);
-  if(r&&r.ok){ $('#saveStatus').textContent='✓ 已保存'; $('#saveStatus').style.color='#00a152'; reset(); load(); }
+  if(r&&r.ok){ $('#saveStatus').textContent='✓ 已保存'; $('#saveStatus').style.color='#00a152'; reset(); hideCreate(); load(); }
 });
 function reset(){ editId=null; kws=[]; collectOn=false; $('#icCollect').classList.remove('on'); aiMatchOn=true; $('#icAiMatch').classList.add('on'); ['pName','pDesc','pLink'].forEach(i=>$('#'+i).value=''); renderKw(); $('#saveBtn').textContent='保存计划'; }
 $('#resetBtn').addEventListener('click', reset);
@@ -360,8 +364,14 @@ function loadIntoForm(p){
   $$('.seg').forEach(seg=>{ const v=segs[seg.dataset.seg]; seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); });
   fillLibSel('nzLib'); fillLibSel('icLib'); if($('#nzLib')) $('#nzLib').value=nz.libId||''; if($('#icLib')) $('#icLib').value=ic.libId||''; toggleLib();
   showSections(); $('#saveBtn').textContent='更新计划';
-  window.scrollTo({top:0,behavior:'smooth'});
+  showCreate(true);
 }
+// 新建/编辑 表单展开收起
+const _cc=()=>$('#createCard');
+function showCreate(edit){ const c=_cc(); if(!c)return; c.style.display=''; const t=$('#createTitle'); if(t)t.textContent=edit?'✎ 编辑计划':'＋ 新建计划'; c.scrollIntoView({behavior:'smooth',block:'center'}); }
+function hideCreate(){ const c=_cc(); if(c)c.style.display='none'; }
+$('#newPlanBtn')&&$('#newPlanBtn').addEventListener('click',()=>{ reset(); showCreate(false); });
+$('#createClose')&&$('#createClose').addEventListener('click',hideCreate);
 // ▶ 执行：把养号计划下发给浏览器插件（在你已登录的小红书里跑）
 let EXT_READY=false;
 window.addEventListener('message',e=>{ if(e.source===window && e.data && e.data.__zhusha_ext==='ready') EXT_READY=true; });
