@@ -27,11 +27,12 @@
     <p class="mt-2 text-[13px] text-[var(--ink-soft)] max-w-2xl">维护「问题 → 回答话术」问答库，供获客计划在养号/截流评论、私信回复时按需取词。单库最多 <b>1000</b> 条。</p>
   </div>
 
-  <!-- 新建/编辑 话术库 -->
-  <div class="card p-5 mb-5">
+  <!-- 新建/编辑 话术库（默认收起，点「＋新建话术库」展开）-->
+  <div id="createLibCard" class="card p-5 mb-5" style="display:none">
     <div class="flex items-center gap-3 mb-3">
-      <span class="font-song font-bold text-[15px]">＋ 新建话术库</span>
+      <span class="font-song font-bold text-[15px]" id="createLibTitle">＋ 新建话术库</span>
       <span id="libCount" class="cnt ml-auto">0 / 1000 条</span>
+      <button id="createLibClose" class="btn-ghost rounded-lg px-3 py-1 text-[12px]">收起 ✕</button>
     </div>
     <div class="flex gap-3 mb-3 flex-wrap">
       <div style="flex:2;min-width:200px"><div class="text-[11px] text-[var(--ink-soft)] mb-1">* 话术库标题</div>
@@ -70,7 +71,9 @@
   </div>
 
   <div class="flex items-center gap-2 mb-3 flex-wrap">
-    <input id="searchKw" class="field" style="flex:1;min-width:180px" placeholder="🔍 搜索：编号 / 话术名称" />
+    <h3 style="font-size:15px;font-weight:700">话术库列表</h3>
+    <button id="newLibBtn" class="btn-go rounded-lg px-3 py-1.5 text-[12px]">＋ 新建话术库</button>
+    <input id="searchKw" class="field" style="flex:1;min-width:160px" placeholder="🔍 搜索：编号 / 话术名称" />
     <select id="searchType" class="field"><option value="">全部类型</option><option value="comment">评论话术</option><option value="reply">回复话术</option><option value="intercept">截流话术</option></select>
     <span id="listCount" class="cnt" style="margin-left:auto"></span>
   </div>
@@ -162,7 +165,7 @@ $('#saveBtn').addEventListener('click', async ()=>{
   $('#saveBtn').disabled=true;
   const r=await api('','POST',p);
   $('#saveBtn').disabled=false;
-  if(r&&r.ok){ $('#saveStatus').textContent='✓ 已保存'; $('#saveStatus').style.color='#00a152'; reset(); load(); }
+  if(r&&r.ok){ $('#saveStatus').textContent='✓ 已保存'; $('#saveStatus').style.color='#00a152'; reset(); hideLib(); load(); }
   else { $('#saveStatus').textContent=(r&&r.error)||'保存失败，请重试'; $('#saveStatus').style.color='var(--cinnabar-deep)'; }
 });
 function reset(){ editId=null; items=[]; $('#libTitle').value=''; $('#libType').value='comment'; $('#libDesc').value=''; $('#bulkText').value=''; $('#bulkStatus').textContent=''; $('#saveBtn').textContent='保存话术库'; renderQa(); }
@@ -203,8 +206,12 @@ function loadIntoForm(l){
   items=(l.items||[]).map(x=>({q:x.q||'',a:x.a||''}));
   $('#saveBtn').textContent='更新话术库';
   renderQa();
-  window.scrollTo({top:0,behavior:'smooth'});
+  showLib(true);
 }
+function showLib(edit){ const c=$('#createLibCard'); if(!c)return; c.style.display=''; const t=$('#createLibTitle'); if(t)t.textContent=edit?'✎ 编辑话术库':'＋ 新建话术库'; c.scrollIntoView({behavior:'smooth',block:'center'}); }
+function hideLib(){ const c=$('#createLibCard'); if(c)c.style.display='none'; }
+$('#newLibBtn')&&$('#newLibBtn').addEventListener('click',()=>{ reset(); showLib(false); });
+$('#createLibClose')&&$('#createLibClose').addEventListener('click',hideLib);
 reset(); load();
 </script>
 </body>
