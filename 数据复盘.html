@@ -39,6 +39,7 @@
     <select id="fAcct" class="field" style="font-size:12px"><option value="">全部账号</option></select>
     <input id="fKw" class="field" style="font-size:12px;min-width:150px" placeholder="🔍 搜标题/账号" />
     <span class="ml-auto flex items-center gap-2">
+      <button id="pullBtn" class="db">📥 从创作中心抓取</button>
       <button id="addBtn" class="db go">＋ 手动录入</button>
       <button id="refreshBtn" class="db">↻ 刷新</button>
       <button id="exportBtn" class="db">⬇ 导出 CSV</button>
@@ -108,6 +109,15 @@ document.getElementById('list').addEventListener('click', async e=>{
 document.getElementById('fAcct').addEventListener('change',render);
 document.getElementById('fKw').addEventListener('input',render);
 document.getElementById('refreshBtn').addEventListener('click',load);
+document.getElementById('pullBtn').addEventListener('click',()=>{
+  let done=false;
+  const onAck=e=>{ if(e.source!==window||!e.data||e.data.type!=='ZHUSHA_PULL_STATS_ACK')return; done=true; window.removeEventListener('message',onAck);
+    if(e.data.ok){ zToast&&zToast('已让插件打开创作中心抓取，约 10 秒后点「刷新」看回流','ok'); setTimeout(load,12000); }
+    else zToast&&zToast('需安装「朱砂助手」插件并登录小红书','err'); };
+  window.addEventListener('message',onAck);
+  window.postMessage({type:'ZHUSHA_PULL_STATS'},'*');
+  setTimeout(()=>{ if(!done){ window.removeEventListener('message',onAck); zToast&&zToast('没收到插件响应：请装「朱砂助手」0.9.4+ 并刷新本页','err'); } },4000);
+});
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const arr=shown(); if(!arr.length){ zToast&&zToast('没有可导出的数据','err'); return; }
   const head=['账号','标题','发布时间','小眼睛','点赞','收藏','评论','调优建议'];

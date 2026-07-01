@@ -422,7 +422,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           body: JSON.stringify({ id: msg.accountId, nickname: msg.nickname || '', cookie }),
         });
         const j = await r.json().catch(() => null);
+        // 记住这个账号，供定时续期(zsCookieRefresh)反复回传最新 cookie，避免服务端 cookie 老化被判失效
+        if (j && j.ok && j.id) chrome.storage.local.get(['zsCookieAccts'], st => {
+          const arr = (st.zsCookieAccts || []).filter(x => x !== j.id); arr.push(j.id);
+          chrome.storage.local.set({ zsCookieAccts: arr.slice(-30) });
+        });
         sendResponse({ ok: !!(j && j.ok), id: j && j.id, error: j && j.error });
+      } catch (e) { sendResponse({ ok: false, error: e.message || String(e) }); }
+    })();
+    return true;
+  }
+  // #1 定时续期：把本机最新的小红书 cookie 回传到已接入的账号（住宅IP续期，服务端 cookie 不老化）
+  if (msg && msg.type === 'reportNoteStats') {
+    (async () => {
+      try {
+        const r = await fetch('https://yonglin.chat/api/note-stats', {
+          method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ list: msg.list || [] }),
+        });
+        const j = await r.json().catch(() => null);
+        sendResponse({ ok: !!(j && j.ok), saved: j && j.saved });
       } catch (e) { sendResponse({ ok: false, error: e.message || String(e) }); }
     })();
     return true;
@@ -626,3 +645,35 @@ async function zsHeartbeat() {
 chrome.alarms && chrome.alarms.create('zsHeartbeat', { periodInMinutes: 1 });
 chrome.alarms && chrome.alarms.onAlarm.addListener(a => { if (a && a.name === 'zsHeartbeat') zsHeartbeat(); });
 setTimeout(zsHeartbeat, 5000);
+
+// ===== #1 登录态定时续期：住宅IP上把本机最新小红书 cookie 回传到已接入账号（每 75 分钟）=====
+async function zsCookieRefresh() {
+  try {
+    const st = await chrome.storage.local.get(['zsCookieAccts']);
+    const ids = st.zsCookieAccts || []; if (!ids.length) return;
+    const all = await chrome.cookies.getAll({ domain: '.xiaohongshu.com' });
+    const cookie = (all || []).map(c => c.name + '=' + c.value).join('; ');
+    if (!/web_session=/.test(cookie)) return; // 本机没登录小红书就不续
+    for (const id of ids) {
+      try { await fetch('https://yonglin.chat/api/accounts/submit-cookie', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, cookie }) }); } catch {}
+    }
+  } catch {}
+}
+chrome.alarms && chrome.alarms.create('zsCookieRefresh', { periodInMinutes: 75 });
+chrome.alarms && chrome.alarms.onAlarm.addListener(a => { if (a && a.name === 'zsCookieRefresh') zsCookieRefresh(); });
+setTimeout(zsCookieRefresh, 60000);
+
+// ===== #2 数据回流：定时打开创作中心笔记管理页，让 xhs.js 抓每篇小眼睛/赞/藏/评论回传（每 3 小时）=====
+let _zsStatsBusy = false;
+async function zsPullNoteStats() {
+  if (_zsStatsBusy) return; _zsStatsBusy = true;
+  try {
+    // 后台标签打开笔记管理页；xhs.js 检测到该页会自动抓取并 reportNoteStats，然后自己关闭
+    chrome.tabs.create({ url: 'https://creator.xiaohongshu.com/new/note-manager', active: false });
+  } catch {}
+  setTimeout(() => { _zsStatsBusy = false; }, 3 * 60000);
+}
+chrome.alarms && chrome.alarms.create('zsNoteStats', { periodInMinutes: 180 });
+chrome.alarms && chrome.alarms.onAlarm.addListener(a => { if (a && a.name === 'zsNoteStats') zsPullNoteStats(); });
+// 网页「数据复盘」页可手动触发一次
+chrome.runtime.onMessage.addListener((msg, s, resp) => { if (msg && msg.type === 'pullNoteStatsNow') { zsPullNoteStats(); try { resp({ ok: true }); } catch {} } });

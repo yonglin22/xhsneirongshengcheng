@@ -184,3 +184,47 @@
     chrome.runtime.sendMessage({ type: 'getPayload' }, (resp) => { if (resp && resp.payload) startWith(resp.payload); });
   });
 })();
+
+// ===== #2 数据回流：在创作中心「笔记管理」页抓每篇 小眼睛/赞/藏/评论 → 回传数据复盘 =====
+// ⚠️ 创作中心页面结构会改版，选择器为最佳猜测，需在真实页面校准（打开 note-manager 看 console）。
+(function () {
+  if (!/creator\.xiaohongshu\.com/.test(location.host)) return;
+  if (!/note-manager|note-manage|noteManager|publish\/success|creator-home|\/home/i.test(location.href)) return;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const toNum = s => { s = String(s || '').replace(/[,\s]/g, ''); const m = s.match(/([\d.]+)\s*(万|w|k)?/i); if (!m) return 0; let n = parseFloat(m[1]) || 0; const u = (m[2] || '').toLowerCase(); if (u === '万' || u === 'w') n *= 10000; if (u === 'k') n *= 1000; return Math.round(n); };
+  // 从一个笔记卡片里按标签取数：观看/浏览/曝光→views，赞→likes，收藏→favs，评论→comments
+  function pick(card, labels) {
+    const txt = card.innerText || '';
+    for (const lab of labels) {
+      // 形如 "观看 1234" / "1234 观看" / "赞 12"
+      let m = txt.match(new RegExp(lab + '[\\s:：]*([\\d.,]+\\s*[万wk]?)', 'i')) || txt.match(new RegExp('([\\d.,]+\\s*[万wk]?)[\\s]*' + lab, 'i'));
+      if (m) return toNum(m[1]);
+    }
+    return 0;
+  }
+  async function scrape() {
+    await sleep(4500); // 等异步数据渲染
+    let cards = [...document.querySelectorAll('[class*="note-item"],[class*="noteItem"],[class*="note-card"],[class*="tableRow"],tbody tr')];
+    if (!cards.length) cards = [...document.querySelectorAll('[class*="note"]')].filter(e => /观看|浏览|曝光|赞|收藏|评论/.test(e.innerText || '') && (e.innerText || '').length < 400);
+    const list = [];
+    for (const c of cards.slice(0, 40)) {
+      const titleEl = c.querySelector('[class*="title"],[class*="name"],a[href*="/note"]');
+      const title = ((titleEl && titleEl.textContent) || (c.innerText || '').split('\n')[0] || '').trim().slice(0, 80);
+      const urlEl = c.querySelector('a[href*="/note"],a[href*="explore"]');
+      const views = pick(c, ['观看', '浏览', '曝光', '阅读']);
+      const likes = pick(c, ['点赞', '赞']);
+      const favs = pick(c, ['收藏']);
+      const comments = pick(c, ['评论']);
+      if (title && (views || likes || favs || comments)) list.push({ note_title: title, note_url: (urlEl && urlEl.href) || '', views, likes, favs, comments, platform: 'xhs' });
+    }
+    if (list.length) {
+      chrome.runtime.sendMessage({ type: 'reportNoteStats', list }, () => {
+        console.log('[朱砂助手] 数据回流：已上报', list.length, '篇');
+        setTimeout(() => { try { window.close(); } catch {} }, 1500);
+      });
+    } else {
+      console.log('[朱砂助手] 数据回流：没抓到笔记数据（页面结构可能已改版，需校准选择器）');
+    }
+  }
+  scrape();
+})();

@@ -59,6 +59,10 @@
         window.postMessage({ type: 'ZHUSHA_NURTURE_ACK', ok: !!(resp && resp.ok), msg: (resp && resp.msg) || '' }, '*');
       });
     }
+    if (e.data.type === 'ZHUSHA_PULL_STATS') {
+      try { chrome.runtime.sendMessage({ type: 'pullNoteStatsNow' }, (resp) => { window.postMessage({ type: 'ZHUSHA_PULL_STATS_ACK', ok: !!(resp && resp.ok) }, '*'); void chrome.runtime.lastError; }); }
+      catch { window.postMessage({ type: 'ZHUSHA_PULL_STATS_ACK', ok: false }, '*'); }
+    }
     if (e.data.type === 'ZHUSHA_SUBMIT_COOKIE') {
       const { accountId, nickname } = e.data;
       try {

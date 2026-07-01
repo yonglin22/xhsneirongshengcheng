@@ -1901,9 +1901,12 @@ async function keepAliveAccounts() {
   let bot; try { bot = require('./xhs-bot'); } catch { return; } // 没装 Playwright 直接跳过
   let accts = []; try { accts = billing.accountsActiveXhs() || []; } catch { return; }
   for (const a of accts) {
-    let cookie = '';
-    try { const blob = JSON.parse(a.auth_blob || '{}'); cookie = blob.cookie || ''; } catch { cookie = a.auth_blob || ''; }
+    let cookie = '', via = '';
+    try { const blob = JSON.parse(a.auth_blob || '{}'); cookie = blob.cookie || ''; via = blob.via || ''; } catch { cookie = a.auth_blob || ''; }
     if (!cookie) continue;
+    // 插件回传(住宅IP)的 cookie 只在住宅 IP 有效，服务器(机房IP)去访问必然失败 → 别误判失效。
+    // 这类账号由「朱砂助手」插件定时在本机续期并回传最新 cookie（见插件 zsCookieRefresh）。
+    if (via === 'device-cookie') continue;
     try {
       const r = await bot.refreshSession(cookie);
       if (r.ok && r.cookie) {
