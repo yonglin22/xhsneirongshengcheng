@@ -607,9 +607,10 @@ html[data-theme="dark"] .ag-side{ background:var(--paper); border-right-color:#2
 .ag-usage .row{ display:flex; align-items:center; gap:9px; font-size:12px; margin-bottom:9px; }
 .ag-usage .row .v{ font-weight:800; font-size:15px; color:var(--cinnabar-deep); }
 .ag-usage .row .l{ color:var(--ink-soft); font-size:11px; line-height:1.2; }
-.ag-usage .uout{ width:100%; margin-top:2px; background:var(--cinnabar); border:none;
-  color:#fff; border-radius:10px; padding:8px 0; font-size:12px; font-weight:600; cursor:pointer; transition:.15s; }
-.ag-usage .uout:hover{ filter:brightness(1.07); }
+/* 次级：个人中心/退出用中性描边，避免和主 CTA「开始创作笔记」抢红 */
+.ag-usage .uout{ width:100%; margin-top:2px; background:#fff; border:1px solid var(--line);
+  color:var(--ink-soft); border-radius:10px; padding:8px 0; font-size:12px; font-weight:600; cursor:pointer; transition:.15s; }
+.ag-usage .uout:hover{ background:rgba(0,0,0,.03); color:var(--ink); }
 
 /* —— 顶栏赛道选择 chips —— */
 .ag-tracks{ display:flex; align-items:center; gap:9px; flex-wrap:nowrap; overflow:visible; margin-left:4px; padding:2px 0; scrollbar-width:none; }

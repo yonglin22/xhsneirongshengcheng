@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>邀请有礼 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=106" />
+<link rel="stylesheet" href="/assets/atelier.css?v=107" />
 <style>
   /* 红色降级：奖励卡改浅底红字，只留主 CTA 一个实心红 */
   .iv-hero{ border-radius:var(--r-lg); padding:26px 28px; background:linear-gradient(135deg,#fff4f5,#fffaf7); border:1px solid #f3d9d2; color:var(--ink); box-shadow:0 10px 26px -18px rgba(0,0,0,.12); }
@@ -26,7 +26,7 @@
 </head>
 <body class="stage grain min-h-screen" data-page="invite">
 
-<main class="ag-page narrow">
+<main class="ag-page">
 
   <div class="mb-7">
     <div class="text-[var(--cinnabar)] text-[12px] tracking-[.3em] font-medium mb-2">INVITE · 邀请有礼</div>
@@ -63,9 +63,15 @@
     </div>
     <div class="flex flex-wrap gap-2.5">
       <a id="ivPoster" href="/分享海报.html" target="_blank" class="btn-go rounded-xl px-5 py-2.5 text-[13px] font-medium">🖼 生成专属分享海报 →</a>
-      <a href="/账户.html#invite" class="btn-ghost rounded-xl px-5 py-2.5 text-[13px]">查看邀请明细</a>
     </div>
     <div id="ivHint" class="text-[12px] text-[var(--ink-soft)] mt-3"></div>
+  </div>
+
+  <!-- 邀请明细：直接显示在本页 -->
+  <div class="card p-5 mt-5">
+    <div class="text-[14px] font-bold mb-3">👥 邀请明细</div>
+    <style>.iv-tb{width:100%;border-collapse:collapse;font-size:13px}.iv-tb th{text-align:left;font-size:11px;font-weight:600;color:var(--ink-soft);padding:9px 12px;border-bottom:1px solid var(--line);background:#faf7f1;white-space:nowrap}.iv-tb td{padding:9px 12px;border-bottom:1px solid #f3eee4}.iv-tb tbody tr:last-child td{border-bottom:none}</style>
+    <div style="overflow:auto"><table class="iv-tb"><thead><tr><th style="width:44px">#</th><th>好友手机号</th><th style="width:120px">注册时间</th><th style="width:110px">已充值</th><th style="width:90px">状态</th></tr></thead><tbody id="ivRows"><tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:18px">加载中…</td></tr></tbody></table></div>
   </div>
 
   <div class="text-[11.5px] text-[var(--ink-soft)] mt-5 leading-relaxed">
@@ -87,6 +93,12 @@ const $ = s => document.querySelector(s);
   $('#ivCount').textContent = j.count || 0;
   $('#ivEarned').textContent = j.earnedCredits || 0;
   if (code) $('#ivPoster').href = '/分享海报.html?ref=' + encodeURIComponent(code);
+  // 邀请明细
+  const fmt = t => { if (!t) return '—'; const d = new Date(t), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+  const rows = (j.invitees || []);
+  $('#ivRows').innerHTML = rows.length
+    ? rows.map((u, i) => `<tr><td>${i + 1}</td><td>${u.phone || '匿名'}</td><td style="color:var(--ink-soft)">${fmt(u.joined_at)}</td><td>${(u.recharge_cny ? '¥' + (u.recharge_cny / 100).toFixed(2) : '未充值')}</td><td>${u.recharge_cny ? '<span style="color:#00a152">已充值</span>' : '<span style="color:var(--ink-soft)">已注册</span>'}</td></tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:22px">还没有邀请记录，把上面的链接/海报发给朋友吧～</td></tr>';
 })();
 $('#ivCopy').addEventListener('click', async () => {
   const v = $('#ivLink').value; if (!v) return;
