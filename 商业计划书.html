@@ -505,6 +505,13 @@
 
 </div>
 <script>
+  // 导出 16:9 幻灯片模式（?slides）：注入满幅 1280×720 打印规则，供生成 PPT/16:9 PDF
+  if (location.search.indexOf('slides') > -1) {
+    var s = document.createElement('style');
+    s.textContent = '@media print{ @page{ size:1280px 720px; margin:0 } .toolbar{display:none} .slide{ width:1280px!important; min-height:720px!important; height:720px!important; padding:52px 70px 64px!important; justify-content:center; page-break-after:always } }';
+    document.head.appendChild(s);
+    var tb = document.querySelector('.toolbar'); if (tb) tb.style.display = 'none';
+  }
   // 自动页码：无论增删页，页脚页码始终连续正确
   document.querySelectorAll('.deck .slide').forEach(function(s, i){
     var p = s.querySelector('.page');
