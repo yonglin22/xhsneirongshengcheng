@@ -1,10 +1,11 @@
 /* ===== 赛道智能体操盘台 · 共享设计系统（小红书风） ===== */
 :root{
-  --ink:#222226; --ink-soft:#9499a0; --paper:#ffffff; --paper-2:#f5f6f8;
+  --ink:#241f1a; --ink-soft:#8f8578; --paper:#ffffff; --paper-2:#f7f4ee;
   --cinnabar:#ff2442; --cinnabar-deep:#e51e3d; --indigo:#2b3a52;
-  --line:#eef0f2; --xhs-red:#ff2442; --xhs-tag:#3a5a8c;
-  /* 语义色（统一各处写死的金/合伙人/朱砂浅底）*/
+  --line:#ece4d4; --xhs-red:#ff2442; --xhs-tag:#3a5a8c;
+  /* 语义色（统一各处写死的金/合伙人/朱砂浅底）· 金色=PPT 高级质感主辅色 */
   --gold:#9a6b1e; --gold-bg:#fff3da; --gold-line:#f0d09a; --partner:#8a5a22;
+  --gold-lt:#c9a85f; --gold-deep:#a5813a; --gold-hair:#e8dcbf;
   --tint:#fff3f4; --tint-2:#fff0f2; --tint-deep:#ffe1e6;
   /* 圆角尺度（4 档）*/
   --r-pill:999px; --r-lg:14px; --r-md:10px; --r-sm:8px;
@@ -26,12 +27,18 @@ html[data-theme="dark"]{
 *{ -webkit-font-smoothing:antialiased; }
 body{ font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Helvetica Neue",sans-serif;
   color:var(--ink); transition:background .3s ease, color .3s ease; }
-.font-display{ font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; letter-spacing:-.01em; }
-.font-song{ font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; font-weight:600; }
+/* 标题统一宋体衬线（对齐 PPT 高级质感）；正文仍用无衬线 */
+.font-display{ font-family:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif; letter-spacing:-.005em; }
+.font-song{ font-family:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif; font-weight:700; }
 .xhs{ font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; }
+/* 金色小标 kicker（页面上方 letter-spacing 很宽的英文/拼音小标）自动转金色 */
+[class*="tracking-[.3em]"],[class*="tracking-[.26em]"],[class*="tracking-[.28em]"],[class*="tracking-[.24em]"],[class*="tracking-[.2em]"]{ color:var(--gold-deep)!important; }
+/* 可复用：金色分割线 + 金色小标 */
+.hd-rule{ display:block; height:1px; width:60px; border:0; margin:14px 0; background:linear-gradient(90deg,var(--gold-lt),rgba(201,168,95,0)); }
+.hd-kick{ color:var(--gold-deep); letter-spacing:.28em; font-size:12px; font-weight:600; }
 
 /* 浅灰页面底 + 白卡片，出层次（小红书 feed 风）*/
-.stage{ background:#f6f7f9; position:relative; isolation:isolate; }
+.stage{ background:#f7f4ee; position:relative; isolation:isolate; }
 html[data-theme="dark"] .stage{ background:#121212; }
 .grain::after{ content:none; display:none; }
 
@@ -40,7 +47,7 @@ body > header{ position:sticky; top:0; z-index:40;
   background:rgba(255,255,255,.82); backdrop-filter:saturate(1.6) blur(14px); -webkit-backdrop-filter:saturate(1.6) blur(14px); }
 html[data-theme="dark"] body > header{ background:rgba(20,20,20,.82); }
 
-.hairline{ border-color:var(--line); }
+.hairline{ border-color:var(--gold-hair); }
 .panel{ background:#fff; }
 html[data-theme="dark"] .panel{ background:var(--paper-2); }
 
