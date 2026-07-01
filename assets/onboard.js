@@ -16,7 +16,7 @@
     + '.pgi-step .st{font-size:13.5px;font-weight:700;color:var(--ink,#2a2520)}'
     + '.pgi-step .sd{font-size:12.5px;color:var(--ink-soft,#8b8378);margin-top:2px;line-height:1.55}'
     + '.pgi-tips{margin-top:12px;background:var(--paper-2,#faf7f1);border:1px solid var(--line,#eee);border-radius:12px;padding:11px 13px}'
-    + '.pgi-tips .th{font-size:12px;font-weight:700;color:var(--cinnabar-deep,#d21f3c);margin-bottom:5px}'
+    + '.pgi-tips .th{font-size:12px;font-weight:700;color:var(--cinnabar-deep,#846527);margin-bottom:5px}'
     + '.pgi-tips li{font-size:12px;color:var(--ink-soft,#8b8378);line-height:1.7;list-style:none;padding-left:15px;position:relative}'
     + '.pgi-tips li:before{content:"·";position:absolute;left:4px;color:var(--cinnabar,#a5813a);font-weight:900}'
     + '.pgi-ft{display:flex;align-items:center;gap:10px;padding:13px 20px;border-top:1px solid var(--line,#eee)}'
