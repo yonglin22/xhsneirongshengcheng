@@ -865,7 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!inited) {
       inited = true; await loadKB();
       const dlHTML = `<div style="display:flex;gap:8px;margin-bottom:10px">
-        <a href="/downloads/朱砂助手插件安装教程.pdf?v=20260701" download style="flex:1;display:flex;flex-direction:column;gap:2px;text-decoration:none;border:1px solid ${cin};background:rgba(255,36,66,.06);border-radius:10px;padding:9px 10px">
+        <a href="/downloads/朱砂助手插件安装教程.pdf?v=20260701b" download style="flex:1;display:flex;flex-direction:column;gap:2px;text-decoration:none;border:1px solid ${cin};background:rgba(255,36,66,.06);border-radius:10px;padding:9px 10px">
           <span style="font-size:12.5px;font-weight:700;color:${cin}">🧩 插件安装教程</span>
           <span style="font-size:10.5px;color:var(--ink-soft,#999)">下载 PDF · 含产品截图</span></a>
         <a href="/downloads/朱砂操盘台·平台操作手册.pdf?v=20260701" download style="flex:1;display:flex;flex-direction:column;gap:2px;text-decoration:none;border:1px solid var(--line,#eee);background:var(--paper,#fff);border-radius:10px;padding:9px 10px">
