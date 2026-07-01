@@ -57,6 +57,7 @@
   </div>
 </main>
 
+<script src="/assets/ui-dialog.js?v=2"></script>
 <script src="/assets/app.js?v=67"></script>
 <script src="/assets/help-kb.js?v=5"></script>
 <script>
@@ -358,7 +359,7 @@ async function apost(path, body) {
 const LED_LABEL = { grant: '🎁 赠送', recharge: '💰 充值', consume: '✂️ 消耗', admin_grant: '🛠 管理员充值', admin_deduct: '🛠 管理员扣减', refund: '↩️ 退回', hold: '🔒 预扣', settle: '✅ 结算', transfer_out: '🤝 转赠成员', transfer_in: '🎁 合伙人转赠' };
 async function viewLedger(phone) {
   const { j } = await aget('/api/admin/user?phone=' + encodeURIComponent(phone));
-  if (!j.ok) { alert('加载失败：' + (j.error || '')); return; }
+  if (!j.ok) { zAlert('加载失败：' + (j.error || ''), { title: '加载失败' }); return; }
   $('#ledTitle').textContent = `流水明细 · ${phone} · 余额 ${j.balance}`;
   const led = j.ledger || [];
   $('#ledBody').innerHTML = led.length ? led.map(e => {
@@ -372,13 +373,14 @@ async function viewLedger(phone) {
 // 管理员手动充/扣积分（写入对方流水留痕，不走支付）。sign: +1 充值 / -1 扣减
 async function doAdjust(phone, sign) {
   const act = sign < 0 ? '扣减' : '充值';
-  const v = prompt(`给 ${phone} ${act}多少积分？请输入正整数：`, '');
-  if (v === null) return; const n = Math.abs(parseInt(v, 10)); if (!n) { alert('请输入大于 0 的整数'); return; }
+  const v = await zPrompt(`给 ${phone} ${act}多少积分？`, '', { title: (sign < 0 ? '➖ 手动扣减' : '➕ 手动充值'), placeholder: '请输入正整数，如 100', okText: '下一步' });
+  if (v === null) return; const n = Math.abs(parseInt(v, 10)); if (!n) { zAlert('请输入大于 0 的整数', { title: '输入有误' }); return; }
   const delta = sign < 0 ? -n : n;
-  const reason = prompt('备注（写入流水留痕，可选）：', sign < 0 ? '管理员手动扣减' : '管理员手动充值') || '';
-  const { ok, j } = await apost('/api/admin/adjust', { phone, delta, reason });
-  if (ok && j.ok) { alert(`✓ ${phone} ${delta >= 0 ? '+' : ''}${delta} 积分 → 当前余额 ${j.balance}`); renderView(); }
-  else alert('失败：' + (j.error || ''));
+  const reason = await zPrompt('备注（写入流水留痕，可选）', sign < 0 ? '管理员手动扣减' : '管理员手动充值', { title: '流水备注', okText: '确认' + act });
+  if (reason === null) return;
+  const { ok, j } = await apost('/api/admin/adjust', { phone, delta, reason: reason || '' });
+  if (ok && j.ok) { zToast(`✓ ${phone} ${delta >= 0 ? '+' : ''}${delta} 积分 · 余额 ${j.balance}`, 'ok'); renderView(); }
+  else zAlert('失败：' + (j.error || ''), { title: '操作失败' });
 }
 function msg(el, txt, good) { const e = $(el); if (e) { e.textContent = txt; e.style.color = good ? '#00a052' : 'var(--cinnabar-deep)'; } }
 let ALL_USERS = [];
@@ -429,7 +431,7 @@ async function renderView() {
   $('#view').innerHTML = '<div class="text-[13px] text-[var(--ink-soft)]">加载中…</div>';
   $('#view').innerHTML = await views[curView]();
   const V = $('#view');
-  if (curView === 'orders') { V.querySelectorAll('.oc-ok').forEach(b => b.addEventListener('click', async () => { if (!confirm('确认该订单已收款、给用户入账？')) return; const { ok, j } = await apost('/api/admin/order-confirm', { out_trade_no: b.dataset.otn }); if (ok && j.ok) renderView(); else alert('失败：' + (j.error || '')); })); wireFilter('ordSearch', 'ordBody', 'ordStatus'); }
+  if (curView === 'orders') { V.querySelectorAll('.oc-ok').forEach(b => b.addEventListener('click', async () => { if (!await zConfirm('确认该订单已收款、给用户入账？', { title: '确认到账', okText: '确认入账' })) return; const { ok, j } = await apost('/api/admin/order-confirm', { out_trade_no: b.dataset.otn }); if (ok && j.ok) renderView(); else zAlert('失败：' + (j.error || ''), { title: '操作失败' }); })); wireFilter('ordSearch', 'ordBody', 'ordStatus'); }
   if (curView === 'prices') wireFilter('prSearch', 'prBody');
   if (curView === 'rules') wireFilter('kbSearch', 'kbBody');
   if (curView === 'qaLog') wireFilter('qaSearch', 'qaBody');
@@ -488,7 +490,7 @@ async function renderView() {
     });
   }
   if (curView === 'agentApps') {
-    const decide = async (id, approve) => { const { ok, j } = await apost('/api/admin/agent-apps', { id, approve }); if (ok && j.ok) renderView(); else alert('操作失败：' + (j.error || '')); };
+    const decide = async (id, approve) => { const { ok, j } = await apost('/api/admin/agent-apps', { id, approve }); if (ok && j.ok) renderView(); else zAlert('操作失败：' + (j.error || ''), { title: '操作失败' }); };
     V.querySelectorAll('.aa-ok').forEach(b => b.addEventListener('click', () => decide(b.dataset.id, true)));
     V.querySelectorAll('.aa-no').forEach(b => b.addEventListener('click', () => decide(b.dataset.id, false)));
   }
