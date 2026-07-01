@@ -1,7 +1,9 @@
 /* ===== 赛道智能体操盘台 · 共享设计系统（小红书风） ===== */
 :root{
   --ink:#241f1a; --ink-soft:#8f8578; --paper:#ffffff; --paper-2:#f7f4ee;
-  --cinnabar:#ff2442; --cinnabar-deep:#e51e3d; --indigo:#2b3a52;
+  /* 品牌主色：朱砂红 → 金色（深金作强调，保证白底可读）*/
+  --cinnabar:#a5813a; --cinnabar-deep:#846527; --indigo:#2b3a52;
+  --brand-gold-1:#d9bd7a; --brand-gold-2:#b3903f; --brand-gold-ink:#3a2c0e;
   --line:#ece4d4; --xhs-red:#ff2442; --xhs-tag:#3a5a8c;
   /* 语义色（统一各处写死的金/合伙人/朱砂浅底）· 金色=PPT 高级质感主辅色 */
   --gold:#9a6b1e; --gold-bg:#fff3da; --gold-line:#f0d09a; --partner:#8a5a22;
@@ -64,10 +66,10 @@ html[data-theme="dark"] .field:focus{ background:#1c1c1e; }
 html[data-theme="dark"] select.field option{ background:#2a2a2c; }
 
 /* 按钮（小红书现代风 · 红色胶囊 + 按压手感）*/
-.btn-go{ background:var(--cinnabar); color:#fff; border-radius:999px !important; font-weight:600; letter-spacing:.01em;
-  box-shadow:0 1px 3px rgba(0,0,0,.08);
+.btn-go{ background:linear-gradient(180deg,var(--brand-gold-1,#d9bd7a),var(--brand-gold-2,#b3903f)); color:var(--brand-gold-ink,#3a2c0e); border-radius:999px !important; font-weight:700; letter-spacing:.01em;
+  box-shadow:0 2px 6px -1px rgba(150,110,30,.35), inset 0 1px 0 rgba(255,255,255,.4);
   transition:transform .14s ease, filter .15s, box-shadow .15s; }
-.btn-go:hover{ filter:brightness(.96); transform:translateY(-1px); box-shadow:0 3px 8px -2px rgba(255,36,66,.3); }
+.btn-go:hover{ filter:brightness(1.04); transform:translateY(-1px); box-shadow:0 5px 14px -3px rgba(150,110,30,.45), inset 0 1px 0 rgba(255,255,255,.4); }
 .btn-go:active{ transform:translateY(0); filter:brightness(.92); box-shadow:0 1px 2px rgba(0,0,0,.1); }
 .btn-go:disabled{ opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
 .btn-ghost{ background:#fff; border:1px solid var(--line); color:#444; border-radius:999px !important; font-weight:500;
