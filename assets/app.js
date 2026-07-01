@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function el(html) { const d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
   function mk(t) { return window.mark ? window.mark(t) : String(t || ''); }
   // 悬浮按钮：左侧中部（避开右下角「一键对标生成」等按钮）
-  const fab = el(`<button id="xhsFab" title="创作助手 · 帮助中心" style="position:fixed;right:22px;bottom:22px;z-index:130;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:${cin};color:#fff;font-size:24px;box-shadow:0 8px 24px -6px rgba(165,129,58,.5)">📕</button>`);
+  const fab = el(`<button id="xhsFab" title="创作助手 · 帮助中心" style="position:fixed;right:22px;bottom:22px;z-index:130;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(180deg,#e6cf8e,#cca552);color:#fff;font-size:24px;box-shadow:0 8px 24px -6px rgba(190,150,50,.55),inset 0 1px 0 rgba(255,255,255,.5)">📕</button>`);
   const panel = el(`<div id="xhsPanel" style="position:fixed;right:22px;bottom:88px;z-index:131;width:min(380px,93vw);height:min(540px,82vh);background:var(--paper,#fff);color:var(--ink,#222);border:1px solid var(--line,#eee);border-radius:16px;box-shadow:0 18px 50px -12px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden">
     <div id="xhsHeader" style="background:${cin};color:#fff;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none">
       <div style="font-weight:700;font-size:14px">📕 创作助手 · 帮助中心（小红书+公众号） <span style="opacity:.7;font-weight:400;font-size:11px">⠿ 可拖动</span></div>

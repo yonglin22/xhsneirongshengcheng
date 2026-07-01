@@ -23,7 +23,8 @@
     + '.pgi-btn{border:none;background:var(--cinnabar,#a5813a);color:#fff;border-radius:10px;padding:9px 20px;font-size:13.5px;font-weight:700;cursor:pointer}'
     + '.pgi-btn:hover{filter:brightness(1.05)}'
     + '.pgi-skip{background:none;border:none;color:var(--ink-soft,#8b8378);font-size:12.5px;cursor:pointer;margin-left:auto}'
-    + '.pgi-reopen{position:fixed;left:20px;bottom:20px;z-index:120;background:var(--paper,#fff);border:1px solid var(--line,#e7e0d4);color:var(--ink-soft,#6b6357);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px -8px rgba(0,0,0,.28)}'
+    + '.pgi-reopen{position:fixed;left:calc(var(--side-w, 0px) + 16px);bottom:16px;z-index:120;background:var(--paper,#fff);border:1px solid var(--line,#e7e0d4);color:var(--ink-soft,#6b6357);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px -8px rgba(0,0,0,.28)}'
+    + '@media(max-width:880px){.pgi-reopen{left:12px}}'
     + '.pgi-reopen:hover{color:var(--cinnabar,#a5813a);border-color:var(--cinnabar,#a5813a)}';
   var st = document.createElement('style'); st.textContent = css; (document.head || document.documentElement).appendChild(st);
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
