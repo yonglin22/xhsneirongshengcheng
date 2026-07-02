@@ -1,3 +1,6 @@
+// 安卓/移动端：提示开启「桌面版网站」，否则小红书创作中心是移动版页面、选择器对不上
+try { if (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)) { const mb = document.getElementById('mobileBar'); if (mb) mb.style.display = 'block'; } } catch (e) {}
+
 // 获客计划：从 yonglin.chat 拉取已保存的养号/截流计划，直接在插件里执行（带完整配置，等同网页端「▶ 执行」）
 document.getElementById('planNew').addEventListener('click', () => {
   chrome.tabs.create({ url: 'https://yonglin.chat/获客计划.html', active: true });
