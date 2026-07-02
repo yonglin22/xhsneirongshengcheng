@@ -292,17 +292,10 @@ window.syncAgentConfigsDown = async () => {
   return restored;
 };
 
-/* ---- 深色模式 ---- */
+/* ---- 已下线深色模式：全站强制浅色 ---- */
 (function theme() {
-  const root = document.documentElement;
-  function apply(t) { root.setAttribute('data-theme', t); document.querySelectorAll('#themeToggle, .theme-toggle').forEach(b => b.textContent = (t === 'dark' ? '☀️' : '🌙')); }
-  apply(localStorage.getItem('ag_theme') || 'light');
-  document.addEventListener('click', e => {
-    if (e.target.closest('#themeToggle') || e.target.closest('.theme-toggle')) {
-      const t = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      apply(t); localStorage.setItem('ag_theme', t);
-    }
-  });
+  document.documentElement.setAttribute('data-theme', 'light');
+  try { localStorage.setItem('ag_theme', 'light'); } catch (e) {}
 })();
 
 /* 各动作积分单价（与服务端 price_rules 一致，用于「执行前」预检提示；服务端 402 仍是最终闸） */
@@ -650,7 +643,6 @@ window.refreshTopNav = async function (force) {
          <div class="ag-menu" id="agSetMenu">
            <a href="/智能体.html">⚙ 智能体设置</a>
            <a href="/账户.html">👤 个人中心 · 积分</a>
-           <a id="agThemeItem">${themeLabel()}</a>
            <a id="agLogout" style="color:var(--cinnabar-deep)">🚪 退出登录</a>
          </div>
        </div>`;
@@ -661,14 +653,7 @@ window.refreshTopNav = async function (force) {
       window.__setDropCloseBound = 1;
       document.addEventListener('click', e => { const d = document.getElementById('agSetDrop'); if (d && !e.target.closest('#agSetDrop')) d.classList.remove('open'); });
     }
-    // 主题切换（菜单内，带文字标签，不复用 .theme-toggle 以免标签被覆盖）
-    document.getElementById('agThemeItem')?.addEventListener('click', () => {
-      const root = document.documentElement;
-      const t = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', t); localStorage.setItem('ag_theme', t);
-      document.querySelectorAll('#themeToggle, .theme-toggle').forEach(b => b.textContent = (t === 'dark' ? '☀️' : '🌙'));
-      const it = document.getElementById('agThemeItem'); if (it) it.textContent = (t === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式');
-    });
+    // 深色模式已下线，无主题切换
     document.getElementById('agLogout')?.addEventListener('click', doLogout);
     if (usage) {
       usage.innerHTML =
@@ -682,8 +667,7 @@ window.refreshTopNav = async function (force) {
     topR.innerHTML =
       `<a href="/充值.html" class="ag-tbtn">＋ 充值</a>
        <a href="/帮助.html" class="ag-tbtn">💬 联系客服</a>
-       <a href="/登录.html" class="ag-tbtn primary">登录 / 注册</a>
-       <button class="theme-toggle" title="深色 / 浅色">${darkIcon()}</button>`;
+       <a href="/登录.html" class="ag-tbtn primary">登录 / 注册</a>`;
     if (usage) { usage.innerHTML = `<button class="uout" id="agSideLogin">登录 / 注册 →</button>`; document.getElementById('agSideLogin')?.addEventListener('click', () => location.href = '/登录.html'); }
   }
 };
