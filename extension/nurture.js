@@ -204,8 +204,12 @@
     const nz = cfg.nurture || {};
     const b = await loadBudget();
     ui.budget(b);
-    // 单次运行封顶 15 篇，再与用户设定/剩余日额度取小，防止一次暴走
-    const cap = Math.max(1, Math.min(15, nz.daily || 6, budgetLeft(b, 'opened')));
+    // 计划里配置的「上限」（范围字符串 "15~25" / "8"）→ 本轮随机取一个目标值，达到即停该动作（拟真+风控）
+    const caps = nz.caps || {};
+    const rndCap = (s, d) => { if (s == null || s === '') return d; const a = String(s).split('~').map(x => parseInt(x) || 0); return a.length > 1 ? Math.round(rnd(a[0], a[1])) : (a[0] || d); };
+    const tgt = { open: rndCap(caps.love, nz.daily || 15), like: rndCap(caps.like, 9999), fav: rndCap(caps.fav, 9999), follow: rndCap(caps.follow, 9999), comment: rndCap(caps.comment, 9999) };
+    // 单次运行封顶 15 篇，再与「本轮目标篇数 / 剩余日额度」取小，防止一次暴走
+    const cap = Math.max(1, Math.min(15, tgt.open, budgetLeft(b, 'opened')));
     const minutes = plan._minutes || 12;
     const deadline = Date.now() + minutes * 60000;
     const isSearch = /^search_/.test(plan.ptype || '');
@@ -240,11 +244,12 @@
         if (interested) {
           // 拟人多停留一会儿（PRD：感兴趣内容停留更久）
           await sleep(rnd(2000, 6000));
-          if (budgetLeft(b, 'liked') > 0 && chance(nz.like || 0) && doLike()) { liked++; b.liked++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); }
-          if (budgetLeft(b, 'faved') > 0 && chance(nz.fav || 0) && doFav()) { faved++; b.faved++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); }
-          // 关注是最敏感动作：单独日上限 + 强制间隔
-          if (budgetLeft(b, 'followed') > 0 && chance(nz.follow || 0)) { await hiRiskGate(ui, '关注'); if (!stopFlag && doFollow()) { followed++; b.followed++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); } }
-          if (budgetLeft(b, 'commented') > 0 && chance(nz.comment || 0)) {
+          // 每个动作：本轮目标上限(tgt) 与 当日额度(budget) 双重封顶，达任一即停该动作
+          if (liked < tgt.like && budgetLeft(b, 'liked') > 0 && chance(nz.like || 0) && doLike()) { liked++; b.liked++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); }
+          if (faved < tgt.fav && budgetLeft(b, 'faved') > 0 && chance(nz.fav || 0) && doFav()) { faved++; b.faved++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); }
+          // 关注是最敏感动作：本轮上限 + 单独日上限 + 强制间隔
+          if (followed < tgt.follow && budgetLeft(b, 'followed') > 0 && chance(nz.follow || 0)) { await hiRiskGate(ui, '关注'); if (!stopFlag && doFollow()) { followed++; b.followed++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); } }
+          if (commented < tgt.comment && budgetLeft(b, 'commented') > 0 && chance(nz.comment || 0)) {
             await hiRiskGate(ui, '评论');
             // PRD 评论优先级：复刻评论区重复/最高赞评论(AI 仿写) > 话术库 > AI 从笔记生成
             const model = pickModelComment(collectCommentsRich(20));

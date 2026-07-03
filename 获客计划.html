@@ -38,6 +38,16 @@
   .dev-tb{ width:100%; border-collapse:collapse; font-size:12.5px; }
   .dev-tb th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-soft); padding:8px 10px; border-bottom:1px solid var(--line); background:#faf7f1; }
   .dev-tb td{ padding:7px 10px; border-bottom:1px solid #f3eee4; }
+  /* 养号配置：百分比 + 上限 + 帮助文案 */
+  .nz-item{ padding:10px 0; border-bottom:1px dashed #eee5d2; }
+  .nz-line{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .nz-line label{ min-width:74px; color:var(--ink-soft); font-size:13px; }
+  .nz-line .pct{ width:64px; }
+  .nz-cap{ font-size:12px; padding:5px 8px; }
+  .gp-unit{ font-size:12px; color:var(--ink-soft); }
+  .nz-tip{ font-size:11px; color:var(--ink-soft); line-height:1.5; margin:5px 0 0 82px; }
+  .nz-radio{ display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; min-width:0; }
+  .nz-radio input{ flex:none; }
 </style>
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
@@ -106,24 +116,30 @@
     <!-- 搜索筛选 -->
     <div class="gp-sec" data-show="search">
       <h3>* 筛选条件</h3>
-      <div class="gp-row"><label>排序</label><span class="seg" data-seg="sort"><button data-v="general" class="on">综合</button><button data-v="latest">最新</button><button data-v="like">最多点赞</button></span></div>
+      <div class="gp-row"><label>* 排序</label><span class="seg" data-seg="sort"><button data-v="all" class="on">不限</button><button data-v="latest">最新</button><button data-v="hot">最热</button></span></div>
       <div class="gp-row"><label>内容类型</label><span class="seg" data-seg="ctype"><button data-v="all" class="on">不限</button><button data-v="note">图文</button><button data-v="video">视频</button></span></div>
       <div class="gp-row"><label>发布时间</label><span class="seg" data-seg="ptime"><button data-v="all" class="on">不限</button><button data-v="d1">一天内</button><button data-v="w1">一周内</button><button data-v="m6">半年内</button></span></div>
       <div class="gp-row"><label>搜索范围</label><span class="seg" data-seg="scope"><button data-v="all" class="on">不限</button><button data-v="viewed">已看过</button><button data-v="unviewed">未看过</button></span></div>
     </div>
 
-    <!-- 养号配置 -->
+    <!-- 养号配置：每项 百分比 + 上限（上限=风控每日封顶，达上限提前停/结束） -->
     <div class="gp-sec" data-show="nurture">
-      <h3>养号配置（对命中笔记按概率拟真互动）</h3>
-      <div class="gp-row"><label>* 好感率</label><input id="nzLove" class="field pct" type="number" value="70" /><span class="gp-hint">% · 命中后真正互动的比例（越低越克制越安全）</span></div>
-      <div class="gp-row"><label>* 点赞</label><input id="nzLike" class="field pct" type="number" value="80" /><span class="gp-hint">% · 互动笔记里点赞的比例</span></div>
-      <div class="gp-row"><label>* 收藏</label><input id="nzFav" class="field pct" type="number" value="30" /><span class="gp-hint">%</span></div>
-      <div class="gp-row"><label>* 关注博主</label><input id="nzFollow" class="field pct" type="number" value="30" /><span class="gp-hint">%</span></div>
-      <div class="gp-row"><label>* 评论</label><input id="nzComment" class="field pct" type="number" value="20" /><span class="gp-hint">%</span></div>
-      <div class="gp-row"><label>评论来源</label><span class="seg" data-seg="csrc"><button data-v="ai" class="on">🤖 AI 智能</button><button data-v="lib">评论库</button><button data-v="preset">预设回复</button></span></div>
-      <div class="gp-row"><span class="gp-hint" style="margin-left:84px">🤖 AI 智能＝按<b>当前智能体人设 + 笔记/评论上下文</b>实时生成回复，更自然、不易被判垃圾</span></div>
-      <div class="gp-row" id="nzLibRow" style="display:none"><label>选话术库</label><select id="nzLib" class="field" style="min-width:200px"></select><a href="/话术库.html" class="gp-hint" style="color:var(--cinnabar-deep)">去建/管理话术库 →</a></div>
-      <div class="gp-row"><label>每日上限</label><input id="nzDaily" class="field pct" type="number" value="20" /><span class="gp-hint">篇 · 单账号每日处理上限（安全护栏）</span></div>
+      <h3>养号配置 <span class="gp-hint">（对命中笔记按概率拟真互动；上限＝当日封顶，达到即停，防风控）</span></h3>
+      <div class="nz-item"><div class="nz-line"><label>* 好感率</label><input id="nzLove" class="field pct" type="number" value="70" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzLoveCap" class="field nz-cap"><option value="30~60">30~60 篇</option><option value="60~100" selected>60~100 篇</option><option value="100~150">100~150 篇</option></select></div><div class="nz-tip">100% 表示每篇笔记都喜欢；每次执行会在上限范围内随机取一个目标篇数，达到即提前结束本轮任务。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 点赞</label><input id="nzLike" class="field pct" type="number" value="80" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzLikeCap" class="field nz-cap"><option value="8~15">8~15 次</option><option value="15~25" selected>15~25 次</option><option value="25~40">25~40 次</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都点赞，建议 25%~80%；执行时在上限范围随机生成，达上限则停止点赞。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 收藏</label><input id="nzFav" class="field pct" type="number" value="30" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzFavCap" class="field nz-cap"><option value="5">5 次</option><option value="8" selected>8 次</option><option value="15">15 次</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都收藏，建议 0%~35%；达上限则停止收藏。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 关注博主</label><input id="nzFollow" class="field pct" type="number" value="30" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzFollowCap" class="field nz-cap"><option value="3">3 个</option><option value="5" selected>5 个</option><option value="8">8 个</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都关注，建议 0%~30%（关注最敏感，越少越安全）；达上限则停止关注。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 评论</label><input id="nzComment" class="field pct" type="number" value="30" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzCommentCap" class="field nz-cap"><option value="3">3 条</option><option value="5" selected>5 条</option><option value="8">8 条</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都评论，建议 0%~30%；达上限则停止评论。</div></div>
+      <div class="nz-item" style="border-bottom:none">
+        <div class="nz-line"><span style="min-width:74px;color:var(--ink-soft);font-size:13px">评论规则</span>
+          <label class="nz-radio"><input type="radio" name="csrc" value="ai"><span>多模态 AI 识别进行评论 <span class="gp-hint">（注：该操作会额外消耗积分）</span></span></label>
+        </div>
+        <div class="nz-line"><span style="min-width:74px"></span>
+          <label class="nz-radio"><input type="radio" name="csrc" value="lib" checked><span>从话术库随机选择评论</span></label>
+          <a href="/话术库.html" class="gp-hint" style="color:var(--cinnabar-deep)">去建/管理话术库 →</a>
+        </div>
+        <div class="nz-line" id="nzLibRow"><span style="min-width:74px"></span><select id="nzLib" class="field" style="min-width:200px"></select></div>
+      </div>
     </div>
 
     <!-- 截流配置 -->
@@ -193,7 +209,12 @@
 <script src="/assets/onboard.js?v=3"></script>
 <script>pageIntro({key:'growth2',emoji:'🌱',title:'获客计划 · 三步向导',intro:'创建养号/截流/口令刷量计划，三步走：指定计划 → 设置规则 → 发布任务，由「朱砂助手」插件在你已登录的小红书里保守拟真执行。',steps:[{t:'①指定计划',d:'填计划名称、目标平台、五选一计划类型（口令刷量/首页起号养号/首页截流/搜索养号/搜索截流）。'},{t:'②设置规则',d:'按类型配关键词/筛选、养号比例（好感率/点赞/收藏/关注/评论）、截流（收集评论/引流回复/私信）。'},{t:'③发布任务',d:'选执行时间与设备/账号，一键发布；也可先保存草稿，之后在列表下发或本机▶执行。'}],tips:['先只做养号、低频最安全；截流(自动评论/私信)是高风险灰色操作，默认关。','出现验证码会自动停止，属正常保护。']});</script>
 <script>
-let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'ai', isrc:'ai' }, collectOn=false, aiMatchOn=true;
+let editId=null, kws=[], segs={ sort:'all', ctype:'all', ptime:'all', scope:'all', isrc:'ai' }, collectOn=false, aiMatchOn=true;
+// 评论规则单选（多模态AI识别 / 话术库随机）
+function csrcVal(){ const r=document.querySelector('input[name=csrc]:checked'); return r?r.value:'lib'; }
+// 上限字符串 "15~25" / "8" → 数值上界/下界
+function capMax(s){ const a=String(s||'').split('~'); return parseInt(a[a.length-1])||0; }
+function capMin(s){ const a=String(s||'').split('~'); return parseInt(a[0])||0; }
 const TYPE_NAME={ link:'口令刷量', home_nurture:'首页养号', home_intercept:'首页截流', search_nurture:'搜索养号', search_intercept:'搜索截流' };
 async function api(path, method, body){
   const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),15000);
@@ -219,7 +240,8 @@ let LIBS=[];
 const escSel=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fillLibSel(id){ const el=$('#'+id); if(!el) return; const cur=el.value; el.innerHTML='<option value="">— 选择话术库 —</option>'+LIBS.map(l=>`<option value="${l.id}">${escSel(l.title)}（${l.count||0}条）</option>`).join(''); el.value=cur; }
 async function loadLibs(){ try{ const r=await fetch('/api/script-libs'); const j=await r.json(); LIBS=(j&&j.list)||[]; }catch{ LIBS=[]; } fillLibSel('nzLib'); fillLibSel('icLib'); }
-function toggleLib(){ const nr=$('#nzLibRow'), ir=$('#icLibRow'); if(nr) nr.style.display=(segs.csrc==='lib')?'':'none'; if(ir) ir.style.display=(segs.isrc==='lib')?'':'none'; }
+function toggleLib(){ const nr=$('#nzLibRow'), ir=$('#icLibRow'); if(nr) nr.style.display=(csrcVal()==='lib')?'':'none'; if(ir) ir.style.display=(segs.isrc==='lib')?'':'none'; }
+document.querySelectorAll('input[name=csrc]').forEach(r=>r.addEventListener('change',toggleLib));
 $('#icCollect').addEventListener('click', e=>{ collectOn=!collectOn; e.target.classList.toggle('on',collectOn); });
 $('#icAiMatch').addEventListener('click', e=>{ aiMatchOn=!aiMatchOn; e.target.classList.toggle('on',aiMatchOn); });
 function num(id){ return Math.max(0,Math.min(100, parseInt($('#'+id).value)||0)); }
@@ -231,7 +253,9 @@ function collect(){
     linkActs:{ like:num('lkLike'), fav:num('lkFav'), follow:num('lkFollow'), comment:num('lkComment') },
     keywords:kws.slice(),
     filter:{ sort:segs.sort, ctype:segs.ctype, ptime:segs.ptime, scope:segs.scope },
-    nurture:{ love:num('nzLove'), like:num('nzLike'), fav:num('nzFav'), follow:num('nzFollow'), comment:num('nzComment'), csrc:segs.csrc, libId:($('#nzLib')&&$('#nzLib').value)||'', daily:parseInt($('#nzDaily').value)||20 },
+    nurture:{ love:num('nzLove'), like:num('nzLike'), fav:num('nzFav'), follow:num('nzFollow'), comment:num('nzComment'),
+      caps:{ love:$('#nzLoveCap').value, like:$('#nzLikeCap').value, fav:$('#nzFavCap').value, follow:$('#nzFollowCap').value, comment:$('#nzCommentCap').value },
+      csrc:csrcVal(), libId:($('#nzLib')&&$('#nzLib').value)||'', daily:capMax($('#nzLoveCap').value)||60 },
     intercept:{ collect:collectOn, aiMatch:aiMatchOn, reply:parseInt($('#icReply').value)||0, replyInt:Math.max(1,parseInt($('#icReplyInt').value)||1), dm:parseInt($('#icDm').value)||0, dmInt:Math.max(1,parseInt($('#icDmInt').value)||1), isrc:segs.isrc, libId:($('#icLib')&&$('#icLib').value)||'' }
   }};
 }
@@ -246,7 +270,7 @@ $('#saveBtn').addEventListener('click', async ()=>{
   if(r&&r.ok){ editId=r.id||editId; savedPlan={ id:editId, ...p }; $('#saveStatus').textContent=''; load(); goStep(3); populateDevices(editId, p); }
   else { $('#saveStatus').textContent='保存失败，请重试'; $('#saveStatus').style.color='var(--cinnabar-deep)'; }
 });
-function reset(){ editId=null; kws=[]; collectOn=false; $('#icCollect').classList.remove('on'); aiMatchOn=true; $('#icAiMatch').classList.add('on'); ['pName','pDesc','pLink'].forEach(i=>$('#'+i).value=''); renderKw(); $('#saveBtn').textContent='保存计划'; }
+function reset(){ editId=null; kws=[]; collectOn=false; $('#icCollect').classList.remove('on'); aiMatchOn=true; $('#icAiMatch').classList.add('on'); ['pName','pDesc','pLink'].forEach(i=>$('#'+i).value=''); const lib=document.querySelector('input[name=csrc][value=lib]'); if(lib) lib.checked=true; toggleLib(); renderKw(); $('#saveBtn').textContent='保存并下一步 →'; }
 $('#resetBtn').addEventListener('click', reset);
 let PLANS=[];
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -365,9 +389,9 @@ async function showDispatch(p){
 function showPreview(p){
   const c=p.config||{}; const nz=c.nurture||{}; const ic=c.intercept||{}; const f=c.filter||{};
   const row=(k,v)=> v?`<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #f0eae0"><span style="color:var(--ink-soft);min-width:84px">${k}</span><span style="font-weight:600">${esc(v)}</span></div>`:'';
-  const SRC={ai:'AI智能',lib:'话术库',preset:'预设'};
+  const SRC={ai:'多模态AI识别',lib:'话术库随机',preset:'预设'}; const cap=nz.caps||{};
   let html=row('计划类型',TYPE_NAME[p.ptype]||p.ptype)+row('平台',p.platform==='gzh'?'公众号':'小红书')+row('备注',c.desc)+row('口令链接',c.link)+row('关键词',(c.keywords||[]).join('、'));
-  if(/_(nurture|intercept)$/.test(p.ptype)) html+=row('养号·好感率',(nz.love||0)+'%')+row('点赞/收藏/关注/评论',`${nz.like||0}% / ${nz.fav||0}% / ${nz.follow||0}% / ${nz.comment||0}%`)+row('评论来源',SRC[nz.csrc]||nz.csrc)+row('每日上限',(nz.daily||0)+' 篇');
+  if(/_(nurture|intercept)$/.test(p.ptype)) html+=row('好感率',(nz.love||0)+'% · 上限 '+(cap.love||'—'))+row('点赞',(nz.like||0)+'% · 上限 '+(cap.like||'—'))+row('收藏',(nz.fav||0)+'% · 上限 '+(cap.fav||'—'))+row('关注博主',(nz.follow||0)+'% · 上限 '+(cap.follow||'—'))+row('评论',(nz.comment||0)+'% · 上限 '+(cap.comment||'—'))+row('评论规则',SRC[nz.csrc]||nz.csrc);
   if(/_intercept$/.test(p.ptype)) html+=row('收集评论',ic.collect?'开':'关')+row('多模态识别',ic.aiMatch!==false?'开':'关')+row('引流回复',`${ic.reply||0} 次/号·天 · 间隔≥${ic.replyInt||1}分钟`)+row('截流私信',`${ic.dm||0} 次/号·天 · 间隔≥${ic.dmInt||1}分钟`)+row('话术来源',SRC[ic.isrc]||ic.isrc);
   if(/^search_/.test(p.ptype)) html+=row('排序/类型/时间/范围',`${f.sort||'-'} / ${f.ctype||'-'} / ${f.ptime||'-'} / ${f.scope||'-'}`);
   if(/_(nurture|intercept)$/.test(p.ptype)) html+='<div id="pvExec" style="margin-top:12px;border-top:1px solid #f0eae0;padding-top:10px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">任务执行情况</div><div style="font-size:12px;color:var(--ink-soft)">加载中…</div></div>';
@@ -425,14 +449,17 @@ function loadIntoForm(p){
   kws=(c.keywords||[]).slice(); renderKw();
   const set=(id,v)=>{ const el=$('#'+id); if(el) el.value=(v==null?'':v); };
   set('lkLike',la.like);set('lkFav',la.fav);set('lkFollow',la.follow);set('lkComment',la.comment);
-  set('nzLove',nz.love);set('nzLike',nz.like);set('nzFav',nz.fav);set('nzFollow',nz.follow);set('nzComment',nz.comment);set('nzDaily',nz.daily);
+  set('nzLove',nz.love);set('nzLike',nz.like);set('nzFav',nz.fav);set('nzFollow',nz.follow);set('nzComment',nz.comment);
+  const caps=nz.caps||{}; const setCap=(id,v,d)=>{ const el=$('#'+id); if(el) el.value=(v||d); };
+  setCap('nzLoveCap',caps.love,'60~100');setCap('nzLikeCap',caps.like,'15~25');setCap('nzFavCap',caps.fav,'8');setCap('nzFollowCap',caps.follow,'5');setCap('nzCommentCap',caps.comment,'5');
   set('icReply',ic.reply);set('icDm',ic.dm);set('icReplyInt',ic.replyInt==null?1:ic.replyInt);set('icDmInt',ic.dmInt==null?1:ic.dmInt);
   collectOn=!!ic.collect; $('#icCollect').classList.toggle('on',collectOn);
   aiMatchOn=(ic.aiMatch!==false); $('#icAiMatch').classList.toggle('on',aiMatchOn);
-  segs.sort=f.sort||'general';segs.ctype=f.ctype||'all';segs.ptime=f.ptime||'all';segs.scope=f.scope||'all';segs.csrc=nz.csrc||'ai';segs.isrc=ic.isrc||'ai';
+  segs.sort=f.sort||'all';segs.ctype=f.ctype||'all';segs.ptime=f.ptime||'all';segs.scope=f.scope||'all';segs.isrc=ic.isrc||'ai';
   $$('.seg').forEach(seg=>{ const v=segs[seg.dataset.seg]; seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); });
+  const cr=document.querySelector('input[name=csrc][value="'+(nz.csrc==='ai'?'ai':'lib')+'"]'); if(cr) cr.checked=true;
   fillLibSel('nzLib'); fillLibSel('icLib'); if($('#nzLib')) $('#nzLib').value=nz.libId||''; if($('#icLib')) $('#icLib').value=ic.libId||''; toggleLib();
-  showSections(); $('#saveBtn').textContent='更新计划';
+  showSections(); $('#saveBtn').textContent='更新并下一步 →';
   showCreate(true);
 }
 // ===== 三步向导：展开收起 + 步骤切换 =====
@@ -534,15 +561,15 @@ showSections(); renderKw(); load(); loadLibs(); toggleLib();
   function fillKw(){ kws=(mx.interceptKeywords||[]).slice(); renderKw(); }
   box.querySelector('#gpNurture').addEventListener('click',()=>{
     setType('search_nurture'); $('#pName').value=tname+'·老号养号（养'+(nz.days||7)+'天）'; $('#pDesc').value='起号养号：保守互动养权重，养满再开截流'; fillKw();
-    setSeg('sort','like');
+    setSeg('sort','hot');
     const set=(id,v)=>{ const e=$('#'+id); if(e)e.value=v; };
-    set('nzLove',nz.love??60); set('nzLike',nz.like??80); set('nzFav',nz.fav??25); set('nzFollow',nz.follow??20); set('nzComment',nz.comment??15); set('nzDaily',nz.daily??15);
+    set('nzLove',nz.love??60); set('nzLike',nz.like??80); set('nzFav',nz.fav??25); set('nzFollow',nz.follow??20); set('nzComment',nz.comment??15);
     $('#saveStatus').textContent='✓ 已预填「搜索养号」，核对参数后点「保存并下一步」'; $('#saveStatus').style.color='#00a152';
     showCreate(false); goStep(2);
   });
   box.querySelector('#gpIntercept').addEventListener('click',()=>{
     setType('search_intercept'); $('#pName').value=tname+'·搜索截流获客'; $('#pDesc').value='去同行评论区收集潜客并保守触达（出验证即停）'; fillKw();
-    setSeg('sort','like'); collectOn=true; $('#icCollect')?.classList.add('on');
+    setSeg('sort','hot'); collectOn=true; $('#icCollect')?.classList.add('on');
     $('#saveStatus').textContent='✓ 已预填「搜索截流」，核对触达频率(保守)后点「保存并下一步」。务必先养号满'+(nz.days||7)+'天再开'; $('#saveStatus').style.color='#e8a400';
     showCreate(false); goStep(2);
   });
