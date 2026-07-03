@@ -241,7 +241,7 @@ function xhsDailyCheck(key) {
 }
 // 充值套餐（cny 单位：分）。前端只传 pack_id，金额/积分由服务端定，杜绝篡改。
 const PACKS = {
-  exp: { id: 'exp', cny: 150, credits: 150, name: '体验套餐', desc: '¥1.5 体验一次完整流程（含 ≤4 张配图），每人限一次', once: true },
+  exp: { id: 'exp', cny: 300, credits: 300, name: '体验套餐', desc: '¥3 体验一次完整流程（含 ≤4 张配图），每人限一次', once: true },
   trial: { id: 'trial', cny: 980, credits: 1100, name: '体验包', desc: '送 120，约 15 篇' },
   value: { id: 'value', cny: 1980, credits: 2400, name: '超值包', desc: '送 420，约 34 篇' },
   basic: { id: 'basic', cny: 3000, credits: 4200, name: '基础包', desc: '送 1200，约 58 篇' },
