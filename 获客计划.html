@@ -24,6 +24,20 @@
   .sw{ position:relative; width:38px; height:22px; background:#ccc; border-radius:999px; cursor:pointer; transition:.2s; }
   .sw.on{ background:#00a152; } .sw::after{ content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; background:#fff; border-radius:50%; transition:.2s; }
   .sw.on::after{ left:18px; }
+  /* 三步向导 */
+  .wz-head{ display:flex; align-items:center; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+  .wz-steps{ display:flex; align-items:center; gap:8px; margin-left:auto; }
+  .wz-step{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-soft); }
+  .wz-step .n{ width:24px; height:24px; border-radius:999px; display:grid; place-items:center; font-size:12px; font-weight:700; background:#eee; color:#999; transition:.2s; }
+  .wz-step.on{ color:var(--ink); font-weight:700; }
+  .wz-step.on .n{ background:var(--cinnabar); color:#fff; }
+  .wz-step.done .n{ background:#e6d8b4; color:var(--cinnabar-deep); }
+  .wz-arrow{ color:var(--line); font-size:13px; }
+  .wz-foot{ margin-top:18px; display:flex; align-items:center; gap:10px; }
+  .wz-congrats{ background:linear-gradient(135deg,#e6cf8e,#cca552); color:#5a3d0e; border-radius:12px; padding:13px 18px; font-weight:800; font-size:15px; text-align:center; margin-bottom:16px; box-shadow:0 8px 22px -14px rgba(165,129,58,.6); }
+  .dev-tb{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .dev-tb th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-soft); padding:8px 10px; border-bottom:1px solid var(--line); background:#faf7f1; }
+  .dev-tb td{ padding:7px 10px; border-bottom:1px solid #f3eee4; }
 </style>
 </head>
 <body class="stage grain min-h-screen" data-page="matrix">
@@ -37,25 +51,40 @@
   <!-- 赛道矩阵预设：一键填养号/截流计划（赛道写 matrix 才显示） -->
   <div id="gpPreset" class="mb-5"></div>
 
-  <!-- 新建/编辑 计划（默认隐藏，点「新建计划」按钮展开） -->
+  <!-- 新建/编辑 计划：三步向导（默认隐藏，点「＋ 创建计划」展开） -->
   <div id="createCard" class="card p-5 mb-5" style="display:none">
-    <div class="flex items-center justify-between mb-3">
-      <div class="font-song font-bold text-[15px]" id="createTitle">＋ 新建计划</div>
-      <button id="createClose" class="btn-ghost rounded-lg px-3 py-1 text-[12px]">收起 ✕</button>
+    <div class="wz-head">
+      <button id="wzExit" class="btn-ghost rounded-lg px-3 py-1.5 text-[12px]">← 返回计划</button>
+      <div class="font-song font-bold text-[15px]" id="createTitle">＋ 创建计划</div>
+      <div class="wz-steps">
+        <span class="wz-step on" data-s="1"><span class="n">1</span>指定计划</span><span class="wz-arrow">›</span>
+        <span class="wz-step" data-s="2"><span class="n">2</span>设置规则</span><span class="wz-arrow">›</span>
+        <span class="wz-step" data-s="3"><span class="n">3</span>发布任务</span>
+      </div>
     </div>
-    <div class="grid sm:grid-cols-2 gap-3">
-      <div><div class="gp-hint mb-1">* 计划名称</div><input id="pName" class="field w-full" placeholder="如：母婴号-6月起号养号" /></div>
-      <div><div class="gp-hint mb-1">计划描述（可选）</div><input id="pDesc" class="field w-full" placeholder="备注用途" /></div>
-      <div><div class="gp-hint mb-1">* 目标平台</div><select id="pPlatform" class="field w-full"><option value="xhs">📕 小红书</option></select></div>
-      <div><div class="gp-hint mb-1">* 计划类型</div>
-        <select id="pType" class="field w-full">
-          <option value="link">口令链接刷量</option>
-          <option value="home_nurture">首页(发现页)·起号养号</option>
-          <option value="home_intercept">首页(发现页)·截流获客</option>
-          <option value="search_nurture">搜索页·起号养号</option>
-          <option value="search_intercept">搜索页·截流获客</option>
-        </select></div>
+
+    <!-- ===== 步骤① 指定计划 ===== -->
+    <div data-step="1">
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><div class="gp-hint mb-1">* 计划名称</div><input id="pName" class="field w-full" placeholder="如：母婴号-6月起号养号" /></div>
+        <div><div class="gp-hint mb-1">计划描述（可选）</div><input id="pDesc" class="field w-full" placeholder="备注用途" /></div>
+        <div><div class="gp-hint mb-1">* 目标平台</div><select id="pPlatform" class="field w-full"><option value="xhs">📕 小红书</option></select></div>
+        <div><div class="gp-hint mb-1">* 计划类型</div>
+          <select id="pType" class="field w-full">
+            <option value="link">口令链接刷量</option>
+            <option value="home_nurture">首页(发现页)·起号养号</option>
+            <option value="home_intercept">首页(发现页)·截流获客</option>
+            <option value="search_nurture">搜索页·起号养号</option>
+            <option value="search_intercept">搜索页·截流获客</option>
+          </select></div>
+      </div>
+      <div class="gp-hint mt-3" style="background:var(--paper-2);border-radius:8px;padding:9px 12px;line-height:1.6">
+        <b>五种计划类型：</b>口令刷量＝对指定笔记链接刷赞藏关评；起号养号＝拟真浏览互动养权重（最安全，先做）；截流获客＝去对标评论区/私信触达潜客（高风险，养满再做）。首页＝刷发现页信息流，搜索＝按关键词+筛选精准定位。
+      </div>
     </div>
+
+    <!-- ===== 步骤② 设置规则 ===== -->
+    <div data-step="2" style="display:none">
 
     <!-- 口令链接 -->
     <div class="gp-sec" data-show="link">
@@ -112,17 +141,43 @@
       <div class="gp-row" id="icLibRow" style="display:none"><label>选话术库</label><select id="icLib" class="field" style="min-width:200px"></select><a href="/话术库.html" class="gp-hint" style="color:var(--cinnabar-deep)">去建/管理话术库 →</a></div>
     </div>
 
-    <div class="mt-4 flex items-center gap-3">
-      <button id="saveBtn" class="btn-go rounded-xl px-6 py-2.5 text-[13px] font-medium">保存计划</button>
-      <button id="resetBtn" class="btn-ghost rounded-lg px-4 py-2.5 text-[13px]">清空</button>
+      <div class="gp-hint mt-3" style="background:#fff;border-radius:8px;padding:8px 11px">⚠️ 截流（自动评论/私信）是高风险灰色操作，平台严打、可能封号。建议默认 0、先只做养号；真要用务必极低频。出验证码自动停。</div>
+    </div><!-- /step2 -->
+
+    <!-- ===== 步骤③ 发布任务 ===== -->
+    <div data-step="3" style="display:none">
+      <div class="wz-congrats">🎉 恭喜，计划已创建成功啦！</div>
+      <div class="gp-sec" style="margin-top:0">
+        <h3>发布任务</h3>
+        <div class="gp-row"><label>执行时间</label>
+          <select id="tkRange" class="field" style="font-size:12px"><option value="today">今天</option><option value="tomorrow">明天</option><option value="anytime">不限</option></select>
+          <input id="tkStart" class="field" type="time" value="09:00" style="font-size:12px" /><span class="gp-hint">到</span><input id="tkEnd" class="field" type="time" value="22:00" style="font-size:12px" />
+          <label style="min-width:0;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="tkRandom" checked /><span class="gp-hint">随机分配任务（拟真、更安全）</span></label>
+        </div>
+        <div class="gp-hint mb-2" style="margin-top:4px">选择执行设备 / 账号（勾选已登录账号，插件/真机会自动领取执行）：</div>
+        <div id="devPickBox" style="max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px"><div class="p-3 gp-hint">加载中…</div></div>
+        <div id="tkStatus" class="gp-hint mt-2"></div>
+      </div>
+      <div class="gp-hint mt-3" style="background:var(--paper-2);border-radius:8px;padding:9px 12px">也可以先「完成」保存草稿，之后在列表里点「📤 下发」再发布；或点「▶ 执行」用本机插件直接跑一轮。</div>
+    </div><!-- /step3 -->
+
+    <!-- ===== 向导底部导航 ===== -->
+    <div class="wz-foot">
+      <button id="resetBtn" class="btn-ghost rounded-lg px-4 py-2.5 text-[13px]" style="display:none">清空</button>
       <span id="saveStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
+      <span style="margin-left:auto;display:flex;gap:10px">
+        <button id="wzBack" class="btn-ghost rounded-lg px-5 py-2.5 text-[13px]" style="display:none">返回上一步</button>
+        <button id="wzNext1" class="btn-go rounded-xl px-6 py-2.5 text-[13px] font-medium">下一步：设置规则 →</button>
+        <button id="saveBtn" class="btn-go rounded-xl px-6 py-2.5 text-[13px] font-medium" style="display:none">保存并下一步 →</button>
+        <button id="wzPublish" class="rounded-xl px-6 py-2.5 text-[13px] font-medium" style="display:none;background:var(--cinnabar);color:#fff;border:none">🚀 发布任务</button>
+        <button id="wzDone" class="btn-ghost rounded-lg px-5 py-2.5 text-[13px]" style="display:none">完成，回列表</button>
+      </span>
     </div>
-    <div class="gp-hint mt-3" style="background:#fff;border-radius:8px;padding:8px 11px">⚠️ 截流（自动评论/私信）是高风险灰色操作，平台严打、可能封号。建议默认 0、先只做养号；真要用务必极低频。执行由插件后续上线。</div>
   </div>
 
   <div class="flex items-center gap-2 mb-3 flex-wrap" style="margin-top:6px">
     <h3 style="font-size:15px;font-weight:700">计划列表</h3>
-    <button id="newPlanBtn" class="btn-go rounded-lg px-3 py-1.5 text-[12px]">＋ 新建计划</button>
+    <button id="newPlanBtn" class="btn-go rounded-lg px-3 py-1.5 text-[12px]">＋ 创建计划</button>
     <select id="fType" class="field" style="font-size:12px"><option value="">全部类型</option><option value="link">口令刷量</option><option value="home_nurture">首页养号</option><option value="search_nurture">搜索养号</option><option value="home_intercept">首页截流</option><option value="search_intercept">搜索截流</option></select>
     <select id="fExec" class="field" style="font-size:12px"><option value="">全部状态</option><option value="running">执行中</option><option value="pending">待领取</option><option value="done">已完成</option><option value="none">未下发</option></select>
     <input id="fKw" class="field" style="font-size:12px;min-width:150px" placeholder="🔍 搜计划名/关键词" />
@@ -136,7 +191,7 @@
 <script src="/assets/app.js?v=74"></script>
 <script src="/assets/ui-dialog.js?v=3"></script>
 <script src="/assets/onboard.js?v=3"></script>
-<script>pageIntro({key:'growth',emoji:'🌱',title:'养号 / 截流计划',intro:'配置养号或截流计划，保存后由「朱砂助手」插件在你已登录的小红书里保守拟真地执行。',steps:[{t:'＋ 新建计划',d:'点表格旁的按钮，弹出配置表单。'},{t:'选类型 + 填参数',d:'养号：好感率/点赞/收藏/评论比例、每日上限；截流：收集评论/引流回复/话术来源。'},{t:'保存 → 📤 下发',d:'把计划下发给「设备看板」里的在线设备。'},{t:'在设备看板看状态',d:'休息中→工作中即已开始执行。'}],tips:['先只做养号、低频最安全；截流(自动评论/私信)是高风险灰色操作，默认关。','出现验证码会自动停止，属正常保护。']});</script>
+<script>pageIntro({key:'growth2',emoji:'🌱',title:'获客计划 · 三步向导',intro:'创建养号/截流/口令刷量计划，三步走：指定计划 → 设置规则 → 发布任务，由「朱砂助手」插件在你已登录的小红书里保守拟真执行。',steps:[{t:'①指定计划',d:'填计划名称、目标平台、五选一计划类型（口令刷量/首页起号养号/首页截流/搜索养号/搜索截流）。'},{t:'②设置规则',d:'按类型配关键词/筛选、养号比例（好感率/点赞/收藏/关注/评论）、截流（收集评论/引流回复/私信）。'},{t:'③发布任务',d:'选执行时间与设备/账号，一键发布；也可先保存草稿，之后在列表下发或本机▶执行。'}],tips:['先只做养号、低频最安全；截流(自动评论/私信)是高风险灰色操作，默认关。','出现验证码会自动停止，属正常保护。']});</script>
 <script>
 let editId=null, kws=[], segs={ sort:'general', ctype:'all', ptime:'all', scope:'all', csrc:'ai', isrc:'ai' }, collectOn=false, aiMatchOn=true;
 const TYPE_NAME={ link:'口令刷量', home_nurture:'首页养号', home_intercept:'首页截流', search_nurture:'搜索养号', search_intercept:'搜索截流' };
@@ -183,9 +238,13 @@ function collect(){
 $('#saveBtn').addEventListener('click', async ()=>{
   const p=collect(); if(!p.name){ $('#saveStatus').textContent='请填计划名称'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
   if(/^(home|search)_/.test(p.ptype) && !kws.length){ $('#saveStatus').textContent='请至少加 1 个关键词'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
+  if(p.ptype==='link' && !(p.config&&p.config.link)){ $('#saveStatus').textContent='请填口令 / 笔记链接'; $('#saveStatus').style.color='var(--cinnabar-deep)'; return; }
   if(editId) p.id=editId;
+  $('#saveBtn').disabled=true; $('#saveStatus').textContent='保存中…'; $('#saveStatus').style.color='var(--ink-soft)';
   const r=await api('','POST',p);
-  if(r&&r.ok){ $('#saveStatus').textContent='✓ 已保存'; $('#saveStatus').style.color='#00a152'; reset(); hideCreate(); load(); }
+  $('#saveBtn').disabled=false;
+  if(r&&r.ok){ editId=r.id||editId; savedPlan={ id:editId, ...p }; $('#saveStatus').textContent=''; load(); goStep(3); populateDevices(editId, p); }
+  else { $('#saveStatus').textContent='保存失败，请重试'; $('#saveStatus').style.color='var(--cinnabar-deep)'; }
 });
 function reset(){ editId=null; kws=[]; collectOn=false; $('#icCollect').classList.remove('on'); aiMatchOn=true; $('#icAiMatch').classList.add('on'); ['pName','pDesc','pLink'].forEach(i=>$('#'+i).value=''); renderKw(); $('#saveBtn').textContent='保存计划'; }
 $('#resetBtn').addEventListener('click', reset);
@@ -376,12 +435,54 @@ function loadIntoForm(p){
   showSections(); $('#saveBtn').textContent='更新计划';
   showCreate(true);
 }
-// 新建/编辑 表单展开收起
+// ===== 三步向导：展开收起 + 步骤切换 =====
 const _cc=()=>$('#createCard');
-function showCreate(edit){ const c=_cc(); if(!c)return; c.style.display=''; const t=$('#createTitle'); if(t)t.textContent=edit?'✎ 编辑计划':'＋ 新建计划'; c.scrollIntoView({behavior:'smooth',block:'center'}); }
+let WZSTEP=1, savedPlan=null;
+function goStep(n){
+  WZSTEP=n;
+  $$('#createCard [data-step]').forEach(el=>{ el.style.display = (+el.dataset.step===n)?'':'none'; });
+  $$('.wz-step').forEach(s=>{ const si=+s.dataset.s; s.classList.toggle('on',si===n); s.classList.toggle('done',si<n); });
+  // 底部按钮按步骤切换
+  const show=(id,v)=>{ const e=$('#'+id); if(e) e.style.display=v?'':'none'; };
+  show('wzBack', n===2); show('wzNext1', n===1); show('saveBtn', n===2); show('wzPublish', n===3); show('wzDone', n===3);
+  if(n===2){ $('#saveBtn').textContent = editId ? '更新并下一步 →' : '保存并下一步 →'; showSections(); }
+  _cc().scrollIntoView({behavior:'smooth',block:'start'});
+}
+function showCreate(edit){ const c=_cc(); if(!c)return; c.style.display=''; const t=$('#createTitle'); if(t)t.textContent=edit?'✎ 编辑计划':'＋ 创建计划'; goStep(1); }
 function hideCreate(){ const c=_cc(); if(c)c.style.display='none'; }
-$('#newPlanBtn')&&$('#newPlanBtn').addEventListener('click',()=>{ reset(); showCreate(false); });
-$('#createClose')&&$('#createClose').addEventListener('click',hideCreate);
+$('#newPlanBtn')&&$('#newPlanBtn').addEventListener('click',()=>{ reset(); savedPlan=null; showCreate(false); });
+$('#wzExit')&&$('#wzExit').addEventListener('click',()=>{ hideCreate(); reset(); });
+$('#wzDone')&&$('#wzDone').addEventListener('click',()=>{ hideCreate(); reset(); load(); });
+$('#wzBack')&&$('#wzBack').addEventListener('click',()=>goStep(1));
+$('#wzNext1')&&$('#wzNext1').addEventListener('click',()=>{
+  if(!$('#pName').value.trim()){ $('#saveStatus').textContent='请先填计划名称'; $('#saveStatus').style.color='var(--cinnabar-deep)'; $('#pName').focus(); return; }
+  $('#saveStatus').textContent=''; goStep(2);
+});
+// 步骤③ 发布任务：设备/账号勾选表 + 立即发布
+async function populateDevices(planId, plan){
+  const box=$('#devPickBox'); if(!box) return;
+  let accs=[]; try{ const r=await fetch('/api/accounts'); const j=await r.json(); accs=((j&&j.list)||[]).filter(a=>(a.platform||'xhs')===((plan&&plan.platform)||'xhs')); }catch{}
+  if(!accs.length){ box.innerHTML='<div class="p-3 gp-hint">还没有账号。先去「<a href="/账号矩阵.html" style="color:var(--cinnabar-deep)">账号矩阵</a>」添加并接入登录态；也可先「完成」保存，之后再下发。</div>'; return; }
+  box.innerHTML=`<table class="dev-tb"><thead><tr><th style="width:36px"></th><th>账号 / 工号</th><th style="width:110px">分组</th><th style="width:90px">状态</th></tr></thead><tbody>${
+    accs.map(a=>`<tr><td><input type="checkbox" class="dv-pick" value="${a.id}" data-name="${esc(a.nickname||'')}" ${a.status==='active'?'':'disabled'} /></td>
+      <td style="font-weight:600">${esc(a.nickname||'(未命名)')}</td>
+      <td style="font-size:11px;color:var(--ink-soft)">${esc(a.grp||'—')}</td>
+      <td style="font-size:11px">${a.status==='active'?'<span style="color:#00875a">已登录</span>':'<span style="color:var(--ink-soft)">未接入</span>'}</td></tr>`).join('')
+  }</tbody></table>`;
+}
+$('#wzPublish')&&$('#wzPublish').addEventListener('click',async()=>{
+  const chosen=[...document.querySelectorAll('.dv-pick:checked')].map(c=>({id:+c.value,name:c.dataset.name}));
+  if(!chosen.length){ zToast('请至少勾选一个已登录账号，或点「完成」先保存','err'); return; }
+  const sched={ range:$('#tkRange').value, start:$('#tkStart').value, end:$('#tkEnd').value, random:$('#tkRandom').checked };
+  $('#wzPublish').disabled=true; $('#tkStatus').textContent='发布中…';
+  try{
+    const r=await fetch('/api/dispatch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({planId:editId,accounts:chosen,schedule:sched})});
+    const j=await r.json().catch(()=>null);
+    if(j&&j.ok){ $('#tkStatus').textContent='✓ 已发布 '+(j.created||chosen.length)+' 个账号任务，设备约 1 分钟内自动领取'; $('#tkStatus').style.color='#00a152'; zToast('✓ 发布成功','ok'); load(); }
+    else { $('#tkStatus').textContent='发布失败：'+((j&&j.error)||'请重试'); $('#tkStatus').style.color='var(--cinnabar-deep)'; }
+  }catch{ $('#tkStatus').textContent='网络错误，请重试'; $('#tkStatus').style.color='var(--cinnabar-deep)'; }
+  $('#wzPublish').disabled=false;
+});
 // ▶ 执行：把养号计划下发给浏览器插件（在你已登录的小红书里跑）
 let EXT_READY=false;
 window.addEventListener('message',e=>{ if(e.source===window && e.data && e.data.__zhusha_ext==='ready') EXT_READY=true; });
@@ -436,14 +537,14 @@ showSections(); renderKw(); load(); loadLibs(); toggleLib();
     setSeg('sort','like');
     const set=(id,v)=>{ const e=$('#'+id); if(e)e.value=v; };
     set('nzLove',nz.love??60); set('nzLike',nz.like??80); set('nzFav',nz.fav??25); set('nzFollow',nz.follow??20); set('nzComment',nz.comment??15); set('nzDaily',nz.daily??15);
-    $('#saveStatus').textContent='✓ 已填「搜索养号」，请在上方选好该执行的账号后保存（每个老号各建一条）'; $('#saveStatus').style.color='#00a152';
-    document.querySelector('.card.p-5.mb-5')?.scrollIntoView({behavior:'smooth',block:'start'});
+    $('#saveStatus').textContent='✓ 已预填「搜索养号」，核对参数后点「保存并下一步」'; $('#saveStatus').style.color='#00a152';
+    showCreate(false); goStep(2);
   });
   box.querySelector('#gpIntercept').addEventListener('click',()=>{
     setType('search_intercept'); $('#pName').value=tname+'·搜索截流获客'; $('#pDesc').value='去同行评论区收集潜客并保守触达（出验证即停）'; fillKw();
     setSeg('sort','like'); collectOn=true; $('#icCollect')?.classList.add('on');
-    $('#saveStatus').textContent='✓ 已填「搜索截流」，请核对触达频率(保守)后保存。务必先养号满'+(nz.days||7)+'天再开'; $('#saveStatus').style.color='#e8a400';
-    document.querySelector('.card.p-5.mb-5')?.scrollIntoView({behavior:'smooth',block:'start'});
+    $('#saveStatus').textContent='✓ 已预填「搜索截流」，核对触达频率(保守)后点「保存并下一步」。务必先养号满'+(nz.days||7)+'天再开'; $('#saveStatus').style.color='#e8a400';
+    showCreate(false); goStep(2);
   });
 })();
 </script>
