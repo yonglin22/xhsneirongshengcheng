@@ -857,6 +857,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!inited) {
       inited = true; await loadKB();
       const dlHTML = `
+        <a href="/api/ext-download" download style="display:flex;align-items:center;gap:10px;text-decoration:none;border:2px solid ${cin};background:rgba(165,129,58,.08);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+          <span style="font-size:26px">🧩</span>
+          <span style="flex:1"><span style="display:block;font-size:13.5px;font-weight:800;color:${cin}">⬇ 下载「朱砂助手」插件压缩包（.zip）</span><span style="display:block;font-size:10.5px;color:var(--ink-soft,#999);margin-top:2px">解压 → 浏览器扩展页开开发者模式 →「加载已解压的扩展程序」</span></span>
+        </a>
         <div style="background:rgba(165,129,58,.06);border:1px solid var(--line,#eee);border-radius:10px;padding:10px 12px;margin-bottom:10px">
           <div style="font-size:12.5px;font-weight:700;color:${cin};margin-bottom:4px">🧩 为什么要装「朱砂助手」插件？</div>
           <div style="font-size:11px;color:var(--ink-soft,#666);line-height:1.65">平台服务器是机房 IP，直接抓/发会被小红书判机器、触发风控。插件让动作跑在<b>你本机已登录的真实会话</b>里，和手动一样，从根上规避风控。装了才能用：<b>抓真实对标笔记</b>、<b>内容数据回流</b>（小眼睛/赞/藏）、<b>养号/截流获客</b>（带每日额度封顶）、<b>一键成稿发布</b>。</div>
