@@ -26,6 +26,10 @@
     };
   }
   function riskHit() { const t = document.body.innerText || ''; return /环境异常|安全验证|滑动验证|拼图验证|完成验证/.test(t) && t.length < 2000; }
+  // 网页风控软墙：「当前笔记暂时无法浏览 / 请打开小红书App扫码查看」——连续撞墙说明账号被网页端限流
+  function scanWall() { const t = document.body.innerText || ''; return /当前笔记暂时无法浏览|请打开小红书App|打开App查看|扫码查看|前往App查看/.test(t); }
+  // 关掉软墙弹窗（点「关闭」/×），返回信息流
+  function closeWall() { if (!clickByText(['关闭'])) { const x = document.querySelector('.close, [class*="close"], svg[class*="close"]'); if (x) (x.closest('[class*=close]') || x).click(); } }
 
   // ===== 风控安全层：跨运行「日累计上限」+ 新号热身爬坡 + 高危动作强制间隔 =====
   // 风控看的是账号当天【总】动作量，不是单次运行。这里做全局持久预算，多次点「执行」也共享同一份额度。
@@ -226,6 +230,7 @@
       await sleep(rnd(2500, 4000));
       if (!filtered) { applySearchFilter(cfg.filter); filtered = true; await sleep(rnd(1200, 2000)); }
       if (cap < 1) { ui.say('今日额度已用尽，明天再跑（防风控）'); ui.done(); return; }
+      let wallHits = 0; // 连续撞「扫码墙」次数，达阈值即熔断
       while (!stopFlag && Date.now() < deadline && opened < cap) {
         if (riskHit()) { ui.say('⚠ 触发验证，已停止'); break; }
         for (let s = 0; s < Math.round(rnd(2, 4)) && !stopFlag; s++) { window.scrollBy({ top: rnd(300, 700), behavior: 'smooth' }); await sleep(rnd(1500, 3200)); }
@@ -234,6 +239,17 @@
         if (!link) { ui.say('刷信息流中…'); await sleep(rnd(2000, 3500)); continue; }
         opened++; b.opened++; saveBudget(b); ui.budget(b); ui.say(`浏览 ${opened}/${cap} 篇 · 阅读中…`);
         link.click(); await sleep(rnd(4000, 8000));
+        // 风控软墙：小红书要求「打开App扫码查看」——不硬刚，关弹窗、退回、拉长间隔；连续 3 次即熔断停跑
+        if (scanWall()) {
+          wallHits++;
+          opened = Math.max(0, opened - 1); b.opened = Math.max(0, b.opened - 1); saveBudget(b); ui.budget(b); // 没真看到，回滚浏览额度
+          ui.say(`⚠ 被要求扫码查看（${wallHits}/3）· 该号网页端被限流，放慢中…`);
+          closeWall(); await sleep(rnd(800, 1500)); history.back();
+          if (wallHits >= 3) { ui.say('⚠ 连续被限流，已自动停止。建议今天别再跑，明天换 wifi/流量再养，或先手动刷一会儿。'); break; }
+          await sleep(rnd(15000, 30000)); // 撞墙后大幅退避，拟真「人放下手机」
+          continue;
+        }
+        wallHits = 0; // 正常打开一篇即清零
         // 广告/直播 → 不互动，尽快返回（PRD）
         if (isAdOrLive()) { ui.say('跳过 广告/直播'); await sleep(rnd(1500, 4000)); history.back(); await sleep(rnd(2000, 3500)); continue; }
         for (let s = 0; s < 2 && !stopFlag; s++) { window.scrollBy({ top: rnd(200, 500), behavior: 'smooth' }); await sleep(rnd(1500, 2800)); }
