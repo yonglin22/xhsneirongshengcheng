@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+<title>朱砂操盘台 · 1块5，跑通一篇小红书爆款+起号全流程</title>
+<meta name="description" content="填个方向，3分钟出一篇能发的小红书爆款；还能一键铺矩阵号、自动养号截流。1块5体验价，跑完不满意不用再充。注册再送200积分。" />
+<link rel="stylesheet" href="/assets/atelier.css?v=119" />
+<style>
+  *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; margin:0; }
+  body{ background:#fff; color:var(--ink); font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif; }
+  .wrap{ max-width:560px; margin:0 auto; padding-bottom:104px; }
+  a{ text-decoration:none; }
+  /* 顶栏 */
+  .ld-top{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px; }
+  .ld-top .lo{ display:flex; align-items:center; gap:10px; }
+  .ld-top img{ width:34px; height:34px; border-radius:9px; }
+  .ld-top .nm{ font-weight:800; font-size:15px; }
+  .ld-top .en{ font-size:9px; letter-spacing:.28em; color:var(--ink-soft); }
+  .ld-top a{ font-size:14px; font-weight:800; color:#7a5c1e; background:rgba(165,129,58,.1); padding:8px 18px; border-radius:999px; }
+  /* Hero */
+  .hero{ position:relative; overflow:hidden; padding:22px 22px 32px; text-align:center; background:linear-gradient(170deg,#faf3e0 0%,#fdf8ec 46%,#fff 100%); }
+  .hero::after{ content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(360px 280px at 88% 4%,rgba(201,168,95,.20),transparent 60%); }
+  .hero>*{ position:relative; z-index:1; }
+  .pain{ display:inline-block; font-size:13px; font-weight:600; color:#7a5c1e; background:rgba(165,129,58,.10); border:1px solid rgba(165,129,58,.22); border-radius:999px; padding:6px 14px; }
+  .h1{ font-size:33px; font-weight:400; line-height:1.24; margin:16px 0 0; font-family:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif; }
+  .h1 b{ font-weight:900; color:var(--cinnabar); }
+  .price{ display:inline-flex; align-items:baseline; gap:6px; margin-top:18px; }
+  .price .now{ font-size:52px; font-weight:900; color:var(--cinnabar); line-height:1; font-family:"Songti SC","STSong",serif; }
+  .price .cur{ font-size:22px; font-weight:900; color:var(--cinnabar); }
+  .price .was{ font-size:15px; color:var(--ink-soft); text-decoration:line-through; }
+  .price-tip{ font-size:13px; color:#4a4f56; margin-top:8px; }
+  .price-tip b{ color:var(--cinnabar-deep); }
+  .cta{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:54px; padding:0 40px; margin-top:20px; border-radius:999px; background:linear-gradient(180deg,#e6cf8e,#cca552); color:#fff; font-size:18px; font-weight:800; text-shadow:0 1px 2px rgba(120,88,20,.45); box-shadow:0 12px 26px -12px rgba(190,150,50,.5); }
+  .cta:hover{ filter:brightness(1.04); }
+  .cta-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:12px; }
+  .cta-sub b{ color:var(--cinnabar); }
+  /* 通用区块 */
+  .sec{ margin:26px 22px 0; }
+  .sec-t{ font-size:19px; font-weight:800; text-align:center; font-family:"Songti SC","STSong",serif; }
+  .sec-s{ font-size:13px; color:var(--ink-soft); text-align:center; margin-top:6px; }
+  /* 三步 */
+  .steps{ display:grid; gap:12px; margin-top:16px; }
+  .step{ display:flex; gap:13px; align-items:flex-start; background:var(--paper-2); border:1px solid var(--line); border-radius:16px; padding:15px 16px; }
+  .step .n{ width:30px; height:30px; flex:none; border-radius:999px; background:var(--cinnabar); color:#fff; font-weight:800; display:grid; place-items:center; font-size:14px; }
+  .step .st{ font-size:15px; font-weight:800; }
+  .step .sd{ font-size:12.5px; color:var(--ink-soft); margin-top:3px; line-height:1.55; }
+  /* 150积分明细 */
+  .perk{ background:linear-gradient(135deg,#fcf6e6,#fffdf8); border:1px solid #efe2c4; border-radius:20px; padding:22px; box-shadow:0 12px 30px -18px rgba(0,0,0,.14); }
+  .perk h3{ font-size:16px; font-weight:800; text-align:center; }
+  .perk ul{ list-style:none; margin:14px 0 0; padding:0; }
+  .perk li{ display:flex; gap:10px; font-size:13.5px; padding:7px 0; border-bottom:1px dashed #eadfc2; }
+  .perk li:last-child{ border-bottom:none; }
+  .perk li b{ color:var(--cinnabar-deep); }
+  /* 双线 */
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  .two .c{ border:1px solid var(--line); border-radius:16px; padding:16px; background:#fff; }
+  .two .c .ic{ font-size:24px; }
+  .two .c .t{ font-size:14.5px; font-weight:800; margin-top:6px; }
+  .two .c .d{ font-size:12px; color:var(--ink-soft); margin-top:5px; line-height:1.6; }
+  @media(max-width:420px){ .two{ grid-template-columns:1fr; } }
+  /* 保障 */
+  .guard{ background:linear-gradient(135deg,#241d12,#332815); color:#fff; border-radius:20px; padding:24px 22px; text-align:center; }
+  .guard .g1{ font-size:17px; font-weight:800; }
+  .guard .g2{ font-size:13px; color:#e9dcc0; margin-top:8px; line-height:1.7; }
+  /* sticky */
+  .sticky{ position:fixed; left:0; right:0; bottom:0; z-index:50; padding:12px 18px calc(12px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border-top:1px solid var(--line); display:flex; justify-content:center; }
+  .sticky .cta{ margin-top:0; width:100%; max-width:520px; }
+  .foot{ text-align:center; font-size:11.5px; color:var(--ink-soft); padding:14px 20px 20px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="ld-top">
+    <div class="lo"><img src="/assets/logo-mark.svg" alt="朱砂" /><div><div class="nm">朱砂 · 操盘台</div><div class="en">VERTICAL AGENT STUDIO</div></div></div>
+    <a href="/登录.html" id="loginTop">登录</a>
+  </div>
+
+  <div class="hero">
+    <span class="pain">选题慢 · 没灵感 · 号养不起来？</span>
+    <h1 class="h1">1 块 5，<b>先跑通</b><br>一篇小红书爆款 + 起号全流程</h1>
+    <div class="price">
+      <span class="cur">¥</span><span class="now">1.5</span><span class="was">原价 15</span>
+    </div>
+    <div class="price-tip">到账 <b>150 积分</b> · 够完整跑一遍全流程（含配图）· <b>每人限一次</b></div>
+    <a href="/登录.html" class="cta" id="ctaTop">▶ 1.5 元立即体验</a>
+    <div class="cta-sub">🎁 注册再送 <b>200 积分</b>，叠着用 · 跑完不满意，不用再充</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">3 分钟，出一篇能直接发的笔记</div>
+    <div class="sec-s">你只填方向，AI 跑完整条创作流水线</div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><div><div class="st">选题 + 对标拆解</div><div class="sd">填赛道方向，自动出 5 个爆款选题；抓真实对标笔记拆结构，学的是"怎么爆"不是抄。</div></div></div>
+      <div class="step"><div class="n">2</div><div><div class="st">框架 → 正文 → 标题 → 封面</div><div class="sd">一条流水线出图文：配图规划、正文、多版标题、封面配图，还带合规自检防限流。</div></div></div>
+      <div class="step"><div class="n">3</div><div><div class="st">一键成稿，确认即发</div><div class="sd">导出图文包或用插件把成稿存进创作中心草稿箱，你确认即发。公众号同样支持。</div></div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">不止会写，还帮你「起号获客」</div>
+    <div class="two">
+      <div class="c"><div class="ic">✍️</div><div class="t">内容创作</div><div class="d">小红书 + 公众号双平台，选题到封面一条流水线，篇篇带你的人设风格。</div></div>
+      <div class="c"><div class="ic">🌱</div><div class="t">矩阵获客</div><div class="d">多号自动养号、评论区截流收集潜客、引流话术；带每日额度封顶，出验证自动停。</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="perk">
+      <h3>🎁 1 块 5 你能跑到什么</h3>
+      <ul>
+        <li>✅ <span>完整跑一遍 <b>选题→成稿→封面配图</b>（含 ≤4 张配图）</span></li>
+        <li>✅ <span>体验 <b>对标拆解</b> + <b>合规自检</b>，看 AI 怎么学爆款</span></li>
+        <li>✅ <span>试跑一次 <b>养号/截流获客</b> 计划（保守拟真、带风控）</span></li>
+        <li>🎁 <span>注册再送 <b>200 积分</b>，和体验积分叠着用</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="guard">
+      <div class="g1">零风险体验 · 不满意不用再充</div>
+      <div class="g2">1 块 5 就当花杯奶茶零头，先把整套流程跑明白。<br>好用再充值，满 ¥100 按会员等级返 10%~30% 积分。</div>
+    </div>
+  </div>
+
+  <div class="foot" id="foot">
+    朱砂 · 操盘台 · 内容创作 + 矩阵获客双线闭环<br>
+    <span id="icp"></span>
+  </div>
+
+</div>
+
+<div class="sticky"><a href="/登录.html" class="cta" id="ctaBottom">▶ 1.5 元体验 · 领 200 积分 →</a></div>
+
+<script>
+  // 保留邀请码：把 ?ref= 带进登录/注册入口，分销归因不丢
+  (function () {
+    const ref = new URLSearchParams(location.search).get('ref') || '';
+    if (ref) { const q = '?ref=' + encodeURIComponent(ref); ['loginTop', 'ctaTop', 'ctaBottom'].forEach(id => { const a = document.getElementById(id); if (a) a.href = '/登录.html' + q; }); }
+  })();
+  // 备案号（与官网一致）
+  (async function () {
+    try { const j = await (await fetch('/api/pay/info')).json(); if (j && j.icp) { let h = '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' + j.icp + '</a>'; if (j.police) h += ' · <a href="https://beian.mps.gov.cn/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">🛡 ' + j.police + '</a>'; document.getElementById('icp').innerHTML = h; } } catch {}
+  })();
+</script>
+</body>
+</html>
