@@ -195,18 +195,26 @@
   const NUM_RE = /^\d[\d.]*\s*[万wk]?$/i;                     // 纯数字（含 1.2万/3k）
   // 卡片图标行的数字按顺序是：👁观看 · 💬评论 · ♡点赞 · ☆收藏 · ↗分享（无文字标签，只能按位置取）
   // 取当前登录的创作者昵称（作为 account_name 回传，数据复盘按账号区分）
+  const _deU = s => { try { return s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))); } catch { return s; } };
   function creatorName() {
+    // 1) 正则从内联脚本/SSR 状态 JSON 里捞昵称（创作平台几乎必内嵌，最稳）
     try {
-      const st = window.__INITIAL_STATE__ || window.__INITIAL_SSR_STATE__ || {};
-      const u = (st.user && (st.user.userInfo || st.user.info)) || st.userInfo || {};
-      const nm = u.nickname || u.nickName || u.name;
-      if (nm) return String(nm).trim().slice(0, 40);
+      const html = document.documentElement.innerHTML;
+      const m = html.match(/"(?:nickname|nickName|nick_name|userName|user_name|red_official_verify_name)"\s*:\s*"([^"]{1,40})"/);
+      if (m && m[1] && !/^(null|undefined|)$/.test(m[1])) return _deU(m[1]).trim().slice(0, 40);
     } catch {}
-    const sels = ['[class*="nickname"]', '[class*="userName"]', '[class*="user-name"]', '.name', '[class*="account"] [class*="name"]'];
+    // 2) 全局状态对象深查
+    try {
+      const st = window.__INITIAL_STATE__ || window.__INITIAL_SSR_STATE__ || window.__NUXT__ || {};
+      const cands = [st.user && st.user.userInfo, st.user && st.user.info, st.userInfo, st.account && st.account.info, st.user].filter(Boolean);
+      for (const u of cands) { const nm = u.nickname || u.nickName || u.name; if (nm) return String(nm).trim().slice(0, 40); }
+    } catch {}
+    // 3) DOM 兜底：头像旁的昵称文本
+    const sels = ['.name-detail', '.user-info [class*="name"]', '[class*="userInfo"] [class*="name"]', '.header [class*="name"]', '[class*="nickname"]', '[class*="userName"]', '[class*="user-name"]'];
     for (const s of sels) {
       const el = document.querySelector(s);
       const t = el && (el.textContent || '').trim();
-      if (t && t.length <= 40 && !/登录|发布|创作/.test(t)) return t;
+      if (t && t.length <= 40 && !/登录|发布|创作|中心|管理/.test(t)) return t;
     }
     return '';
   }

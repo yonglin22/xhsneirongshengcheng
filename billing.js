@@ -203,10 +203,12 @@ function noteStatPut(uid, d){
   const nkey=(note_url||title).slice(0,300); if(!nkey) return { ok:false, error:'缺少 note_url 或标题' };
   const n=k=>Math.max(0,parseInt(d[k])||0);
   const cur=db.prepare('SELECT id FROM note_stats WHERE user_id=? AND nkey=?').get(uid,nkey);
-  if(cur){ db.prepare('UPDATE note_stats SET account_id=?,account_name=?,platform=?,note_title=?,note_url=?,views=?,likes=?,favs=?,comments=?,published_at=COALESCE(?,published_at),collected_at=? WHERE id=?')
-    .run(parseInt(d.account_id)||null,String(d.account_name||'').slice(0,80),String(d.platform||'xhs').slice(0,16),title,note_url,n('views'),n('likes'),n('favs'),n('comments'),parseInt(d.published_at)||null,now,cur.id); }
+  const acct=String(d.account_name||'').slice(0,80).trim();
+  if(cur){ // 抓取回传若没拿到账号名（空），不要覆盖已有的账号名（用 NULLIF+COALESCE 保留旧值）
+    db.prepare('UPDATE note_stats SET account_id=?,account_name=COALESCE(NULLIF(?,\'\'),account_name),platform=?,note_title=?,note_url=?,views=?,likes=?,favs=?,comments=?,published_at=COALESCE(?,published_at),collected_at=? WHERE id=?')
+    .run(parseInt(d.account_id)||null,acct,String(d.platform||'xhs').slice(0,16),title,note_url,n('views'),n('likes'),n('favs'),n('comments'),parseInt(d.published_at)||null,now,cur.id); }
   else { db.prepare('INSERT INTO note_stats(user_id,account_id,account_name,platform,note_title,note_url,views,likes,favs,comments,published_at,collected_at,nkey) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
-    .run(uid,parseInt(d.account_id)||null,String(d.account_name||'').slice(0,80),String(d.platform||'xhs').slice(0,16),title,note_url,n('views'),n('likes'),n('favs'),n('comments'),parseInt(d.published_at)||now,now,nkey); }
+    .run(uid,parseInt(d.account_id)||null,acct,String(d.platform||'xhs').slice(0,16),title,note_url,n('views'),n('likes'),n('favs'),n('comments'),parseInt(d.published_at)||now,now,nkey); }
   return { ok:true };
 }
 function noteStatsList(uid){ return db.prepare('SELECT id,account_id,account_name,platform,note_title,note_url,views,likes,favs,comments,published_at,collected_at FROM note_stats WHERE user_id=? ORDER BY collected_at DESC LIMIT 500').all(uid); }
