@@ -74,7 +74,7 @@ async function runPlanFromPopup(p, btn) {
   if (!confirm(`▶ 执行「${p.name}」\n\n${warn}\n\n确定开始？`)) return;
   btn.disabled = true; btn.textContent = '启动中…';
   const st = await chrome.storage.local.get(['zsPersona']);
-  const payload = { ptype: p.ptype, config: { ...(p.config || {}), persona: st.zsPersona || '' }, _minutes: mins };
+  const payload = { ptype: p.ptype, config: { ...(p.config || {}), persona: st.zsPersona || '' }, _minutes: mins, _planId: p.id };
   chrome.runtime.sendMessage({ type: 'nurturePlan', plan: payload }, (resp) => {
     btn.textContent = (resp && resp.ok) ? '✓ 已下发，看新标签进度' : '启动失败';
     setTimeout(() => window.close(), 1000);

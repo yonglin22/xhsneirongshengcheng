@@ -263,8 +263,8 @@
       }
       ui.say((stopFlag ? `已停止 · 浏览${opened} 赞${liked} 藏${faved} 关注${followed} 评论${commented}` : `✓ 完成：浏览 ${opened} 篇 · 点赞 ${liked} · 收藏 ${faved} · 关注 ${followed} · 评论 ${commented}`) + `　今日累计 关注${b.followed}/${capFor(b, 'followed')} 评论${b.commented}/${capFor(b, 'commented')}`);
     } catch (e) { ui.say('养号出错：' + (e.message || e)); }
-    // 跑完上报本轮统计（收集/回复/私信）到任务列表
-    try { if (plan._planId && (stat.collected || stat.replied || stat.dmed)) chrome.runtime.sendMessage({ type: 'reportStat', planId: plan._planId, collected: stat.collected, replied: stat.replied, dmed: stat.dmed }); } catch (e) {}
+    // 跑完总是上报本轮运行到任务列表（含养号浏览/赞/藏/关注/评论 + 截流收集/回复/私信），更新「最近执行」与「任务执行情况」
+    try { if (plan._planId) chrome.runtime.sendMessage({ type: 'reportStat', planId: plan._planId, opened, liked, faved, followed, commented, collected: stat.collected, replied: stat.replied, dmed: stat.dmed }); } catch (e) {}
     // 若是「多设备下发」领取的任务 → 回报完成，让该设备解锁并领下一条
     try { if (plan._dispatchId) chrome.runtime.sendMessage({ type: 'dispatchDone', dispatchId: plan._dispatchId, result: `浏览${opened}·赞${liked}·藏${faved}·关注${followed}·评论${commented}` + (stat.collected ? `·收集${stat.collected}` : '') }); } catch (e) {}
     ui.done();

@@ -29,7 +29,29 @@
   <!-- 资料下载：平台操作手册 + 插件安装教程 -->
   <section id="downloads" class="card p-6 mt-6">
     <div class="text-[15px] font-bold mb-1">📎 资料下载</div>
-    <p class="text-[12.5px] text-[var(--ink-soft)] mb-4">先下载「朱砂助手」插件压缩包安装，再对照教程操作。</p>
+    <p class="text-[12.5px] text-[var(--ink-soft)] mb-3">先下载「朱砂助手」插件压缩包安装，再对照教程操作。</p>
+
+    <!-- 为什么要装插件：讲清楚它是「本机真实会话」的执行器，不装则很多核心能力用不了 -->
+    <div style="background:rgba(165,129,58,.06);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+      <div class="text-[13.5px] font-bold" style="color:var(--cinnabar-deep);margin-bottom:6px">🧩 为什么一定要装这个插件？</div>
+      <div class="text-[12.5px] text-[var(--ink-soft)]" style="line-height:1.7">
+        平台的服务器 IP 是机房 IP，直接去小红书抓/发会被判为机器、触发风控。插件让所有动作都跑在<strong style="color:var(--ink)">你本机已登录的真实小红书会话</strong>里，和你手动操作一样，从根上规避风控。装完插件才能用这几件核心能力：
+        <ul style="margin:8px 0 0;padding-left:2px;list-style:none">
+          <li style="margin-bottom:4px">📥 <strong style="color:var(--ink)">抓真实对标笔记</strong>：按关键词抓真实爆款的标题/正文/数据，喂给 AI 拆解仿写（机房 IP 抓不动、会被风控）。</li>
+          <li style="margin-bottom:4px">📊 <strong style="color:var(--ink)">内容数据回流</strong>：把你已发笔记的小眼睛/点赞/收藏回传，驱动「数据复盘」和红线预警。</li>
+          <li style="margin-bottom:4px">🌱 <strong style="color:var(--ink)">养号 / 截流获客</strong>：按「获客计划」在你本机自动浏览/点赞/收藏/关注、评论区引流回复、私信只生成草稿待你人工确认——全程真人会话、带每日额度封顶防风控。</li>
+          <li>🚀 <strong style="color:var(--ink)">一键成稿发布</strong>：把平台生成的成稿自动填进创作中心草稿箱，你确认即发。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 视频安装教程 -->
+    <div style="margin-bottom:14px">
+      <div class="text-[13.5px] font-bold" style="margin-bottom:8px">🎬 视频安装教程（1 分钟看完）</div>
+      <video src="/downloads/朱砂助手安装教程.mp4?v=20260703" controls preload="metadata" playsinline
+             style="width:100%;border-radius:14px;border:1px solid var(--line);background:#000;max-height:520px"></video>
+      <div class="text-[11.5px] text-[var(--ink-soft)]" style="margin-top:6px">看不清可全屏播放；图文步骤见下方「插件安装教程 PDF」。</div>
+    </div>
     <a id="extDlBtn" href="/api/ext-download" download class="dl-card" style="border:1.5px solid var(--cinnabar);background:rgba(165,129,58,.05);margin-bottom:12px">
       <div class="ic">🧩</div>
       <div><div class="t" style="color:var(--cinnabar-deep)">下载「朱砂助手」插件压缩包（.zip）</div><div class="d">解压到固定文件夹 → 浏览器扩展页「加载已解压的扩展程序」。装完再看下方教程。</div></div>
@@ -69,7 +91,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=27"></script>
-<script src="/assets/app.js?v=73"></script>
+<script src="/assets/app.js?v=74"></script>
 <script src="/assets/help-kb.js?v=5"></script>
 <script>
 function csHTML(info) {

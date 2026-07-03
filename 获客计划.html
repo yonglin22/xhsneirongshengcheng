@@ -133,7 +133,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=27"></script>
-<script src="/assets/app.js?v=73"></script>
+<script src="/assets/app.js?v=74"></script>
 <script src="/assets/ui-dialog.js?v=3"></script>
 <script src="/assets/onboard.js?v=3"></script>
 <script>pageIntro({key:'growth',emoji:'🌱',title:'养号 / 截流计划',intro:'配置养号或截流计划，保存后由「朱砂助手」插件在你已登录的小红书里保守拟真地执行。',steps:[{t:'＋ 新建计划',d:'点表格旁的按钮，弹出配置表单。'},{t:'选类型 + 填参数',d:'养号：好感率/点赞/收藏/评论比例、每日上限；截流：收集评论/引流回复/话术来源。'},{t:'保存 → 📤 下发',d:'把计划下发给「设备看板」里的在线设备。'},{t:'在设备看板看状态',d:'休息中→工作中即已开始执行。'}],tips:['先只做养号、低频最安全；截流(自动评论/私信)是高风险灰色操作，默认关。','出现验证码会自动停止，属正常保护。']});</script>
@@ -317,9 +317,17 @@ function showPreview(p){
 }
 function fmtTs(t){ if(!t)return '—'; const d=new Date(t),pad=x=>String(x).padStart(2,'0'); return `${d.getMonth()+1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 async function renderExec(planId){
-  let recs=[]; try{ const r=await fetch('/api/dispatch?plan='+planId); const j=await r.json(); recs=(j&&j.list)||[]; }catch{}
+  let recs=[],runs=[];
+  try{ const r=await fetch('/api/dispatch?plan='+planId); const j=await r.json(); recs=(j&&j.list)||[]; }catch{}
+  try{ const r=await fetch('/api/growth-plans/runs?plan='+planId); const j=await r.json(); runs=(j&&j.list)||[]; }catch{}
   const box=$('#pvExec'); if(!box) return;
-  if(!recs.length){ box.querySelector('div:last-child').innerHTML='<span style="font-size:12px;color:var(--ink-soft)">还没有下发执行。在列表里点「📤 下发」选账号后，设备插件会自动领取执行。</span>'; return; }
+  // 本机「▶执行」跑的每一轮（非下发），单独一块展示
+  const localHTML = runs.length ? `<div style="margin-bottom:8px"><div style="font-size:11.5px;font-weight:700;color:var(--cinnabar-deep);margin-bottom:4px">🖥 本机执行记录（${runs.length}）</div>`+runs.map(r=>{
+    const m=[]; if(r.opened)m.push('浏览'+r.opened); if(r.liked)m.push('赞'+r.liked); if(r.faved)m.push('藏'+r.faved); if(r.followed)m.push('关注'+r.followed); if(r.commented)m.push('评论'+r.commented); if(r.collected)m.push('收集'+r.collected); if(r.replied)m.push('回复'+r.replied); if(r.dmed)m.push('私信'+r.dmed);
+    return `<div style="display:flex;gap:8px;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px solid #f6f1e7;flex-wrap:wrap"><span style="color:#00875a;font-weight:700">已完成</span><span style="font-size:10px;color:var(--ink-soft)">📱${esc(r.device||'本机')} · ${fmtTs(r.created_at)}</span><span style="font-size:11px;color:#555">${m.length?'📊 '+m.join(' · '):'（本轮无互动）'}</span></div>`;
+  }).join('')+`</div>` : '';
+  if(!recs.length && !runs.length){ box.querySelector('div:last-child').innerHTML='<span style="font-size:12px;color:var(--ink-soft)">还没有执行记录。点「▶执行」用本机插件直接跑，或「📤 下发」给设备领取执行。</span>'; return; }
+  if(!recs.length){ box.querySelector('div:last-child').innerHTML=localHTML+'<span style="font-size:11.5px;color:var(--ink-soft)">下发给设备执行的记录会显示在这里。</span>'; box.querySelectorAll('.ex-set').forEach(()=>{}); return; }
   const DSTX=Object.assign({failed:['已失败','#d4380d']},DST_INLINE);
   const dataLine=d=>{ if(!d||typeof d!=='object')return ''; const m=[]; if(d.viewed!=null)m.push('浏览'+d.viewed); if(d.liked!=null)m.push('赞'+d.liked); if(d.faved!=null)m.push('藏'+d.faved); if(d.commented!=null)m.push('评论'+d.commented); if(d.risk)m.push('<b style="color:#d4380d">风控:'+esc(d.risk)+'</b>'); return m.length?`<span style="font-size:11px;color:#666;width:100%;padding-left:4px">📊 ${m.join(' · ')}</span>`:''; };
   const rows=recs.map(r=>{ const [t,c]=DSTX[r.status]||['—','#888']; const running=r.status==='running'; const stuck=running&&r.picked_at&&(Date.now()-r.picked_at>1000*60*30); return `<div style="display:flex;gap:8px;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid #f6f1e7;flex-wrap:wrap">
@@ -335,7 +343,7 @@ async function renderExec(planId){
       ${r.result?`<span style="font-size:11px;color:#444;width:100%;padding-left:4px">↳ ${esc(r.result)}</span>`:''}
       ${dataLine(r.data)}
     </div>`; }).join('');
-  box.querySelector('div:last-child').innerHTML=rows;
+  box.querySelector('div:last-child').innerHTML=localHTML+rows;
   box.querySelectorAll('.ex-set').forEach(btn=>btn.onclick=async()=>{ btn.disabled=true; await fetch('/api/dispatch/set',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:+btn.dataset.id,status:btn.dataset.st})}); await renderExec(planId); load(); });
 }
 function modal(title,bodyHtml,footHtml){

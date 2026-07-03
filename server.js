@@ -255,7 +255,7 @@ const MIME = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon', '.woff2': 'font/woff2',
   '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  '.pdf': 'application/pdf', '.zip': 'application/zip',
+  '.pdf': 'application/pdf', '.zip': 'application/zip', '.mp4': 'video/mp4',
 };
 
 function send(res, code, body, headers = {}) {
@@ -1428,6 +1428,11 @@ const server = http.createServer(async (req, res) => {
       const b = JSON.parse((await readBody(req)) || '{}');
       return sendJSON(res, 200, { ok: billing.planStat(uid, b.id || b.planId, b) });
     }
+    // 本机「▶执行」的运行明细（非下发），用于「任务执行情况」也展示本机跑的每一轮
+    if (pathname === '/api/growth-plans/runs' && req.method === 'GET') {
+      const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
+      return sendJSON(res, 200, { ok: true, list: billing.planRuns(uid, +url.searchParams.get('plan')) });
+    }
     // 多设备/多账号任务下发队列
     if (pathname === '/api/dispatch' && req.method === 'GET') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
@@ -1881,7 +1886,7 @@ const server = http.createServer(async (req, res) => {
     // 静态资源（css/js/字体/图片/svg）带 ?v= 做缓存失效 → 长缓存，避免每次切页重下；
     // HTML 用 no-cache（每次回源校验，内容仍即时更新）而不是 no-store——no-store 会禁用浏览器
     // 前进/后退的 bfcache，导致每次点「返回」都整页重载、切页很卡；no-cache 保留 bfcache，返回秒开。
-    const cacheable = ['.css', '.js', '.woff2', '.png', '.jpg', '.svg', '.ico'].includes(ext);
+    const cacheable = ['.css', '.js', '.woff2', '.png', '.jpg', '.svg', '.ico', '.mp4'].includes(ext);
     const cc = cacheable ? 'public, max-age=86400' : 'no-cache';
     send(res, 200, data, { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': cc });
   });

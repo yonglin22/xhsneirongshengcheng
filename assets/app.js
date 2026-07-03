@@ -856,7 +856,13 @@ document.addEventListener('DOMContentLoaded', () => {
     panel.style.display = 'flex'; restorePos();
     if (!inited) {
       inited = true; await loadKB();
-      const dlHTML = `<div style="display:flex;gap:8px;margin-bottom:10px">
+      const dlHTML = `
+        <div style="background:rgba(165,129,58,.06);border:1px solid var(--line,#eee);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-size:12.5px;font-weight:700;color:${cin};margin-bottom:4px">🧩 为什么要装「朱砂助手」插件？</div>
+          <div style="font-size:11px;color:var(--ink-soft,#666);line-height:1.65">平台服务器是机房 IP，直接抓/发会被小红书判机器、触发风控。插件让动作跑在<b>你本机已登录的真实会话</b>里，和手动一样，从根上规避风控。装了才能用：<b>抓真实对标笔记</b>、<b>内容数据回流</b>（小眼睛/赞/藏）、<b>养号/截流获客</b>（带每日额度封顶）、<b>一键成稿发布</b>。</div>
+        </div>
+        <video src="/downloads/朱砂助手安装教程.mp4?v=20260703" controls preload="metadata" playsinline style="width:100%;border-radius:10px;border:1px solid var(--line,#eee);background:#000;margin-bottom:10px"></video>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
         <a href="/downloads/朱砂助手插件安装教程.pdf?v=20260701b" download style="flex:1;display:flex;flex-direction:column;gap:2px;text-decoration:none;border:1px solid ${cin};background:rgba(165,129,58,.06);border-radius:10px;padding:9px 10px">
           <span style="font-size:12.5px;font-weight:700;color:${cin}">🧩 插件安装教程</span>
           <span style="font-size:10.5px;color:var(--ink-soft,#999)">下载 PDF · 含产品截图</span></a>

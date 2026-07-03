@@ -156,8 +156,14 @@ try { db.exec("ALTER TABLE growth_plans ADD COLUMN stat_replied INTEGER DEFAULT 
 try { db.exec("ALTER TABLE growth_plans ADD COLUMN stat_dmed INTEGER DEFAULT 0"); } catch {}
 try { db.exec("ALTER TABLE growth_plans ADD COLUMN last_run_at INTEGER"); } catch {}
 function plansList(uid){ return db.prepare('SELECT id,name,ptype,platform,config,status,stat_collected,stat_replied,stat_dmed,last_run_at,created_at,updated_at FROM growth_plans WHERE user_id=? ORDER BY id DESC').all(uid).map(r=>{ let c={}; try{c=JSON.parse(r.config||'{}');}catch{} return {...r, config:c, stats:{ collected:r.stat_collected||0, replied:r.stat_replied||0, dmed:r.stat_dmed||0, lastRunAt:r.last_run_at||0 } }; }); }
-// 执行端跑完一轮，累加统计（delta，可为 0）
-function planStat(uid, id, d){ const cur=db.prepare('SELECT id FROM growth_plans WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; d=d||{}; const add=(k)=>Math.max(0,parseInt(d[k])||0); db.prepare('UPDATE growth_plans SET stat_collected=COALESCE(stat_collected,0)+?, stat_replied=COALESCE(stat_replied,0)+?, stat_dmed=COALESCE(stat_dmed,0)+?, last_run_at=? WHERE id=? AND user_id=?').run(add('collected'), add('replied'), add('dmed'), Date.now(), id, uid); return true; }
+// 本机直接「▶执行」的运行记录（非多设备下发），用于在「任务执行情况」里也能看到本机跑的每一轮
+try { db.exec("CREATE TABLE IF NOT EXISTS growth_runs(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, plan_id INTEGER, device TEXT, opened INTEGER, liked INTEGER, faved INTEGER, followed INTEGER, commented INTEGER, collected INTEGER, replied INTEGER, dmed INTEGER, created_at INTEGER)"); } catch {}
+// 执行端跑完一轮，累加统计（delta，可为 0）；同时记一条本机运行明细
+function planStat(uid, id, d){ const cur=db.prepare('SELECT id FROM growth_plans WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; d=d||{}; const n=(k)=>Math.max(0,parseInt(d[k])||0);
+  db.prepare('UPDATE growth_plans SET stat_collected=COALESCE(stat_collected,0)+?, stat_replied=COALESCE(stat_replied,0)+?, stat_dmed=COALESCE(stat_dmed,0)+?, last_run_at=? WHERE id=? AND user_id=?').run(n('collected'), n('replied'), n('dmed'), Date.now(), id, uid);
+  try { db.prepare('INSERT INTO growth_runs(user_id,plan_id,device,opened,liked,faved,followed,commented,collected,replied,dmed,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(uid, id, String(d.device||'本机').slice(0,40), n('opened'), n('liked'), n('faved'), n('followed'), n('commented'), n('collected'), n('replied'), n('dmed'), Date.now()); } catch {}
+  return true; }
+function planRuns(uid, planId){ return db.prepare('SELECT id,device,opened,liked,faved,followed,commented,collected,replied,dmed,created_at FROM growth_runs WHERE user_id=? AND plan_id=? ORDER BY id DESC LIMIT 30').all(uid, planId); }
 function planAdd(uid, p){ const now=Date.now(); const r=db.prepare('INSERT INTO growth_plans(user_id,name,ptype,platform,config,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').run(uid, String(p.name||'').slice(0,80), p.ptype||'', p.platform||'xhs', JSON.stringify(p.config||{}), p.status||'draft', now, now); return r.lastInsertRowid; }
 function planUpdate(uid, id, p){ const cur=db.prepare('SELECT * FROM growth_plans WHERE id=? AND user_id=?').get(id,uid); if(!cur) return false; db.prepare('UPDATE growth_plans SET name=?,ptype=?,platform=?,config=?,status=?,updated_at=? WHERE id=? AND user_id=?').run(p.name!==undefined?String(p.name).slice(0,80):cur.name, p.ptype||cur.ptype, p.platform||cur.platform, p.config!==undefined?JSON.stringify(p.config):cur.config, p.status||cur.status, Date.now(), id, uid); return true; }
 function planRemove(uid, id){ db.prepare('DELETE FROM growth_plans WHERE id=? AND user_id=?').run(id,uid); return true; }
@@ -793,7 +799,7 @@ module.exports = {
   qaLogAdd, qaLogList, qaTopQuestions, qaStats,
   accountsList, accountAdd, accountUpdate, accountRemove, accountAuthBlob, accountsResetQrAuth, accountSubmitCookie,
   accountsActiveXhs, accountSetAuthById, accountSetStatusById,
-  plansList, planAdd, planUpdate, planRemove, planStat,
+  plansList, planAdd, planUpdate, planRemove, planStat, planRuns,
   scriptLibsList, scriptLibAdd, scriptLibUpdate, scriptLibRemove,
   leadsList, leadsAdd, leadRemove, leadsClear, leadStatus,
   dispatchAdd, dispatchList, dispatchPull, dispatchDone, dispatchCancel, dispatchReport, dispatchSet,

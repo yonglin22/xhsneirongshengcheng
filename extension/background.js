@@ -401,7 +401,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const r = await fetch('https://yonglin.chat/api/growth-plans/stat', {
           method: 'POST', credentials: 'include',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ id: msg.planId, collected: msg.collected || 0, replied: msg.replied || 0, dmed: msg.dmed || 0 }),
+          body: JSON.stringify({ id: msg.planId, opened: msg.opened || 0, liked: msg.liked || 0, faved: msg.faved || 0, followed: msg.followed || 0, commented: msg.commented || 0, collected: msg.collected || 0, replied: msg.replied || 0, dmed: msg.dmed || 0 }),
         });
         const j = await r.json().catch(() => null);
         sendResponse({ ok: !!(j && j.ok) });
