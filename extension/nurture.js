@@ -15,10 +15,15 @@
   function overlay() {
     const o = document.createElement('div');
     o.style.cssText = 'position:fixed;bottom:18px;right:18px;z-index:999999;background:#16181d;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:320px;line-height:1.6;font-family:-apple-system,sans-serif';
-    o.innerHTML = '<b>🌱 朱砂养号中…</b><div id="nz-msg" style="margin-top:4px;color:#ddd"></div><button id="nz-stop" style="margin-top:8px;background:#ff2442;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-size:12px;cursor:pointer">停止</button>';
+    o.innerHTML = '<b>🌱 朱砂养号中…</b><div id="nz-msg" style="margin-top:4px;color:#ddd"></div><div id="nz-bg" style="margin-top:6px;padding-top:6px;border-top:1px solid #333;color:#9fd6a8;font-size:11px;line-height:1.5"></div><button id="nz-stop" style="margin-top:8px;background:#ff2442;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-size:12px;cursor:pointer">停止</button>';
     document.body.appendChild(o);
     o.querySelector('#nz-stop').onclick = () => { stopFlag = true; };
-    return { say: t => { const m = o.querySelector('#nz-msg'); if (m) m.textContent = t; log(t); }, done: () => setTimeout(() => o.remove(), 7000) };
+    return {
+      say: t => { const m = o.querySelector('#nz-msg'); if (m) m.textContent = t; log(t); },
+      // 实时常驻显示今日各项额度用量（跨多次执行累计，防风控核心指标）
+      budget: b => { const el = o.querySelector('#nz-bg'); if (!el || !b) return; el.innerHTML = `今日额度（用完当天停）<br>关注 ${b.followed}/${capFor(b, 'followed')} · 评论 ${b.commented}/${capFor(b, 'commented')} · 回复 ${b.replied}/${capFor(b, 'replied')}<br>点赞 ${b.liked}/${capFor(b, 'liked')} · 收藏 ${b.faved}/${capFor(b, 'faved')} · 浏览 ${b.opened}/${capFor(b, 'opened')}`; },
+      done: () => setTimeout(() => o.remove(), 7000)
+    };
   }
   function riskHit() { const t = document.body.innerText || ''; return /环境异常|安全验证|滑动验证|拼图验证|完成验证/.test(t) && t.length < 2000; }
 
@@ -175,7 +180,7 @@
         if (stopFlag) break;
         const draft = useLib ? await libPick(ic.libId)
           : await aiText(persona, `笔记内容：${ctx}\n\n这位用户的评论：「${c.text}」\n请生成一条自然、不硬广、不站外导流的引流回复（≤40字，像真人随手回复，不要出现"AI"字样）。`);
-        if (draft && await postCommentReply(draft)) { replied++; stat.replied = (stat.replied || 0) + 1; if (b) { b.replied++; saveBudget(b); } lastReplyAt = Date.now(); ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
+        if (draft && await postCommentReply(draft)) { replied++; stat.replied = (stat.replied || 0) + 1; if (b) { b.replied++; saveBudget(b); ui.budget(b); } lastReplyAt = Date.now(); ui.say(`引流回复 ${replied}/${ic.reply}`); await sleep(rnd(3000, 6000)); }
       }
       if ((useAi || useLib) && ic.dm > 0 && queued < ic.dm && (!b || budgetLeft(b, 'dmed') > 0)) {
         const wait = lastDmAt ? Math.max(0, dmGap - (Date.now() - lastDmAt)) : 0;
@@ -198,6 +203,7 @@
     const cfg = (plan && plan.config) || {};
     const nz = cfg.nurture || {};
     const b = await loadBudget();
+    ui.budget(b);
     // 单次运行封顶 15 篇，再与用户设定/剩余日额度取小，防止一次暴走
     const cap = Math.max(1, Math.min(15, nz.daily || 6, budgetLeft(b, 'opened')));
     const minutes = plan._minutes || 12;
@@ -222,7 +228,7 @@
         const links = [...document.querySelectorAll('a[href*="/explore/"],a[href*="/search_result/"],a[href*="/discovery/item/"]')].filter(a => a.offsetParent);
         const link = links[Math.floor(rnd(0, Math.min(links.length, 10)))];
         if (!link) { ui.say('刷信息流中…'); await sleep(rnd(2000, 3500)); continue; }
-        opened++; b.opened++; saveBudget(b); ui.say(`浏览 ${opened}/${cap} 篇 · 阅读中…`);
+        opened++; b.opened++; saveBudget(b); ui.budget(b); ui.say(`浏览 ${opened}/${cap} 篇 · 阅读中…`);
         link.click(); await sleep(rnd(4000, 8000));
         // 广告/直播 → 不互动，尽快返回（PRD）
         if (isAdOrLive()) { ui.say('跳过 广告/直播'); await sleep(rnd(1500, 4000)); history.back(); await sleep(rnd(2000, 3500)); continue; }
@@ -234,10 +240,10 @@
         if (interested) {
           // 拟人多停留一会儿（PRD：感兴趣内容停留更久）
           await sleep(rnd(2000, 6000));
-          if (budgetLeft(b, 'liked') > 0 && chance(nz.like || 0) && doLike()) { liked++; b.liked++; saveBudget(b); await sleep(rnd(800, 1600)); }
-          if (budgetLeft(b, 'faved') > 0 && chance(nz.fav || 0) && doFav()) { faved++; b.faved++; saveBudget(b); await sleep(rnd(800, 1600)); }
+          if (budgetLeft(b, 'liked') > 0 && chance(nz.like || 0) && doLike()) { liked++; b.liked++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); }
+          if (budgetLeft(b, 'faved') > 0 && chance(nz.fav || 0) && doFav()) { faved++; b.faved++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); }
           // 关注是最敏感动作：单独日上限 + 强制间隔
-          if (budgetLeft(b, 'followed') > 0 && chance(nz.follow || 0)) { await hiRiskGate(ui, '关注'); if (!stopFlag && doFollow()) { followed++; b.followed++; saveBudget(b); await sleep(rnd(800, 1600)); } }
+          if (budgetLeft(b, 'followed') > 0 && chance(nz.follow || 0)) { await hiRiskGate(ui, '关注'); if (!stopFlag && doFollow()) { followed++; b.followed++; saveBudget(b); ui.budget(b); await sleep(rnd(800, 1600)); } }
           if (budgetLeft(b, 'commented') > 0 && chance(nz.comment || 0)) {
             await hiRiskGate(ui, '评论');
             // PRD 评论优先级：复刻评论区重复/最高赞评论(AI 仿写) > 话术库 > AI 从笔记生成
@@ -246,7 +252,7 @@
               ? await aiText(persona, `评论区有一条受欢迎的评论：「${model}」。仿照它的角度和口吻，换个说法写一条自然的真人感评论（≤25字，别照抄、不硬广、不出现"AI"）。`)
               : nz.csrc === 'lib' ? await libPick(nz.libId)
               : await aiText(persona, `笔记内容：${ctxTxt}\n请生成一条自然的真人感评论（≤30字，不硬广，不出现"AI"字样）。`);
-            if (draft && !stopFlag && await postCommentReply(draft)) { commented++; b.commented++; saveBudget(b); await sleep(rnd(2000, 4000)); }
+            if (draft && !stopFlag && await postCommentReply(draft)) { commented++; b.commented++; saveBudget(b); ui.budget(b); await sleep(rnd(2000, 4000)); }
           }
           // 随机访问博主主页后退出（拟人，PRD）
           if (chance(25)) { const a = document.querySelector('a[href*="/user/profile/"]'); if (a) { a.click(); await sleep(rnd(3000, 7000)); window.scrollBy({ top: rnd(300, 800), behavior: 'smooth' }); await sleep(rnd(1500, 3000)); history.back(); await sleep(rnd(1500, 2500)); } }
