@@ -33,7 +33,7 @@
 
   // ===== 风控安全层：跨运行「日累计上限」+ 新号热身爬坡 + 高危动作强制间隔 =====
   // 风控看的是账号当天【总】动作量，不是单次运行。这里做全局持久预算，多次点「执行」也共享同一份额度。
-  const DAY_CAP = { opened: 60, liked: 40, faved: 25, followed: 8, commented: 8, replied: 8, dmed: 20 };
+  const DAY_CAP = { opened: 40, liked: 25, faved: 15, followed: 5, commented: 5, replied: 5, dmed: 12 };
   const today = () => new Date().toISOString().slice(0, 10);
   function loadBudget() {
     return new Promise(res => chrome.storage.local.get(['zsDayBudget'], st => {
@@ -44,10 +44,10 @@
     }));
   }
   function saveBudget(b) { try { chrome.storage.local.set({ zsDayBudget: b }); } catch (e) {} }
-  // 新号热身：账号首次跑起 3 天内只用 40% 额度，4~7 天 70%，之后满额（拟真养号曲线，避免新号暴走被判机器）
+  // 新号热身：首日仅 25% 额度，2~3 天 40%，4~7 天 65%，之后满额（拟真养号曲线，避免新号暴走被判机器）
   function warmupFactor(b) {
     const days = Math.floor((Date.parse(b.date) - Date.parse(b.firstDay)) / 86400000);
-    if (days <= 2) return 0.4; if (days <= 6) return 0.7; return 1;
+    if (days <= 0) return 0.25; if (days <= 2) return 0.4; if (days <= 6) return 0.65; return 1;
   }
   function capFor(b, key) { return Math.max(1, Math.round(DAY_CAP[key] * warmupFactor(b))); }
   function budgetLeft(b, key) { return capFor(b, key) - (b[key] || 0); }
@@ -212,8 +212,8 @@
     const caps = nz.caps || {};
     const rndCap = (s, d) => { if (s == null || s === '') return d; const a = String(s).split('~').map(x => parseInt(x) || 0); return a.length > 1 ? Math.round(rnd(a[0], a[1])) : (a[0] || d); };
     const tgt = { open: rndCap(caps.love, nz.daily || 15), like: rndCap(caps.like, 9999), fav: rndCap(caps.fav, 9999), follow: rndCap(caps.follow, 9999), comment: rndCap(caps.comment, 9999) };
-    // 单次运行封顶 15 篇，再与「本轮目标篇数 / 剩余日额度」取小，防止一次暴走
-    const cap = Math.max(1, Math.min(15, tgt.open, budgetLeft(b, 'opened')));
+    // 单次运行封顶 12 篇，再与「本轮目标篇数 / 剩余日额度」取小，防止一次暴走
+    const cap = Math.max(1, Math.min(12, tgt.open, budgetLeft(b, 'opened')));
     const minutes = plan._minutes || 12;
     const deadline = Date.now() + minutes * 60000;
     const isSearch = /^search_/.test(plan.ptype || '');
@@ -280,7 +280,9 @@
         }
         // 截流计划：评论区抓取 + AI 引流回复（自动，有上限）；私信只生成草稿，存库待人工确认发送
         if (/_intercept$/.test(plan.ptype || '') && !stopFlag) { try { await runIntercept(plan, ui, stat, b); } catch (e) { ui.say('截流出错：' + (e.message || e)); } }
-        history.back(); await sleep(rnd(2500, 4500));
+        history.back();
+        // 每篇之间拉长停顿（真人不会秒切下一篇）：正常 8~18s；偶尔(20%)长歇 25~50s，拟真刷会儿放下
+        await sleep(chance(20) ? rnd(25000, 50000) : rnd(8000, 18000));
       }
       ui.say((stopFlag ? `已停止 · 浏览${opened} 赞${liked} 藏${faved} 关注${followed} 评论${commented}` : `✓ 完成：浏览 ${opened} 篇 · 点赞 ${liked} · 收藏 ${faved} · 关注 ${followed} · 评论 ${commented}`) + `　今日累计 关注${b.followed}/${capFor(b, 'followed')} 评论${b.commented}/${capFor(b, 'commented')}`);
     } catch (e) { ui.say('养号出错：' + (e.message || e)); }

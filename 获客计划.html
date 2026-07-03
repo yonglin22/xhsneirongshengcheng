@@ -125,11 +125,11 @@
     <!-- 养号配置：每项 百分比 + 上限（上限=风控每日封顶，达上限提前停/结束） -->
     <div class="gp-sec" data-show="nurture">
       <h3>养号配置 <span class="gp-hint">（对命中笔记按概率拟真互动；上限＝当日封顶，达到即停，防风控）</span></h3>
-      <div class="nz-item"><div class="nz-line"><label>* 好感率</label><input id="nzLove" class="field pct" type="number" value="70" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzLoveCap" class="field nz-cap"><option value="30~60">30~60 篇</option><option value="60~100" selected>60~100 篇</option><option value="100~150">100~150 篇</option></select></div><div class="nz-tip">100% 表示每篇笔记都喜欢；每次执行会在上限范围内随机取一个目标篇数，达到即提前结束本轮任务。</div></div>
-      <div class="nz-item"><div class="nz-line"><label>* 点赞</label><input id="nzLike" class="field pct" type="number" value="80" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzLikeCap" class="field nz-cap"><option value="8~15">8~15 次</option><option value="15~25" selected>15~25 次</option><option value="25~40">25~40 次</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都点赞，建议 25%~80%；执行时在上限范围随机生成，达上限则停止点赞。</div></div>
-      <div class="nz-item"><div class="nz-line"><label>* 收藏</label><input id="nzFav" class="field pct" type="number" value="30" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzFavCap" class="field nz-cap"><option value="5">5 次</option><option value="8" selected>8 次</option><option value="15">15 次</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都收藏，建议 0%~35%；达上限则停止收藏。</div></div>
-      <div class="nz-item"><div class="nz-line"><label>* 关注博主</label><input id="nzFollow" class="field pct" type="number" value="30" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzFollowCap" class="field nz-cap"><option value="3">3 个</option><option value="5" selected>5 个</option><option value="8">8 个</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都关注，建议 0%~30%（关注最敏感，越少越安全）；达上限则停止关注。</div></div>
-      <div class="nz-item"><div class="nz-line"><label>* 评论</label><input id="nzComment" class="field pct" type="number" value="30" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzCommentCap" class="field nz-cap"><option value="3">3 条</option><option value="5" selected>5 条</option><option value="8">8 条</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都评论，建议 0%~30%；达上限则停止评论。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 好感率</label><input id="nzLove" class="field pct" type="number" value="50" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzLoveCap" class="field nz-cap"><option value="30~60" selected>30~60 篇</option><option value="60~100">60~100 篇</option><option value="100~150">100~150 篇</option></select></div><div class="nz-tip">100% 表示每篇笔记都喜欢；每次执行会在上限范围内随机取一个目标篇数，达到即提前结束本轮任务。新号建议 40%~60% 更克制。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 点赞</label><input id="nzLike" class="field pct" type="number" value="60" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzLikeCap" class="field nz-cap"><option value="8~15" selected>8~15 次</option><option value="15~25">15~25 次</option><option value="25~40">25~40 次</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都点赞，建议 25%~80%；执行时在上限范围随机生成，达上限则停止点赞。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 收藏</label><input id="nzFav" class="field pct" type="number" value="20" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzFavCap" class="field nz-cap"><option value="5" selected>5 次</option><option value="8">8 次</option><option value="15">15 次</option></select></div><div class="nz-tip">100% 表示每篇感兴趣的笔记都收藏，建议 0%~35%；达上限则停止收藏。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 关注博主</label><input id="nzFollow" class="field pct" type="number" value="0" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzFollowCap" class="field nz-cap"><option value="3" selected>3 个</option><option value="5">5 个</option><option value="8">8 个</option></select></div><div class="nz-tip">关注是<b>最敏感</b>的动作，默认 <b>0%（不关注）</b>最安全；养号稳定几天后再小幅开到 10%~20%。达上限则停止关注。</div></div>
+      <div class="nz-item"><div class="nz-line"><label>* 评论</label><input id="nzComment" class="field pct" type="number" value="0" /><span class="gp-unit">%</span><span class="gp-unit">上限</span><select id="nzCommentCap" class="field nz-cap"><option value="3" selected>3 条</option><option value="5">5 条</option><option value="8">8 条</option></select></div><div class="nz-tip">评论是高危写操作，默认 <b>0%（不评论）</b>；养号阶段只做浏览/点赞/收藏最稳，权重养起来后再开。达上限则停止评论。</div></div>
       <div class="nz-item" style="border-bottom:none">
         <div class="nz-line"><span style="min-width:74px;color:var(--ink-soft);font-size:13px">评论规则</span>
           <label class="nz-radio"><input type="radio" name="csrc" value="ai"><span>多模态 AI 识别进行评论 <span class="gp-hint">（注：该操作会额外消耗积分）</span></span></label>
@@ -520,7 +520,7 @@ function loadIntoForm(p){
   set('lkLike',la.like);set('lkFav',la.fav);set('lkFollow',la.follow);set('lkComment',la.comment);
   set('nzLove',nz.love);set('nzLike',nz.like);set('nzFav',nz.fav);set('nzFollow',nz.follow);set('nzComment',nz.comment);
   const caps=nz.caps||{}; const setCap=(id,v,d)=>{ const el=$('#'+id); if(el) el.value=(v||d); };
-  setCap('nzLoveCap',caps.love,'60~100');setCap('nzLikeCap',caps.like,'15~25');setCap('nzFavCap',caps.fav,'8');setCap('nzFollowCap',caps.follow,'5');setCap('nzCommentCap',caps.comment,'5');
+  setCap('nzLoveCap',caps.love,'30~60');setCap('nzLikeCap',caps.like,'8~15');setCap('nzFavCap',caps.fav,'5');setCap('nzFollowCap',caps.follow,'3');setCap('nzCommentCap',caps.comment,'3');
   set('icReply',ic.reply);set('icDm',ic.dm);set('icReplyInt',ic.replyInt==null?1:ic.replyInt);set('icDmInt',ic.dmInt==null?1:ic.dmInt);
   collectOn=!!ic.collect; $('#icCollect').classList.toggle('on',collectOn);
   aiMatchOn=(ic.aiMatch!==false); $('#icAiMatch').classList.toggle('on',aiMatchOn);
@@ -632,7 +632,7 @@ showSections(); renderKw(); load(); loadLibs(); toggleLib();
     setType('search_nurture'); $('#pName').value=tname+'·老号养号（养'+(nz.days||7)+'天）'; $('#pDesc').value='起号养号：保守互动养权重，养满再开截流'; fillKw();
     setSeg('sort','hot');
     const set=(id,v)=>{ const e=$('#'+id); if(e)e.value=v; };
-    set('nzLove',nz.love??60); set('nzLike',nz.like??80); set('nzFav',nz.fav??25); set('nzFollow',nz.follow??20); set('nzComment',nz.comment??15);
+    set('nzLove',nz.love??50); set('nzLike',nz.like??60); set('nzFav',nz.fav??20); set('nzFollow',0); set('nzComment',0);
     $('#saveStatus').textContent='✓ 已预填「搜索养号」，核对参数后点「保存并下一步」'; $('#saveStatus').style.color='#00a152';
     showCreate(false); goStep(2);
   });
