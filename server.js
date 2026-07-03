@@ -1431,7 +1431,8 @@ const server = http.createServer(async (req, res) => {
     // 本机「▶执行」的运行明细（非下发），用于「任务执行情况」也展示本机跑的每一轮
     if (pathname === '/api/growth-plans/runs' && req.method === 'GET') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
-      return sendJSON(res, 200, { ok: true, list: billing.planRuns(uid, +url.searchParams.get('plan')) });
+      const pl = url.searchParams.get('plan');
+      return sendJSON(res, 200, { ok: true, list: pl ? billing.planRuns(uid, +pl) : billing.planRunsAll(uid) });
     }
     // 多设备/多账号任务下发队列
     if (pathname === '/api/dispatch' && req.method === 'GET') {

@@ -192,15 +192,26 @@
   </div>
 
   <div class="flex items-center gap-2 mb-3 flex-wrap" style="margin-top:6px">
-    <h3 style="font-size:15px;font-weight:700">计划列表</h3>
+    <span class="seg" id="viewTabs"><button data-tab="task" class="on">📋 任务列表</button><button data-tab="plan">🗂 我的计划</button></span>
     <button id="newPlanBtn" class="btn-go rounded-lg px-3 py-1.5 text-[12px]">＋ 创建计划</button>
+    <span id="listCount" class="text-[11px] text-[var(--ink-soft)]" style="margin-left:auto"></span>
+  </div>
+  <!-- 任务列表筛选 -->
+  <div id="taskFilters" class="flex items-center gap-2 mb-3 flex-wrap">
+    <input id="tfKw" class="field" style="font-size:12px;width:150px" placeholder="🔍 任务编号/计划名/智能体" />
+    <select id="tfType" class="field" style="font-size:12px"><option value="">全部类型</option><option value="link">口令刷量</option><option value="home_nurture">首页养号</option><option value="search_nurture">搜索养号</option><option value="home_intercept">首页截流</option><option value="search_intercept">搜索截流</option></select>
+    <select id="tfStatus" class="field" style="font-size:12px"><option value="">全部状态</option><option value="running">进行中</option><option value="pending">待领取</option><option value="done">已完成</option><option value="failed">已失败</option></select>
+    <label style="font-size:12px;display:flex;gap:4px;align-items:center;cursor:pointer"><input type="checkbox" id="tfCollect" />只看有收集评论</label>
+  </div>
+  <!-- 我的计划筛选 -->
+  <div id="planFilters" class="flex items-center gap-2 mb-3 flex-wrap" style="display:none">
     <select id="fType" class="field" style="font-size:12px"><option value="">全部类型</option><option value="link">口令刷量</option><option value="home_nurture">首页养号</option><option value="search_nurture">搜索养号</option><option value="home_intercept">首页截流</option><option value="search_intercept">搜索截流</option></select>
     <select id="fExec" class="field" style="font-size:12px"><option value="">全部状态</option><option value="running">执行中</option><option value="pending">待领取</option><option value="done">已完成</option><option value="none">未下发</option></select>
     <input id="fKw" class="field" style="font-size:12px;min-width:150px" placeholder="🔍 搜计划名/关键词" />
-    <span id="listCount" class="text-[11px] text-[var(--ink-soft)]" style="margin-left:auto"></span>
   </div>
-  <style>.zt{width:100%;border-collapse:collapse;font-size:13px}.zt th{text-align:left;font-size:11px;font-weight:600;color:var(--ink-soft);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:#faf7f1}.zt td{padding:9px 12px;border-bottom:1px solid #f3eee4;vertical-align:middle}.zt tbody tr:hover{background:#fcfaf6}.zt tbody tr:last-child td{border-bottom:none}.zt .actc button,.zt .actc a{margin:1px}</style>
-  <div id="list"></div>
+  <style>.zt{width:100%;border-collapse:collapse;font-size:13px}.zt th{text-align:left;font-size:11px;font-weight:600;color:var(--ink-soft);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:#faf7f1}.zt td{padding:9px 12px;border-bottom:1px solid #f3eee4;vertical-align:middle;white-space:nowrap}.zt tbody tr:hover{background:#fcfaf6}.zt tbody tr:last-child td{border-bottom:none}.zt .actc button,.zt .actc a{margin:1px}.zt .num{text-align:right;font-variant-numeric:tabular-nums}</style>
+  <div id="taskWrap"></div>
+  <div id="planWrap" style="display:none"><div id="list"></div></div>
 </main>
 
 <script src="/assets/tracks.js?v=27"></script>
@@ -276,8 +287,10 @@ let PLANS=[];
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function fmtRun(t){ if(!t) return ''; const d=new Date(t),n=new Date(),p=x=>String(x).padStart(2,'0'); const sameDay=d.toDateString()===n.toDateString(); return sameDay?`今天 ${p(d.getHours())}:${p(d.getMinutes())}`:`${d.getMonth()+1}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 const DST_INLINE={ pending:['待领取','#e8a400'], running:['执行中','#2563eb'], done:['已完成','#00875a'] };
-let DISP={};   // planId -> [records]
-async function loadDispatch(){ DISP={}; try{ const r=await fetch('/api/dispatch'); const j=await r.json(); (j&&j.list||[]).forEach(d=>{ (DISP[d.plan_id]=DISP[d.plan_id]||[]).push(d); }); }catch{} }
+let DISP={}, ALLDISP=[], RUNS=[];   // planId -> [records]；ALLDISP 扁平；RUNS 本机执行
+async function loadDispatch(){ DISP={}; ALLDISP=[]; try{ const r=await fetch('/api/dispatch'); const j=await r.json(); ALLDISP=(j&&j.list)||[]; ALLDISP.forEach(d=>{ (DISP[d.plan_id]=DISP[d.plan_id]||[]).push(d); }); }catch{} }
+async function loadRuns(){ try{ const r=await fetch('/api/growth-plans/runs'); const j=await r.json(); RUNS=(j&&j.list)||[]; }catch{ RUNS=[]; } }
+const planById=id=>PLANS.find(x=>x.id===id);
 function dispCell(p){
   const recs=DISP[p.id]||[];
   if(!/_(nurture|intercept)$/.test(p.ptype)) return '';
@@ -286,10 +299,52 @@ function dispCell(p){
   const parts=[]; if(c.running)parts.push(`<b style="color:#2563eb">执行中${c.running}</b>`); if(c.pending)parts.push(`<b style="color:#e8a400">待领取${c.pending}</b>`); if(c.done)parts.push(`<b style="color:#00875a">完成${c.done}</b>`);
   return `<span style="text-align:center;min-width:88px;line-height:1.3"><span style="font-size:11px">${parts.join(' · ')}</span><span style="display:block;font-size:10px;color:var(--ink-soft)">执行状态</span></span>`;
 }
+let TASKMODE='task';
 async function load(){
   const j=await api(''); PLANS=(j&&j.list)||[];
-  await loadDispatch();
-  renderList();
+  await loadDispatch(); await loadRuns();
+  render();
+}
+function render(){ if(TASKMODE==='task') renderTasks(); else renderList(); }
+// 任务列表：每个子任务(下发到某账号 / 本机每轮执行)一行
+const TASK_ST={ running:['进行中','#2563eb'], pending:['待领取','#e8a400'], done:['已完成','#00875a'], failed:['已失败','#d4380d'] };
+function taskRows(){
+  const rows=[];
+  ALLDISP.forEach(r=>{ const p=planById(r.plan_id); const d=r.data||{}; rows.push({ no:'RW'+String(r.plan_id).padStart(6,'0'), sub:'RW'+String(r.plan_id).padStart(6,'0')+'-'+r.id, agent:r.account_name||('账号#'+(r.account_id||'')), plan:p?p.name:('计划#'+r.plan_id), platform:p?p.platform:'xhs', ptype:p?p.ptype:'', viewed:d.viewed||0, liked:d.liked||0, faved:d.faved||0, followed:d.followed||0, commented:d.commented||0, replied:d.replied||0, dmed:d.dmed||0, start:r.picked_at||r.created_at, end:r.done_at, status:r.status, planId:r.plan_id, ts:r.created_at, collected:d.collected||0 }); });
+  RUNS.forEach(r=>{ const p=planById(r.plan_id); rows.push({ no:'RW'+String(r.plan_id).padStart(6,'0'), sub:'RW'+String(r.plan_id).padStart(6,'0')+'-本机'+r.id, agent:r.device||'本机', plan:p?p.name:('计划#'+r.plan_id), platform:p?p.platform:'xhs', ptype:p?p.ptype:'', viewed:r.opened||0, liked:r.liked||0, faved:r.faved||0, followed:r.followed||0, commented:r.commented||0, replied:r.replied||0, dmed:r.dmed||0, start:r.created_at, end:r.created_at, status:'done', planId:r.plan_id, ts:r.created_at, collected:r.collected||0 }); });
+  rows.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  return rows;
+}
+function renderTasks(){
+  const kw=(($('#tfKw')&&$('#tfKw').value)||'').trim().toLowerCase(); const ty=($('#tfType')&&$('#tfType').value)||''; const stf=($('#tfStatus')&&$('#tfStatus').value)||''; const onlyC=$('#tfCollect')&&$('#tfCollect').checked;
+  let rows=taskRows().filter(r=>{
+    if(ty && r.ptype!==ty) return false;
+    if(stf && r.status!==stf) return false;
+    if(onlyC && !r.collected) return false;
+    if(kw){ const hay=((r.sub||'')+' '+(r.plan||'')+' '+(r.agent||'')).toLowerCase(); if(!hay.includes(kw)) return false; }
+    return true;
+  });
+  if($('#listCount')) $('#listCount').textContent=rows.length+' 个子任务';
+  const pf=t=>t?fmtTs(t):'—';
+  $('#taskWrap').innerHTML = !rows.length
+    ? '<div class="card p-6 text-center text-[13px] text-[var(--ink-soft)]">还没有任务执行记录。创建计划后点「发布任务」下发给设备，或在「我的计划」里点「▶执行」用本机插件直接跑。</div>'
+    : `<div class="card" style="padding:0;overflow:auto"><table class="zt"><thead><tr>
+      <th>任务编号</th><th>子任务编号</th><th>智能体名称</th><th>计划名称</th><th>平台</th><th>计划类型</th>
+      <th class="num">浏览</th><th class="num">点赞</th><th class="num">收藏</th><th class="num">关注</th><th class="num">评论</th><th class="num">引流回复</th><th class="num">私信</th>
+      <th>开始时间</th><th>结束时间</th><th>任务状态</th><th style="width:150px">更多</th></tr></thead><tbody>${
+    rows.map(r=>{ const [t,c]=TASK_ST[r.status]||['—','#888']; const isIc=/_intercept$/.test(r.ptype||''); return `<tr>
+      <td style="font-size:11px;color:var(--ink-soft)">${r.no}</td>
+      <td style="font-size:11px;font-weight:600">${r.sub}</td>
+      <td style="font-weight:600">${esc(r.agent)}</td>
+      <td>${esc(r.plan)}</td>
+      <td style="font-size:11px">${r.platform==='gzh'?'公众号':'小红书'}</td>
+      <td><span style="font-size:11px;color:#fff;background:var(--cinnabar);border-radius:6px;padding:2px 7px">${TYPE_NAME[r.ptype]||r.ptype||'—'}</span></td>
+      <td class="num">${r.viewed||0}</td><td class="num">${r.liked||0}</td><td class="num">${r.faved||0}</td><td class="num">${r.followed||0}</td><td class="num">${r.commented||0}</td><td class="num">${r.replied||0}</td><td class="num">${r.dmed||0}</td>
+      <td style="font-size:11px;color:var(--ink-soft)">${pf(r.start)}</td>
+      <td style="font-size:11px;color:var(--ink-soft)">${pf(r.end)}</td>
+      <td><span style="color:${c};font-weight:700;font-size:12px">${t}</span></td>
+      <td class="actc" data-pid="${r.planId}"><button class="tk-view btn-ghost rounded-md px-2 py-1 text-[11px]">查看计划</button>${isIc&&r.collected?`<a class="btn-ghost rounded-md px-2 py-1 text-[11px]" href="/评论收集.html?plan=${r.planId}" style="text-decoration:none">收集评论</a>`:''}</td>
+    </tr>`; }).join('')}</tbody></table></div>`;
 }
 function execStateOf(p){ const recs=DISP[p.id]||[]; if(!/_(nurture|intercept)$/.test(p.ptype)) return ''; if(!recs.length) return 'none'; const c={}; recs.forEach(r=>c[r.status]=(c[r.status]||0)+1); if(c.running)return 'running'; if(c.pending)return 'pending'; if(c.done)return 'done'; return 'none'; }
 function renderList(){
@@ -338,6 +393,20 @@ if(_genBtn) _genBtn.addEventListener('click', async ()=>{
 });
 ['#fType','#fExec'].forEach(s=>$(s)&&$(s).addEventListener('change',renderList));
 $('#fKw')&&$('#fKw').addEventListener('input',renderList);
+// 任务列表筛选
+['#tfType','#tfStatus'].forEach(s=>$(s)&&$(s).addEventListener('change',renderTasks));
+$('#tfKw')&&$('#tfKw').addEventListener('input',renderTasks);
+$('#tfCollect')&&$('#tfCollect').addEventListener('change',renderTasks);
+// Tab 切换：任务列表 / 我的计划
+$('#viewTabs')&&$('#viewTabs').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+  $('#viewTabs').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  TASKMODE=b.dataset.tab;
+  $('#taskWrap').style.display=TASKMODE==='task'?'':'none'; $('#taskFilters').style.display=TASKMODE==='task'?'':'none';
+  $('#planWrap').style.display=TASKMODE==='plan'?'':'none'; $('#planFilters').style.display=TASKMODE==='plan'?'':'none';
+  render();
+}));
+// 任务列表「查看计划」
+$('#taskWrap')&&$('#taskWrap').addEventListener('click',e=>{ const v=e.target.closest('.tk-view'); if(!v)return; const pid=+v.closest('[data-pid]').dataset.pid; const p=PLANS.find(x=>x.id===pid); if(p) showPreview(p); });
 // 事件委托：删除/查看/编辑/执行 都挂在 #list 上，重渲染也不丢
 $('#list').addEventListener('click', async e=>{
   const card=e.target.closest('[data-id]'); if(!card) return;
