@@ -25,6 +25,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--ink)}textarea{resize:
 .seg{display:flex;gap:6px;margin:2px 0 12px}
 .seg .s{flex:1;text-align:center;font-size:11.5px;padding:8px 3px;border:1px solid var(--line2);border-radius:9px;cursor:pointer;color:var(--soft)}
 .seg .s.on{border-color:var(--ink);color:var(--ink);font-weight:600;background:var(--card)}
+.qz .q{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px}
+.qz .qn{font-size:13px;margin-bottom:8px}.qz .qn b{color:var(--cinnabar);font-family:var(--mono);margin-right:5px}
+.qz .lik{display:flex;gap:5px}.qz .lik b{flex:1;text-align:center;font-size:10.5px;padding:7px 2px;border:1px solid var(--line2);border-radius:8px;cursor:pointer;color:var(--soft);background:#fff}
+.qz .lik b.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
 .cta{height:50px;border-radius:25px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--serif);font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;letter-spacing:.04em}
 .cta:active{transform:scale(.99)}.cta[disabled]{opacity:.5}
 .cta.ghost{background:#fff;color:var(--ink);border:1px solid var(--line2)}
@@ -118,7 +122,17 @@ ul.pts2.har li::before{background:var(--gold)}ul.pts2.fri li::before{background:
     <div class="sec"><div class="h">给你的提示</div><ul class="pts2 ins" id="ins"></ul></div>
     <div class="sec"><div class="h">今天先做这一件</div><div class="action" id="act"></div></div>
     <div class="note">相位/契合分/合拍消耗为<b>真实星盘实算</b>；解读语气为规则模板示例（生产接 AI Prompt）。</div>
+    <div class="reco" id="toQuiz" style="background:#3c4a40"><div class="t">🌿 30 秒测体质，让香方更贴你 →</div><div class="a">9 题快测 · 跳过则按八字推断体质</div></div>
     <div class="reco" id="toReco"><div class="t">🔮 按你俩的盘，我给你们各排了一串 →</div><div class="a">为你俩排的关系对串 · 点击查看</div></div>
+  </div></div>
+
+  <!-- S3b 体质快测（可选·并进主流程） -->
+  <div id="s3b" class="screen"><div class="pad">
+    <span class="back" data-to="s3">‹ 返回解读</span>
+    <div class="tt">体质快测</div><div class="sub">9 题 · 让香方更贴你的体质</div>
+    <div class="qz" id="qz"></div>
+    <button class="cta" id="qzSubmit" disabled>看体质 + 更新香方（还有 <b>9</b> 题）</button>
+    <div class="disc">养生调理参考，非疾病诊断；《中医体质分类与判定》转化分方法。</div>
   </div></div>
 
   <!-- S4/S5 对串 + 微调 -->
@@ -237,13 +251,14 @@ function wuxingProfile(y,mo,d,localH,tz){
 }
 
 /* ---- 中医体质（由五行桥接；生产可接九型体质问卷精修）→ 香承香方 ---- */
+/* xiangfang=香承真实香方名（对应《香方与体质映射·审定草案》② 表·已采用为工作默认）；fangDir=功用方向（内部） */
 const TIZHI={
- 阳虚:{label:'阳虚·偏寒怕冷',themes:['情绪安定'],xiangfang:'温阳养气',stone:'nanhong',care:'宜温养，忌生冷'},
- 阴虚:{label:'阴虚·偏燥易烦',themes:['睡眠安神'],xiangfang:'滋阴安神',stone:'moonstone',care:'宜静养滋润，忌熬夜辛燥'},
- 气郁:{label:'气郁·思虑郁结',themes:['情感决断','焦虑纾解'],xiangfang:'解郁凝神',stone:'incense',care:'宜疏解舒展，忌闷压'},
- 痰湿:{label:'痰湿·困重黏滞',themes:['专注定力'],xiangfang:'化湿醒神',stone:'citrine',care:'宜清爽走动，忌甜腻'},
- 气虚:{label:'气虚·易倦气短',themes:['情绪安定'],xiangfang:'养气温肺',stone:'clear',care:'宜养气缓行，忌过劳'},
- 平和:{label:'平和·守中',themes:[],xiangfang:'静心和合',stone:'incense',care:'守中即好'}
+ 阳虚:{label:'阳虚·偏寒怕冷',themes:['情绪安定'],xiangfang:'内府降真香',fangDir:'温养培元',stone:'nanhong',care:'宜温养，忌生冷'},
+ 阴虚:{label:'阴虚·偏燥易烦',themes:['睡眠安神'],xiangfang:'桂花养神/安息香',fangDir:'滋阴安神',stone:'moonstone',care:'宜静养滋润，忌熬夜辛燥'},
+ 气郁:{label:'气郁·思虑郁结',themes:['情感决断','焦虑纾解'],xiangfang:'茉莉/杏花·疏肝解郁',fangDir:'疏肝解郁',stone:'incense',care:'宜疏解舒展，忌闷压'},
+ 痰湿:{label:'痰湿·困重黏滞',themes:['专注定力'],xiangfang:'龙涎香/华佗香',fangDir:'祛湿醒神',stone:'citrine',care:'宜清爽走动，忌甜腻'},
+ 气虚:{label:'气虚·易倦气短',themes:['情绪安定'],xiangfang:'紫瑞香',fangDir:'养气温肺',stone:'clear',care:'宜养气缓行，忌过劳'},
+ 平和:{label:'平和·守中',themes:[],xiangfang:'沉檀龙麝',fangDir:'固本调和',stone:'incense',care:'守中即好'}
 };
 function tizhiFromWuxing(wx){const s=wx.scores;
   if(s.huo<=12)return '阳虚'; if(s.shui<=12)return '阴虚';
@@ -412,6 +427,22 @@ function drawBeads(W,H,seq){const cx=W/2,cy=H/2,rx=Math.min(W,H)*.30,ry=rx*.72,n
   const it=seq.map((id,i)=>{const a=i/n*6.283-1.57,yb=Math.sin(a);return{id,x:cx+rx*Math.cos(a),y:cy+ry*yb,s:.85+.2*(yb+1)/2};}).sort((p,q)=>p.y-q.y);
   it.forEach(o=>{const d=bd*(SKU[o.id]&&SKU[o.id].kind==='spacer'?.5:1)*o.s;ctx.save();ctx.beginPath();ctx.ellipse(o.x,o.y+d*.4,d*.5,d*.2,0,0,7);ctx.fillStyle='rgba(58,48,36,.24)';ctx.filter='blur(5px)';ctx.fill();ctx.restore();const im=IMG[SKU[o.id]?SKU[o.id].img:o.id];if(im&&im.complete)ctx.drawImage(im,o.x-d/2,o.y-d/2,d,d);});}
 function renderPlate(){const[W,H]=sizeCv();drawPlate(W,H);const p=S.plans[S.cur];if(p)drawBeads(W,H,p.seq);}
+/* ===== 体质快测（并进主流程·可选）——② 草案已采用为工作默认 ===== */
+const QTZ={ping:{n:'平和质',th:[],xf:'沉檀龙麝'},qixu:{n:'气虚质',th:['情绪安定'],xf:'紫瑞香'},yangxu:{n:'阳虚质',th:['情绪安定'],xf:'内府降真香'},yinxu:{n:'阴虚质',th:['睡眠安神'],xf:'桂花养神/安息香'},tanshi:{n:'痰湿质',th:['专注定力'],xf:'龙涎香/华佗香'},shire:{n:'湿热质',th:['焦虑纾解'],xf:'四时辟疫/青麟髓'},xueyu:{n:'血瘀质',th:['情感决断'],xf:'御颜香'},qiyu:{n:'气郁质',th:['情感决断','焦虑纾解'],xf:'茉莉/杏花·疏肝解郁'},tebing:{n:'特禀质',th:['情绪安定'],xf:'玄彩七香'}};
+const QQ=[['我精力充沛、睡眠好、适应力强','ping'],['我容易疲乏、气短没力','qixu'],['我手脚发凉、比别人怕冷','yangxu'],['我手心脚心发热、口干咽干','yinxu'],['我身体沉重、多痰、腹松软','tanshi'],['我面部油腻、口苦、便黏','shire'],['我面色偏暗、唇色暗','xueyu'],['我情绪低落易郁、易紧张焦虑','qiyu'],['我易过敏(打喷嚏/起疹/药食敏感)','tebing']];
+const QLIK=['没有','很少','有时','经常','总是'];let qans=new Array(9).fill(0);
+toQuiz.onclick=()=>{buildQuiz();show('s3b');};
+function buildQuiz(){document.getElementById('qz').innerHTML=QQ.map((q,i)=>`<div class="q"><div class="qn"><b>${i+1}</b>${q[0]}</div><div class="lik" data-i="${i}">${QLIK.map((l,k)=>`<b data-v="${k+1}" class="${qans[i]===k+1?'on':''}">${l}</b>`).join('')}</div></div>`).join('');
+  document.querySelectorAll('#qz .lik').forEach(r=>r.onclick=e=>{const b=e.target.closest('b');if(!b)return;qans[+r.dataset.i]=+b.dataset.v;r.querySelectorAll('b').forEach(x=>x.classList.toggle('on',x===b));qzProg();});qzProg();}
+function qzProg(){const left=qans.filter(x=>!x).length,s=document.getElementById('qzSubmit');s.disabled=left>0;s.innerHTML=left>0?`看体质 + 更新香方（还有 <b>${left}</b> 题）`:'看体质 + 更新香方 →';}
+document.getElementById('qzSubmit').onclick=()=>{
+  const conv={};Object.keys(QTZ).forEach(k=>conv[k]=0);QQ.forEach((q,i)=>conv[q[1]]=Math.round(((qans[i]||1)-1)/4*100));
+  const bias=Object.keys(QTZ).filter(k=>k!=='ping'),strong=bias.filter(k=>conv[k]>=40).sort((a,b)=>conv[b]-conv[a]);
+  const srt=bias.slice().sort((a,b)=>conv[b]-conv[a]),main=(conv.ping>=60&&!strong.length)?'ping':(strong[0]||(conv.ping>=conv[srt[0]]?'ping':srt[0]));
+  const m=QTZ[main];S.bazi.her.tizhi=m.n;S.bazi.her.xiangfang=m.xf;S.tizhiSrc='quiz';
+  S.vec.her.themes=S.vec.her.themes.filter(t=>t.source!=='wuxing').concat(m.th.map(t=>({theme:t,weight:.6,source:'tizhi'})));
+  fire('reco_view');S.dod.reco=true;openReco();
+};
 function openReco(){
   S.wrist=wrist.value;recalcPlans();
   document.getElementById('degradeTag').textContent=(S.plans.her.degraded?'未接八字·按议题排（可补出生信息精选主石）':'Photo-composite · 收拢成串');
@@ -421,7 +452,7 @@ function recalcPlans(){S.plans.her=selectBeads(S.vec.her,S.wrist,S.vec.relation.
 function setCur(w){S.cur=w;document.querySelectorAll('.swch b').forEach(b=>b.classList.toggle('on',b.dataset.w===w));
   const p=S.plans[w],names=[...new Set(p.seq.filter(id=>SKU[id].kind!=='spacer').map(id=>SKU[id].n))].slice(0,4).join(' + ');
   const xf=(S.bazi&&S.bazi[w])?S.bazi[w].xiangfang:'静心';
-  document.getElementById('reason').innerHTML=(w==='her'?'<b>你的串</b> — ':'<b>TA 的串</b> — ')+(p.reasonBits.join('，'))+'，配香承「'+xf+'」香方香珠。'+(p.hasCustom?'(含定制)':'');
+  document.getElementById('reason').innerHTML=(w==='her'?'<b>你的串</b> — ':'<b>TA 的串</b> — ')+(p.reasonBits.join('，'))+'，配香承「'+xf+'」香方香珠。'+(p.hasCustom?'(含定制)':'')+' <span style="opacity:.55">· 香珠统一 800 积分（临时价·后续替换）</span>';
   renderPlate();updatePrice();}
 document.querySelector('.swch').addEventListener('click',e=>{const b=e.target.closest('b');if(b)setCur(b.dataset.w);});
 function buildPal(){const pal=document.getElementById('pal');pal.innerHTML='';['nanhong','moonstone','bluelace','citrine','clear','obsidian','incense','silver'].forEach(id=>{const d=document.createElement('div');d.className='pi';d.innerHTML=`<img src="${BEAD_IMG[SKU[id].img]}"><div class="n">${SKU[id].n}</div>`;d.onclick=()=>{const p=S.plans[S.cur];p.seq.splice(p.seq.length-1,0,id,'silver');p.price+=SKU[id].price+6;p.hasCustom=p.hasCustom||SKU[id].stock==='custom';renderPlate();updatePrice();};pal.appendChild(d);});}
@@ -478,11 +509,16 @@ window.addEventListener('resize',()=>{if(document.getElementById('s4').classList
 function drive(target){
   fire('synastry_start');S.frozen=30;setPts(S.wallet-30);ledg('冻结·合盘',-30);
   compute(); if(target==='s3')return;
+  if(target==='s3b'||target==='qz4'){ // QA：走体质快测支路
+    toQuiz.onclick(); qans=[2,3,2,2,2,2,3,5,2]; buildQuiz(); qzProg();
+    if(target==='s3b')return;
+    document.getElementById('qzSubmit').onclick(); return;
+  }
   toReco.onclick(); if(target==='s4')return;
   addCart.onclick(); if(target==='s6')return;
   ledg('下单·待支付',-S.order.total);ledg('支付成功',0);fire('pay_success');S.dod.pay=true;S.dod.refund=true;
   document.getElementById('okMeta').textContent=`订单 ¥${S.order.total} · ${S.order.custom?'含定制成串，约15-20天':'现货即时发货'}`;
   if(!S.events.join_private)fire('join_private');S.dod.priv=true;show('s8');renderQA();
 }
-const _m=location.hash.match(/#drive=(s\d)/);if(_m)setTimeout(()=>drive(_m[1]),350);
+const _m=location.hash.match(/#drive=([a-z0-9]+)/);if(_m)setTimeout(()=>drive(_m[1]),350);
 </script>

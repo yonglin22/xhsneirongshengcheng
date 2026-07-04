@@ -54,13 +54,14 @@ function wuxingProfile(y,mo,d,localH,tz){
 }
 
 /* ---- 中医体质（由五行桥接；生产可接九型体质问卷精修）→ 香承香方 ---- */
+/* xiangfang=香承真实香方名（对应《香方与体质映射·审定草案》② 表·已采用为工作默认）；fangDir=功用方向（内部） */
 const TIZHI={
- 阳虚:{label:'阳虚·偏寒怕冷',themes:['情绪安定'],xiangfang:'温阳养气',stone:'nanhong',care:'宜温养，忌生冷'},
- 阴虚:{label:'阴虚·偏燥易烦',themes:['睡眠安神'],xiangfang:'滋阴安神',stone:'moonstone',care:'宜静养滋润，忌熬夜辛燥'},
- 气郁:{label:'气郁·思虑郁结',themes:['情感决断','焦虑纾解'],xiangfang:'解郁凝神',stone:'incense',care:'宜疏解舒展，忌闷压'},
- 痰湿:{label:'痰湿·困重黏滞',themes:['专注定力'],xiangfang:'化湿醒神',stone:'citrine',care:'宜清爽走动，忌甜腻'},
- 气虚:{label:'气虚·易倦气短',themes:['情绪安定'],xiangfang:'养气温肺',stone:'clear',care:'宜养气缓行，忌过劳'},
- 平和:{label:'平和·守中',themes:[],xiangfang:'静心和合',stone:'incense',care:'守中即好'}
+ 阳虚:{label:'阳虚·偏寒怕冷',themes:['情绪安定'],xiangfang:'内府降真香',fangDir:'温养培元',stone:'nanhong',care:'宜温养，忌生冷'},
+ 阴虚:{label:'阴虚·偏燥易烦',themes:['睡眠安神'],xiangfang:'桂花养神/安息香',fangDir:'滋阴安神',stone:'moonstone',care:'宜静养滋润，忌熬夜辛燥'},
+ 气郁:{label:'气郁·思虑郁结',themes:['情感决断','焦虑纾解'],xiangfang:'茉莉/杏花·疏肝解郁',fangDir:'疏肝解郁',stone:'incense',care:'宜疏解舒展，忌闷压'},
+ 痰湿:{label:'痰湿·困重黏滞',themes:['专注定力'],xiangfang:'龙涎香/华佗香',fangDir:'祛湿醒神',stone:'citrine',care:'宜清爽走动，忌甜腻'},
+ 气虚:{label:'气虚·易倦气短',themes:['情绪安定'],xiangfang:'紫瑞香',fangDir:'养气温肺',stone:'clear',care:'宜养气缓行，忌过劳'},
+ 平和:{label:'平和·守中',themes:[],xiangfang:'沉檀龙麝',fangDir:'固本调和',stone:'incense',care:'守中即好'}
 };
 function tizhiFromWuxing(wx){const s=wx.scores;
   if(s.huo<=12)return '阳虚'; if(s.shui<=12)return '阴虚';
