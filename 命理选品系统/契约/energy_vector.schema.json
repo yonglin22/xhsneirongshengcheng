@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fatestone/energy_vector.schema.json",
+  "title": "EnergyVector",
+  "description": "命理选品系统单一可信源中间层 v1.0。解读 agent 写，选品引擎读。",
+  "type": "object",
+  "required": ["version", "her", "meta"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "1.0" },
+    "scene": { "enum": ["ambiguous", "together", "reconcile", "single"] },
+    "her": { "$ref": "#/definitions/personVector" },
+    "ta": { "$ref": "#/definitions/personVector" },
+    "relation": { "$ref": "#/definitions/relationAxis" },
+    "meta": {
+      "type": "object",
+      "required": ["generatedAt", "agents", "requestId"],
+      "properties": {
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "agents": { "type": "array", "items": { "$ref": "#/definitions/agentId" } },
+        "requestId": { "type": "string" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["ta"] },
+      "then": { "required": ["relation"], "description": "有 ta 必有 relation（合盘产出关系轴）" }
+    }
+  ],
+  "definitions": {
+    "element": { "enum": ["jin", "mu", "shui", "huo", "tu"] },
+    "agentId": { "enum": ["wuxing", "tarot", "natal", "synastry", "emotion"] },
+    "theme": {
+      "enum": ["情感决断", "情绪安定", "沟通表达", "信任松绑", "自我价值",
+               "桃花招缘", "关系承诺", "边界建立", "疗愈放下",
+               "专注定力", "睡眠安神", "焦虑纾解", "事业推进", "财务稳健"]
+    },
+    "themeTag": {
+      "type": "object",
+      "required": ["theme", "weight", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "theme": { "$ref": "#/definitions/theme" },
+        "weight": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source": { "$ref": "#/definitions/agentId" }
+      }
+    },
+    "wuxingProfile": {
+      "type": "object",
+      "required": ["scores", "lack", "excess", "favorable", "avoid", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "scores": {
+          "type": "object",
+          "required": ["jin", "mu", "shui", "huo", "tu"],
+          "additionalProperties": false,
+          "properties": {
+            "jin": { "type": "number", "minimum": 0, "maximum": 100 },
+            "mu": { "type": "number", "minimum": 0, "maximum": 100 },
+            "shui": { "type": "number", "minimum": 0, "maximum": 100 },
+            "huo": { "type": "number", "minimum": 0, "maximum": 100 },
+            "tu": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "lack": { "type": "array", "items": { "$ref": "#/definitions/element" } },
+        "excess": { "type": "array", "items": { "$ref": "#/definitions/element" } },
+        "favorable": { "type": "array", "items": { "$ref": "#/definitions/element" } },
+        "avoid": { "type": "array", "items": { "$ref": "#/definitions/element" } },
+        "dayMaster": { "$ref": "#/definitions/element" },
+        "source": { "enum": ["bazi", "bazi_simplified"] }
+      }
+    },
+    "personVector": {
+      "type": "object",
+      "required": ["themes"],
+      "additionalProperties": false,
+      "properties": {
+        "wuxing": { "$ref": "#/definitions/wuxingProfile" },
+        "themes": { "type": "array", "items": { "$ref": "#/definitions/themeTag" } },
+        "taboo": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "colors": { "type": "array", "items": { "type": "string" } },
+            "materials": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "prefer": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "colors": { "type": "array", "items": { "type": "string" } },
+            "budget": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }
+          }
+        }
+      }
+    },
+    "relationAxis": {
+      "type": "object",
+      "required": ["summary", "needs"],
+      "additionalProperties": false,
+      "properties": {
+        "summary": { "type": "string" },
+        "needs": {
+          "type": "object",
+          "required": ["her", "ta"],
+          "additionalProperties": false,
+          "properties": {
+            "her": { "type": "array", "items": { "$ref": "#/definitions/theme" } },
+            "ta": { "type": "array", "items": { "$ref": "#/definitions/theme" } }
+          }
+        },
+        "palette_hint": { "enum": ["warm", "cool", "neutral"] },
+        "anchorTheme": { "$ref": "#/definitions/theme" }
+      }
+    }
+  }
+}
