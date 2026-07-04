@@ -59,7 +59,7 @@ ul.pts2.har li::before{background:var(--gold)}ul.pts2.fri li::before{background:
 .reco .t{font-family:var(--serif);font-size:14px;font-weight:600}.reco .a{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
 /* bracelet */
 .stage{position:relative;border-radius:14px;overflow:hidden;background:radial-gradient(120% 100% at 50% 32%,#f4efe6,#e8e1d4 60%,#d8d1c2)}
-#plate{display:block;width:100%;height:250px}
+#plate{display:block;width:100%;height:290px}
 .swch{display:flex;gap:7px;margin:10px 0}.swch b{flex:1;text-align:center;font-size:12px;padding:8px 0;border-radius:10px;background:var(--card);border:1px solid var(--line);cursor:pointer;font-weight:600;color:var(--soft)}.swch b.on{background:var(--ink);color:#fff}
 .reason{font-size:12px;color:#403c34;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:9px 0;line-height:1.55}.reason b{color:var(--cinnabar)}
 .opt{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--line);font-size:12.5px}.opt:last-child{border:0}
@@ -498,10 +498,38 @@ toReco.onclick=()=>{fire('reco_view');S.dod.reco=true;openReco();};
 const cv=document.getElementById('plate'),ctx=cv.getContext('2d');const IMG={};let loaded=0,tot=Object.keys(BEAD_IMG).length;
 Object.entries(BEAD_IMG).forEach(([k,u])=>{const im=new Image();im.onload=()=>{loaded++;};im.src=u;IMG[k]=im;});
 function sizeCv(){const r=cv.getBoundingClientRect(),dp=Math.min(devicePixelRatio||1,2);cv.width=r.width*dp;cv.height=r.height*dp;ctx.setTransform(dp,0,0,dp,0,0);return[r.width,r.height];}
-function drawPlate(W,H){ctx.clearRect(0,0,W,H);const cx=W/2,cy=H/2,pr=Math.min(W,H)*.46;ctx.save();ctx.beginPath();ctx.ellipse(cx,cy+pr*.16,pr,pr*.86,0,0,7);const g=ctx.createRadialGradient(cx-pr*.2,cy-pr*.28,pr*.1,cx,cy,pr);g.addColorStop(0,'#fbf8f2');g.addColorStop(.7,'#efe9dd');g.addColorStop(1,'#ddd4c4');ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(120,110,90,.15)';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();}
-function drawBeads(W,H,seq){const cx=W/2,cy=H/2,rx=Math.min(W,H)*.30,ry=rx*.72,n=seq.length;const circ=2*Math.PI*Math.sqrt((rx*rx+ry*ry)/2),bd=circ/n*1.04;
-  const it=seq.map((id,i)=>{const a=i/n*6.283-1.57,yb=Math.sin(a);return{id,x:cx+rx*Math.cos(a),y:cy+ry*yb,s:.85+.2*(yb+1)/2};}).sort((p,q)=>p.y-q.y);
-  it.forEach(o=>{const d=bd*(SKU[o.id]&&SKU[o.id].kind==='spacer'?.5:1)*o.s;ctx.save();ctx.beginPath();ctx.ellipse(o.x,o.y+d*.4,d*.5,d*.2,0,0,7);ctx.fillStyle='rgba(58,48,36,.24)';ctx.filter='blur(5px)';ctx.fill();ctx.restore();const im=IMG[SKU[o.id]?SKU[o.id].img:o.id];if(im&&im.complete)ctx.drawImage(im,o.x-d/2,o.y-d/2,d,d);});}
+function drawPlate(W,H){ctx.clearRect(0,0,W,H);const cx=W/2,cy=H*.42,pr=Math.min(W,H*1.15)*.44;
+  // 桌面渐晕背景
+  const bg=ctx.createRadialGradient(cx,cy*.85,pr*.2,cx,H*.55,Math.max(W,H)*.8);bg.addColorStop(0,'#f4eee3');bg.addColorStop(1,'#e6dfd1');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  // 瓷盘
+  ctx.save();ctx.beginPath();ctx.ellipse(cx,cy+pr*.14,pr,pr*.82,0,0,7);const g=ctx.createRadialGradient(cx-pr*.2,cy-pr*.28,pr*.1,cx,cy,pr);g.addColorStop(0,'#fdfbf6');g.addColorStop(.7,'#efe9dd');g.addColorStop(1,'#dbd2c2');ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(120,110,90,.12)';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();}
+function drawBeads(W,H,seq){const cx=W/2,cy=H*.40,rx=Math.min(W,H*1.15)*.29,ry=rx*.70,n=seq.length;const circ=2*Math.PI*Math.sqrt((rx*rx+ry*ry)/2),bd=circ/n*1.05;
+  // 整串软接触阴影
+  ctx.save();ctx.filter='blur(12px)';ctx.fillStyle='rgba(58,46,30,.20)';ctx.beginPath();ctx.ellipse(cx,cy+ry+bd*.24,rx*1.04,ry*.52,0,0,7);ctx.fill();ctx.restore();
+  const it=seq.map((id,i)=>{const a=i/n*6.283-1.57,yb=Math.sin(a),depth=(yb+1)/2;return{id,x:cx+rx*Math.cos(a),y:cy+ry*yb,depth,s:.78+.34*depth};}).sort((p,q)=>p.y-q.y);
+  it.forEach(o=>{const sku=SKU[o.id];const d=bd*(sku&&sku.kind==='spacer'?.5:1)*o.s;
+    // 每颗接触阴影
+    ctx.save();ctx.beginPath();ctx.ellipse(o.x,o.y+d*.42,d*.52,d*.2,0,0,7);ctx.fillStyle='rgba(56,46,34,.26)';ctx.filter='blur(4px)';ctx.fill();ctx.restore();
+    const im=IMG[sku?sku.img:o.id];if(im&&im.complete){
+      ctx.save();const blur=(1-o.depth)*2.4;if(blur>.2)ctx.filter='blur('+blur.toFixed(2)+'px)';ctx.globalAlpha=.8+.2*o.depth;
+      ctx.drawImage(im,o.x-d/2,o.y-d/2,d,d);ctx.restore();
+      // 前排高光
+      if(o.depth>.45){ctx.save();ctx.globalAlpha=.26*o.depth;ctx.fillStyle='#fff';ctx.filter='blur(2px)';ctx.beginPath();ctx.ellipse(o.x-d*.19,o.y-d*.2,d*.16,d*.1,-0.5,0,7);ctx.fill();ctx.restore();}
+    }});
+  drawPendant(cx,cy+ry,bd);}
+function drawPendant(cx,by,bd){const jy=by+bd*.30;
+  // 连接金环
+  ctx.save();ctx.strokeStyle='rgba(198,178,126,.95)';ctx.lineWidth=Math.max(1.4,bd*.055);ctx.beginPath();ctx.arc(cx,jy,bd*.13,0,7);ctx.stroke();ctx.restore();
+  const pd=bd*1.16,py=jy+bd*.14+pd*.5;
+  // 吊坠接触阴影
+  ctx.save();ctx.beginPath();ctx.ellipse(cx,py+pd*.42,pd*.44,pd*.16,0,0,7);ctx.fillStyle='rgba(56,46,34,.22)';ctx.filter='blur(4px)';ctx.fill();ctx.restore();
+  // 吊坠主珠（香珠·稍大·前景锐利）
+  const im=IMG['incense'];if(im&&im.complete)ctx.drawImage(im,cx-pd/2,py-pd/2,pd,pd);
+  ctx.save();ctx.globalAlpha=.3;ctx.fillStyle='#fff';ctx.filter='blur(2px)';ctx.beginPath();ctx.ellipse(cx-pd*.18,py-pd*.2,pd*.17,pd*.11,-0.5,0,7);ctx.fill();ctx.restore();
+  // 流苏
+  ctx.save();ctx.strokeStyle='rgba(150,108,66,.82)';ctx.lineWidth=Math.max(1,bd*.05);ctx.lineCap='round';const ty=py+pd*.4;
+  for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(cx,ty);ctx.quadraticCurveTo(cx+i*bd*.1,ty+bd*.5,cx+i*bd*.13,ty+bd*.92);ctx.stroke();}
+  ctx.fillStyle='#8a6a42';ctx.beginPath();ctx.ellipse(cx,ty+bd*.04,bd*.12,bd*.1,0,0,7);ctx.fill();ctx.restore();}
 function renderPlate(){const[W,H]=sizeCv();drawPlate(W,H);const p=S.plans[S.cur];if(p)drawBeads(W,H,p.seq);}
 /* ===== 体质快测（并进主流程·可选）——② 草案已采用为工作默认 ===== */
 const QTZ={ping:{n:'平和质',th:[],xf:'沉檀龙麝'},qixu:{n:'气虚质',th:['情绪安定'],xf:'紫瑞香'},yangxu:{n:'阳虚质',th:['情绪安定'],xf:'内府降真香'},yinxu:{n:'阴虚质',th:['睡眠安神'],xf:'桂花养神/安息香'},tanshi:{n:'痰湿质',th:['专注定力'],xf:'龙涎香/华佗香'},shire:{n:'湿热质',th:['焦虑纾解'],xf:'四时辟疫/青麟髓'},xueyu:{n:'血瘀质',th:['情感决断'],xf:'御颜香'},qiyu:{n:'气郁质',th:['情感决断','焦虑纾解'],xf:'茉莉/杏花·疏肝解郁'},tebing:{n:'特禀质',th:['情绪安定'],xf:'玄彩七香'}};
