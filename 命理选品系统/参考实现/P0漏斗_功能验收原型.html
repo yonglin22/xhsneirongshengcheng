@@ -210,6 +210,8 @@ ul.pts2.har li::before{background:var(--gold)}ul.pts2.fri li::before{background:
     <div class="stage"><canvas id="plate"></canvas></div>
     <div class="swch"><b class="on" data-w="her">你的串</b><b data-w="ta">TA 的串</b></div>
     <div class="reason" id="reason"></div>
+    <div class="sec" style="margin-top:6px"><div class="h">此刻心情（选填 · 情绪 agent 微调香珠）</div>
+      <div class="seg" id="emoSeg"><div class="s on" data-e="">平静</div><div class="s" data-e="anxious">焦虑</div><div class="s" data-e="low">低落</div><div class="s" data-e="tired">疲惫</div><div class="s" data-e="hope">期待</div></div></div>
     <div class="sec" style="margin-top:6px"><div class="h">微调（点珠子加进串里）</div><div class="pal" id="pal"></div></div>
     <div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 13px;margin-top:10px">
       <div class="opt"><span>净手围</span><select id="wrist"><option value="13">13cm（约12颗）</option><option value="14" selected>14cm（约14颗）</option><option value="15">15cm（约16颗）</option></select></div>
@@ -249,6 +251,7 @@ ul.pts2.har li::before{background:var(--gold)}ul.pts2.fri li::before{background:
 <div class="qa">
   <h4>验收面板 · Live DoD</h4>
   <div class="muted">跑一遍漏斗，下面逐条变绿即通过验收。</div>
+  <div class="grp"><div class="gt">解读源（三线接真 AI Prompt）</div><label class="chk" style="color:#c9c4b7;cursor:pointer"><input type="checkbox" id="aiToggle"> 用真 AI Prompt（需配 window.FATE_AI_ENDPOINT）</label><div id="aiNote" style="color:#7f7a6c;font-size:9px;margin-top:4px">规则版（demo 默认）</div></div>
   <div class="grp"><div class="gt">P0 验收项（DoD）</div><div id="dodList"></div></div>
   <div class="grp"><div class="gt">埋点事件</div><div id="evList"></div></div>
   <div class="grp"><div class="gt">积分流水（扣点时序）</div><div id="ledger" style="color:#9a9484"></div></div>
@@ -423,7 +426,7 @@ function selectBeads(pv, wrist, anchorTheme){
 </script>
 <script>
 /* ================= 状态 + 埋点 + 钱包 ================= */
-const S={scene:'暧昧',mode:'synastry',tDomain:'姻缘',wallet:0,frozen:0,ledger:[],events:{},vec:null,plans:{},cur:'her',wrist:'14',pack:0,cert:0,order:null,dod:{}};
+const S={scene:'暧昧',mode:'synastry',tDomain:'姻缘',aiOn:false,lastMode:'synastry',emotion:'',wallet:0,frozen:0,ledger:[],events:{},vec:null,plans:{},cur:'her',wrist:'14',pack:0,cert:0,order:null,dod:{}};
 const EV_ALL=['funnel_enter','synastry_start','synastry_done','tarot_start','tarot_done','natal_start','natal_done','reco_view','preview_enter','add_cart','pay_success','join_private','repurchase'];
 function fire(e){S.events[e]=(S.events[e]||0)+1;if(typeof renderQA==='function')renderQA();}
 function ledg(t,amt){S.ledger.push({t,amt});}
@@ -470,7 +473,7 @@ function compute(){
     // 扣点确认（成功）
     S.frozen=0;ledg('确认扣点·合盘',0);
     S.dod.calc=true;S.dod.vec=true;S.dod.select=true;
-    renderS3(her,ta,asps,sc,scene);fire('synastry_done');show('s3');renderQA();
+    renderS3(her,ta,asps,sc,scene);fire('synastry_done');show('s3');renderQA();maybeAI('synastry');
   }catch(err){ // 失败→返还
     setPts(S.wallet+30);S.frozen=0;ledg('计算失败·返还',30);alert('解读没接上，积分已返还');show('s1');renderQA();
   }
@@ -525,13 +528,16 @@ function openReco(){
   document.querySelector('#s4 .back').dataset.to={tarot:'s3t',natal:'s3n',synastry:'s3'}[S.mode];
   document.getElementById('addCart').textContent=single?'加入购物车 · 你的能量串':'加入购物车（你的串 + TA 的串）';
   document.getElementById('degradeTag').textContent=(S.plans.her.degraded?'未接八字·按议题排（可补生日精选主石）':'Photo-composite · 收拢成串');
+  document.querySelectorAll('#emoSeg .s').forEach((x,i)=>x.classList.toggle('on',i===0));S.emotion='';
   buildPal();show('s4');fire('preview_enter');S.dod.preview=true;setCur('her');renderQA();
 }
 function recalcPlans(){const anc=S.vec.relation?S.vec.relation.anchorTheme:null;S.plans.her=selectBeads(S.vec.her,S.wrist,anc);S.plans.ta=(S.mode==='synastry'&&S.vec.ta)?selectBeads(S.vec.ta,S.wrist,anc):null;updatePrice();}
 function setCur(w){S.cur=w;document.querySelectorAll('.swch b').forEach(b=>b.classList.toggle('on',b.dataset.w===w));
   const p=S.plans[w],names=[...new Set(p.seq.filter(id=>SKU[id].kind!=='spacer').map(id=>SKU[id].n))].slice(0,4).join(' + ');
   const xf=(S.bazi&&S.bazi[w])?S.bazi[w].xiangfang:'静心';
-  document.getElementById('reason').innerHTML=(w==='her'?'<b>你的串</b> — ':'<b>TA 的串</b> — ')+(p.reasonBits.join('，'))+'，配香承「'+xf+'」香方香珠。'+(p.hasCustom?'(含定制)':'')+' <span style="opacity:.55">· 香珠统一 800 积分（临时价·后续替换）</span>';
+  const EMO_NOTE={anxious:'依此刻「焦虑」叠安神向香珠',low:'依此刻「低落」叠疗愈向香珠',tired:'依此刻「疲惫」叠助眠向香珠',hope:'依此刻「期待」提振向选石'};
+  const emoTag=(w==='her'&&EMO_NOTE[S.emotion])?` <span style="color:var(--jade)">· 情绪 agent：${EMO_NOTE[S.emotion]}</span>`:'';
+  document.getElementById('reason').innerHTML=(w==='her'?'<b>你的串</b> — ':'<b>TA 的串</b> — ')+(p.reasonBits.join('，'))+'，配香承「'+xf+'」香方香珠。'+(p.hasCustom?'(含定制)':'')+emoTag+' <span style="opacity:.55">· 香珠统一 800 积分（临时价·后续替换）</span>';
   renderPlate();updatePrice();}
 document.querySelector('.swch').addEventListener('click',e=>{const b=e.target.closest('b');if(b)setCur(b.dataset.w);});
 function buildPal(){const pal=document.getElementById('pal');pal.innerHTML='';['nanhong','moonstone','bluelace','citrine','clear','obsidian','incense','silver'].forEach(id=>{const d=document.createElement('div');d.className='pi';d.innerHTML=`<img src="${BEAD_IMG[SKU[id].img]}"><div class="n">${SKU[id].n}</div>`;d.onclick=()=>{const p=S.plans[S.cur];p.seq.splice(p.seq.length-1,0,id,'silver');p.price+=SKU[id].price+6;p.hasCustom=p.hasCustom||SKU[id].stock==='custom';renderPlate();updatePrice();};pal.appendChild(d);});}
@@ -578,7 +584,7 @@ function computeTarot(){try{
   S.vec={version:'1.0',scene:'single',her:{wuxing:hb?hb.wuxing:undefined,themes},meta:{generatedAt:new Date().toISOString(),agents:hb?['tarot','wuxing']:['tarot'],requestId:'req_'+Date.now()}};
   S.plans.her=selectBeads(S.vec.her,S.wrist,null);S.plans.ta=null;
   S.frozen=0;ledg('确认扣点·塔罗',0);S.dod.calc=true;S.dod.vec=true;S.dod.select=true;
-  renderS3t(domain,cards);fire('tarot_done');show('s3t');renderQA();
+  renderS3t(domain,cards);fire('tarot_done');show('s3t');renderQA();maybeAI('tarot');
  }catch(err){setPts(S.wallet+20);S.frozen=0;ledg('抽牌失败·返还',20);alert('解读没接上，积分已返还');show('s1');renderQA();}}
 function renderS3t(domain,cards){const R=DOMAIN_READ[domain];
   document.getElementById('tarDomainSub').textContent=R.sub;
@@ -641,7 +647,7 @@ function computeNatal(){try{
   S.vec={version:'1.0',scene:'single',her:{wuxing:hb.wuxing,themes},meta:{generatedAt:new Date().toISOString(),agents:['natal','wuxing'],requestId:'req_'+Date.now()}};
   S.plans.her=selectBeads(S.vec.her,S.wrist,null);S.plans.ta=null;
   S.frozen=0;ledg('确认扣点·本命',0);S.dod.calc=true;S.dod.vec=true;S.dod.select=true;
-  renderS3n(ch);fire('natal_done');show('s3n');renderQA();
+  renderS3n(ch);fire('natal_done');show('s3n');renderQA();maybeAI('natal');
  }catch(err){setPts(S.wallet+30);S.frozen=0;ledg('排盘失败·返还',30);alert('解读没接上，积分已返还');show('s1');renderQA();}}
 function renderS3n(ch){const s={sun:signOf(ch.太阳),moon:signOf(ch.月亮),ven:signOf(ch.金星)};
   document.getElementById('natMini3').innerHTML=[['SUN 太阳','☉',s.sun],['MOON 月亮','☽',s.moon],['VENUS 金星','♀',s.ven]].map(([k,g,v])=>`<div class="m"><div class="k">${k}</div><div class="g">${g}</div><div class="v">${v}</div></div>`).join('');
@@ -659,6 +665,38 @@ document.getElementById('goNatal').onclick=()=>{
   setTimeout(()=>computeNatal(),1100);};
 document.getElementById('toRecoN').onclick=()=>{fire('reco_view');S.dod.reco=true;openReco();};
 document.getElementById('toQuizN').onclick=()=>openQuiz('s3n');
+</script>
+<script>
+/* ================= 三线真 AI Prompt 接入（可配端点·未配则回退规则版；完整 Prompt 见 规格/AI解读接入…md 与各落地包） ================= */
+const AI_SYS={
+ synastry:`你是「FateTell」关系合盘解读师，是镜子和懂关系的军师，不是算命先生。把两人星盘+跨盘相位+她的处境翻译成合盘解读。红线：不预言关系结局、不替她做分合决定、困难相位一律读成"要一起学的功课"而非注定不合、不评判对方人品、不贩卖焦虑、危险信号引向现实支持、聚焦她问的。语气温暖笃定说人话。只输出JSON：{"score":78,"dynamic":"关系此刻的样子一两句","each":{"her":"她的底色需求一句","ta":"TA的一句"},"harmony":["契合点(结合和谐相位)"],"friction":["摩擦点(建设性翻译)"],"insights":["关系提示1","2","3"],"action":"这周能做的一件小事","energy":{"themes":["受控词表议题"],"relation_axis":"关系轴一句","palette_hint":"暖/冷/中"}}。energy 用户不可见，别在文案里出现 themes/向量。`,
+ tarot:`你是「FateTell」塔罗解读师，是镜子和军师，不是预测命运的算命先生。把抽到的牌+她的处境翻译成解读。红线：不预言必然发生的事、不用宿命论措辞、永远把选择权还给她、财运不给具体标的与买卖时点、不贩卖焦虑、聚焦她问的领域。语气温暖像懂你的朋友说人话。只输出JSON：{"cards":[{"position":"位置","meaning":"结合牌与处境20-40字"}],"situation":"命名处境一两句","perspective":"用牌意给的视角2-4句","insights":["决策提示1","2","3"],"action":"今天/这周能做的小事","energy":{"themes":["受控词表议题"]}}。energy 用户不可见。`,
+ natal:`你是「FateTell」本命星盘解读师，是镜子不是算命先生。把她的日月升金火水+八字五行喜忌/体质翻译成自我认知解读。红线：不预言命运寿数富贵、不宿命论、把主动权还给她、不制造缺陷感(挑战配置翻译成"要练的功课")、八字体质只作养生倾向不诊断、聚焦她这个人。语气温暖像懂你的老朋友说人话。只输出JSON：{"core":"你的底色一两句","need":"内在需要一句","insights":["天赋/功课1","2","3"],"action":"对自己好一点的小事","energy":{"themes":["受控词表议题"],"palette_hint":"暖/冷/中"}}。energy 用户不可见。`
+};
+function buildUserMsg(mode){
+ if(mode==='synastry'){const h=S.charts.her,t=S.charts.ta;return `领域：关系合盘\n场景：${S.scene}\n她：太阳${signOf(h.太阳)}·月亮${signOf(h.月亮)}·金星${signOf(h.金星)}\nTA：太阳${signOf(t.太阳)}·月亮${signOf(t.月亮)}·金星${signOf(t.金星)}\n跨盘相位：${S.asps.slice(0,6).map(a=>`她${a.h} vs TA${a.t} ${a.n}`).join('、')}\n契合分：${S.score}\n请按系统设定的 JSON 结构输出。`;}
+ if(mode==='tarot'){return `领域：${S.tDomain}\n我的处境：${document.getElementById('tSituation').value||'（未填）'}\n抽到的牌：${(S.tCards||[]).map(c=>c.position+'·'+c.name+'('+c.orientation+')').join('、')}\n请按系统设定的 JSON 结构输出。`;}
+ const c=S.natChart,b=S.bazi.her;return `本命盘：太阳${signOf(c.太阳)}·月亮${signOf(c.月亮)}·金星${signOf(c.金星)}·火星${signOf(c.火星)}\n八字：${b.pillarsText}·身${b.shen}·喜${b.wuxing.favorable.map(e=>b.elCN[e]).join('')}忌${b.wuxing.avoid.map(e=>b.elCN[e]).join('')}·体质${b.tizhi}\n请按系统设定的 JSON 结构输出。`;}
+async function aiReading(mode){const ep=window.FATE_AI_ENDPOINT;if(!ep)throw new Error('no-endpoint');
+ const res=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:AI_SYS[mode],user:buildUserMsg(mode),temperature:.8})});
+ if(!res.ok)throw new Error('http '+res.status);const data=await res.json();const txt=data.text||data.content||data.output||JSON.stringify(data);return typeof txt==='string'?JSON.parse(txt):txt;}
+function applyAI(mode,r){
+ if(mode==='tarot'){if(r.situation)document.getElementById('tSit').textContent=r.situation;if(r.perspective)document.getElementById('tPersp').textContent=r.perspective;if(r.insights)document.getElementById('tIns').innerHTML=r.insights.map(t=>`<li>${t}</li>`).join('');if(r.action)document.getElementById('tAct').textContent=r.action;}
+ else if(mode==='natal'){if(r.core)document.getElementById('nCore').textContent=r.core;if(r.need)document.getElementById('nNeed').textContent=r.need;if(r.insights)document.getElementById('nIns').innerHTML=r.insights.map(t=>`<li>${t}</li>`).join('');if(r.action)document.getElementById('nAct').textContent=r.action;}
+ else if(mode==='synastry'){if(r.dynamic)document.getElementById('dyn').textContent=r.dynamic;if(r.insights)document.getElementById('ins').innerHTML=r.insights.map(t=>`<li>${t}</li>`).join('');if(r.action)document.getElementById('act').textContent=r.action;}
+ if(r.energy&&Array.isArray(r.energy.themes)&&r.energy.themes.length){S.vec.her.themes=S.vec.her.themes.filter(t=>t.source!=='ai').concat(r.energy.themes.map(t=>({theme:t,weight:.75,source:'ai'})));}
+}
+async function maybeAI(mode){S.lastMode=mode;const note=document.getElementById('aiNote');
+ if(!S.aiOn){if(note)note.textContent='规则版（demo 默认）';return;}
+ if(note)note.textContent='AI 解读生成中…';
+ try{const r=await aiReading(mode);applyAI(mode,r);if(note)note.textContent='✓ 真 AI Prompt 已渲染';}
+ catch(e){if(note)note.textContent='未配置 window.FATE_AI_ENDPOINT · 已回退规则版（'+e.message+'）';}}
+document.getElementById('aiToggle').onchange=e=>{S.aiOn=e.target.checked;if(S.vec)maybeAI(S.lastMode);};
+/* ===== 情绪 Agent（第四个 themes 来源·只写 her.themes·source='emotion'） ===== */
+const EMO_TH={'':[],anxious:['焦虑纾解','情绪安定'],low:['疗愈放下','情绪安定'],tired:['睡眠安神','情绪安定'],hope:['情感决断']};
+document.getElementById('emoSeg').addEventListener('click',e=>{const s=e.target.closest('.s');if(!s)return;document.querySelectorAll('#emoSeg .s').forEach(x=>x.classList.remove('on'));s.classList.add('on');S.emotion=s.dataset.e;
+ if(!S.vec)return;S.vec.her.themes=S.vec.her.themes.filter(t=>t.source!=='emotion').concat((EMO_TH[S.emotion]||[]).map(t=>({theme:t,weight:.7,source:'emotion'})));
+ recalcPlans();setCur(S.cur);renderQA();});
 </script>
 <script>
 /* ================= S6/S7 结算支付（mock，扣点/退款时序） ================= */
@@ -705,6 +743,7 @@ function renderQA(){
 renderQA();
 window.addEventListener('resize',()=>{if(document.getElementById('s4').classList.contains('on'))renderPlate();});
 function drive(target){
+  if(target==='emo'){drive('s4');document.querySelector('#emoSeg .s[data-e="anxious"]').click();return;} // QA：合盘→成串→选"焦虑"看情绪 agent 改串
   if(target==='tar1'){document.querySelector('#modeSeg .s[data-m="tarot"]').click();return;} // QA：只切到塔罗输入表单
   if(target==='nat1'){document.querySelector('#modeSeg .s[data-m="natal"]').click();return;} // QA：只切到本命输入表单
   if(target==='t3'||target==='t4'){ // QA：塔罗单人支路（同步·跳过抽牌动画）
