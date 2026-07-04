@@ -503,18 +503,22 @@ function drawPlate(W,H){ctx.clearRect(0,0,W,H);const cx=W/2,cy=H*.42,pr=Math.min
   const bg=ctx.createRadialGradient(cx,cy*.85,pr*.2,cx,H*.55,Math.max(W,H)*.8);bg.addColorStop(0,'#f4eee3');bg.addColorStop(1,'#e6dfd1');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
   // 瓷盘
   ctx.save();ctx.beginPath();ctx.ellipse(cx,cy+pr*.14,pr,pr*.82,0,0,7);const g=ctx.createRadialGradient(cx-pr*.2,cy-pr*.28,pr*.1,cx,cy,pr);g.addColorStop(0,'#fdfbf6');g.addColorStop(.7,'#efe9dd');g.addColorStop(1,'#dbd2c2');ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(120,110,90,.12)';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();}
-function drawBeads(W,H,seq){const cx=W/2,cy=H*.40,rx=Math.min(W,H*1.15)*.29,ry=rx*.70,n=seq.length;const circ=2*Math.PI*Math.sqrt((rx*rx+ry*ry)/2),bd=circ/n*1.05;
+function drawBeads(W,H,seq){const cx=W/2,cy=H*.40,rx=Math.min(W,H*1.15)*.29,ry=rx*.70;
+  // 按尺寸累积弧长排布→珠子彼此贴紧（隔珠占位小、挤在大珠之间）
+  const sz=seq.map(id=>{const s=SKU[id];return (s&&s.kind==='spacer')?.52:1;});
+  const units=sz.reduce((a,b)=>a+b,0),circ=2*Math.PI*Math.sqrt((rx*rx+ry*ry)/2),bd=circ/units;
+  // 弹力串绳（露在珠缝里→"串起来的"实感）
+  ctx.save();ctx.strokeStyle='rgba(120,100,72,.55)';ctx.lineWidth=Math.max(1.2,bd*.09);ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,7);ctx.stroke();ctx.restore();
   // 整串软接触阴影
-  ctx.save();ctx.filter='blur(12px)';ctx.fillStyle='rgba(58,46,30,.20)';ctx.beginPath();ctx.ellipse(cx,cy+ry+bd*.24,rx*1.04,ry*.52,0,0,7);ctx.fill();ctx.restore();
-  const it=seq.map((id,i)=>{const a=i/n*6.283-1.57,yb=Math.sin(a),depth=(yb+1)/2;return{id,x:cx+rx*Math.cos(a),y:cy+ry*yb,depth,s:.78+.34*depth};}).sort((p,q)=>p.y-q.y);
-  it.forEach(o=>{const sku=SKU[o.id];const d=bd*(sku&&sku.kind==='spacer'?.5:1)*o.s;
-    // 每颗接触阴影
-    ctx.save();ctx.beginPath();ctx.ellipse(o.x,o.y+d*.42,d*.52,d*.2,0,0,7);ctx.fillStyle='rgba(56,46,34,.26)';ctx.filter='blur(4px)';ctx.fill();ctx.restore();
+  ctx.save();ctx.filter='blur(13px)';ctx.fillStyle='rgba(58,46,30,.20)';ctx.beginPath();ctx.ellipse(cx,cy+ry+bd*.22,rx*1.05,ry*.5,0,0,7);ctx.fill();ctx.restore();
+  let acc=0;const it=seq.map((id,i)=>{const mid=acc+sz[i]/2;acc+=sz[i];const a=mid/units*6.283-1.57,yb=Math.sin(a),depth=(yb+1)/2;
+    return{id,x:cx+rx*Math.cos(a),y:cy+ry*yb,depth,d:bd*sz[i]*(1.12+.16*depth)};}).sort((p,q)=>p.y-q.y);
+  it.forEach(o=>{const sku=SKU[o.id],d=o.d;
+    ctx.save();ctx.beginPath();ctx.ellipse(o.x,o.y+d*.4,d*.5,d*.19,0,0,7);ctx.fillStyle='rgba(56,46,34,.24)';ctx.filter='blur(4px)';ctx.fill();ctx.restore();
     const im=IMG[sku?sku.img:o.id];if(im&&im.complete){
-      ctx.save();const blur=(1-o.depth)*2.4;if(blur>.2)ctx.filter='blur('+blur.toFixed(2)+'px)';ctx.globalAlpha=.8+.2*o.depth;
+      ctx.save();const blur=(1-o.depth)*2.2;if(blur>.2)ctx.filter='blur('+blur.toFixed(2)+'px)';ctx.globalAlpha=.82+.18*o.depth;
       ctx.drawImage(im,o.x-d/2,o.y-d/2,d,d);ctx.restore();
-      // 前排高光
-      if(o.depth>.45){ctx.save();ctx.globalAlpha=.26*o.depth;ctx.fillStyle='#fff';ctx.filter='blur(2px)';ctx.beginPath();ctx.ellipse(o.x-d*.19,o.y-d*.2,d*.16,d*.1,-0.5,0,7);ctx.fill();ctx.restore();}
+      if(o.depth>.45){ctx.save();ctx.globalAlpha=.24*o.depth;ctx.fillStyle='#fff';ctx.filter='blur(2px)';ctx.beginPath();ctx.ellipse(o.x-d*.19,o.y-d*.2,d*.15,d*.1,-0.5,0,7);ctx.fill();ctx.restore();}
     }});
   drawPendant(cx,cy+ry,bd);}
 function drawPendant(cx,by,bd){const jy=by+bd*.30;
