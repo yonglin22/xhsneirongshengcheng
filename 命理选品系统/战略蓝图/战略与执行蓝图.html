@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1024,initial-scale=1">
+<title>命理选品系统 · 战略与执行蓝图</title>
+<style>
+:root{
+  --paper:#F4F0E7; --paper-2:#EDE7DA; --raised:#FBF8F1;
+  --ink:#211E18; --ink-soft:#6B655A; --ink-faint:#A79E86;
+  --line:#DED6C4; --line-soft:#E8E1D3;
+  --cinnabar:#B23A2C; --cinnabar-deep:#8F2E23; --cinnabar-wash:#F1E2DC;
+  --azure:#3E5C6B; --jade:#4F6656;
+  --serif:'Songti SC','STSong','Noto Serif SC','Source Han Serif SC',serif;
+  --sans:'PingFang SC','Noto Sans SC','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+  --mono:ui-monospace,'SFMono-Regular','Courier New',monospace;
+  --shadow:0 1px 2px rgba(33,30,24,.04),0 8px 30px rgba(33,30,24,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#161309; --paper-2:#1E1A11; --raised:#221E14;
+    --ink:#EDE5D2; --ink-soft:#A79E8A; --ink-faint:#6E6552;
+    --line:#332D20; --line-soft:#2A251A;
+    --cinnabar:#D9644E; --cinnabar-deep:#E27C67; --cinnabar-wash:#2C1E17;
+    --azure:#7FA6BA; --jade:#83A791;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.34);
+  }
+}
+:root[data-theme="light"]{
+  --paper:#F4F0E7; --paper-2:#EDE7DA; --raised:#FBF8F1;
+  --ink:#211E18; --ink-soft:#6B655A; --ink-faint:#A79E86;
+  --line:#DED6C4; --line-soft:#E8E1D3;
+  --cinnabar:#B23A2C; --cinnabar-deep:#8F2E23; --cinnabar-wash:#F1E2DC;
+  --azure:#3E5C6B; --jade:#4F6656;
+  --shadow:0 1px 2px rgba(33,30,24,.04),0 8px 30px rgba(33,30,24,.06);
+}
+:root[data-theme="dark"]{
+  --paper:#161309; --paper-2:#1E1A11; --raised:#221E14;
+  --ink:#EDE5D2; --ink-soft:#A79E8A; --ink-faint:#6E6552;
+  --line:#332D20; --line-soft:#2A251A;
+  --cinnabar:#D9644E; --cinnabar-deep:#E27C67; --cinnabar-wash:#2C1E17;
+  --azure:#7FA6BA; --jade:#83A791;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.34);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  line-height:1.75;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(rgba(120,110,90,.05) 1px,transparent 1px);
+  background-size:22px 22px;
+}
+.wrap{max-width:920px;margin:0 auto;padding:0 22px}
+.prose{max-width:680px}
+::selection{background:var(--cinnabar-wash);color:var(--cinnabar-deep)}
+
+/* ---- eyebrow / labels ---- */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint)}
+.serif{font-family:var(--serif)}
+
+/* ---- masthead ---- */
+.mast{padding:76px 0 30px;animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.seal-top{display:inline-flex;align-items:center;gap:11px;margin-bottom:26px}
+.seal-mark{width:38px;height:38px;border-radius:9px;background:var(--cinnabar);color:#FBF8F1;
+  display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:19px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.15),0 4px 14px rgba(178,58,44,.28);flex:none}
+.seal-top .k{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--ink-soft);text-transform:uppercase}
+h1.title{font-family:var(--serif);font-weight:700;font-size:clamp(33px,6.4vw,54px);line-height:1.14;
+  letter-spacing:.01em;text-wrap:balance;margin-bottom:22px}
+h1.title em{font-style:normal;color:var(--cinnabar)}
+.thesis{font-size:clamp(17px,2.5vw,20px);line-height:1.72;color:var(--ink-soft);max-width:640px}
+.thesis b{color:var(--ink);font-weight:600;border-bottom:2px solid var(--cinnabar);padding-bottom:1px}
+.mast-meta{display:flex;flex-wrap:wrap;gap:8px 10px;margin-top:34px}
+.chip{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-soft);
+  border:1px solid var(--line);border-radius:100px;padding:5px 12px;background:var(--raised)}
+.chip b{color:var(--cinnabar);font-weight:700}
+
+.hr{height:1px;background:var(--line);margin:8px 0;border:0}
+.rule{display:flex;align-items:center;gap:14px;margin:64px 0 30px}
+.rule .n{width:34px;height:34px;border-radius:8px;background:var(--cinnabar);color:#FBF8F1;flex:none;
+  display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:16px;
+  box-shadow:0 3px 12px rgba(178,58,44,.26)}
+.rule .tt{font-family:var(--serif);font-size:clamp(22px,4vw,29px);font-weight:700;letter-spacing:.01em;line-height:1.2}
+.rule .ln{flex:1;height:1px;background:var(--line)}
+.rule .ey{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase}
+
+section{scroll-margin-top:20px}
+p{margin:14px 0}
+p.lead{font-size:17.5px;color:var(--ink)}
+strong{font-weight:600}
+.hi{color:var(--cinnabar);font-weight:600}
+.u{border-bottom:1.5px solid var(--cinnabar);padding-bottom:1px;font-weight:600}
+a{color:var(--cinnabar-deep);text-decoration:underline;text-underline-offset:2px}
+
+/* ---- cards ---- */
+.card{background:var(--raised);border:1px solid var(--line);border-radius:16px;padding:24px 26px;box-shadow:var(--shadow)}
+.card+.card{margin-top:16px}
+.card h3{font-family:var(--serif);font-size:20px;font-weight:700;margin-bottom:8px;letter-spacing:.01em}
+.card .sub{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cinnabar);margin-bottom:14px;display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+@media(max-width:680px){.grid2{grid-template-columns:1fr}}
+
+/* ---- pipeline diagram ---- */
+.flow{margin:26px 0 8px;border:1px solid var(--line);border-radius:18px;background:
+  linear-gradient(180deg,var(--raised),var(--paper-2));padding:26px 20px;overflow-x:auto;box-shadow:var(--shadow)}
+.flow-inner{display:flex;flex-direction:column;gap:8px;min-width:280px}
+.stage{border:1px solid var(--line);border-radius:13px;background:var(--paper);padding:15px 17px;position:relative}
+.stage .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:9px}
+.stage .row{display:flex;flex-wrap:wrap;gap:7px}
+.node{font-size:13px;border-radius:9px;padding:6px 11px;background:var(--paper-2);border:1px solid var(--line);color:var(--ink)}
+.node.agent{border-color:var(--azure);background:color-mix(in srgb,var(--azure) 9%,var(--paper));color:var(--ink)}
+.node.core{border-color:var(--cinnabar);background:var(--cinnabar-wash);color:var(--cinnabar-deep);font-weight:600}
+.stage.keystone{border-color:var(--cinnabar);box-shadow:0 0 0 3px var(--cinnabar-wash)}
+.stage.keystone .lab{color:var(--cinnabar)}
+.arrow{align-self:center;color:var(--cinnabar);font-size:19px;line-height:1;padding:2px 0;opacity:.85}
+.flow .cap{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-top:14px;text-align:center;letter-spacing:.03em}
+
+/* ---- worked example ---- */
+.demo{margin-top:20px;border:1px dashed var(--cinnabar);border-radius:16px;padding:22px 24px;background:var(--cinnabar-wash)}
+.demo .tag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cinnabar-deep);font-weight:700}
+.demo h4{font-family:var(--serif);font-size:18px;margin:6px 0 14px}
+.demo-line{display:flex;gap:12px;padding:9px 0;border-top:1px solid rgba(178,58,44,.18);font-size:14.5px;align-items:baseline}
+.demo-line:first-of-type{border-top:0}
+.demo-line .kk{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--cinnabar-deep);flex:none;width:82px;padding-top:3px}
+.demo-line .vv{color:var(--ink)}
+.quote{margin-top:16px;padding:15px 18px;background:var(--raised);border-left:3px solid var(--cinnabar);border-radius:0 10px 10px 0;
+  font-family:var(--serif);font-size:15.5px;line-height:1.85;color:var(--ink)}
+
+/* ---- tables ---- */
+.tbl-wrap{overflow-x:auto;margin:20px 0;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px;background:var(--raised)}
+th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.6}
+thead th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+  background:var(--paper-2);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+td .h{font-weight:600;color:var(--ink)}
+.tag-y{color:var(--jade);font-weight:600}
+.tag-n{color:var(--ink-faint)}
+.tag-r{color:var(--cinnabar);font-weight:600}
+
+/* ---- two market ---- */
+.mkt{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+@media(max-width:680px){.mkt{grid-template-columns:1fr}}
+.mkt-col{border:1px solid var(--line);border-radius:16px;padding:22px 22px;background:var(--raised);box-shadow:var(--shadow)}
+.mkt-col.cn{border-top:3px solid var(--cinnabar)}
+.mkt-col.os{border-top:3px solid var(--azure)}
+.mkt-col .flag{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+.mkt-col.cn .flag{color:var(--cinnabar)} .mkt-col.os .flag{color:var(--azure)}
+.mkt-col h3{font-family:var(--serif);font-size:21px;margin-bottom:4px}
+.mkt-col .role{font-size:13.5px;color:var(--ink-soft);margin-bottom:16px}
+.mkt-col ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+.mkt-col li{font-size:14px;line-height:1.6;padding-left:18px;position:relative;color:var(--ink)}
+.mkt-col li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:2px;background:currentColor;opacity:.5}
+.mkt-col.cn li::before{background:var(--cinnabar)} .mkt-col.os li::before{background:var(--azure)}
+.mkt-col li b{font-weight:600}
+
+/* ---- roadmap ---- */
+.phase{border:1px solid var(--line);border-radius:16px;background:var(--raised);padding:20px 24px;box-shadow:var(--shadow)}
+.phase+.phase{margin-top:14px}
+.phase .head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.phase .p{font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.1em;color:#FBF8F1;background:var(--cinnabar);
+  padding:4px 10px;border-radius:7px}
+.phase .p.p1{background:var(--azure)} .phase .p.p2{background:var(--ink-soft)}
+.phase .goal{font-family:var(--serif);font-size:18px;font-weight:700}
+.phase .verdict{margin-top:12px;font-size:13px;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:11px}
+.phase .verdict b{color:var(--cinnabar);font-family:var(--mono);letter-spacing:.03em}
+.phase ul{margin:6px 0 0;padding-left:19px;display:flex;flex-direction:column;gap:5px}
+.phase li{font-size:14px;line-height:1.55}
+
+/* ---- guardrail ---- */
+.warn{border:1px solid var(--cinnabar);border-radius:14px;background:var(--cinnabar-wash);padding:18px 22px;margin-top:18px}
+.warn .t{font-family:var(--serif);font-weight:700;color:var(--cinnabar-deep);margin-bottom:6px;font-size:16px}
+.warn p{margin:6px 0;font-size:14.5px;color:var(--ink)}
+
+/* ---- footer ---- */
+.foot{margin:70px 0 60px;padding-top:24px;border-top:1px solid var(--line);color:var(--ink-faint);
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;line-height:1.9}
+.foot b{color:var(--ink-soft)}
+
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+
+
+<style>
+/* force installed CJK fonts + print layout */
+:root{ --serif:'Noto Serif SC','Songti SC',serif; --sans:'Noto Sans SC','PingFang SC',sans-serif; }
+@page { size:A4; margin:12mm 11mm; }
+html,body{ background:#F4F0E7 !important; } body{ background-image:none !important; }
+*{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+.mast{ animation:none !important; padding:14px 0 22px !important; }
+.wrap{ max-width:100% !important; padding:0 !important; }
+.rule{ margin:34px 0 22px !important; }
+.card,.flow,.demo,.phase,.mkt-col,.tbl-wrap,.warn,.stage{ break-inside:avoid; page-break-inside:avoid; }
+.rule,h1.title,.card h3,.phase .head{ break-after:avoid; page-break-after:avoid; }
+.mast-meta{ break-inside:avoid; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div class="seal-top">
+      <div class="seal-mark serif">命</div>
+      <span class="k">FateStone · 战略执行蓝图</span>
+    </div>
+    <h1 class="title">把"读命"翻译成<br>一串<em>为她而选</em>的珠串</h1>
+    <p class="thesis">别把它做成又一个"水晶 DIY 工具"。它的内核是一台<b>意义引擎</b>——把一个女生读成命理信号，再翻译成一串为她而选的珠串。在这门生意里，<b>推荐理由本身就是商品</b>。</p>
+    <div class="mast-meta">
+      <span class="chip">复用 · <b>内容操盘台</b></span>
+      <span class="chip">复用 · <b>塔罗/星盘引擎</b></span>
+      <span class="chip">货源 · <b>香承古法香珠</b></span>
+      <span class="chip">形态参照 · <b>Stone LAB</b></span>
+    </div>
+  </header>
+
+  <!-- 01 定位 -->
+  <section>
+    <div class="rule"><span class="n">1</span><span class="tt serif">定位：你的护城河不是设计，是意义</span><span class="ln"></span><span class="ey">Positioning</span></div>
+    <div class="prose">
+      <p class="lead">Stone LAB 卖的是<strong>美学</strong>——"不撞款的搭配灵感"，驻场设计师、色卡系统、盲盒。它的壁垒是审美和供应链。</p>
+      <p>你要卖的是<span class="u">意义</span>——"为什么是<em>这颗</em>石头、配给<em>这个</em>人"。同样一串南红配黄水晶，在它那是"好看的搭配"，在你这是"你八字缺的那点火气 + 星盘里的内耗，这串正好补"。前者比价格、比款式；后者<strong>没得比</strong>，因为那串是照着她一个人排出来的。</p>
+      <p>这条定位直接决定了产品形态：<strong>你不是空白画布上的 DIY，你是"AI 命理师先给你排好，你再微调"。</strong>把"自由拼串"当主入口是个陷阱——自由度越高，"为你而排"的魔法越稀。策展（curation-by-命理）才是你和所有水晶电商的分水岭。</p>
+      <p>而且你恰好接着三条别人凑不齐的线：一台现成的<strong>内容引擎</strong>（本 repo）、一套打磨过的<strong>玄学解读引擎</strong>（塔罗/星盘）、一个真实的<strong>古法香珠供应链</strong>（香承）。缺的只是把它们缝起来的那层"选品/成交"。<strong>不是从零做，是把三块拼起来。</strong></p>
+    </div>
+  </section>
+
+  <!-- 02 架构 -->
+  <section>
+    <div class="rule"><span class="n">2</span><span class="tt serif">架构：四个智能体如何合成"一次推荐"</span><span class="ln"></span><span class="ey">Architecture</span></div>
+    <div class="prose">
+      <p class="lead">这是整套系统的<strong>命门</strong>。做不好，你有四个各玩各的玄学玩具；做好了，你有一个"为你排的串"的完整故事。</p>
+      <p>关键动作只有一个：<span class="u">让所有智能体都把结果吐进同一种中间语言</span>——我叫它 <span class="hi">五行·能量向量 + 议题标签</span>。五行命理算、塔罗抽、星盘/合盘排，出口都不是一段话，而是一组可计算的向量（金木水火土的盈缺 + 当下议题：情感决断 / 情绪安定 / 事业推进…）。然后<strong>选品引擎</strong>只干一件事：把这个向量映射到打了同样标签的 SKU（每颗石头、每种香珠都预先标注五行属性、颜色、议题功用）。</p>
+    </div>
+
+    <div class="flow" role="img" aria-label="命理信号到珠串推荐的流程图">
+      <div class="flow-inner">
+        <div class="stage">
+          <div class="lab">输入层 · 把人读进来</div>
+          <div class="row">
+            <span class="node">出生信息（年月日时地）</span>
+            <span class="node">塔罗抽牌</span>
+            <span class="node">合盘：她 + TA</span>
+            <span class="node">一句话处境</span>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="stage">
+          <div class="lab">智能体层 · 各自解读</div>
+          <div class="row">
+            <span class="node agent">五行命理 / 中医体质</span>
+            <span class="node agent">塔罗解读师</span>
+            <span class="node agent">星盘 · 关系合盘</span>
+            <span class="node agent">情绪陪伴（可选）</span>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="stage keystone">
+          <div class="lab">★ 共同中间层 · 单一可信源</div>
+          <div class="row">
+            <span class="node core">五行向量：火↑ 土↑ 水↓过旺</span>
+            <span class="node core">议题：情感决断 · 情绪安定</span>
+            <span class="node core">禁忌 / 偏好</span>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="stage">
+          <div class="lab">选品引擎 · 向量 → SKU</div>
+          <div class="row">
+            <span class="node">主石匹配（补火/稳土）</span>
+            <span class="node">香珠匹配（对应香方功用）</span>
+            <span class="node">隔珠 / 配饰 / 净手围</span>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="stage">
+          <div class="lab">输出层 · 成商品</div>
+          <div class="row">
+            <span class="node core">珠串方案（可视化成串）</span>
+            <span class="node core">推荐理由文案 = 商品</span>
+            <span class="node">价格 / 证书 / 包装</span>
+          </div>
+        </div>
+      </div>
+      <div class="cap">四路解读 → 一个向量 → 一串珠 · 中间层是你唯一要死磕的资产</div>
+    </div>
+
+    <div class="demo">
+      <span class="tag">一次真实推荐长什么样</span>
+      <h4 class="serif">29 岁 · 想问"和暧昧的人要不要继续"</h4>
+      <div class="demo-line"><span class="kk">五行</span><span class="vv">日主偏弱、水过旺易内耗，<strong>需补火添决断、加土求安定</strong></span></div>
+      <div class="demo-line"><span class="kk">星盘</span><span class="vv">太阳天蝎 / 月亮双鱼——情感浓烈、习惯把小事在深夜放大</span></div>
+      <div class="demo-line"><span class="kk">塔罗</span><span class="vv">现状·宝剑三逆位、指引·星币王牌——刺已经在了，缺的是替自己拿主意</span></div>
+      <div class="demo-line"><span class="kk">向量</span><span class="vv">火 ↑ · 土 ↑ · 水 ↓ · 议题=情感决断 + 情绪安定</span></div>
+      <div class="demo-line"><span class="kk">选品</span><span class="vv"><strong>南红玛瑙</strong>（火/红·压犹疑）· <strong>黄水晶</strong>（土·接地）· 一颗香承<strong>"解郁凝神"香珠</strong>（收深夜内耗）· 银隔珠成串</span></div>
+      <div class="quote">"宝剑三逆位在说：那根刺已经扎进去了，你等的不是再一个答案，是替自己拿主意的那点火气。这串给你补的正是'火'——南红压住反复的犹疑，一颗古法解郁香珠，收住深夜里被放大的心事。它不替你决定，但戴着它，你更容易听见自己心里早就有的那个答案。"</div>
+      <p style="font-size:12.5px;color:var(--cinnabar-deep);font-family:var(--mono);margin-top:12px;margin-bottom:0;letter-spacing:.02em">↑ 注意语气：只翻译、不预言、把选择权还给她——和塔罗落地包同一条红线，天然合规。</p>
+    </div>
+  </section>
+
+  <!-- 03 合盘 尖刀 -->
+  <section>
+    <div class="rule"><span class="n">3</span><span class="tt serif">尖刀：合盘 → 关系珠串，先打这一枪</span><span class="ln"></span><span class="ey">The Wedge</span></div>
+    <div class="prose">
+      <p class="lead">你说"星盘要整体优化、关系合盘是核心卖点、优先级高"——<strong>完全同意，而且它就该是 P0 的那把尖刀。</strong>理由有三，条条打在生意的命门上：</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>① 最会传播</h3>
+        <span class="sub">Virality</span>
+        <p style="margin:0;font-size:14.5px">"测测你和 TA 的契合度"是女性向玄学里最上头、最愿意截图分享、最愿意拉对方一起测的钩子。合盘天生自带社交裂变——一个人测，要拉第二个人。这是最便宜的获客。</p>
+      </div>
+      <div class="card">
+        <h3>② 直接翻倍客单</h3>
+        <span class="sub">Double the SKU</span>
+        <p style="margin:0;font-size:14.5px">单人本命串只卖一串；<strong>关系合盘天然卖"对串"</strong>——她一串、TA 一串，或一串"关系能量"主串。同一次解读，SKU 和客单价直接 ×2，还多了送礼场景（情侣/闺蜜）。</p>
+      </div>
+      <div class="card">
+        <h3>③ 天然是深度付费</h3>
+        <span class="sub">Premium by nature</span>
+        <p style="margin:0;font-size:14.5px">合盘解读比单人盘信息量大、情绪价值高，用户对它付费的心理门槛本来就低。它是你从"9.9 一签"抬到"高客单深度解读 + 成串"的最顺的那条坡。</p>
+      </div>
+      <div class="card">
+        <h3>④ 顺手统一星盘架构</h3>
+        <span class="sub">Refactor with purpose</span>
+        <p style="margin:0;font-size:14.5px">"整体优化星盘"别只优化好看。借这次把本命盘和合盘的<strong>出口都改成第 2 节那个"五行/能量向量"</strong>——优化完，星盘不只是解读，还能直接喂给选品引擎出串。一次重构，两个收益。</p>
+      </div>
+    </div>
+    <p style="margin-top:20px" class="prose">落地上就一句话：<span class="u">合盘 → 关系能量对串</span>做成 P0 的旗舰漏斗，先用它验证"命理推荐能不能转成真金白银的下单"，再谈铺开整套选品。</p>
+  </section>
+
+  <!-- 04 双市场 -->
+  <section>
+    <div class="rule"><span class="n">4</span><span class="tt serif">双市场：一个内核，两个产品</span><span class="ln"></span><span class="ey">Two Markets</span></div>
+    <p class="prose lead">国内 B 端赋能、海外直接 ToC——这不是"同一个 App 上两个语言"，是<strong>共享一个内核的两个不同产品</strong>。分开想，别揉一起。</p>
+    <div class="mkt">
+      <div class="mkt-col cn">
+        <div class="flag">国内 · B2B</div>
+        <h3 class="serif">你是军火商，不是零售商</h3>
+        <p class="role">把整套能力打包成"门店 SaaS + 供应链"，让门店做脸、你收赋能费与货差。玄学的流量与合规风险落在门店，不直接压在你头上。</p>
+        <ul>
+          <li><b>白牌小程序</b>：门店拿到带命理选品引擎的自有小程序（合盘/本命串/香珠都在里面）。</li>
+          <li><b>供应链拿货价</b>：香承古法香珠 + 水晶，门店按拿货价进，你吃差价。香承本来就做代理/跨境，直接对接。</li>
+          <li><b>内容操盘台（就是本 repo！）</b>：把 S1–S8 内容流水线开给门店，帮它源源不断产小红书/本地种草内容——这是别的选品系统给不了的赋能。</li>
+          <li><b>驻场设计师 + 代理分销</b>：直接抄 Stone LAB 那套机制，B 端裂变自带。</li>
+        </ul>
+      </div>
+      <div class="mkt-col os">
+        <div class="flag">海外 · B2C</div>
+        <h3 class="serif">直营独立站 + 内容投流</h3>
+        <p class="role">Shopify / TikTok Shop / 独立站直接卖。水晶疗愈 + 占星在欧美是成熟大市场，你的命理选品叙事正好接得上。</p>
+        <ul>
+          <li><b>叙事对齐西方</b>：Crystal healing + Astrology(占星)/Birth chart 是现成语境；合盘 = couple / friendship compatibility bracelet，礼赠 + TikTok 裂变都强。</li>
+          <li><b>香珠要换壳</b>：不能讲中药"疗效"，改讲 aromatherapy / Eastern-wellness 气味仪式——绕开 FDA/EU 医疗声称红线（见第 7 节）。</li>
+          <li><b>内容同源</b>：本 repo 的内容工厂产出翻译版，喂 TikTok/IG/Pinterest 投流，ToC 端自产内容。</li>
+          <li><b>先验一条漏斗</b>：合盘对串做礼赠切入，跑通 LTV/CAC 再铺全品。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 Stone LAB 拆解 -->
+  <section>
+    <div class="rule"><span class="n">5</span><span class="tt serif">Stone LAB 拆解：抄什么 / 跳过什么</span><span class="ln"></span><span class="ey">Teardown</span></div>
+    <p class="prose">参考图很到位。但别整套照搬——它的内核是"设计自由度"，你的内核是"命理策展"，有些要抄，有些照抄反而会稀释你的差异化。</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Stone LAB 的功能</th><th>动作</th><th>为什么</th></tr></thead>
+        <tbody>
+          <tr><td><span class="h">灵感 feed（设计师款 / 优秀客订）</span><br>陶盘实拍、晒单带价</td><td><span class="tag-y">直接抄</span></td><td>真实拍摄 + 客订晒单 = 信任与 UGC，玄学电商最缺的就是"别人也买了"的社会证明。</td></tr>
+          <tr><td><span class="h">收拢成串 · AR 预览</span></td><td><span class="tag-y">直接抄</span></td><td>把零散珠子"收拢成串"的那一下就是仪式感/惊喜感，是转化的临门一脚。</td></tr>
+          <tr><td><span class="h">净手围 / 证书 / 包装 选项</span></td><td><span class="tag-y">直接抄</span></td><td>低成本抬客单的 SKU 加项，还顺带解决合规（证书）与礼赠（包装）。</td></tr>
+          <tr><td><span class="h">驻场设计师 + 代理分销</span></td><td><span class="tag-y">直接抄</span></td><td>这正好是你"B 端赋能"要的裂变机制，现成的，别自己发明。</td></tr>
+          <tr><td><span class="h">完全自由 DIY 拼串</span><br>（水晶/天然石/配饰/随型/文玩 自由拖）</td><td><span class="tag-r">降级为二级</span></td><td>它是 Stone LAB 的主菜，却是你的陷阱：自由度越高，"为你排盘"的魔法越弱。<strong>主入口给"AI 命理师为你排好的串"，DIY 只当微调。</strong></td></tr>
+          <tr><td><span class="h">纯色卡 / 盲盒 / 美学玩法</span></td><td><span class="tag-n">缓做</span></td><td>好玩但离命理内核远，先别分心。等主漏斗跑通再作为留存花活补上。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 06 Roadmap -->
+  <section>
+    <div class="rule"><span class="n">6</span><span class="tt serif">执行：三阶段，每阶段一个裁决数</span><span class="ln"></span><span class="ey">Roadmap</span></div>
+    <p class="prose">沿用你自己 P0 表的纪律——<strong>别看下载量注册量，只盯 LTV/CAC。</strong>每一阶段先跑通一件事，数达标再进下一阶。</p>
+
+    <div class="phase">
+      <div class="head"><span class="p">P0</span><span class="goal serif">跑通"命理推荐 → 下单"这一枪</span></div>
+      <ul>
+        <li>只做一条漏斗：<strong>合盘 → 关系能量对串</strong>。星盘出口改成"五行/能量向量"，选品引擎先只覆盖 10–15 颗主石 + 3–5 款香珠。</li>
+        <li>复用塔罗/星盘的解读引擎与积分计费；珠串"收拢成串"预览 + 加购 + 微信支付。</li>
+        <li>先小范围（一个私域/一家门店）真卖，不追规模。</li>
+      </ul>
+      <div class="verdict"><b>裁决 · LTV/CAC &gt; 1</b> ——推荐带来的下单，能不能覆盖获客？&lt;1 就改模型别加预算。同时看：解读→加购转化率、客单价、复购。</div>
+    </div>
+
+    <div class="phase">
+      <div class="head"><span class="p p1">P1</span><span class="goal serif">补全选品 + 香珠 + 留存沉淀</span></div>
+      <ul>
+        <li>加"单人本命串"、扩 SKU 库（打满五行/议题标签）、接入香承古法香珠全线。</li>
+        <li>灵感 feed（客订晒单 UGC）+ 净手围/证书/包装 + 私域钩子（塔罗落地包那套复购闭环）。</li>
+        <li>把选品引擎的"向量→SKU"规则沉成可维护的配置，而不是写死。</li>
+      </ul>
+      <div class="verdict"><b>裁决 · 复购率</b> ——30%+ 是强信号，个位数说明在漏水，先补留存再放大。</div>
+    </div>
+
+    <div class="phase">
+      <div class="head"><span class="p p2">P2</span><span class="goal serif">两条腿放大：国内白牌 + 海外 ToC</span></div>
+      <ul>
+        <li><strong>国内</strong>：把小程序做成白牌门店 SaaS + 供应链 + 内容操盘台开放，跑通"门店赋能"收费模型与代理分销。</li>
+        <li><strong>海外</strong>：Shopify/TikTok Shop 独立站，香珠换 aromatherapy 壳，合盘做礼赠切入，本 repo 产投流内容。</li>
+      </ul>
+      <div class="verdict"><b>裁决 · 单店/单站可复制性</b> ——一个门店/一个站的模型能不能标准化复制？能，才谈规模。</div>
+    </div>
+  </section>
+
+  <!-- 07 红线 -->
+  <section>
+    <div class="rule"><span class="n">7</span><span class="tt serif">红线：合规是承重墙，不是装修</span><span class="ln"></span><span class="ey">Guardrails</span></div>
+    <p class="prose">你在塔罗落地包里已经把这套想透了——同一条哲学，原样搬过来：<strong>卖心念、仪式感、能量搭配、自我觉察；绝不卖疗效、预言、必然。</strong></p>
+    <div class="warn">
+      <div class="t">香珠功效 = 医疗声称，最容易翻车</div>
+      <p>香承手册里的"养气温肺 / 解郁凝神 / 安神"是<strong>中医功效表述</strong>。国内《广告法》禁止暗示疾病治疗；海外 FDA/EU 禁止在首饰/香氛上做医疗声称。</p>
+      <p><strong>怎么说：</strong>把功效改成"传统香方灵感 / 古法气味体验 / 帮你静一静的仪式"，只停在气味与心境，不碰"治""疗""改善睡眠"这类词。</p>
+    </div>
+    <div class="warn">
+      <div class="t">命理推荐 = 决策参考，不是判决</div>
+      <p>全程保留免责："仅供自我觉察与决策参考，不构成确定性预测或投资/医疗建议。"合盘不替人做分合决定，本命串不预言吉凶——和塔罗红线一致，天然少投诉、能攒口碑。</p>
+    </div>
+    <div class="warn">
+      <div class="t">供应链与售后，先想清楚再卖</div>
+      <p>香承香珠是<strong>手工定制、周期约 15–20 天、产能有限</strong>——现货/定制要分开标，别让 15 天工期砸在"下单即发"的预期上。水晶备好鉴定证书；定制成串的退换规则提前写死。</p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <b>命理选品系统 · 战略与执行蓝图（工作名 FateStone）</b><br>
+    复用资产：小红书内容操盘台 · 塔罗/星盘解读引擎 · 香承古法香珠供应链 · Stone LAB 形态参照<br>
+    下一步建议：先把"合盘 → 关系对串"这条 P0 漏斗定下来，我可以直接排它的 PRD 与页面。
+  </footer>
+
+</div>
+
+</body>
+</html>
