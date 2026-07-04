@@ -1,0 +1,161 @@
+<title>中医体质自测 · 九型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--ink:#211E18;--soft:#6B655A;--faint:#A79E86;--line:#E4DDCD;--line2:#DAD2C0;--card:#F5F1E9;--paper:#FBF8F1;--bg:#fff;
+--cinnabar:#B23A2C;--cinnabar2:#8F2E23;--wash:#F1E2DC;--jade:#4F7A5E;--gold:#B0862E;--azure:#3E6079;
+--serif:'Songti SC','Noto Serif SC','STSong',serif;--sans:'PingFang SC','Noto Sans SC','Microsoft YaHei',-apple-system,sans-serif;--mono:ui-monospace,'Courier New',monospace}
+body{background:#54514B;font-family:var(--sans);color:var(--ink);display:flex;justify-content:center;gap:14px;padding:16px;line-height:1.6;flex-wrap:wrap}
+.app{width:400px;max-width:100%;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);min-height:760px}
+.sb{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:13px;font-weight:600}
+.sb .r{font-size:11px;color:var(--soft)}
+.pad{padding:6px 20px 28px}
+.screen{display:none}.screen.on{display:block}
+.tt{font-family:var(--serif);font-size:20px;font-weight:700;letter-spacing:.06em;text-align:center;margin:6px 0 3px}
+.sub{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);text-align:center;margin-bottom:16px}
+.intro{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;font-size:13px;color:#403c34;line-height:1.7;margin-bottom:14px}
+.intro b{color:var(--cinnabar)}
+.cta{height:50px;border-radius:25px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--serif);font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;letter-spacing:.04em}
+.cta:active{transform:scale(.99)}.cta[disabled]{opacity:.45}
+.cta.ghost{background:#fff;color:var(--ink);border:1px solid var(--line2)}
+.disc{font-size:10px;color:var(--faint);text-align:center;margin-top:10px;line-height:1.5}
+.prog{height:5px;background:var(--line);border-radius:3px;margin:2px 0 14px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--cinnabar);border-radius:3px;transition:width .3s}
+.q{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 14px;margin-bottom:11px}
+.q .qn{font-size:14px;margin-bottom:10px}.q .qn b{color:var(--cinnabar);font-family:var(--mono);margin-right:6px}
+.lik{display:flex;gap:5px}
+.lik b{flex:1;text-align:center;font-size:11px;padding:8px 2px;border:1px solid var(--line2);border-radius:9px;cursor:pointer;color:var(--soft);transition:.12s;background:#fff}
+.lik b.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+/* result */
+.hero{text-align:center;background:linear-gradient(160deg,var(--wash),var(--card));border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px}
+.hero .lab{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--soft);text-transform:uppercase}
+.hero .big{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--cinnabar);margin:6px 0 2px}
+.hero .jc{font-family:var(--mono);font-size:12px;color:var(--soft)}
+.bars{display:flex;flex-direction:column;gap:7px;margin:14px 0}
+.bar{display:flex;align-items:center;gap:9px;font-size:12px}
+.bar .nm{width:44px;flex:none;color:#403c34}
+.bar .track{flex:1;height:14px;background:var(--card);border-radius:7px;overflow:hidden;border:1px solid var(--line)}
+.bar .fill{height:100%;border-radius:7px}
+.bar .v{width:30px;flex:none;text-align:right;font-family:var(--mono);color:var(--soft)}
+.bar.main .nm{color:var(--cinnabar);font-weight:700}
+.sec{margin-bottom:14px}.sec .h{font-family:var(--serif);font-size:14px;font-weight:700;margin-bottom:8px;display:flex;gap:7px;align-items:center}
+.sec .h::before{content:"";width:14px;height:2px;background:var(--cinnabar);border-radius:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:13px;line-height:1.65;color:#403c34}
+.card b{color:var(--ink)} .card .xf{color:var(--cinnabar);font-weight:600}
+.note{font-family:var(--mono);font-size:9.5px;color:var(--faint);background:var(--card);border:1px dashed var(--line2);border-radius:8px;padding:8px 11px;margin:12px 0;line-height:1.55}.note b{color:var(--cinnabar)}
+.beadrow{display:flex;gap:6px;margin:8px 0}
+.beadrow i{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 -2px 4px rgba(0,0,0,.15)}
+/* vector panel */
+.vec{width:330px;max-width:100%;background:#14130f;color:#d9d4c7;border-radius:18px;padding:16px;font-family:var(--mono);font-size:11px;line-height:1.6;align-self:flex-start;position:sticky;top:16px}
+.vec h4{font-family:var(--sans);font-size:13px;color:#fff;margin-bottom:3px}.vec .m{color:#7f7a6c;font-size:9.5px;margin-bottom:12px}
+.vec pre{white-space:pre-wrap;word-break:break-word;color:#a7d0b5;font-size:10.5px;background:#000;padding:11px;border-radius:9px}
+.vec .tag{font-family:var(--sans);font-size:9px;color:#7f7a6c;text-align:center;margin-top:8px}
+</style>
+
+<div class="app">
+  <div class="sb"><span>中医体质自测</span><span class="r">九型 · 自研简版</span></div>
+
+  <div id="s1" class="screen on"><div class="pad">
+    <div class="tt">中医体质自测</div><div class="sub">九型 · 养生调理参考</div>
+    <div class="intro">按你<b>近一年</b>的感受，答 27 道题（每题 5 档）。测出你的<b>体质倾向</b>（平和 / 气虚 / 阳虚 / 阴虚 / 痰湿 / 湿热 / 血瘀 / 气郁 / 特禀），据此为你**推荐对应香方与养生珠串**。<br><b>这是养生调理参考，不作疾病诊断或治疗。</b></div>
+    <button class="cta" id="start">开始自测（约 1 分钟）</button>
+    <div class="disc">采用《中医体质分类与判定》转化分方法；题目为自研简版，非官方量表。</div>
+  </div></div>
+
+  <div id="s2" class="screen"><div class="pad">
+    <div class="prog"><i id="prog"></i></div>
+    <div id="qlist"></div>
+    <button class="cta" id="submit" disabled>看我的体质（还有 <b id="left">27</b> 题）</button>
+  </div></div>
+
+  <div id="s3" class="screen"><div class="pad">
+    <div class="hero"><div class="lab">你的主体质</div><div class="big" id="mainT">—</div><div class="jc" id="mainJc"></div></div>
+    <div class="bars" id="bars"></div>
+    <div class="sec"><div class="h">调养方向</div><div class="card" id="advice"></div></div>
+    <div class="sec"><div class="h">为你配的香方 + 珠串</div><div class="card" id="reco"></div></div>
+    <div class="note">体质→<b>香方</b>（香承真实香方）；主石按<b>五行</b>（八字算·忌神红线）另定——两条线各管一段。功用为<b>气味养生体验，非医疗</b>。</div>
+    <button class="cta ghost" id="again">重新测</button>
+  </div></div>
+</div>
+
+<div class="vec">
+  <h4>喂选品的输出 · Energy Vector</h4>
+  <div class="m">问卷判定 → 体质 + 议题(themes) + 香方，写进能量向量，接进选品引擎。</div>
+  <pre id="vecJson">（测完生成）</pre>
+  <div class="tag">生产：可换官方 ZYYXH/T157-2009 60题 + 授权</div>
+</div>
+
+<script>
+// 9 体质：key, 中文, themes(受控词表), 香方(真实·香承), 主石色, 建议
+const TZ={
+ ping:{n:'平和质',th:[],xf:'沉檀龙麝（固本调和）',stone:['#EEF2F6'],care:'体质平和、守中即好；作息规律、饮食均衡，别过度自我加压。'},
+ qixu:{n:'气虚质',th:['情绪安定'],xf:'紫瑞香（养气）',stone:['#E8C24E'],care:'易倦气短——宜养气缓行、忌过劳；温和运动、按时吃饭。'},
+ yangxu:{n:'阳虚质',th:['情绪安定'],xf:'内府降真香（温养培元）',stone:['#B4342A'],care:'偏寒怕冷——宜温养、忌生冷；护好手脚腰腹，晒太阳。'},
+ yinxu:{n:'阴虚质',th:['睡眠安神'],xf:'桂花养神 / 安息香（滋阴安神）',stone:['#E3ECF5'],care:'偏燥易烦——宜静养滋润、忌熬夜辛燥；早睡多饮水。'},
+ tanshi:{n:'痰湿质',th:['专注定力'],xf:'龙涎香（祛湿）/ 华佗香（醒神）',stone:['#57B090','#E8C24E'],care:'困重黏滞——宜清爽走动、忌甜腻；多动少坐。'},
+ shire:{n:'湿热质',th:['焦虑纾解'],xf:'四时辟疫 / 青麟髓（清神）',stone:['#3E6079'],care:'偏油偏苦——宜清淡、忌辛辣油腻酒；作息清爽。'},
+ xueyu:{n:'血瘀质',th:['情感决断'],xf:'御颜香（理气活血）',stone:['#B4342A'],care:'易滞暗沉——宜舒展流动、忌久坐不动；多走动。'},
+ qiyu:{n:'气郁质',th:['情感决断','焦虑纾解'],xf:'茉莉其香 / 杏花香（疏肝解郁）',stone:['#F2C0CE','#6B4A32'],care:'思虑郁结——宜疏解舒展、忌闷压；表达、运动、静心。'},
+ tebing:{n:'特禀质',th:['情绪安定'],xf:'玄彩七香（安神健脾）',stone:['#1B1B22'],care:'易敏特异——宜守护、避已知过敏源；温和调养。'}};
+// 27 题（自研简版，每型3题；不显示体质名以免偏向），near-official 转化分方式
+const Q=[
+ ['我精力充沛、不容易疲乏','ping'],['我睡眠良好、醒来精神好','ping'],['我对天气变化、环境适应力强','ping'],
+ ['我容易疲乏、没力气','qixu'],['我说话没劲、容易气短','qixu'],['我容易感冒、抵抗力偏弱','qixu'],
+ ['我手脚发凉、比别人怕冷','yangxu'],['我喜欢喝热的，吃凉的会不舒服','yangxu'],['我衣服总要比别人穿得多','yangxu'],
+ ['我手心脚心发热','yinxu'],['我口干咽干、总想喝水','yinxu'],['我皮肤或嘴唇偏干','yinxu'],
+ ['我身体沉重、不轻松','tanshi'],['我腹部松软肥满','tanshi'],['我嗓子常有痰、或觉黏腻','tanshi'],
+ ['我面部或鼻子容易出油','shire'],['我口苦或嘴里有异味','shire'],['我大便黏腻、不爽','shire'],
+ ['我面色偏暗、或容易长斑','xueyu'],['我皮肤易出现青紫瘀斑','xueyu'],['我嘴唇颜色偏暗','xueyu'],
+ ['我情绪低落、容易多愁善感','qiyu'],['我容易紧张、焦虑不安','qiyu'],['我常觉胸闷、或胁肋胀','qiyu'],
+ ['我容易过敏（打喷嚏/鼻塞/起疹）','tebing'],['我皮肤易因过敏起红疹或抓痕','tebing'],['我对药物、食物或气味容易过敏','tebing']];
+const LIK=['没有','很少','有时','经常','总是'];
+let ans=new Array(Q.length).fill(0);
+
+document.getElementById('start').onclick=()=>{buildQ();show('s2');};
+document.getElementById('again').onclick=()=>{ans=ans.fill(0);buildQ();updateProg();show('s2');window.scrollTo(0,0);};
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');window.scrollTo(0,0);}
+function buildQ(){const el=document.getElementById('qlist');el.innerHTML=Q.map((q,i)=>`<div class="q"><div class="qn"><b>${i+1}</b>${q[0]}</div><div class="lik" data-i="${i}">${LIK.map((l,k)=>`<b data-v="${k+1}" class="${ans[i]===k+1?'on':''}">${l}</b>`).join('')}</div></div>`).join('');
+ el.querySelectorAll('.lik').forEach(row=>row.addEventListener('click',e=>{const b=e.target.closest('b');if(!b)return;const i=+row.dataset.i;ans[i]=+b.dataset.v;row.querySelectorAll('b').forEach(x=>x.classList.toggle('on',x===b));updateProg();}));
+ updateProg();}
+function updateProg(){const done=ans.filter(x=>x>0).length;document.getElementById('prog').style.width=(done/Q.length*100)+'%';
+ const left=Q.length-done;
+ const sub=document.getElementById('submit');sub.disabled=left>0;sub.innerHTML=left>0?`看我的体质（还有 <b>${left}</b> 题）`:'看我的体质 →';}
+document.getElementById('submit').onclick=()=>{result();show('s3');};
+
+function score(){ // 转化分 =(原始分-条目数)/(条目数*4)*100
+ const raw={},cnt={};Object.keys(TZ).forEach(k=>{raw[k]=0;cnt[k]=0;});
+ Q.forEach((q,i)=>{raw[q[1]]+=(ans[i]||1);cnt[q[1]]++;});
+ const conv={};Object.keys(TZ).forEach(k=>conv[k]=Math.round((raw[k]-cnt[k])/(cnt[k]*4)*100));
+ return conv;}
+function judge(conv){ // 官方判定：平和≥60且偏颇皆<40→平和；偏颇≥40为是
+ const bias=Object.keys(TZ).filter(k=>k!=='ping');
+ const isPing=conv.ping>=60 && bias.every(k=>conv[k]<40);
+ const strong=bias.filter(k=>conv[k]>=40).sort((a,b)=>conv[b]-conv[a]);
+ let main,jian;
+ if(isPing){main='ping';jian=[];}
+ else if(strong.length){main=strong[0];jian=strong.slice(1);}
+ else{const t=bias.sort((a,b)=>conv[b]-conv[a]);main=(conv.ping>=conv[t[0]])?'ping':t[0];jian=bias.filter(k=>conv[k]>=30&&k!==main);}
+ return {main,jian,isPing};}
+function result(){
+ const conv=score(),J=judge(conv),m=TZ[J.main];
+ document.getElementById('mainT').textContent=m.n;
+ document.getElementById('mainJc').textContent=`转化分 ${conv[J.main]}`+(J.jian.length?` · 兼夹 ${J.jian.map(k=>TZ[k].n).join('、')}`:' · 无明显兼夹');
+ // bars（9型转化分）
+ const order=Object.keys(TZ).sort((a,b)=>conv[b]-conv[a]);
+ document.getElementById('bars').innerHTML=order.map(k=>{const on=(k===J.main);const col=on?'var(--cinnabar)':(conv[k]>=40?'var(--gold)':'#c9c0ad');
+  return `<div class="bar ${on?'main':''}"><div class="nm">${TZ[k].n.slice(0,2)}</div><div class="track"><div class="fill" style="width:${Math.max(conv[k],3)}%;background:${col}"></div></div><div class="v">${conv[k]}</div></div>`;}).join('');
+ document.getElementById('advice').innerHTML=`<b>${m.n}</b>——${m.care}`;
+ const beads=m.stone.map(c=>`<i style="background:${c}"></i>`).join('')+'<i style="background:#6B4A32"></i>';
+ document.getElementById('reco').innerHTML=`香方：<span class="xf">${m.xf}</span> 香珠<br>珠串（示意）：<div class="beadrow">${beads}</div><span style="color:var(--soft);font-size:11.5px">主石按你的五行(八字)定，此处按体质给示意；一颗对应香方香珠收尾。</span>`;
+ // energy vector 输出
+ const themes=[...new Set([].concat(...[J.main,...J.jian].map(k=>TZ[k].th)))];
+ const vec={体质:{主:m.n,兼夹:J.jian.map(k=>TZ[k].n),转化分:conv[J.main]},
+  写入向量_themes:themes.map(t=>({theme:t,weight:0.6,source:'tizhi'})),
+  香方:m.xf,来源:'中医九型问卷'};
+ document.getElementById('vecJson').textContent=JSON.stringify(vec,null,1);
+ window.scrollTo(0,0);
+}
+// demo
+if(location.hash==='#demo'){document.getElementById('start').onclick();
+ // 让 气郁 偏高：气郁3题(21,22,23)给4-5，其余给1-2
+ ans=Q.map((q,i)=>q[1]==='qiyu'?5:(q[1]==='qixu'?3:1));buildQ();updateProg();result();show('s3');}
+</script>
