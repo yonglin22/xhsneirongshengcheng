@@ -270,7 +270,7 @@ function initChart(her,ta,asps){
   // decorative orbit rings (solar-system look)
   [1.7,2.3,2.9,3.3,4.0,4.6,5.2].forEach(R=>{const o=new THREE.Mesh(new THREE.RingGeometry(R-0.011,R+0.011,160),new THREE.MeshBasicMaterial({color:0x93a6cc,transparent:true,opacity:.2,side:THREE.DoubleSide}));o.rotation.x=-Math.PI/2;grp.add(o);});
   // central sun (3D star surface + layered corona)
-  const sunMesh=new THREE.Mesh(new THREE.SphereGeometry(0.5,48,48),new THREE.MeshBasicMaterial({map:sunTexture()}));grp.add(sunMesh);
+  const sunMesh=new THREE.Mesh(new THREE.SphereGeometry(0.5,48,48),new THREE.MeshBasicMaterial({map:sunTexture()}));(function(sm){const cc=document.createElement('canvas');cc.width=cc.height=256;const xx=cc.getContext('2d'),o=128;let g=xx.createRadialGradient(o,o,26,o,o,128);g.addColorStop(0,'rgba(255,232,176,0.9)');g.addColorStop(.3,'rgba(255,158,66,0.5)');g.addColorStop(.7,'rgba(255,120,40,0.14)');g.addColorStop(1,'rgba(255,110,40,0)');xx.fillStyle=g;xx.fillRect(0,0,256,256);xx.globalCompositeOperation='lighter';for(let i=0;i<34;i++){const a=Math.random()*6.283,len=54+Math.random()*66,w=1.5+Math.random()*5,op=.3+Math.random()*.4;xx.save();xx.translate(o,o);xx.rotate(a);const lg=xx.createLinearGradient(24,0,24+len,0);lg.addColorStop(0,'rgba(255,216,150,'+op+')');lg.addColorStop(1,'rgba(255,150,60,0)');xx.fillStyle=lg;xx.fillRect(24,-w/2,len,w);xx.restore();}const tex=new THREE.CanvasTexture(cc);window.sunCorona=[];const mk=(sc,op,rot)=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,opacity:op,rotation:rot}));s.scale.set(sc,sc,1);sm.add(s);window.sunCorona.push(s);return s;};mk(3.1,.95,0);mk(2.3,.6,0.7)})(sunMesh);grp.add(sunMesh);
   [[0xffffff,1.5,.9],[0xffd488,2.9,.55],[0xff8f3a,4.8,.3],[0xff6a24,7.2,.15]].forEach(([c0,s,o])=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowT0,color:c0,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false}));sp.scale.set(s,s,s);grp.add(sp);});
   // zodiac badges
   function rr(c,a,b,w,h,r){c.beginPath();c.moveTo(a+r,b);c.arcTo(a+w,b,a+w,b+h,r);c.arcTo(a+w,b+h,a,b+h,r);c.arcTo(a,b+h,a,b,r);c.arcTo(a,b,a+w,b,r);c.closePath();}
@@ -310,7 +310,7 @@ function initChart(her,ta,asps){
     ray.setFromCamera(m,cam);const hit=ray.intersectObjects(picks);if(hit.length){const u=hit[0].object.userData,nm=u.who==='her'?'你':'TA';
       document.getElementById('detail').innerHTML=`<div class="k">${nm} · ${u.b}</div>${signOf(u.chart[u.b])} ${degIn(u.chart[u.b]).toFixed(1)}°　—　${ROLE[u.b]||''}`;
       hit[0].object.scale.setScalar(1.7);setTimeout(()=>hit[0].object.scale.setScalar(1),450);}});
-  chartState={renderer,scene,cam,grp,get yaw(){return yaw},tick(){if(!REDUCED){sunMesh.rotation.y+=0.004;if(!dragging())yaw+=0.0022;}apply();renderer.render(scene,cam);}};
+  chartState={renderer,scene,cam,grp,get yaw(){return yaw},tick(){if(!REDUCED){sunMesh.rotation.y+=0.004;if(window.sunCorona)window.sunCorona.forEach((s,i)=>{s.material.rotation+=(i?-0.0016:0.0022);});if(!dragging())yaw+=0.0022;}apply();renderer.render(scene,cam);}};
 }
 
 /* =================== 3D bracelet =================== */
