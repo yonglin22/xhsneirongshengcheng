@@ -1,0 +1,152 @@
+<title>系统闭环总览 · FateStone</title>
+<style>
+:root{
+  --paper:#F4F0E7;--paper2:#EDE7DA;--raised:#FBF8F1;--ink:#211E18;--soft:#6B655A;--faint:#A79E86;
+  --line:#DFD8C8;--cinnabar:#B23A2C;--cinnabar2:#8F2E23;--wash:#F1E2DC;
+  --jade:#4F7A5E;--gold:#B0862E;--azure:#3E6079;
+  --serif:'Noto Serif SC','Songti SC','STSong',serif;--sans:'PingFang SC','Noto Sans SC','Microsoft YaHei',-apple-system,sans-serif;--mono:ui-monospace,'SFMono-Regular','Courier New',monospace;
+  --sh:0 1px 2px rgba(33,30,24,.04),0 8px 26px rgba(33,30,24,.06);
+}
+@media(prefers-color-scheme:dark){:root{--paper:#161309;--paper2:#1E1A11;--raised:#221D13;--ink:#EDE5D2;--soft:#A79E8A;--faint:#6E6552;--line:#332D20;--cinnabar:#D9644E;--cinnabar2:#E27C67;--wash:#2C1E17;--jade:#7FA88C;--gold:#D6AC57;--azure:#7FA6BA;--sh:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.34)}}
+:root[data-theme="light"]{--paper:#F4F0E7;--paper2:#EDE7DA;--raised:#FBF8F1;--ink:#211E18;--soft:#6B655A;--faint:#A79E86;--line:#DFD8C8;--cinnabar:#B23A2C;--cinnabar2:#8F2E23;--wash:#F1E2DC;--jade:#4F7A5E;--gold:#B0862E;--azure:#3E6079;--sh:0 1px 2px rgba(33,30,24,.04),0 8px 26px rgba(33,30,24,.06)}
+:root[data-theme="dark"]{--paper:#161309;--paper2:#1E1A11;--raised:#221D13;--ink:#EDE5D2;--soft:#A79E8A;--faint:#6E6552;--line:#332D20;--cinnabar:#D9644E;--cinnabar2:#E27C67;--wash:#2C1E17;--jade:#7FA88C;--gold:#D6AC57;--azure:#7FA6BA;--sh:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.34)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased;background-image:radial-gradient(rgba(120,110,85,.05) 1px,transparent 1px);background-size:22px 22px}
+.wrap{max-width:640px;margin:0 auto;padding:0 20px}
+.mast{padding:44px 0 20px;text-align:center}
+.seal{display:inline-flex;align-items:center;gap:10px;margin-bottom:16px}
+.seal .m{width:34px;height:34px;border-radius:9px;background:var(--cinnabar);color:#FBF8F1;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:17px;box-shadow:0 4px 12px rgba(178,58,44,.3)}
+.seal .k{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--soft);text-transform:uppercase}
+h1{font-family:var(--serif);font-weight:700;font-size:clamp(26px,6vw,34px);letter-spacing:.02em}
+.mast p{color:var(--soft);font-size:14.5px;margin-top:10px;max-width:460px;margin-left:auto;margin-right:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;margin:22px 0 6px;font-size:12px;color:var(--soft)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.pill{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.03em;padding:2px 8px;border-radius:100px;white-space:nowrap}
+.pill.done{background:color-mix(in srgb,var(--jade) 16%,transparent);color:var(--jade)}
+.pill.brdg{background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold)}
+.pill.you{background:var(--wash);color:var(--cinnabar)}
+.pill.later{background:var(--paper2);color:var(--faint)}
+.pill.eng{background:color-mix(in srgb,var(--azure) 16%,transparent);color:var(--azure)}
+
+.loop{position:relative;margin:16px 0 10px}
+.node{display:flex;gap:14px;background:var(--raised);border:1px solid var(--line);border-radius:16px;padding:15px 16px;box-shadow:var(--sh);position:relative}
+.node .n{flex:none;width:30px;height:30px;border-radius:9px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:14px}
+.node.b .n{background:var(--cinnabar)}
+.node .body{flex:1;min-width:0}
+.node .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.node h3{font-family:var(--serif);font-size:16px;font-weight:700}
+.node .d{font-size:12.5px;color:var(--soft);margin-top:3px;line-height:1.55}
+.node .by{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:6px;letter-spacing:.02em}
+.node .by b{color:var(--azure);font-weight:600}
+.arrow{display:flex;justify-content:center;align-items:center;height:20px;color:var(--cinnabar);font-size:15px;opacity:.75}
+.closeband{margin-top:10px;border:1.5px dashed var(--cinnabar);border-radius:14px;background:var(--wash);padding:13px 16px;display:flex;gap:12px;align-items:center}
+.closeband .ic{font-size:22px;color:var(--cinnabar)}
+.closeband .t{font-family:var(--serif);font-size:14px;font-weight:700;color:var(--cinnabar2)}
+.closeband .s{font-size:12px;color:var(--soft)}
+
+.verdict{margin:26px 0 8px;background:var(--raised);border:1px solid var(--line);border-radius:16px;padding:20px 20px;box-shadow:var(--sh)}
+.verdict h2{font-family:var(--serif);font-size:19px;margin-bottom:6px;display:flex;align-items:center;gap:9px}
+.verdict h2 .dot{width:11px;height:11px;border-radius:50%;background:var(--jade)}
+.verdict p{font-size:13.5px;color:var(--soft);margin-bottom:14px}
+.gaps{display:flex;flex-direction:column;gap:9px}
+.gap{display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.gap .p{flex:none}
+.gap b{font-weight:600}
+.foot{margin:24px 0 60px;padding-top:18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--faint);line-height:1.9;text-align:center}
+.foot a{color:var(--azure)}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="seal"><span class="m serif">环</span><span class="k">FateStone · 系统闭环</span></div>
+    <h1>把散件拼成一个闭环</h1>
+    <p>从「把人读成命理信号」到「一串为她而配的珠」，到成交、沉淀、召回——整套系统是否闭合，每一环谁已做、谁待补，一张图看清。</p>
+    <div class="legend">
+      <span><i class="pill done">已做</i>代码/交付物就位</span>
+      <span><i class="pill brdg">桥接待补</i>框架就位·待真实数据</span>
+      <span><i class="pill you">待你</i>需业务方提供</span>
+      <span><i class="pill eng">工程替换</i>上线接真机</span>
+      <span><i class="pill later">缓做</i>视觉打磨</span>
+    </div>
+  </header>
+
+  <div class="loop">
+
+    <div class="node"><div class="n">1</div><div class="body">
+      <div class="top"><h3>内容获客</h3><i class="pill done">已做</i></div>
+      <div class="d">小红书内容操盘台（S1–S8 流水线）源源产种草内容，把女性客户引到入口。</div>
+      <div class="by">由 · <b>本 repo（赛道智能体·内容操盘台）</b></div>
+    </div></div>
+    <div class="arrow">↓</div>
+
+    <div class="node b"><div class="n">2</div><div class="body">
+      <div class="top"><h3>玄学入口 · 把人读成信号</h3><i class="pill done">已做</i></div>
+      <div class="d">关系合盘（真实星历实算）· 八字排盘（代码·毛四柱验证）· 塔罗 · 星盘——把一个人读成命理信号。</div>
+      <div class="by">由 · <b>合盘3D参考实现 · bazi_tcm.browser.js · 塔罗/合盘落地包</b></div>
+    </div></div>
+    <div class="arrow">↓</div>
+
+    <div class="node b"><div class="n">3</div><div class="body">
+      <div class="top"><h3>能量向量中间层</h3><i class="pill done">已做</i></div>
+      <div class="d">五行(八字)+议题(塔罗/星盘)+关系轴(合盘)+体质(中医) 汇进单一可信源。选品只吃这个。</div>
+      <div class="by">由 · <b>energy_vector.ts / .schema.json（已验证自洽）</b></div>
+    </div></div>
+    <div class="arrow">↓</div>
+
+    <div class="node b"><div class="n">4</div><div class="body">
+      <div class="top"><h3>选品引擎 · 向量→SKU</h3><i class="pill done">已做</i> <i class="pill brdg">中医香方待补</i></div>
+      <div class="d">补五行(忌神红线)+议题配石+体质→香方+关系锚。真八字忌神已生效（忌火→南红自动排除）。</div>
+      <div class="by">由 · <b>P0原型 selectBeads（香方名待香承真实表替换）</b></div>
+    </div></div>
+    <div class="arrow">↓</div>
+
+    <div class="node"><div class="n">5</div><div class="body">
+      <div class="top"><h3>成串预览</h3><i class="pill done">已做</i> <i class="pill later">视觉缓做</i></div>
+      <div class="d">照片合成「收拢成串」——珠子换实拍/预渲染 PNG 即照片级。3D 星盘/手串再打磨（耀斑/吊坠/景深）列为缓做。</div>
+      <div class="by">由 · <b>成串照片合成台 · P0原型对串页</b></div>
+    </div></div>
+    <div class="arrow">↓</div>
+
+    <div class="node"><div class="n">6</div><div class="body">
+      <div class="top"><h3>加购 · 支付</h3><i class="pill done">已做</i> <i class="pill eng">接真微信支付</i></div>
+      <div class="d">净手围/包装/证书 + 加购 + 支付。积分扣点时序（冻结→确认/失败即返还，绝不"失败还扣钱"）。</div>
+      <div class="by">由 · <b>P0原型（mock 支付，上线接真微信支付）</b></div>
+    </div></div>
+    <div class="arrow">↓</div>
+
+    <div class="node"><div class="n">7</div><div class="body">
+      <div class="top"><h3>私域沉淀</h3><i class="pill done">已做</i> <i class="pill eng">接企微/公众号</i></div>
+      <div class="d">下单/解读双入口导私域，解锁「关系养护提醒」——被下架也攒得住，还能做高客单人工。</div>
+      <div class="by">由 · <b>P0原型私域钩子（上线接企微/公众号）</b></div>
+    </div></div>
+    <div class="arrow">↓</div>
+
+    <div class="node"><div class="n">8</div><div class="body">
+      <div class="top"><h3>复购召回</h3><i class="pill done">已做</i></div>
+      <div class="d">「关系近况变了？再合一次盘 →」把人拉回入口，进入下一轮——闭环在此合上。</div>
+      <div class="by">由 · <b>P0原型复购按钮 → 回到 ①/②</b></div>
+    </div></div>
+
+    <div class="closeband">
+      <div class="ic">↺</div>
+      <div><div class="t">闭环合上：复购召回 → 回到入口</div><div class="s">复购/私域反复触达把人拉回，再体验 → 再成交。这是从"一锤子占卜"变成"细水长流"的关键。</div></div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <h2><span class="dot"></span>闭环判定：已闭合（骨架全通）</h2>
+    <p>从获客到复购每一环都有交付物落地；核心链路「合盘/八字（真算）→ 能量向量 → 选品（忌神红线）→ 成串 → 支付 → 私域 → 复购」在 P0 原型里能一口气跑通、Live DoD 逐条变绿。</p>
+    <div class="gaps">
+      <div class="gap"><i class="pill you p">待你</i><div><b>香承真实香方表 + 中医审定「体质→香方」对应</b>——给我这两张表，选品第 4 环的占位香方即换成真的。</div></div>
+      <div class="gap"><i class="pill eng p">工程替换</i><div><b>真机上线</b>：Swiss Ephemeris 真盘 · 真·微信支付 · 企微/公众号 · 多租户后端（白牌门店）。</div></div>
+      <div class="gap"><i class="pill later p">缓做</i><div><b>视觉打磨</b>：星盘太阳耀斑 · 手串加算珠/吊坠/景深 · 照片手串并进合盘主流程。闭环之外，随时可捡。</div></div>
+      <div class="gap"><i class="pill done p">已就位</i><div><b>B 端放大</b>：门店赋能包 + 分销机制（方案已出），把单店闭环复制成一张网。</div></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    在线可跑：P0 漏斗功能原型（含 Live DoD）· 关系合盘 3D · 成串照片合成台<br>
+    版本源：仓库分支 <b>claude/kind-cannon-racpx4</b> / <b>命理选品系统/</b><br>
+    *四柱由代码排盘并经 lunar 库双验证；解读为示例；香方为气味养生体验非医疗；命理仅供自我觉察参考。*
+  </div>
+</div>
