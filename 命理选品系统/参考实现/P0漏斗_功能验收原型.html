@@ -96,7 +96,7 @@ ul.pts2.har li::before{background:var(--gold)}ul.pts2.fri li::before{background:
   <!-- S1 输入 -->
   <div id="s1" class="screen on"><div class="pad">
     <div class="tt" id="s1tt">关系合盘</div><div class="sub" id="s1sub">Synastry · 测测你和 TA 的契合度</div>
-    <div class="seg" id="modeSeg"><div class="s on" data-m="synastry">🔮 关系合盘</div><div class="s" data-m="tarot">🃏 塔罗单人</div></div>
+    <div class="seg" id="modeSeg"><div class="s on" data-m="synastry">🔮 合盘</div><div class="s" data-m="tarot">🃏 塔罗</div><div class="s" data-m="natal">🌙 本命</div></div>
     <div id="synBlock">
       <div class="who"><h3><span class="dot her"></span>你</h3>
         <div class="fld"><label>出生日期</label><input type="date" id="h_date" value="1996-08-12"></div>
@@ -119,6 +119,14 @@ ul.pts2.har li::before{background:var(--gold)}ul.pts2.fri li::before{background:
         <div id="tBaziFields" style="display:none;margin-top:9px"><div class="fld"><label>出生日期</label><input type="date" id="tb_date" value="1996-08-12"></div></div></div>
       <button class="cta" id="goTarot">🃏 抽牌解读（消耗 20 积分）</button>
       <div class="disc">塔罗给的是视角，不是判决；选择权始终在你。<br>不构成确定性预测或投资建议。</div>
+    </div>
+    <div id="natBlock" style="display:none">
+      <div class="who"><h3><span class="dot her"></span>你的出生信息</h3>
+        <div class="fld"><label>出生日期</label><input type="date" id="n_date" value="1996-08-12"></div>
+        <div class="row2"><div class="fld"><label>时间</label><input type="time" id="n_time" value="14:30"></div><div class="fld"><label>城市</label><select id="n_city"></select></div></div>
+        <label class="chk"><input type="checkbox" id="n_unk"> 不知道时辰（上升/宫位降级，日月金火照常）</label></div>
+      <button class="cta" id="goNatal">🌙 排我的本命盘（消耗 30 积分）</button>
+      <div class="disc">本命盘照见你的底色与内在需要，仅供自我觉察；不构成确定性预测。<br>出生信息仅本机计算，不上传。</div>
     </div>
   </div></div>
 
@@ -172,6 +180,27 @@ ul.pts2.har li::before{background:var(--gold)}ul.pts2.fri li::before{background:
     <div class="note">牌意/处境为规则模板示例；生产接塔罗 System Prompt（temperature 0.7–0.85 · 流式渲染）。</div>
     <div class="reco" id="toQuizT" style="background:#3c4a40"><div class="t">🌿 30 秒测体质，让香方更贴你 →</div><div class="a">9 题快测 · 跳过则纯议题选珠</div></div>
     <div class="reco" id="toRecoT"><div class="t">🔮 按这次牌，为此刻的你排一串 →</div><div class="a">单人能量串 · 点击查看</div></div>
+  </div></div>
+
+  <!-- S2n 排盘动画 -->
+  <div id="s2n" class="screen"><div class="pad" style="text-align:center;padding-top:120px">
+    <div class="ring" style="margin:0 auto 20px"><svg viewBox="0 0 66 66" width="66" height="66"><circle cx="33" cy="33" r="27" fill="none" stroke="#EAE7E0" stroke-width="5"/><circle cx="33" cy="33" r="27" fill="none" stroke="#3E6079" stroke-width="5" stroke-linecap="round" stroke-dasharray="170" stroke-dashoffset="42" transform="rotate(-90 33 33)"><animateTransform attributeName="transform" type="rotate" from="-90 33 33" to="270 33 33" dur="1s" repeatCount="indefinite"/></circle></svg></div>
+    <div class="tt">正在排你的本命盘…</div><div class="sub">日月升 · 金火水 · 五行体质</div>
+  </div></div>
+
+  <!-- S3n 本命解读 -->
+  <div id="s3n" class="screen"><div class="pad">
+    <span class="back" data-to="s1">‹ 重新填写</span>
+    <div class="tt">你的本命</div><div class="sub" id="natSub">NATAL · 你的底色与内在需要</div>
+    <div class="mini3" id="natMini3"></div>
+    <div class="note" id="natBaziLine" style="text-align:left;margin:0 0 12px"></div>
+    <div class="sec"><div class="h">你的底色</div><div class="action" id="nCore"></div></div>
+    <div class="sec"><div class="h">你的内在需要</div><p style="font-size:12.5px;color:#403c34;line-height:1.7" id="nNeed"></p></div>
+    <div class="sec"><div class="h">给你的提示</div><ul class="pts2 ins" id="nIns"></ul></div>
+    <div class="sec"><div class="h">今天先做这一件</div><div class="action" id="nAct"></div></div>
+    <div class="note">日月升为<b>真实星历实算</b>；解读语气为规则模板示例（生产接 AI Prompt）。</div>
+    <div class="reco" id="toQuizN" style="background:#3c4a40"><div class="t">🌿 30 秒测体质，让香方更贴你 →</div><div class="a">9 题快测 · 跳过则按八字推断体质</div></div>
+    <div class="reco" id="toRecoN"><div class="t">🌙 按你的本命，为你排一串 →</div><div class="a">本命能量串 · 点击查看</div></div>
   </div></div>
 
   <!-- S4/S5 对串 + 微调 -->
@@ -352,6 +381,10 @@ const hL=a=>({'月亮太阳':'你的月亮和 TA 的太阳'+a.n+'——他的存
 const fL=a=>({'金星火星':'金星火星'+a.n+'——想亲近的节奏对不上，容易觉得一个人使劲；是磨合不是不爱。','水星水星':'两人水星'+a.n+'——说话易错频，多确认一句少吵一次。'}[a.h+a.t]||`你的${a.h}与 TA 的${a.t}${a.n}——「${ROLE[a.h]}」这块易消耗，是要一起学的功课，不是注定不合。`);
 const SDYN={暧昧:'这段暧昧此刻是真在靠近，还是你一个人加了戏——先看清，再决定要不要迈那一步。',在一起:'你们不是不相爱，是用不同方式在爱；最近的别扭，多半是有句话没说开。',复合:'想复合，先分清是这段关系真的适合，还是舍不得已经付出的。'};
 const SACT={暧昧:'这周单独相处一次，观察：你表达在乎时，他是接住了还是转移了。',在一起:'挑个不吵架的时刻，把你最在意的一件需要平静说给他听一次。',复合:'今晚写下三件你最需要从关系里得到的，逐条打勾或叉，照见你站在哪。'};
+const SINS={ // 合盘·分场景决策提示（与塔罗/本命同一语气：命名状态、不预言、把选择权还给你）
+ 暧昧:['把"他是不是喜欢我"和"我是不是在自己加戏"分开——先确认信号，再决定要不要投入。','对方主动的频率，比他偶尔一次的热情更说明问题。','你不必急着定义关系，先给自己几次"平常心相处"，感受真实的舒适度。'],
+ 在一起:['把"他爱不爱我"和"他会不会表达爱"分开——这是两件事，一直搅在一起你才委屈。','你要被回应是合理的，但大概率得你先把话说出口，他才接得住。','别用吵架的方式要爱——挑个平静的时刻说需要，他更听得进。'],
+ 复合:['先分清你想复合的是"这个人"，还是"不甘心那段付出"——这决定你该不该回头。','复合不是把旧关系原样接上，是你俩都得先改掉当初拆散你们的那一点。','给自己一个冷静期再决定——此刻的想念未必是答案，也可能只是习惯。']};
 const THEME_BY_SCENE={暧昧:'情感决断',在一起:'情绪安定',复合:'情感决断'};
 </script>
 <script>
@@ -391,7 +424,7 @@ function selectBeads(pv, wrist, anchorTheme){
 <script>
 /* ================= 状态 + 埋点 + 钱包 ================= */
 const S={scene:'暧昧',mode:'synastry',tDomain:'姻缘',wallet:0,frozen:0,ledger:[],events:{},vec:null,plans:{},cur:'her',wrist:'14',pack:0,cert:0,order:null,dod:{}};
-const EV_ALL=['funnel_enter','synastry_start','synastry_done','tarot_start','tarot_done','reco_view','preview_enter','add_cart','pay_success','join_private','repurchase'];
+const EV_ALL=['funnel_enter','synastry_start','synastry_done','tarot_start','tarot_done','natal_start','natal_done','reco_view','preview_enter','add_cart','pay_success','join_private','repurchase'];
 function fire(e){S.events[e]=(S.events[e]||0)+1;if(typeof renderQA==='function')renderQA();}
 function ledg(t,amt){S.ledger.push({t,amt});}
 function setPts(n){S.wallet=n;ptsN.textContent=n;}
@@ -452,7 +485,7 @@ function renderS3(her,ta,asps,sc,scene){
   const har=asps.filter(a=>a.t2=='h'||a.t2=='s').slice(0,3),fri=asps.filter(a=>a.t2=='f'||a.t2=='x').slice(0,2);
   document.getElementById('har').innerHTML=(har.length?har:asps.slice(0,2)).map(a=>`<li>${hL(a)}</li>`).join('');
   document.getElementById('fri').innerHTML=(fri.length?fri.map(a=>`<li>${fL(a)}</li>`):['<li>硬相位不多，摩擦点少——但别把「没冲突」当「很懂彼此」。</li>']).join('');
-  document.getElementById('ins').innerHTML=[`把「他爱不爱我」和「他会不会表达」分开。`,`你要的被回应是合理的，但大概率要你先说出口。`,`先看清你到底要什么，比逼对方表态更重要。`].map(t=>`<li>${t}</li>`).join('');
+  document.getElementById('ins').innerHTML=(SINS[scene]||SINS.暧昧).map(t=>`<li>${t}</li>`).join('');
   act.textContent=SACT[scene];
 }
 toReco.onclick=()=>{fire('reco_view');S.dod.reco=true;openReco();};
@@ -486,15 +519,15 @@ document.getElementById('qzSubmit').onclick=()=>{
 };
 function openReco(){
   S.wrist=wrist.value;recalcPlans();
-  const tar=S.mode==='tarot';
-  document.querySelector('#s4 .tt').textContent=tar?'为此刻的你排的串':'为你俩排的对串';
-  document.querySelector('#s4 .swch').style.display=tar?'none':'flex';
-  document.querySelector('#s4 .back').dataset.to=tar?'s3t':'s3';
-  document.getElementById('addCart').textContent=tar?'加入购物车 · 你的能量串':'加入购物车（你的串 + TA 的串）';
+  const single=S.mode!=='synastry';
+  document.querySelector('#s4 .tt').textContent={tarot:'为此刻的你排的串',natal:'为你的本命排的串',synastry:'为你俩排的对串'}[S.mode];
+  document.querySelector('#s4 .swch').style.display=single?'none':'flex';
+  document.querySelector('#s4 .back').dataset.to={tarot:'s3t',natal:'s3n',synastry:'s3'}[S.mode];
+  document.getElementById('addCart').textContent=single?'加入购物车 · 你的能量串':'加入购物车（你的串 + TA 的串）';
   document.getElementById('degradeTag').textContent=(S.plans.her.degraded?'未接八字·按议题排（可补生日精选主石）':'Photo-composite · 收拢成串');
   buildPal();show('s4');fire('preview_enter');S.dod.preview=true;setCur('her');renderQA();
 }
-function recalcPlans(){const anc=S.vec.relation?S.vec.relation.anchorTheme:null;S.plans.her=selectBeads(S.vec.her,S.wrist,anc);S.plans.ta=(S.mode!=='tarot'&&S.vec.ta)?selectBeads(S.vec.ta,S.wrist,anc):null;updatePrice();}
+function recalcPlans(){const anc=S.vec.relation?S.vec.relation.anchorTheme:null;S.plans.her=selectBeads(S.vec.her,S.wrist,anc);S.plans.ta=(S.mode==='synastry'&&S.vec.ta)?selectBeads(S.vec.ta,S.wrist,anc):null;updatePrice();}
 function setCur(w){S.cur=w;document.querySelectorAll('.swch b').forEach(b=>b.classList.toggle('on',b.dataset.w===w));
   const p=S.plans[w],names=[...new Set(p.seq.filter(id=>SKU[id].kind!=='spacer').map(id=>SKU[id].n))].slice(0,4).join(' + ');
   const xf=(S.bazi&&S.bazi[w])?S.bazi[w].xiangfang:'静心';
@@ -504,7 +537,7 @@ document.querySelector('.swch').addEventListener('click',e=>{const b=e.target.cl
 function buildPal(){const pal=document.getElementById('pal');pal.innerHTML='';['nanhong','moonstone','bluelace','citrine','clear','obsidian','incense','silver'].forEach(id=>{const d=document.createElement('div');d.className='pi';d.innerHTML=`<img src="${BEAD_IMG[SKU[id].img]}"><div class="n">${SKU[id].n}</div>`;d.onclick=()=>{const p=S.plans[S.cur];p.seq.splice(p.seq.length-1,0,id,'silver');p.price+=SKU[id].price+6;p.hasCustom=p.hasCustom||SKU[id].stock==='custom';renderPlate();updatePrice();};pal.appendChild(d);});}
 [wrist,pack,cert].forEach(el=>el.addEventListener('change',()=>{if(el===wrist){S.wrist=wrist.value;recalcPlans();}S.pack=+pack.value;S.cert=+cert.value;updatePrice();}));
 function pairTotal(){return S.plans.her.price+(S.plans.ta?S.plans.ta.price:0)+ (+pack.value)+(+cert.value);}
-function updatePrice(){const tot=pairTotal();document.getElementById('pairPrice').innerHTML=`¥ ${tot}.0 <small>· ${S.mode==='tarot'?'单串+选项':'对串+选项'}</small>`;
+function updatePrice(){const tot=pairTotal();document.getElementById('pairPrice').innerHTML=`¥ ${tot}.0 <small>· ${S.mode==='synastry'?'对串+选项':'单串+选项'}</small>`;
   const custom=S.plans.her.hasCustom||S.plans.ta.hasCustom;const b=document.getElementById('stockBadge');b.className='badge '+(custom?'custom':'ready');b.textContent=custom?'含定制 · 约15-20天':'现货 · 即时发货';}
 addCart.onclick=()=>{S.order={her:{...S.plans.her},ta:S.plans.ta?{...S.plans.ta}:null,pack:+pack.value,cert:+cert.value,wrist:S.wrist,total:pairTotal(),custom:S.plans.her.hasCustom||(!!S.plans.ta&&S.plans.ta.hasCustom),mode:S.mode};fire('add_cart');S.dod.cart=true;renderCart();show('s6');renderQA();};
 </script>
@@ -560,8 +593,9 @@ function renderS3t(domain,cards){const R=DOMAIN_READ[domain];
 document.getElementById('modeSeg').addEventListener('click',e=>{const s=e.target.closest('.s');if(!s)return;document.querySelectorAll('#modeSeg .s').forEach(x=>x.classList.remove('on'));s.classList.add('on');const m=s.dataset.m;S.mode=m;
   document.getElementById('synBlock').style.display=m==='synastry'?'block':'none';
   document.getElementById('tarBlock').style.display=m==='tarot'?'block':'none';
-  document.getElementById('s1tt').textContent=m==='synastry'?'关系合盘':'塔罗单人';
-  document.getElementById('s1sub').textContent=m==='synastry'?'Synastry · 测测你和 TA 的契合度':'Tarot · 为此刻的你抽三张牌';});
+  document.getElementById('natBlock').style.display=m==='natal'?'block':'none';
+  const TT={synastry:['关系合盘','Synastry · 测测你和 TA 的契合度'],tarot:['塔罗单人','Tarot · 为此刻的你抽三张牌'],natal:['星盘本命','Natal · 排你的本命盘，看你的底色']};
+  document.getElementById('s1tt').textContent=TT[m][0];document.getElementById('s1sub').textContent=TT[m][1];});
 document.getElementById('tseg').addEventListener('click',e=>{const s=e.target.closest('.s');if(!s)return;document.querySelectorAll('#tseg .s').forEach(x=>x.classList.remove('on'));s.classList.add('on');S.tDomain=s.dataset.v;});
 document.getElementById('tUseBazi').onchange=e=>{document.getElementById('tBaziFields').style.display=e.target.checked?'block':'none';};
 document.getElementById('goTarot').onclick=()=>{
@@ -574,9 +608,62 @@ document.getElementById('toRecoT').onclick=()=>{fire('reco_view');S.dod.reco=tru
 document.getElementById('toQuizT').onclick=()=>openQuiz('s3t');
 </script>
 <script>
+/* ================= 星盘本命单人路径（写 themes·scene=single，按数据契约 WRITE_SCOPE.natal） ================= */
+const signEl=lon=>['huo','tu','feng','shui'][Math.floor(norm(lon)/30)%4]; // 白羊火/金牛土/双子风/巨蟹水…循环
+const NATAL_EL_TH={huo:['情感决断','自我价值'],tu:['专注定力','财务稳健'],feng:['沟通表达','焦虑纾解'],shui:['情绪安定','疗愈放下']};
+function natalThemes(ch){const mE=signEl(ch.月亮),sE=signEl(ch.太阳),vE=signEl(ch.金星),tags=[];
+  NATAL_EL_TH[mE].forEach((t,i)=>tags.push({theme:t,weight:i===0?.85:.6,source:'natal'}));
+  tags.push({theme:NATAL_EL_TH[sE][0],weight:.55,source:'natal'});
+  tags.push({theme:NATAL_EL_TH[vE][1],weight:.45,source:'natal'});return tags;}
+const MOON_READ={
+ shui:{core:s=>`太阳${s.sun}、月亮${s.moon}——外面看你也许${s.moon==='天蝎'?'冷静克制':'温和好相处'}，内里却把"感受"放在第一位：你是先用心、再用脑的人。`,
+  need:'你要的安全感来自"被懂"，不是"被安排"——一句真心的"我在"，胜过十条正确的道理。',
+  ins:['先安顿好情绪再做决定——你在情绪里下的判断，事后常想收回。','别把"共情别人"练成"消耗自己"，你也可以先把自己的需要说出口。','你的敏感是天赋不是软肋——它让你懂别人，也该拿来懂自己。'],
+  act:'今天给自己留 15 分钟不被打扰的独处，问一句"我现在真正想要的是什么"，写下来。'},
+ huo:{core:s=>`太阳${s.sun}、月亮${s.moon}——你的情绪来得直接、有热度，藏不住也不爱藏；被看见、被回应，你才有劲。`,
+  need:'你要的是"被认真接住"的回应——你给得热烈，也希望对面同样在场，而不是敷衍两句。',
+  ins:['冲劲是你的资源，但出口前先等三秒，能省掉很多事后的收拾。','把"我要赢"和"我要被认可"分开——你其实更在意后者。','允许自己慢一点，不是每件事都要马上有结果。'],
+  act:'挑一件你一直"想马上解决"的事，今天故意先放一放，睡一觉，明天再决定。'},
+ tu:{core:s=>`太阳${s.sun}、月亮${s.moon}——你靠稳定和确定感托底，务实、可靠，不轻易把情绪摊开，但心里都记着。`,
+  need:'你要的安全感是"可预期"——被踏实对待、被真的需要，比甜言蜜语更让你安心。',
+  ins:['你把太多事扛在自己身上，但"求助"不等于"软弱"。','别只用"有用"衡量自己——你不做事的时候，也值得被爱。','给不确定留一点余地，不是所有变化都是威胁。'],
+  act:'今天做一件"没有产出、纯粹让自己舒服"的小事，练习不靠"有用"来肯定自己。'},
+ feng:{core:s=>`太阳${s.sun}、月亮${s.moon}——你靠理解和交流呼吸，脑子转得快，需要空间，也需要被真正听懂。`,
+  need:'你要的是"被理解"——能把事和你聊透、又给你留出喘息空间的人，最让你放松。',
+  ins:['你习惯用"想清楚"来处理情绪，但有些感受得先被感受，才想得清。','别把距离当保护——你其实也需要靠近，只是怕被困住。','脑子里十个念头，挑一个说出口，比全憋着更让你轻。'],
+  act:'今天找一个信任的人，把最近盘在脑子里的一件事，完整讲给他听一次。'}
+};
+function computeNatal(){try{
+  S.mode='natal';const dd=document.getElementById('n_date').value.split('-').map(Number),tt=(document.getElementById('n_time').value||'12:00').split(':').map(Number),unk=document.getElementById('n_unk').checked,c=CITIES[+document.getElementById('n_city').value];
+  const h=unk?12:tt[0]+(tt[1]||0)/60,ch=chart(dd[0],dd[1],dd[2],h,c[3]);S.natChart=ch;
+  const hb=FateBazi.analyze(dd[0],dd[1],dd[2],unk?null:h,c[3]);S.bazi={her:hb};
+  const themes=natalThemes(ch).concat(hb.tizhiThemes.map(t=>({theme:t,weight:.5,source:'wuxing'})));
+  S.vec={version:'1.0',scene:'single',her:{wuxing:hb.wuxing,themes},meta:{generatedAt:new Date().toISOString(),agents:['natal','wuxing'],requestId:'req_'+Date.now()}};
+  S.plans.her=selectBeads(S.vec.her,S.wrist,null);S.plans.ta=null;
+  S.frozen=0;ledg('确认扣点·本命',0);S.dod.calc=true;S.dod.vec=true;S.dod.select=true;
+  renderS3n(ch);fire('natal_done');show('s3n');renderQA();
+ }catch(err){setPts(S.wallet+30);S.frozen=0;ledg('排盘失败·返还',30);alert('解读没接上，积分已返还');show('s1');renderQA();}}
+function renderS3n(ch){const s={sun:signOf(ch.太阳),moon:signOf(ch.月亮),ven:signOf(ch.金星)};
+  document.getElementById('natMini3').innerHTML=[['SUN 太阳','☉',s.sun],['MOON 月亮','☽',s.moon],['VENUS 金星','♀',s.ven]].map(([k,g,v])=>`<div class="m"><div class="k">${k}</div><div class="g">${g}</div><div class="v">${v}</div></div>`).join('');
+  const hb=S.bazi.her;document.getElementById('natBaziLine').innerHTML=`你的八字 <b style="color:var(--cinnabar)">${hb.pillarsText}</b> · 身${hb.shen} · 喜${hb.wuxing.favorable.map(e=>hb.elCN[e]).join('')}忌${hb.wuxing.avoid.map(e=>hb.elCN[e]).join('')} · 体质倾向 <b>${hb.tizhi}</b>（宜${hb.xiangfang}）`;
+  const R=MOON_READ[signEl(ch.月亮)];
+  document.getElementById('nCore').textContent=R.core(s);
+  document.getElementById('nNeed').textContent=R.need;
+  document.getElementById('nIns').innerHTML=R.ins.map(t=>`<li>${t}</li>`).join('');
+  document.getElementById('nAct').textContent=R.act;}
+fillCity(document.getElementById('n_city'),'杭州');
+document.getElementById('goNatal').onclick=()=>{
+  if(S.wallet<30){alert('积分不足，请充值');return;}
+  S.mode='natal';fire('natal_start');show('s2n');
+  S.frozen=30;setPts(S.wallet-30);ledg('冻结·本命',-30);renderQA();
+  setTimeout(()=>computeNatal(),1100);};
+document.getElementById('toRecoN').onclick=()=>{fire('reco_view');S.dod.reco=true;openReco();};
+document.getElementById('toQuizN').onclick=()=>openQuiz('s3n');
+</script>
+<script>
 /* ================= S6/S7 结算支付（mock，扣点/退款时序） ================= */
 function renderCart(){const o=S.order;const ws=['her','ta'].filter(w=>o[w]);
-  document.getElementById('cartList').innerHTML=ws.map(w=>{const p=o[w];const nm=w==='her'?(o.mode==='tarot'?'你的能量串':'你的串'):'TA 的串';const names=[...new Set(p.seq.filter(id=>SKU[id].kind!=='spacer').map(id=>SKU[id].n))].slice(0,3).join('+');
+  document.getElementById('cartList').innerHTML=ws.map(w=>{const p=o[w];const nm=w==='her'?({synastry:'你的串',tarot:'你的能量串',natal:'你的本命串'}[o.mode]||'你的串'):'TA 的串';const names=[...new Set(p.seq.filter(id=>SKU[id].kind!=='spacer').map(id=>SKU[id].n))].slice(0,3).join('+');
     return `<div class="item"><canvas class="mini" data-w="${w}" width="128" height="128"></canvas><div class="info"><div class="nm">${nm} <span class="badge ${p.hasCustom?'custom':'ready'}">${p.hasCustom?'含定制':'现货'}</span></div><div class="meta">${names} · ${beadsN(o.wrist)}颗 · 净手围${o.wrist}cm</div><div class="meta">¥ ${p.price}.0</div></div></div>`;}).join('');
   // draw minis
   document.querySelectorAll('.item canvas.mini').forEach(c=>{const cc=c.getContext('2d');const w=c.dataset.w,p=o[w];const W=64,H=64;c.style.width='64px';c.style.height='64px';cc.scale(2,2);
@@ -619,12 +706,19 @@ renderQA();
 window.addEventListener('resize',()=>{if(document.getElementById('s4').classList.contains('on'))renderPlate();});
 function drive(target){
   if(target==='tar1'){document.querySelector('#modeSeg .s[data-m="tarot"]').click();return;} // QA：只切到塔罗输入表单
+  if(target==='nat1'){document.querySelector('#modeSeg .s[data-m="natal"]').click();return;} // QA：只切到本命输入表单
   if(target==='t3'||target==='t4'){ // QA：塔罗单人支路（同步·跳过抽牌动画）
     document.querySelector('#modeSeg .s[data-m="tarot"]').click();
     S.tDomain='姻缘';document.getElementById('tSituation').value='和他在一起三年，最近总吵架，一提未来就回避，不知道该不该继续。';
     S.mode='tarot';fire('tarot_start');S.frozen=20;setPts(S.wallet-20);ledg('冻结·塔罗',-20);
     computeTarot(); if(target==='t3')return;
     document.getElementById('toRecoT').onclick(); return;
+  }
+  if(target==='n3'||target==='n4'){ // QA：本命单人支路（同步·跳过排盘动画）
+    document.querySelector('#modeSeg .s[data-m="natal"]').click();
+    S.mode='natal';fire('natal_start');S.frozen=30;setPts(S.wallet-30);ledg('冻结·本命',-30);
+    computeNatal(); if(target==='n3')return;
+    document.getElementById('toRecoN').onclick(); return;
   }
   fire('synastry_start');S.frozen=30;setPts(S.wallet-30);ledg('冻结·合盘',-30);
   compute(); if(target==='s3')return;
