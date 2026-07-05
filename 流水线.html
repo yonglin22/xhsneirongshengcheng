@@ -1750,7 +1750,7 @@ function fitNote(noteEl) {
   fit.style.transform = ''; fit.style.width = '100%';
   const cs = getComputedStyle(noteEl); const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
   const avail = noteEl.clientHeight - padV; const need = fit.scrollHeight; let s = 1;
-  if (need > avail + 1 && avail > 0) { s = Math.max(0.45, avail / need); fit.style.transform = 'scale(' + s + ')'; fit.style.width = (100 / s) + '%'; }
+  if (need > avail + 1 && avail > 0) { s = Math.max(0.40, avail / need); fit.style.transform = 'scale(' + s + ')'; fit.style.width = (100 / s) + '%'; }
   noteEl.dataset.fitScale = String(s); return s;
 }
 // 只统一各页「标题字号」（取最小值，保证最长标题也一行放下）；绝不动每页自身的内容缩放——否则会把写满的页一起缩小、显得很空，破坏 85% 密度
