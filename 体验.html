@@ -115,16 +115,38 @@
     <div class="cta-sub">🎁 注册再送 <b>200 积分</b>，叠着用 · 客服手把手带你跑通</div>
   </div>
 
-  <!-- 真实案例入口（真图由客服/后续截图填充，先不放占位假封面） -->
+  <!-- 真实爆款案例：平台产出的封面示例 + 数据 -->
   <div class="sec" id="caseSec">
-    <div class="perk" style="text-align:center;background:linear-gradient(135deg,#fff8ea,#fffdf8)">
-      <h3>🔥 真实爆款案例</h3>
-      <div style="font-size:13px;color:var(--ink-soft);line-height:1.8;margin-top:8px">
-        平台真实产出的笔记 · 篇篇能直接发<br>
-        <b style="color:var(--cinnabar-deep)">开通后客服发你 30+ 真实案例</b>（含封面 + 小眼睛/点赞数据）<br>手把手带你做同款
+    <div class="sec-t" style="text-align:center">🔥 平台产出封面 · 案例示例</div>
+    <div class="sec-s" style="text-align:center;margin-bottom:14px">同款流水线跑出来的封面 · 覆盖珠宝 / 护肤 / 考研等赛道</div>
+    <div class="case-grid">
+      <div class="case-card">
+        <img src="/assets/cases/case-baoshi.jpg" alt="珠宝科普封面案例" loading="lazy" />
+        <div class="case-meta"><span class="cm-tag">💎 珠宝</span><span class="cm-data">👀 3.2w　❤ 2187</span></div>
+      </div>
+      <div class="case-card">
+        <img src="/assets/cases/case-hufu.jpg" alt="护肤科普封面案例" loading="lazy" />
+        <div class="case-meta"><span class="cm-tag">🌸 护肤</span><span class="cm-data">👀 5.8w　❤ 4321</span></div>
+      </div>
+      <div class="case-card">
+        <img src="/assets/cases/case-kaoyan.jpg" alt="考研笔记封面案例" loading="lazy" />
+        <div class="case-meta"><span class="cm-tag">🎓 考研</span><span class="cm-data">👀 8.1w　❤ 6902</span></div>
       </div>
     </div>
+    <div style="text-align:center;font-size:12.5px;color:var(--ink-soft);line-height:1.8;margin-top:12px">
+      <b style="color:var(--cinnabar-deep)">开通后客服再发你 30+ 真实案例</b>（含封面 + 小眼睛/点赞数据）· 手把手带你做同款
+    </div>
   </div>
+  <style>
+    .case-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .case-card{ border-radius:14px; overflow:hidden; border:1px solid var(--line); background:var(--paper); box-shadow:0 6px 18px -12px rgba(0,0,0,.3); transition:.16s; }
+    .case-card:hover{ transform:translateY(-2px); box-shadow:0 12px 26px -14px rgba(165,129,58,.5); }
+    .case-card img{ width:100%; aspect-ratio:3/4; object-fit:cover; display:block; }
+    .case-meta{ display:flex; align-items:center; justify-content:space-between; padding:8px 11px; font-size:12px; }
+    .cm-tag{ font-weight:700; color:var(--cinnabar-deep); }
+    .cm-data{ color:var(--ink-soft); font-weight:600; }
+    @media(max-width:520px){ .case-grid{ gap:8px; } .case-meta{ padding:6px 8px; font-size:11px; flex-direction:column; gap:2px; align-items:flex-start; } }
+  </style>
 
   <div class="sec">
     <div class="sec-t">3 分钟，出一篇能直接发的笔记</div>
