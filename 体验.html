@@ -60,6 +60,13 @@
   .two .c .t{ font-size:14.5px; font-weight:800; margin-top:6px; }
   .two .c .d{ font-size:12px; color:var(--ink-soft); margin-top:5px; line-height:1.6; }
   @media(max-width:420px){ .two{ grid-template-columns:1fr; } }
+  /* 能力三卡（对齐原型「朱砂能为你做什么」） */
+  .cap3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; }
+  .cap{ border:1px solid var(--line); border-radius:16px; padding:18px 10px; background:#fff; text-align:center; }
+  .cap .ci{ font-size:28px; }
+  .cap .ct{ font-size:15px; font-weight:800; margin-top:8px; }
+  .cap .cd{ font-size:12.5px; color:var(--ink-soft); margin-top:3px; line-height:1.4; }
+  @media(max-width:420px){ .cap3{ grid-template-columns:1fr; } }
   /* 保障 */
   .guard{ background:linear-gradient(135deg,#241d12,#332815); color:#fff; border-radius:20px; padding:24px 22px; text-align:center; }
   .guard .g1{ font-size:17px; font-weight:800; }
@@ -99,24 +106,24 @@
     </div>
   </div>
 
+  <!-- 9 块 9 你能获得什么（对齐原型） -->
   <div class="sec">
-    <div class="sec-t">不止会写，还帮你「起号获客」</div>
-    <div class="two">
-      <div class="c"><div class="ic">✍️</div><div class="t">内容创作</div><div class="d">小红书 + 公众号双平台，选题到封面一条流水线，篇篇带你的人设风格。</div></div>
-      <div class="c"><div class="ic">🌱</div><div class="t">矩阵获客</div><div class="d">多号自动养号、评论区截流收集潜客、引流话术；带每日额度封顶，出验证自动停。</div></div>
+    <div class="perk">
+      <h3>🎁 9 块 9 你能获得什么？</h3>
+      <ul>
+        <li>💎 <span>直接到账 <b>1089 积分</b>（990 本金 + 送 99）· 注册再送 <b>200 积分</b></span></li>
+        <li>💬 <span><b>客服全程陪跑</b>：手把手教你怎么选赛道 + 建知识库 + 跑通内容创作流程</span></li>
+      </ul>
     </div>
   </div>
 
+  <!-- 朱砂能为你做什么：3 张能力卡（对齐原型） -->
   <div class="sec">
-    <div class="perk">
-      <h3>🎁 9 块 9 你能拿到什么</h3>
-      <ul>
-        <li>✅ <span>完整跑一遍 <b>选题→成稿→封面配图</b>（含 ≤4 张配图）</span></li>
-        <li>✅ <span>体验 <b>对标拆解</b> + <b>合规自检</b>，看 AI 怎么学爆款</span></li>
-        <li>✅ <span>试跑一次 <b>养号/截流获客</b> 计划（保守拟真、带风控）</span></li>
-        <li>🎁 <span>注册再送 <b>200 积分</b>，和首充积分叠着用</span></li>
-        <li>💬 <span><b>客服全程陪跑</b>：从选赛道到发布，手把手带你跑通第一篇</span></li>
-      </ul>
+    <div class="sec-t">朱砂 · 操盘台 能为你做什么？</div>
+    <div class="cap3">
+      <div class="cap"><div class="ci">🔍</div><div class="ct">对标拆解</div><div class="cd">合规自检</div></div>
+      <div class="cap"><div class="ci">🌱</div><div class="ct">养号 / 截流</div><div class="cd">获客计划</div></div>
+      <div class="cap"><div class="ci">✍️</div><div class="ct">选题 + 成稿</div><div class="cd">封面配图（去 AI 味）</div></div>
     </div>
   </div>
 
