@@ -531,7 +531,12 @@ document.addEventListener('click', e => { if (e.target.closest('#agBack')) { e.p
 window.buildMyAgentNav = function () {
   const el = document.getElementById('agTracks'); if (!el) return;
   const order = window.TRACK_ORDER || [];
-  const isHome = document.body.getAttribute('data-page') === 'home';
+  const _pg = document.body.getAttribute('data-page');
+  const isHome = _pg === 'home';
+  // 当前所在功能高亮：内容(选题/流水线/预览/自检/首页) · 获客(matrix系) · 智能体(人设)
+  const curContent = ['home', 'topic', 'pipeline', 'preview', 'compliance'].includes(_pg);
+  const curGrowth = _pg === 'matrix';
+  const curAgent = _pg === 'agent';
   const tk = (typeof getTrack === 'function') ? getTrack() : null;
   const curId = tk ? tk.id : null;
   const curName = tk ? tk.name : '智能体';
@@ -543,7 +548,7 @@ window.buildMyAgentNav = function () {
   // 顶栏合并为两个下拉：内容生成 Agent（赛道+新增+设置）/ 获客 Agent（矩阵+养号+发布）
   el.innerHTML = `
     <div class="ag-dd">
-      <button class="ag-dd-btn on" type="button">✍️ 内容生成 · ${escN(curName)} <i>▾</i></button>
+      <button class="ag-dd-btn ${curContent ? 'on cur' : ''}" type="button">✍️ 内容生成 · ${escN(curName)} <i>▾</i></button>
       <div class="ag-dd-menu">
         <div class="ag-dd-h">切换赛道智能体</div>
         ${trackItems}
@@ -553,7 +558,7 @@ window.buildMyAgentNav = function () {
       </div>
     </div>
     <div class="ag-dd">
-      <button class="ag-dd-btn" type="button">🎯 获客 Agent <i>▾</i></button>
+      <button class="ag-dd-btn ${curGrowth ? 'on cur' : ''}" type="button">🎯 获客 Agent <i>▾</i></button>
       <div class="ag-dd-menu">
         <a href="/设备看板.html" class="ag-dd-item">📡 设备看板（投屏）</a>
         <a href="/账号矩阵.html" class="ag-dd-item">🗂 账号矩阵</a>
@@ -564,7 +569,7 @@ window.buildMyAgentNav = function () {
         <a href="/一键发布.html" class="ag-dd-item">🚀 一键发布</a>
       </div>
     </div>
-    <a href="/智能体.html" class="ag-dd-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" title="配置该赛道的人设 / 知识库">🧠 智能体(人设)设置</a>`;
+    <a href="/智能体.html" class="ag-dd-btn ${curAgent ? 'on cur' : ''}" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" title="配置该赛道的人设 / 知识库">🧠 智能体(人设)设置</a>`;
   el.querySelectorAll('.ag-dd-btn').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); const dd = b.parentElement; const wasOpen = dd.classList.contains('open');
     el.querySelectorAll('.ag-dd').forEach(x => x.classList.remove('open'));

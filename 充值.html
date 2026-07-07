@@ -6,7 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
 <title>充值 · 积分包 · 赛道智能体操盘台</title>
 <link rel="stylesheet" href="/assets/tw.css?v=1" />
-<link rel="stylesheet" href="/assets/atelier.css?v=120" />
+<link rel="stylesheet" href="/assets/atelier.css?v=121" />
 </head>
 <body class="stage grain min-h-screen" data-page="recharge">
 
@@ -48,6 +48,20 @@
       <h2 class="font-song font-bold text-[16px] mb-1">💳 充值积分包</h2>
       <div class="text-[11.5px] text-[var(--ink-soft)] mb-4">选套餐下单 → 按提示付款 → 到账。</div>
       <div id="packs" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      <!-- 客服全程陪跑：所有套餐共用权益 -->
+      <div style="margin-top:14px;background:rgba(165,129,58,.07);border:1px solid rgba(165,129,58,.25);border-radius:12px;padding:13px 15px">
+        <div style="font-size:13px;font-weight:800;color:var(--cinnabar-deep);margin-bottom:6px">💬 客服全程陪跑（所有套餐共享）</div>
+        <div style="font-size:12px;color:var(--ink-soft);line-height:1.75">
+          充值任意套餐即享，加客服微信开通后 <b style="color:var(--ink)">3 天内</b>专属陪跑：
+          <ul style="margin:6px 0 0;padding-left:2px;list-style:none">
+            <li>· <b style="color:var(--ink)">1 对 1 微信答疑</b>：使用中任何卡点随时问，工作时间尽快回</li>
+            <li>· <b style="color:var(--ink)">选赛道 + 建知识库指导</b>：帮你把号定位、把资料喂对</li>
+            <li>· <b style="color:var(--ink)">手把手带跑通第一篇</b>：从选题→成稿→封面过一遍</li>
+            <li>· <b style="color:var(--ink)">发布 & 起号建议</b>：怎么发、主页怎么挂钩子、怎么养号更稳</li>
+          </ul>
+          <div style="margin-top:6px;font-size:11px">说明：陪跑为使用指导，不对平台流量结果作保证；积分为站内消费额度、不可提现。</div>
+        </div>
+      </div>
     </div>
     <div class="lg:sticky" style="top:74px">
       <!-- 支付区：下单后展示付款方式（一期=扫码加微信+后台开通；接了微信支付=Native二维码）-->
@@ -63,7 +77,7 @@
 </main>
 
 <script src="/assets/tracks.js?v=27"></script>
-<script src="/assets/app.js?v=77"></script>
+<script src="/assets/app.js?v=78"></script>
 <script>
 const $ = s => document.querySelector(s);
 // 主题切换：已由全局外壳（app.js）统一处理，此处移除
@@ -117,7 +131,6 @@ async function loadPacks(retried) {
           <span class="font-display font-light leading-none" style="font-size:26px;color:var(--cinnabar)">¥${yuan(p.cny)}</span>
         </div>
         <div class="text-[12px] text-[var(--ink-soft)] mt-1.5">到账 <b style="color:var(--ink)">${p.credits}</b> 积分${p.desc ? ` · ${p.desc}` : ''}</div>
-        ${p.id === 'exp' ? `<div style="margin-top:8px;background:rgba(165,129,58,.08);border:1px solid rgba(165,129,58,.25);border-radius:8px;padding:7px 10px;font-size:11px;line-height:1.55;color:var(--cinnabar-deep)"><b>💬 含客服全程陪跑</b>：1 对 1 微信答疑 · 选赛道 / 建知识库指导 · 手把手带你跑通第一篇 · 发布与起号建议（开通后 7 天优先响应）</div>` : ''}
       </button>`).join('');
   document.querySelectorAll('.packBtn').forEach(b => b.addEventListener('click', () => recharge(b.dataset.id)));
 }

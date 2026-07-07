@@ -548,6 +548,9 @@ html[data-theme="dark"] .modal{ background:var(--paper-2); }
   background:#fff; color:var(--ink); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition:.15s; }
 .ag-dd-btn:hover{ border-color:var(--cinnabar); }
 .ag-dd-btn.on{ background:rgba(165,129,58,.08); color:var(--cinnabar-deep); border-color:rgba(165,129,58,.25); }
+/* 当前所在功能：底部高亮条，明确告诉用户停在哪个界面 */
+.ag-dd-btn.cur{ position:relative; font-weight:700; }
+.ag-dd-btn.cur::after{ content:''; position:absolute; left:12px; right:12px; bottom:-8px; height:3px; border-radius:3px 3px 0 0; background:var(--cinnabar); box-shadow:0 -1px 6px -1px rgba(165,129,58,.6); }
 .ag-dd-btn i{ font-style:normal; font-size:10px; opacity:.8; }
 .ag-dd-menu{ position:absolute; top:calc(100% + 7px); left:0; min-width:212px; background:#fff; border:1px solid var(--line); border-radius:13px;
   box-shadow:0 18px 50px -18px rgba(0,0,0,.34); padding:6px; z-index:120; display:none; max-height:70vh; overflow:auto; }
