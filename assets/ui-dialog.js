@@ -32,7 +32,8 @@
       document.body.appendChild(mask);
       var done=function(v){ if(mask.parentNode) mask.parentNode.removeChild(mask); document.removeEventListener('keydown',onKey); resolve(v); };
       function onKey(e){ if(e.key==='Escape') done(opts.confirm?false:true); else if(e.key==='Enter') done(true); }
-      mask.addEventListener('click',function(e){ if(e.target===mask) done(opts.confirm?false:true); var r=e.target.getAttribute&&e.target.getAttribute('data-r'); if(r!=null) done(r==='1'); });
+      var _mdMask=false; mask.addEventListener('mousedown',function(e){ _mdMask=(e.target===mask); });
+      mask.addEventListener('click',function(e){ if(e.target===mask){ if(_mdMask) done(opts.confirm?false:true); _mdMask=false; return; } var r=e.target.getAttribute&&e.target.getAttribute('data-r'); if(r!=null) done(r==='1'); });
       document.addEventListener('keydown',onKey);
       var go=mask.querySelector('.zdlg-btn.go'); if(go) go.focus();
     });
@@ -55,7 +56,8 @@
       var inp=mask.querySelector('.zdlg-input'); inp.value=(defVal==null?'':String(defVal));
       var done=function(v){ if(mask.parentNode) mask.parentNode.removeChild(mask); document.removeEventListener('keydown',onKey); resolve(v); };
       function onKey(e){ if(e.key==='Escape') done(null); else if(e.key==='Enter') done(inp.value); }
-      mask.addEventListener('click',function(e){ if(e.target===mask){ done(null); return; } var r=e.target.getAttribute&&e.target.getAttribute('data-r'); if(r!=null) done(r==='1'?inp.value:null); });
+      var _mdMask=false; mask.addEventListener('mousedown',function(e){ _mdMask=(e.target===mask); });
+      mask.addEventListener('click',function(e){ if(e.target===mask){ if(_mdMask) done(null); _mdMask=false; return; } var r=e.target.getAttribute&&e.target.getAttribute('data-r'); if(r!=null) done(r==='1'?inp.value:null); });
       document.addEventListener('keydown',onKey);
       setTimeout(function(){ inp.focus(); inp.select(); },30);
     });

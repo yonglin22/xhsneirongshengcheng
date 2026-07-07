@@ -384,7 +384,7 @@
   </div>
 </div>
 
-<script src="/assets/ui-dialog.js?v=3"></script>
+<script src="/assets/ui-dialog.js?v=4"></script>
 <script src="/assets/tracks.js?v=27"></script>
 <script src="/assets/app.js?v=75"></script>
 <script>
@@ -430,7 +430,10 @@ const modal = $('#trackModal');
 function openModal(){ modal.classList.add('open'); $('#modalStatus').textContent = ''; $('#mName').focus(); }
 function closeModal(){ modal.classList.remove('open'); }
 $('#closeModal').addEventListener('click', closeModal);
-modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+// 只有「在遮罩上按下 + 在遮罩上松开」才算点外部关闭；避免从输入框里拖选文字、松开落在遮罩时误关
+let _mdOnMask = false;
+modal.addEventListener('mousedown', e => { _mdOnMask = (e.target === modal); });
+modal.addEventListener('click', e => { if (e.target === modal && _mdOnMask) closeModal(); _mdOnMask = false; });
 
 $('#aiPersona').addEventListener('click', async () => {
   const name = $('#mName').value.trim();
