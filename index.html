@@ -90,14 +90,8 @@
 <!-- 导航已由全局外壳（左边栏 + 顶栏，app.js buildShell 注入）统一承载，旧 header 已移除 -->
 <main class="ag-page">
 
-  <!-- ① 选/建赛道智能体：前置平铺，第一眼可选可建 -->
-  <div id="trackSection" class="card" style="display:block !important;padding:15px 20px;margin-bottom:18px;border-left:5px solid var(--cinnabar)">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:11px">
-      <span class="font-song font-bold" style="font-size:17px">① 选择 / 新建你的赛道智能体</span>
-      <span style="font-size:12px;color:var(--ink-soft)">每个赛道自带人设 · 合规红线 · 模板，先选一个或＋新建再开始</span>
-    </div>
-    <div id="trackChips" class="flex flex-wrap gap-2.5"></div>
-  </div>
+  <!-- 隐藏：旧赛道选择区（逻辑保留，给 applyTrack/renderChips 用；赛道切换/新增走顶栏下拉）-->
+  <div id="trackSection" style="display:none"><div id="trackChips"></div></div>
 
   <!-- Hero 轮播：创作引导 / 邀请有礼 / 充值有礼 -->
   <div class="hm-carousel card" id="heroCarousel">
@@ -145,7 +139,7 @@
         <div class="hm-hero-l">
           <div class="hm-kick" style="color:var(--cinnabar)">💎 充值有礼</div>
           <h1 class="hm-h1">充值积分，<span style="color:var(--cinnabar)">越充越划算</span></h1>
-          <p class="hm-sub">1 积分 = ¥0.01，后扣费、失败不收费。基础包最划算、体验包新人首选；合伙人充值额外赠分 30%。</p>
+          <p class="hm-sub">1 积分 = ¥0.01，后扣费、失败不收费。基础包最划算、新人首充包 9.9 元最超值；合伙人充值额外赠分 30%。</p>
           <div class="hm-acts">
             <a href="/充值.html" class="btn-go" style="background:#f5f5f5;color:#444;border:1px solid #ddd;box-shadow:none">＋ 去充值 →</a>
             <a href="/账户.html" class="btn-ghost">查看我的积分</a>
@@ -153,7 +147,7 @@
         </div>
         <div class="hm-flow">
           <div class="fs"><b>🔥</b> 基础包 · 最划算</div>
-          <div class="fs"><b>👍</b> 体验包 · 新人首选</div>
+          <div class="fs"><b>👍</b> 新人首充包 · ¥9.9</div>
           <div class="fs"><b>💎</b> 充值赠分 · 等级越高越多</div>
           <div class="fs"><b>合伙人</b> 充值赠分 30%</div>
         </div>
@@ -363,11 +357,11 @@
     var m = document.createElement('div'); m.className = 'pgi-mask fp-mask';
     m.innerHTML = '<div class="pgi" role="dialog"><div class="pgi-hd"><div class="em">👋</div><div class="t">先选一个赛道开始</div>'
       + '<div class="i">每个赛道智能体自带人设、合规红线、模板。选一个已有赛道，或＋新建你自己的赛道，再开始创作。</div></div>'
-      + '<div class="pgi-bd" style="font-size:13px;color:var(--ink-soft,#8b8378);line-height:1.85">· 顶部「① 选择 / 新建你的赛道智能体」里点一个赛道即可<br>· 想要专属号？点「＋ 新增赛道」自己建<br>· 具体怎么用：右下角「小红书助手」和各页「❔ 引导」随时看教程</div>'
+      + '<div class="pgi-bd" style="font-size:13px;color:var(--ink-soft,#8b8378);line-height:1.85">· 顶栏「✍️ 内容生成 · 赛道 ▾」下拉里切换赛道，或点「＋ 新增赛道」自己建<br>· 想配人设/知识库：顶栏「🧠 智能体(人设)设置」<br>· 具体怎么用：右下角「小红书助手」和各页「❔ 引导」随时看教程</div>'
       + '<div class="pgi-ft"><button class="pgi-btn" id="fpNew">＋ 新建我的赛道</button><button class="pgi-skip" id="fpOk">先用已有赛道 →</button></div></div>';
     document.body.appendChild(m);
     function done() { if (m.parentNode) m.parentNode.removeChild(m); try { localStorage.setItem('ag_onboarded', '1'); } catch (e) {} }
-    m.querySelector('#fpOk').addEventListener('click', function () { done(); var ts = document.getElementById('trackSection'); if (ts) ts.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    m.querySelector('#fpOk').addEventListener('click', function () { done(); });
     m.querySelector('#fpNew').addEventListener('click', function () { done(); if (typeof openModal === 'function') openModal(); });
     var md = false; m.addEventListener('mousedown', function (e) { md = (e.target === m); }); m.addEventListener('click', function (e) { if (e.target === m && md) done(); });
   }
@@ -417,7 +411,7 @@
 
 <script src="/assets/ui-dialog.js?v=4"></script>
 <script src="/assets/tracks.js?v=27"></script>
-<script src="/assets/app.js?v=76"></script>
+<script src="/assets/app.js?v=77"></script>
 <script>
 function activeId(){ return localStorage.getItem('ag_track') || TRACK_ORDER[0]; }
 

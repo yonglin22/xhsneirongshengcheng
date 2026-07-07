@@ -563,7 +563,8 @@ window.buildMyAgentNav = function () {
         <a href="/数据复盘.html" class="ag-dd-item">📈 数据复盘（红线）</a>
         <a href="/一键发布.html" class="ag-dd-item">🚀 一键发布</a>
       </div>
-    </div>`;
+    </div>
+    <a href="/智能体.html" class="ag-dd-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" title="配置该赛道的人设 / 知识库">🧠 智能体(人设)设置</a>`;
   el.querySelectorAll('.ag-dd-btn').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); const dd = b.parentElement; const wasOpen = dd.classList.contains('open');
     el.querySelectorAll('.ag-dd').forEach(x => x.classList.remove('open'));
