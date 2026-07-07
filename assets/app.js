@@ -686,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.__xhsWidget) return; window.__xhsWidget = 1;
   const cin = 'var(--cinnabar,#a5813a)';
   let loaded = false, KB = '', DOCS = [], FAQ = [], RULES = [];
-  function ensureHelpKB() { return new Promise(r => { if (window.HELP_DOCS) return r(); const s = document.createElement('script'); s.src = '/assets/help-kb.js?v=6'; s.onload = () => r(); s.onerror = () => r(); document.head.appendChild(s); }); }
+  function ensureHelpKB() { return new Promise(r => { if (window.HELP_DOCS) return r(); const s = document.createElement('script'); s.src = '/assets/help-kb.js?v=7'; s.onload = () => r(); s.onerror = () => r(); document.head.appendChild(s); }); }
   async function loadKB() {
     if (loaded) return; loaded = true;
     await ensureHelpKB();
