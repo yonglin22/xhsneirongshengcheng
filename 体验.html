@@ -67,19 +67,25 @@
   .cap .ct{ font-size:15px; font-weight:800; margin-top:8px; }
   .cap .cd{ font-size:12.5px; color:var(--ink-soft); margin-top:3px; line-height:1.4; }
   @media(max-width:420px){ .cap3{ grid-template-columns:1fr; } }
-  /* 真实产出案例 */
-  .cases{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
-  .case{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 8px 20px -14px rgba(0,0,0,.18); }
-  .case-cover{ aspect-ratio:3/4; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; text-align:center; padding:10px; font-family:"Songti SC","STSong",serif; font-weight:900; font-size:16px; line-height:1.3; position:relative; }
-  .case-cover b{ background:linear-gradient(180deg,transparent 56%,rgba(255,255,255,.78) 56%); padding:0 3px; border-radius:2px; font-weight:900; }
+  /* 真实产出案例：仿小红书信息流卡片 */
+  .cases{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:16px; }
+  .case{ border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 10px 24px -14px rgba(0,0,0,.22); }
+  .case-cover{ aspect-ratio:3/4; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; text-align:center; padding:12px 10px; font-family:"Songti SC","STSong",serif; font-weight:900; font-size:16px; line-height:1.28; position:relative; overflow:hidden; }
+  .case-cover .bg-e{ position:absolute; right:-10px; bottom:-16px; font-size:78px; opacity:.15; }
+  .case-cover b{ background:linear-gradient(180deg,transparent 55%,rgba(255,255,255,.85) 55%); padding:0 3px; border-radius:2px; font-weight:900; position:relative; }
+  .case-cover>div{ position:relative; z-index:1; }
   .case-cover.g1{ background:linear-gradient(160deg,#fdf0d0,#f3d492); color:#6a4a12; }
-  .case-cover.g2{ background:linear-gradient(160deg,#efe8d6,#cdbb90); color:#33280a; }
-  .case-cover.g3{ background:linear-gradient(160deg,#fdead0,#f1c483); color:#6a4210; }
-  .case-cover .ctag{ position:absolute; top:8px; left:8px; font-family:-apple-system,sans-serif; font-size:8.5px; font-weight:800; color:#fff; background:rgba(120,88,20,.55); border-radius:999px; padding:2px 7px; letter-spacing:.02em; }
-  .case-cover .hl{ background:linear-gradient(180deg,transparent 58%,rgba(255,255,255,.72) 58%); padding:0 2px; }
-  .case-data{ font-size:10.5px; font-weight:700; color:#7a5c1e; padding:8px 4px; text-align:center; font-family:-apple-system,sans-serif; }
-  .case-data .u{ color:var(--ink-soft); font-weight:600; }
-  @media(max-width:420px){ .case-cover{ font-size:13px; } }
+  .case-cover.g2{ background:linear-gradient(160deg,#e7efe0,#bcd0ad); color:#2e3d24; }
+  .case-cover.g3{ background:linear-gradient(160deg,#fde3d6,#f2b193); color:#7a3820; }
+  .case-cover .ctag{ position:absolute; top:8px; left:8px; z-index:2; font-family:-apple-system,sans-serif; font-size:8.5px; font-weight:800; color:#fff; background:rgba(60,44,14,.5); border-radius:999px; padding:2px 8px; letter-spacing:.02em; }
+  .case-meta{ padding:8px 8px 9px; }
+  .case-title{ font-size:11px; color:#2b2b2b; font-weight:600; line-height:1.34; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:30px; }
+  .case-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:7px; }
+  .case-foot .who{ display:flex; align-items:center; gap:4px; min-width:0; }
+  .case-foot .av{ width:15px; height:15px; border-radius:50%; flex:none; }
+  .case-foot .nm{ font-size:9.5px; color:#9a9a9a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .case-foot .like{ font-size:10px; color:#9a9a9a; flex:none; }
+  @media(max-width:420px){ .case-cover{ font-size:13.5px; } }
   /* 保障 */
   .guard{ background:linear-gradient(135deg,#241d12,#332815); color:#fff; border-radius:20px; padding:24px 22px; text-align:center; }
   .guard .g1{ font-size:17px; font-weight:800; }
@@ -115,16 +121,25 @@
     <div class="sec-s">3 分钟一篇，篇篇能直接发（下方为产出示例）</div>
     <div class="cases">
       <div class="case">
-        <div class="case-cover g1"><span class="ctag">设计考研</span><div>一张图<b>背下</b></div><div>世界现代设计史</div></div>
-        <div class="case-data">👁 <b>1.2w</b> <span class="u">小眼睛</span> · ❤ <b>860</b> · ⭐ <b>1.3k</b></div>
+        <div class="case-cover g1"><span class="ctag">设计考研</span><span class="bg-e">🕰</span><div>一张图<b>背下</b></div><div>世界现代设计史</div></div>
+        <div class="case-meta">
+          <div class="case-title">一张图背下《世界现代设计史》时间线丨背了三年终于通了</div>
+          <div class="case-foot"><span class="who"><span class="av" style="background:linear-gradient(135deg,#f6b56b,#e08a3c)"></span><span class="nm">设计考研上岸</span></span><span class="like">❤ 1.2w</span></div>
+        </div>
       </div>
       <div class="case">
-        <div class="case-cover g2"><span class="ctag">效率</span><div>我用 AI 把资料</div><div><b>嚼碎成笔记</b></div></div>
-        <div class="case-data">👁 <b>8600</b> <span class="u">小眼睛</span> · ❤ <b>540</b> · ⭐ <b>720</b></div>
+        <div class="case-cover g2"><span class="ctag">效率</span><span class="bg-e">🌱</span><div>我用 AI 把资料</div><div><b>嚼碎成笔记</b></div></div>
+        <div class="case-meta">
+          <div class="case-title">我用 AI 把设计考研资料嚼碎成笔记图，1 天顶一周</div>
+          <div class="case-foot"><span class="who"><span class="av" style="background:linear-gradient(135deg,#8fc47a,#4f9a52)"></span><span class="nm">上岸学姐笔记</span></span><span class="like">❤ 8600</span></div>
+        </div>
       </div>
       <div class="case">
-        <div class="case-cover g3"><span class="ctag">冲刺必背</span><div>设计史论述</div><div><b>万能模板</b></div></div>
-        <div class="case-data">👁 <b>2.4w</b> <span class="u">小眼睛</span> · ❤ <b>1.9k</b> · ⭐ <b>3.2k</b></div>
+        <div class="case-cover g3"><span class="ctag">冲刺必背</span><span class="bg-e">✍️</span><div>设计史论述</div><div><b>万能模板</b></div></div>
+        <div class="case-meta">
+          <div class="case-title">设计史论述题「5 大万能句」，直接套，从 12 分到 20 分</div>
+          <div class="case-foot"><span class="who"><span class="av" style="background:linear-gradient(135deg,#ef9a8c,#d95f45)"></span><span class="nm">考研冲刺日记</span></span><span class="like">❤ 2.4w</span></div>
+        </div>
       </div>
     </div>
     <div style="text-align:center;font-size:12px;color:var(--ink-soft);margin-top:11px">开通后客服发你<b style="color:var(--cinnabar-deep)">更多真实案例</b> · 手把手带你做同款 👆</div>
@@ -157,7 +172,7 @@
     <div class="cap3">
       <div class="cap"><div class="ci">🔍</div><div class="ct">对标拆解</div><div class="cd">合规自检</div></div>
       <div class="cap"><div class="ci">🌱</div><div class="ct">养号 / 截流</div><div class="cd">获客计划</div></div>
-      <div class="cap"><div class="ci">✍️</div><div class="ct">选题 + 成稿</div><div class="cd">封面配图（去 AI 味）</div></div>
+      <div class="cap"><div class="ci">✍️</div><div class="ct">选题 + 成稿</div><div class="cd">封面配图 · <b style="color:var(--cinnabar-deep)">内容无 AI 味</b></div></div>
     </div>
   </div>
 
