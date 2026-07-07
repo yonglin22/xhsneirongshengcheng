@@ -518,6 +518,15 @@ function outputHTML(st) {
     return `<div class="out p-4 space-y-3">
       <!-- 主操作：一键出醇备忘录真字图（封面+内页） -->
       <button id="genNote" style="width:100%;border:none;border-radius:12px;padding:13px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#caa85e,#a5813a);color:#fff;box-shadow:0 6px 18px -6px rgba(165,129,58,.5)">📒 生成长图笔记（备忘录真字封面 + AI图封面 + 内页）</button>
+      <!-- AI 整图海报：连字带图一次性生成（科普/避坑信息图风），不叠模板字 -->
+      <div style="border:1.5px solid var(--cinnabar);border-radius:12px;padding:11px 13px;background:linear-gradient(180deg,rgba(165,129,58,.07),rgba(165,129,58,.02))">
+        <button id="genInfoPoster" style="width:100%;border:none;border-radius:10px;padding:11px 16px;font-size:13.5px;font-weight:700;cursor:pointer;background:#fff;color:var(--cinnabar-deep);border:1px solid var(--cinnabar)">🖼️ AI 整图海报（科普 / 避坑信息图 · 连字带图一次生成）</button>
+        <div class="flex items-center gap-1.5 flex-wrap mt-2 text-[11.5px]">
+          <span class="text-[var(--ink-soft)]">版式</span>
+          ${['vs对比','避坑清单','步骤流程','榜单盘点'].map((n,ix)=>{const on=((state.posterKind||'vs对比')===n);return `<button class="poster-kind" data-k="${n}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 9px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${n}</button>`;}).join('')}
+        </div>
+        <div class="text-[11px] text-[var(--ink-soft)] mt-1.5 leading-relaxed">整张海报由 AI 一次生成（含标题/图标/主体图/文字），无模板感、像设计师作品。<b style="color:var(--cinnabar-deep)">AI 画中文偶有错别字属正常</b>，不满意点几次「重出」挑一张；主体实物想更真可先「上传真实图」当参考。</div>
+      </div>
       <!-- 紧凑副操作行：比例 + 上传真实图 -->
       <div class="flex items-center gap-2 flex-wrap text-[12px]">
         <span class="text-[var(--ink-soft)]">比例</span>${_ratioBtns}
@@ -1902,6 +1911,77 @@ async function genNoteImages() {
   finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
 }
 
+/* ========== AI 整图海报（科普/避坑信息图）：连字带图一次生成 ==========
+   与普通封面不同：不出「无字底图＋模板叠字」，而是让图像模型直接画出整张海报
+   （标题/图标/主体实物/分区文字全在图里）。文案先经 Claude 结构化，再喂给一套
+   调好的「小红书科普信息图海报」风格预设，观感对标手账/稿定级设计图。      */
+const POSTER_STYLE = `【出图风格 · 小红书爆款「科普信息图海报」】竖版 3:4 长图。
+整体审美：干净现代的信息图排版设计，像专业设计师用稿定/Canva 做的高赞干货图；浅色柔和背景（浅蓝 / 米白 / 马卡龙同色系渐变），全图圆角卡片分区，每个区块用不同浅色底色区分、区块之间留清晰间距。
+标题：顶部一行超大加粗简体中文主标题（深蓝或品牌色，带轻描边或投影），可点缀钻石💎/星光✦/小图标。
+信息层级：主标题 → 中部核心对比 / 要点区（配精致扁平小图标：盾牌·天平·水滴·证书·放大镜·对勾·叉号）→ 底部结论横幅（大字口号 + 虚线框副标题）。
+配色纪律：整图不超过 3 个色相，明度统一、干净不脏；对的用绿色✅、错的用红色❌，重点色块克制。
+装饰：点缀手绘星光✦、爱心♥、胶带、回形针等小元素营造手账拼贴感，但绝不堆在画面正中，保持呼吸感。
+主体实物（宝石 / 产品 / 物件）：用真实摄影级精修图自然嵌入卡片，光泽质感真实、非塑料感。
+文字铁律：所有文字必须是清晰规范的简体中文，排版整齐、层级分明、字距均匀、无错别字、无乱码、不重叠、不出框；标点用中文标点。`;
+const POSTER_KIND_HINT = {
+  'vs对比': '版式＝左右两栏对比卡，中间一个圆形「VS」徽章；两栏各配一张主体实物图 + 2 个对勾要点；再来一排「常见误区 ①②③」，最后决策分流「适合 A → 选 X / 适合 B → 选 Y」+ 结论横幅。',
+  '避坑清单': '版式＝顶部大标题，中部「✅ 该做 / ❌ 避坑」两列清单各 3~4 条（每条配小图标），底部「必看要点」一排 + 结论横幅。',
+  '步骤流程': '版式＝顶部大标题，中部纵向或阶梯式「① ② ③ ④」步骤卡（每步一句要点 + 小图标），底部一句总结横幅。',
+  '榜单盘点': '版式＝顶部大标题（如「XX 必看清单」），中部编号榜单 3~5 项（每项：序号徽章 + 名称 + 一句点评 +（可选）主体小图），底部结论横幅。'
+};
+async function genInfographicPoster() {
+  if (!state.topic) { const st = $('#imgStatus'); if (st) { st.textContent = '请先在上方填写选题'; st.style.color = 'var(--cinnabar-deep)'; } return; }
+  const btn = $('#genInfoPoster'), st = $('#imgStatus'), old = btn ? btn.textContent : '';
+  const kind = state.posterKind || 'vs对比';
+  if (btn) { btn.disabled = true; btn.textContent = '构思海报文案…'; }
+  if (st) { st.textContent = '正在把这篇内容排成信息图海报…（约 40 秒）'; st.style.color = 'var(--ink-soft)'; }
+  try {
+    const body = (state.body || []).join('\n');
+    const cl = (state.cover && state.cover.cover_lines || []).filter(Boolean).join('　');
+    // ① Claude 把这篇内容压成「海报文案脚本」——只给要画的中文文字，不写画风
+    let script = '';
+    try {
+      const j = extractJSON(await callClaude({
+        system: '你是小红书信息图海报的文案策划，只输出 JSON。', json: true, max_tokens: 700, action: 'poster',
+        prompt: `把下面这篇内容，提炼成一张「${kind}」型科普信息图海报要印在图上的文字脚本。要求：口语、真实、能背，每条尽量短（标题≤12字，要点≤14字），不夸大不违禁。
+【选题】${state.topic}
+${cl ? '【已定主标题】' + cl + '\n' : ''}【正文】${(body || '（无，按选题自行合理拟定）').slice(0, 1600)}
+按「${kind}」版式给字段，只输出 JSON：
+{"headline":"顶部主标题(1行,有钩子)","sub":"副标题/一句话(可空)","blocks":[{"h":"小区块标题","items":["要点1","要点2"]}],"conclusion":"底部结论横幅口号","hashtags":[]}
+其中 blocks 给 2~4 个区块，贴合「${POSTER_KIND_HINT[kind]}」的结构。`
+      }));
+      const parts = [];
+      if (j.headline) parts.push('主标题：' + j.headline);
+      if (j.sub) parts.push('副标题：' + j.sub);
+      (j.blocks || []).forEach((b, ix) => { parts.push(`区块${ix + 1}「${b.h || ''}」：` + (Array.isArray(b.items) ? b.items.join('；') : '')); });
+      if (j.conclusion) parts.push('底部结论横幅：' + j.conclusion);
+      script = parts.join('\n');
+    } catch { script = `主标题：${cl || state.topic}\n正文要点：${(body || state.topic).slice(0, 300)}`; }
+    if (btn) btn.textContent = 'AI 出图中…';
+    // ② 组装整图海报 prompt：文案脚本 + 版式提示 + 风格预设；主体可垫真实上传图做 i2i 更真
+    const refImg = (state.refImages && state.refImages[0]) || '';
+    const prompt = `画一张小红书「${kind}」科普信息图海报，把下面这份文字脚本完整、准确地排进图里（一字不差，别自己乱改文案）：
+--- 海报文字脚本 ---
+${script}
+--- 脚本结束 ---
+${POSTER_KIND_HINT[kind]}
+${POSTER_STYLE}`;
+    const reqBody = { provider: 'gptimage', action: 'cover', size: ratioSize(), prompt };
+    if (refImg) { reqBody.ref_image = refImg; reqBody.prompt = `参考所给图片里的【主体实物】质感与外观，把它自然嵌入海报对应位置；其余按脚本排版。\n` + prompt; }
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(180000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(reqBody) });
+    const tx = await r.text();
+    if (!r.ok) throw new Error(errMsg(tx));
+    let u = ''; try { const j = JSON.parse(tx); u = j.url || j.image || (j.data && j.data[0] && (j.data[0].url || j.data[0].b64_json && ('data:image/png;base64,' + j.data[0].b64_json))) || ''; } catch {}
+    if (!u) throw new Error('未拿到图片');
+    u = await persistImgUrl(u);
+    state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
+    // raw=true：整图海报文字已在图里，直接原样显示，不叠任何模板字/蒙层
+    state.coverImages.unshift(u); state.coverCaptions.unshift({ theme: 'photo', raw: true });
+    state.coverImage = state.coverImages[0]; persist(); renderCoverImages();
+    if (st) { st.textContent = '✓ 已生成整图海报（第1张）· 不满意可再点一次挑一张'; st.style.color = '#00a052'; }
+  } catch (e) { if (st) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
+}
 async function genCoverImage() {
   if (!state.topic) { const st = $('#imgStatus'); if (st) { st.textContent = '请先在上方填写选题'; st.style.color = 'var(--cinnabar-deep)'; } return; }
   const n = coverCount(), btn = $('#genImg'), st = $('#imgStatus'), old = btn.textContent;
@@ -2208,6 +2288,11 @@ function renderPanel() {
     };
   }
   $('#genNote')?.addEventListener('click', genNoteImages);
+  $('#genInfoPoster')?.addEventListener('click', genInfographicPoster);
+  document.querySelectorAll('.poster-kind').forEach(b => b.addEventListener('click', () => {
+    state.posterKind = b.dataset.k; persistSoft();
+    document.querySelectorAll('.poster-kind').forEach(x => { const on = x.dataset.k === state.posterKind; x.style.background = on ? 'var(--cinnabar)' : 'var(--paper-2)'; x.style.color = on ? '#fff' : 'var(--ink)'; x.style.borderColor = on ? 'var(--cinnabar)' : 'var(--line)'; });
+  }));
   $('#genMemoCover')?.addEventListener('click', genMemoCover);
   $$('.img-ratio').forEach(b => b.addEventListener('click', () => { state.imgRatio = b.dataset.r; persist(); renderPanel(); }));
   $('#aiCoverChk')?.addEventListener('change', e => { setAutoAiCover(e.target.checked); renderPanel(); });
