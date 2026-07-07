@@ -477,7 +477,7 @@ window.checkHealth = async function () {
 };
 
 /* ===== 全局外壳：左侧品牌边栏 + 顶部操作栏（参考工作台范式 · 朱砂红）===== */
-const PAGE_TITLES = { home: '工作台', topic: '第一步 · 选题', pipeline: '创作流水线', preview: '成稿预览', compliance: '合规自检', agent: '智能体设置', account: '我的账户', recharge: '充值积分', help: '联系客服', admin: '管理后台', matrix: '账号矩阵' };
+const PAGE_TITLES = { home: '工作台', topic: '第一步 · 选题', pipeline: '创作流水线', preview: '成稿预览', compliance: '合规自检', agent: '智能体(人设)设置', account: '我的账户', recharge: '充值积分', help: '联系客服', admin: '管理后台', matrix: '账号矩阵' };
 function escN(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 /* 注入外壳骨架（只建一次）：边栏 + 顶栏 */
@@ -549,7 +549,7 @@ window.buildMyAgentNav = function () {
         ${trackItems}
         <a href="/?create=1" class="ag-dd-item add">＋ 新增赛道</a>
         <div class="ag-dd-sep"></div>
-        <a href="/智能体.html" class="ag-dd-item">⚙ 智能体设置 · ${escN(curName)}</a>
+        <a href="/智能体.html" class="ag-dd-item">⚙ 智能体(人设)设置 · ${escN(curName)}</a>
       </div>
     </div>
     <div class="ag-dd">
@@ -641,7 +641,7 @@ window.refreshTopNav = async function (force) {
        <div class="ag-drop" id="agSetDrop">
          <button class="ag-tbtn" id="agSetBtn" aria-label="设置" title="设置">⚙ 设置</button>
          <div class="ag-menu" id="agSetMenu">
-           <a href="/智能体.html">⚙ 智能体设置</a>
+           <a href="/智能体.html">⚙ 智能体(人设)设置</a>
            <a href="/账户.html">👤 个人中心 · 积分</a>
            <a id="agLogout" style="color:var(--cinnabar-deep)">🚪 退出登录</a>
          </div>
