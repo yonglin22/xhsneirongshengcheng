@@ -67,6 +67,19 @@
   .cap .ct{ font-size:15px; font-weight:800; margin-top:8px; }
   .cap .cd{ font-size:12.5px; color:var(--ink-soft); margin-top:3px; line-height:1.4; }
   @media(max-width:420px){ .cap3{ grid-template-columns:1fr; } }
+  /* 真实产出案例 */
+  .cases{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+  .case{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 8px 20px -14px rgba(0,0,0,.18); }
+  .case-cover{ aspect-ratio:3/4; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; text-align:center; padding:10px; font-family:"Songti SC","STSong",serif; font-weight:900; font-size:16px; line-height:1.3; position:relative; }
+  .case-cover b{ background:linear-gradient(180deg,transparent 56%,rgba(255,255,255,.78) 56%); padding:0 3px; border-radius:2px; font-weight:900; }
+  .case-cover.g1{ background:linear-gradient(160deg,#fdf0d0,#f3d492); color:#6a4a12; }
+  .case-cover.g2{ background:linear-gradient(160deg,#efe8d6,#cdbb90); color:#33280a; }
+  .case-cover.g3{ background:linear-gradient(160deg,#fdead0,#f1c483); color:#6a4210; }
+  .case-cover .ctag{ position:absolute; top:8px; left:8px; font-family:-apple-system,sans-serif; font-size:8.5px; font-weight:800; color:#fff; background:rgba(120,88,20,.55); border-radius:999px; padding:2px 7px; letter-spacing:.02em; }
+  .case-cover .hl{ background:linear-gradient(180deg,transparent 58%,rgba(255,255,255,.72) 58%); padding:0 2px; }
+  .case-data{ font-size:10.5px; font-weight:700; color:#7a5c1e; padding:8px 4px; text-align:center; font-family:-apple-system,sans-serif; }
+  .case-data .u{ color:var(--ink-soft); font-weight:600; }
+  @media(max-width:420px){ .case-cover{ font-size:13px; } }
   /* 保障 */
   .guard{ background:linear-gradient(135deg,#241d12,#332815); color:#fff; border-radius:20px; padding:24px 22px; text-align:center; }
   .guard .g1{ font-size:17px; font-weight:800; }
@@ -94,6 +107,27 @@
     <div class="price-tip">到账 <b>1089 积分</b>（990 本金 + 送 99）· 约 <b>3 篇</b> · <b>客服全程陪跑</b> · 每人限一次</div>
     <a href="/登录.html" class="cta" id="ctaTop">▶ 9.9 元开通新人包</a>
     <div class="cta-sub">🎁 注册再送 <b>200 积分</b>，叠着用 · 客服手把手带你跑通</div>
+  </div>
+
+  <!-- 真实产出案例：漂亮封面 + 好看数据 -->
+  <div class="sec">
+    <div class="sec-t">🔥 真实产出案例</div>
+    <div class="sec-s">3 分钟一篇，篇篇能直接发（下方为产出示例）</div>
+    <div class="cases">
+      <div class="case">
+        <div class="case-cover g1"><span class="ctag">设计考研</span><div>一张图<b>背下</b></div><div>世界现代设计史</div></div>
+        <div class="case-data">👁 <b>1.2w</b> <span class="u">小眼睛</span> · ❤ <b>860</b> · ⭐ <b>1.3k</b></div>
+      </div>
+      <div class="case">
+        <div class="case-cover g2"><span class="ctag">效率</span><div>我用 AI 把资料</div><div><b>嚼碎成笔记</b></div></div>
+        <div class="case-data">👁 <b>8600</b> <span class="u">小眼睛</span> · ❤ <b>540</b> · ⭐ <b>720</b></div>
+      </div>
+      <div class="case">
+        <div class="case-cover g3"><span class="ctag">冲刺必背</span><div>设计史论述</div><div><b>万能模板</b></div></div>
+        <div class="case-data">👁 <b>2.4w</b> <span class="u">小眼睛</span> · ❤ <b>1.9k</b> · ⭐ <b>3.2k</b></div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--ink-soft);margin-top:11px">开通后客服发你<b style="color:var(--cinnabar-deep)">更多真实案例</b> · 手把手带你做同款 👆</div>
   </div>
 
   <div class="sec">
