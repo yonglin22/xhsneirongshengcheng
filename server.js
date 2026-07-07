@@ -241,7 +241,7 @@ function xhsDailyCheck(key) {
 }
 // 充值套餐（cny 单位：分）。前端只传 pack_id，金额/积分由服务端定，杜绝篡改。
 const PACKS = {
-  exp: { id: 'exp', cny: 990, credits: 1089, name: '新人首充包', desc: '到账 990 + 送 99 积分 · 约 3 篇 · 客服全程陪跑 · 每人限一次 · 不支持退款', once: true },
+  exp: { id: 'exp', cny: 990, credits: 1089, name: '新人首充包', desc: '990 本金 + 送 99 · 约 3 篇 · 每人限一次 · 不支持退款', once: true },
   value: { id: 'value', cny: 1980, credits: 2400, name: '超值包', desc: '送 420，约 34 篇' },
   basic: { id: 'basic', cny: 3000, credits: 4200, name: '基础包', desc: '送 1200，约 58 篇' },
   pro: { id: 'pro', cny: 9800, credits: 14000, name: '进阶包', desc: '约 195 篇' },

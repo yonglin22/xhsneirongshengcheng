@@ -117,6 +117,7 @@ async function loadPacks(retried) {
           <span class="font-display font-light leading-none" style="font-size:26px;color:var(--cinnabar)">¥${yuan(p.cny)}</span>
         </div>
         <div class="text-[12px] text-[var(--ink-soft)] mt-1.5">到账 <b style="color:var(--ink)">${p.credits}</b> 积分${p.desc ? ` · ${p.desc}` : ''}</div>
+        ${p.id === 'exp' ? `<div style="margin-top:8px;background:rgba(165,129,58,.08);border:1px solid rgba(165,129,58,.25);border-radius:8px;padding:7px 10px;font-size:11px;line-height:1.55;color:var(--cinnabar-deep)"><b>💬 含客服全程陪跑</b>：1 对 1 微信答疑 · 选赛道 / 建知识库指导 · 手把手带你跑通第一篇 · 发布与起号建议（开通后 7 天优先响应）</div>` : ''}
       </button>`).join('');
   document.querySelectorAll('.packBtn').forEach(b => b.addEventListener('click', () => recharge(b.dataset.id)));
 }
