@@ -169,6 +169,33 @@ async function xhsFetchNote(url) {
       L('第', i + 1, '次解析：note=', o && o.note ? 'ok' : 'null', 'needLogin=', o ? o.needLogin : 'null', 'blocked=', o ? o.blocked : 'null');
       if (o) { if (o.needLogin) needLogin = true; if (o.blocked) blocked = true; if (o.note && (o.note.title || o.note.content || (o.note.images || []).length)) { note = o.note; break; } }
     }
+    // 在小红书页面上下文里把对标图抓成 base64 回传：带正确 referer+cookie，绕过机房 IP 防盗链（否则前端图全裂）
+    if (note && Array.isArray(note.images) && note.images.length) {
+      try {
+        const conv = await chrome.scripting.executeScript({
+          target: { tabId }, world: 'MAIN', args: [note.images.slice(0, 9)],
+          func: async (urls) => {
+            const one = async (u) => {
+              try {
+                const r = await fetch(u, { credentials: 'include' });
+                if (!r.ok) return '';
+                const b = await r.blob();
+                const bmp = await createImageBitmap(b);
+                const max = 1080, s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+                const c = document.createElement('canvas');
+                c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
+                c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+                return c.toDataURL('image/jpeg', 0.82);
+              } catch (e) { return ''; }
+            };
+            return await Promise.all(urls.map(one));
+          }
+        });
+        const arr = conv && conv[0] && conv[0].result;
+        if (Array.isArray(arr)) note.images = note.images.map((u, i) => (arr[i] && arr[i].startsWith('data:')) ? arr[i] : u);
+        L('对标图转 base64：', (Array.isArray(arr) ? arr.filter(x => x && x.startsWith('data:')).length : 0), '/', note.images.length);
+      } catch (e) { L('对标图转 base64 失败（退回 URL）：', e && e.message); }
+    }
     L('单篇抓取结束：', note ? '成功' : '失败');
     if (note) return { ok: true, ...note };
     if (blocked) return { ok: false, error: '该笔记已失效或被拦截/删除/设为私密（用你本机登录的会话打开也看不到正文）。请换一条新链接，或手动粘贴标题+正文。' };
