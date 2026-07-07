@@ -90,8 +90,14 @@
 <!-- 导航已由全局外壳（左边栏 + 顶栏，app.js buildShell 注入）统一承载，旧 header 已移除 -->
 <main class="ag-page">
 
-  <!-- 隐藏：旧赛道选择区（逻辑保留，给 applyTrack 用；chips 已移到顶栏）-->
-  <div id="trackSection" style="display:none"><div id="trackChips"></div></div>
+  <!-- ① 选/建赛道智能体：前置平铺，第一眼可选可建 -->
+  <div id="trackSection" class="card" style="display:block !important;padding:15px 20px;margin-bottom:18px;border-left:5px solid var(--cinnabar)">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:11px">
+      <span class="font-song font-bold" style="font-size:17px">① 选择 / 新建你的赛道智能体</span>
+      <span style="font-size:12px;color:var(--ink-soft)">每个赛道自带人设 · 合规红线 · 模板，先选一个或＋新建再开始</span>
+    </div>
+    <div id="trackChips" class="flex flex-wrap gap-2.5"></div>
+  </div>
 
   <!-- Hero 轮播：创作引导 / 邀请有礼 / 充值有礼 -->
   <div class="hm-carousel card" id="heroCarousel">
@@ -190,6 +196,17 @@
       <p class="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">选成稿 → 选矩阵账号 → 一键推到小红书草稿箱。</p>
     </a>
   </div></section>
+
+  <!-- 我的支付 · 页面中部快捷入口 -->
+  <div class="card" style="margin-top:22px;padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-left:5px solid #caa85e">
+    <span style="font-size:22px">💳</span>
+    <div style="flex:1;min-width:200px">
+      <div class="font-song font-bold" style="font-size:16px">我的支付 · 积分与充值</div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px">查看余额 / 消费流水；积分不足一键充值（新人首充包 <b style="color:var(--cinnabar-deep)">¥9.9</b>）</div>
+    </div>
+    <a href="/账户.html" class="btn-ghost" style="white-space:nowrap;text-decoration:none">我的积分</a>
+    <a href="/充值.html" class="btn-go" style="white-space:nowrap;padding:9px 20px;font-size:13.5px;text-decoration:none">去充值 →</a>
+  </div>
 
   <!-- 支柱二 · 矩阵获客（主）+ 功能卡（次）-->
   <section style="margin-top:30px">
@@ -339,9 +356,23 @@
     car.addEventListener('mouseleave', arm);
     paint(); arm();
   })();
-  // 首次访问自动弹（用 localStorage 标记；登录态无关，纯本机首访引导）
+  // 首访：强制引导「选/建赛道」（不再自动跑6步虚拟走查；走查保留给上面🔰新手引导按钮手动重看）。
+  // 选好/看过后标记 ag_onboarded，之后默认进已有赛道、不再打扰。
+  function firstPick() {
+    if (document.querySelector('.fp-mask')) return;
+    var m = document.createElement('div'); m.className = 'pgi-mask fp-mask';
+    m.innerHTML = '<div class="pgi" role="dialog"><div class="pgi-hd"><div class="em">👋</div><div class="t">先选一个赛道开始</div>'
+      + '<div class="i">每个赛道智能体自带人设、合规红线、模板。选一个已有赛道，或＋新建你自己的赛道，再开始创作。</div></div>'
+      + '<div class="pgi-bd" style="font-size:13px;color:var(--ink-soft,#8b8378);line-height:1.85">· 顶部「① 选择 / 新建你的赛道智能体」里点一个赛道即可<br>· 想要专属号？点「＋ 新增赛道」自己建<br>· 具体怎么用：右下角「小红书助手」和各页「❔ 引导」随时看教程</div>'
+      + '<div class="pgi-ft"><button class="pgi-btn" id="fpNew">＋ 新建我的赛道</button><button class="pgi-skip" id="fpOk">先用已有赛道 →</button></div></div>';
+    document.body.appendChild(m);
+    function done() { if (m.parentNode) m.parentNode.removeChild(m); try { localStorage.setItem('ag_onboarded', '1'); } catch (e) {} }
+    m.querySelector('#fpOk').addEventListener('click', function () { done(); var ts = document.getElementById('trackSection'); if (ts) ts.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    m.querySelector('#fpNew').addEventListener('click', function () { done(); if (typeof openModal === 'function') openModal(); });
+    var md = false; m.addEventListener('mousedown', function (e) { md = (e.target === m); }); m.addEventListener('click', function (e) { if (e.target === m && md) done(); });
+  }
   let seen = false; try { seen = localStorage.getItem('ag_onboarded') === '1'; } catch {}
-  if (!seen) setTimeout(open, 500);
+  if (!seen) setTimeout(firstPick, 500);
 })();
 </script>
 
