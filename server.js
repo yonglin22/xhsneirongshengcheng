@@ -581,7 +581,14 @@ const server = http.createServer(async (req, res) => {
     const u = url.searchParams.get('u');
     if (!u || !/^https?:\/\//i.test(u)) return send(res, 400, 'missing or bad url');
     try {
-      const up = await fetch(u, { signal: AbortSignal.timeout(20000), headers: { 'user-agent': 'Mozilla/5.0' } });
+      // 小红书图片 CDN 有防盗链：必须带 referer=xiaohongshu.com，否则 403 → 前端图全裂
+      const isXhs = /xhscdn\.com|xiaohongshu\.com/i.test(u);
+      const h = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
+        'accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
+      };
+      if (isXhs) { h['referer'] = 'https://www.xiaohongshu.com/'; h['origin'] = 'https://www.xiaohongshu.com'; }
+      const up = await fetch(u, { signal: AbortSignal.timeout(20000), headers: h });
       if (!up.ok) return send(res, 502, 'proxy failed: upstream ' + up.status);
       const buf = Buffer.from(await up.arrayBuffer());
       res.writeHead(up.status, { 'content-type': up.headers.get('content-type') || 'image/png', 'cache-control': 'public, max-age=3600' });
