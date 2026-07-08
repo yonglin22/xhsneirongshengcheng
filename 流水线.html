@@ -2160,14 +2160,15 @@ function renderPanel() {
     </div>
     ${st.input === 'ref' ? (() => {
       const picked = !!(state.ref && state.ref.trim()) || (state.refImages || []).length; // 已选了对标 → 默认展开②；否则展开①
-      const head = (target, title, desc, open) => `<div class="flex items-center gap-2 flex-wrap cursor-pointer select-none s2-head" data-target="${target}">
-          <span class="chip">${title}</span>
+      const head = (target, title, desc, open) => `<div class="flex items-center gap-2.5 flex-wrap cursor-pointer select-none s2-head" data-target="${target}">
+          <span class="text-[14px] font-bold text-[var(--ink)]">${title}</span>
           <span class="text-[12px] text-[var(--ink-soft)]">${desc}</span>
-          <span class="s2-chev ml-auto text-[12px] text-[var(--ink-soft)]">${open ? '收起 ▲' : '展开 ▼'}</span>
+          <span class="s2-chev ml-auto text-[11.5px] font-semibold" style="color:var(--cinnabar-deep);background:rgba(165,129,58,.1);border-radius:999px;padding:2px 10px">${open ? '收起 ▲' : '展开 ▼'}</span>
         </div>`;
       const openB2 = !!picked || isGzh();
       return `
     <div class="space-y-3">
+      ${isGzh() ? '' : `<div class="flex items-baseline justify-between px-1"><div class="text-[13px] font-bold text-[var(--ink)]">给 AI 一篇对标 · 两种方式</div><span class="text-[11px] text-[var(--ink-soft)]">自动找，或自己贴一篇</span></div>`}
       ${isGzh() ? `<div class="out p-4" style="background:var(--paper-2)"><div class="text-[12px] text-[var(--ink-soft)] leading-relaxed">📰 <b>公众号对标</b>：直接在下方粘贴一篇对标<b>公众号文章链接</b>（mp.weixin.qq.com）点「抓取」，或把文章正文贴进对标框。（小红书自动找对标仅用于小红书笔记模式）</div></div>` : `
       <!-- ① 找对标 -->
       <div class="out p-4">
@@ -2195,7 +2196,7 @@ function renderPanel() {
             <div class="text-[11px] text-[var(--ink-soft)] mb-1">${isGzh()?'公众号文章来源':'笔记来源'}</div>
             <div class="flex flex-wrap items-center gap-2">
               <input id="noteUrl" class="field flex-1 min-w-[200px] rounded-lg px-3 py-2 text-[13px]" placeholder="${isGzh()?'粘贴公众号文章链接（mp.weixin.qq.com），自动抓正文':'粘贴小红书链接（xiaohongshu.com / xhslink.com），可选'}" value="${state.refUrl||''}" />
-              <button id="fetchNote" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
+              <button id="fetchNote" class="btn-go rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
               <button id="upRefImg" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap" title="抓不到时，直接传对标图截图，自动解析">📎 上传对标图</button>
               <input id="refImgFile" type="file" class="hidden" multiple accept="image/*" />
             </div>
