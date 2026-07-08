@@ -641,12 +641,12 @@ window.refreshTopNav = async function (force) {
     const themeLabel = () => (document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式');
     topR.innerHTML =
       `${adminBtn}
-       <a href="/邀请有礼.html" class="ag-tbtn gift">🎁 邀请有礼</a>
        <a href="/充值.html" class="ag-tbtn primary">＋ 充值</a>
-       <a href="/帮助.html" class="ag-tbtn">💬 联系客服</a>
        <div class="ag-drop" id="agSetDrop">
          <button class="ag-tbtn" id="agSetBtn" aria-label="设置" title="设置">⚙ 设置</button>
          <div class="ag-menu" id="agSetMenu">
+           <a href="/邀请有礼.html">🎁 邀请有礼</a>
+           <a href="/帮助.html">💬 联系客服</a>
            <a href="/智能体.html">⚙ 智能体(人设)设置</a>
            <a href="/账户.html">👤 个人中心 · 积分</a>
            <a id="agLogout" style="color:var(--cinnabar-deep)">🚪 退出登录</a>
