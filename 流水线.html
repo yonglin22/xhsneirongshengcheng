@@ -17,6 +17,12 @@
   <div class="mb-5">
     <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">第一步 → 第七步 · 一条流水线</div>
     <h1 class="font-display font-normal tracking-tight" style="font-size:clamp(30px,4vw,50px);line-height:1.02">创作<span class="italic" style="color:var(--cinnabar)">流水线</span></h1>
+    <!-- 极简 / 专业 模式切换 -->
+    <div class="inline-flex rounded-lg overflow-hidden mt-3" style="border:1px solid var(--line)">
+      <button class="pipe-mode" data-mode="simple" style="padding:6px 16px;font-size:12.5px;font-weight:600;border:none;cursor:pointer">⚡ 极简一键</button>
+      <button class="pipe-mode" data-mode="pro" style="padding:6px 16px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;border-left:1px solid var(--line)">🛠 专业逐步</button>
+    </div>
+    <span class="text-[11px] text-[var(--ink-soft)] ml-2" id="pipeModeHint"></span>
   </div>
 
   <!-- 当前选题（没选题可手写，或一键生成选题方向）-->
@@ -46,7 +52,20 @@
   </div>
   <div id="autoStatus" class="text-[12px] text-[var(--ink-soft)] -mt-4 mb-5 min-h-[16px]"></div>
 
-  <div class="grid lg:grid-cols-[230px_1fr] gap-7 items-start">
+  <!-- 极简一键区：只留「填选题 → 一键生成 → 出成品」 -->
+  <div id="simpleArea" class="card p-6 mb-6" style="display:none;text-align:center">
+    <div class="text-[16px] font-bold text-[var(--ink)] mb-1.5">填好上面的选题，点一下，出一整篇</div>
+    <div class="text-[12.5px] text-[var(--ink-soft)] mb-5 leading-relaxed">AI 自动跑完：对标拆解 → 框架 → 正文 → 封面 + 配图，约 1~2 分钟出一篇可直接发的图文。<br>想逐步改每一步，右上角切「🛠 专业逐步」。</div>
+    <button id="simpleGo" class="btn-go font-bold" style="border:none;border-radius:14px;padding:15px 40px;font-size:16px;cursor:pointer;box-shadow:0 10px 28px -8px rgba(165,129,58,.55)">▶ 一键生成整篇笔记</button>
+    <div id="simpleStatus" class="text-[12.5px] mt-3 min-h-[18px]"></div>
+    <div id="simpleDone" class="flex items-center justify-center gap-2.5 mt-3" style="display:none">
+      <a href="/成稿预览.html" class="btn-go rounded-lg px-4 py-2 text-[13px]">📄 看成品</a>
+      <a href="/合规自检.html" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">🛡 合规自检</a>
+      <a href="/一键发布.html" class="btn-ghost rounded-lg px-4 py-2 text-[13px]">🚀 去发布</a>
+    </div>
+  </div>
+
+  <div id="proArea" class="grid lg:grid-cols-[230px_1fr] gap-7 items-start">
 
     <!-- 步骤轨（吸顶跟随滚动）-->
     <aside class="card p-2.5" style="position:sticky;top:74px">
@@ -75,6 +94,12 @@
 /* 自动生成中：除「暂停/继续」「停止」外，全站按钮置灰不可点，防误触打断流程 */
 body.auto-running button:not(#autoPauseBtn):not(#autoBtn), body.auto-running .btn-go:not(#autoBtn), body.auto-running .img-ratio, body.auto-running input[type=file]+*, body.auto-running .cv-tpl-pick { opacity:.45 !important; pointer-events:none !important; filter:grayscale(.4); }
 body.auto-running #autoBtn { opacity:.7; }
+/* 极简 / 专业 模式 */
+body.pipe-simple #proArea { display:none; }
+body.pipe-simple #simpleArea { display:block !important; }
+body.pipe-simple #autoBtn { display:none; }   /* 极简用中间大按钮，隐藏浮标避免重复 */
+.pipe-mode.on { background:var(--cinnabar); color:#fff; }
+.pipe-mode:not(.on) { background:var(--paper); color:var(--ink-soft); }
 </style>
 
 <!-- 生成选题方向弹窗（嵌入原版选题智能体，三层漏斗/热点）-->
@@ -3140,6 +3165,17 @@ async function autoRun() {
   finally { autoRunning = false; autoPaused = false; setAutoUI(false); const ab2 = $('#autoBtn'); if (ab2) { ab2.disabled = false; ab2.textContent = '▶ 一键按对标生成全套（图文+封面图）'; } }
 }
 $('#autoBtn')?.addEventListener('click', autoRun);
+// 极简 / 专业 模式切换（默认极简，降低新手复杂度）
+function setPipeMode(m) {
+  const simple = m === 'simple';
+  document.body.classList.toggle('pipe-simple', simple);
+  try { localStorage.setItem('ag_pipe_mode', m); } catch {}
+  document.querySelectorAll('.pipe-mode').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  const h = $('#pipeModeHint'); if (h) h.textContent = simple ? '一键出整篇，适合新手' : '逐步编辑每一步，适合精修';
+}
+document.querySelectorAll('.pipe-mode').forEach(b => b.addEventListener('click', () => setPipeMode(b.dataset.mode)));
+setPipeMode((() => { try { return localStorage.getItem('ag_pipe_mode') || 'simple'; } catch { return 'simple'; } })());
+$('#simpleGo')?.addEventListener('click', autoRun);
 
 renderRail(); renderPanel();
 </script>
