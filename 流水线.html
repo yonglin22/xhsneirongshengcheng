@@ -3055,18 +3055,32 @@ $('#autoPauseBtn')?.addEventListener('click', () => {
   document.body.classList.toggle('auto-running', !autoPaused);
   setAuto(autoPaused ? '⏸ 已暂停（当前步跑完即停，页面可操作；点「继续」接着跑）' : '▶ 已继续…');
 });
+// 估一键生成大概消耗的积分（文字步 + 配图；worst-case 全跑）
+function estimateAutoCost() {
+  const C = window.ACTION_COST || {};
+  let n = (C.skeleton != null ? C.skeleton : 5) + (C.frame != null ? C.frame : 5) + (C.copy != null ? C.copy : 10); // 对标拆解+框架+正文
+  if (isGzh()) { n += 30; } // 公众号：1 张横版首图
+  else { try { n += (coverCount() || 3) * 30; } catch { n += 90; } if (autoAiCoverOn()) n += 30; } // 小红书：N 张配图(每张约30) + 可选 AI 封面
+  return n;
+}
 async function autoRun() {
   if (autoRunning) return;
   if (!state.topic) { setAuto('请先在上方填写选题', true); return; }
-  // 笔记已生成完成 → 二次确认是否重新生成；确认后从 S2（对标拆解）重新开跑（选题 S1 与已有对标素材保留）
   const notesDone = (state.notePages || []).length > 0 || (state.coverImages || []).some(u => (u || '').startsWith('note://'));
+  // 开跑前统一确认：告知作用 + 大概扣多少积分 + 当前余额；继续才跑，取消原路留步
+  const est = estimateAutoCost();
+  const bal = (typeof window.__balance === 'number') ? window.__balance : null;
+  const cnTxt = isGzh() ? '1 张横版首图' : (() => { try { return (coverCount() || 3) + ' 张配图'; } catch { return '3 张配图'; } })();
+  const ok = await uiConfirm({
+    title: '一键生成整篇' + (isGzh() ? '公众号文章' : '小红书笔记'),
+    body: `将全自动跑完：对标拆解 → 框架 → 正文 → 封面 + ${cnTxt}，一步到位出一篇可发的图文。<br><br>` +
+          `本次预计消耗 <b style="color:var(--cinnabar-deep)">约 ${est} 积分</b>${bal != null ? `（当前余额 ${bal}）` : ''}，实际以逐步扣费为准。` +
+          (notesDone ? `<br><br>⚠ 本篇已生成过，继续会<b>覆盖现有图文与封面</b>（选题与已粘贴的对标素材保留）。` : '') +
+          `<br><br>是否继续？`,
+    okText: '继续生成', cancelText: '取消', icon: '⚡'
+  });
+  if (!ok) return; // 取消：原路留步，不做任何改动
   if (notesDone) {
-    const ok = await uiConfirm({
-      title: '笔记已生成，是否重新生成？',
-      body: '检测到本篇已生成图文笔记。重新生成将从「对标拆解（S2）」开始重跑后续步骤并覆盖现有图文与封面（选题与已粘贴的对标素材会保留）。确定要重新生成吗？',
-      okText: '重新生成', cancelText: '保留现有', danger: true, icon: '🔄'
-    });
-    if (!ok) return;
     // 清掉旧产出，定位回 S2 重新开跑
     state.coverImages = []; state.coverImage = ''; state.coverCaptions = []; state.notePages = []; persist();
     const s2i = STEPS.findIndex(st => st.no === 'S2'); cur = s2i < 0 ? 0 : s2i;
