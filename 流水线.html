@@ -99,7 +99,7 @@
         <span class="text-[11.5px] text-[var(--ink-soft)] mr-1">完成后 →</span>
         <a id="toPreview" href="/成稿预览.html" class="rounded-lg px-3.5 py-1.5 text-[12px]" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);text-decoration:none">📄 成稿预览</a>
         <a id="toCompliance" href="/合规自检.html" class="rounded-lg px-3.5 py-1.5 text-[12px]" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);text-decoration:none">🛡 合规自检</a>
-        <a id="toPublish" href="/一键发布.html" class="btn-go rounded-lg px-4 py-1.5 text-[12px] font-semibold" style="margin-left:auto;text-decoration:none">🚀 一键发布 →</a>
+        <a id="toPublish" href="/一键发布.html" class="rounded-lg px-4 py-1.5 text-[12px]" style="margin-left:auto;text-decoration:none;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)">🚀 一键发布 →</a>
       </div>
     </div>
 
@@ -512,6 +512,13 @@ function renderRail() {
   $('#rail').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px">${prog}${s1}${steps}</div>`;
   $('#railTopic')?.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => { const t = $('#topic'); if (t) t.focus(); }, 320); });
   $$('#rail .step[data-i]').forEach(el => el.addEventListener('click', () => { cur = +el.dataset.i; renderRail(); renderPanel(); }));
+  // 一键发布：笔记做完（有正文 + 封面/配图）才金色高亮，否则跟预览/合规一样浅色，避免没做完就抢眼
+  const pub = $('#toPublish');
+  if (pub) {
+    const ready = !!(state.body && state.body.length) && (state.coverImages || []).some(u => u);
+    if (ready) { pub.style.border = 'none'; pub.style.background = 'linear-gradient(180deg,#caa85e,#a5813a)'; pub.style.color = '#fff'; pub.style.fontWeight = '600'; pub.style.boxShadow = '0 4px 14px -6px rgba(165,129,58,.5)'; }
+    else { pub.style.border = '1px solid var(--line)'; pub.style.background = 'var(--paper)'; pub.style.color = 'var(--ink-soft)'; pub.style.fontWeight = '400'; pub.style.boxShadow = 'none'; }
+  }
 }
 
 function esc(s){ return (s||'').replace(/"/g,'&quot;'); }
