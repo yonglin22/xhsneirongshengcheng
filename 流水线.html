@@ -62,8 +62,9 @@
       <summary style="cursor:pointer;list-style:none;font-size:13px;font-weight:700;color:var(--cinnabar-deep)">📎 加一篇对标（选填，强烈建议）<span style="font-weight:400;color:var(--ink-soft);font-size:11.5px"> · 贴一篇爆款让 AI 拆解仿写，出稿质量高很多 ▾</span></summary>
       <div class="mt-3 space-y-2">
         <div class="flex flex-wrap items-center gap-2">
-          <input id="simpleRefUrl" class="field flex-1 min-w-[200px] rounded-lg px-3 py-2 text-[13px]" placeholder="粘贴小红书 / 公众号链接，点「抓取」" />
-          <button id="simpleFetch" class="btn-go rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
+          <input id="simpleRefUrl" class="field flex-1 min-w-[180px] rounded-lg px-3 py-2 text-[13px]" placeholder="粘贴小红书 / 公众号链接，点「抓取」" />
+          <button id="simpleFetch" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
+          <button id="simpleAutoFind" class="btn-go rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap" title="按选题自动搜一篇真实爆款当对标（需装插件并登录小红书）">🔎 自动找一篇</button>
         </div>
         <textarea id="simpleRefText" class="field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" rows="3" placeholder="或直接把对标笔记的「标题 + 正文」粘到这里（合规来源）"></textarea>
         <div id="simpleRefStatus" class="text-[11.5px] text-[var(--ink-soft)]"></div>
@@ -3216,6 +3217,29 @@ async function simpleScrape(url) {
   } catch (e) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '抓取失败：' + (e.message || e); } }
   finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
 }
+// 极简·自动找一篇对标：按选题用插件搜真实爆款 → 选互动最高一篇 → 自动抓正文
+async function simpleAutoFind() {
+  const s = $('#simpleRefStatus'), btn = $('#simpleAutoFind'), o = btn ? btn.textContent : '';
+  if (!state.topic || !state.topic.trim()) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '请先在上面填选题，再自动找对标'; } return; }
+  if (!(window.xhsExt && window.xhsExt.available)) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '自动找对标需装「朱砂助手」插件并登录小红书；没装可直接粘贴一篇对标'; } return; }
+  if (btn) { btn.disabled = true; btn.textContent = '搜索中…'; }
+  if (s) { s.style.color = 'var(--ink-soft)'; s.textContent = '正在按选题搜真实爆款…（约 10~30 秒）'; }
+  try {
+    const kw = state.topic.trim().slice(0, 20);
+    let j = await window.xhsExt.search(kw, 'popular', 'all');
+    if (j && j.needLogin) throw new Error('请先在浏览器登录小红书后重试');
+    const notes = (j && j.notes) || [];
+    if (!notes.length) throw new Error('没搜到（关键词太窄或需登录），可换选题或手动贴一篇');
+    notes.sort((a, b) => (parseCount(b.likes) + parseCount(b.collects)) - (parseCount(a.likes) + parseCount(a.collects)));
+    const pick = notes.find(n => n.url) || notes[0];
+    if (!pick || !pick.url) throw new Error('搜到的笔记没有链接，换个选题或手动贴');
+    if (s) s.textContent = '找到「' + (pick.title || '').slice(0, 18) + '」，正在抓正文…';
+    const inp = $('#simpleRefUrl'); if (inp) inp.value = pick.url;
+    await simpleScrape(pick.url);
+  } catch (e) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '自动找失败：' + (e.message || e); } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
+}
+$('#simpleAutoFind')?.addEventListener('click', simpleAutoFind);
 $('#simpleFetch')?.addEventListener('click', () => simpleScrape($('#simpleRefUrl')?.value || ''));
 $('#simpleRefText')?.addEventListener('input', e => { state.ref = e.target.value; persistSoft(); });
 // 进入极简模式时，把已有对标回填到选填框，避免"看不到已抓的对标"
