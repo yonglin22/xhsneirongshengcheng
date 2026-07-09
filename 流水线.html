@@ -27,30 +27,33 @@
     </div>
   </div>
 
-  <!-- 当前选题（没选题可手写，或一键生成选题方向）-->
-  <div class="card p-4 mb-6">
-    <!-- 平台切换：小红书笔记 / 公众号文章（影响对标拆解→大纲→正文→首图 的产出形态）-->
-    <div class="flex items-center gap-2 mb-3">
-      <span class="text-[11px] text-[var(--ink-soft)] shrink-0">内容平台</span>
-      <div id="platformTabs" class="inline-flex rounded-lg overflow-hidden" style="border:1px solid var(--line)">
-        <button class="pf-tab" data-pf="xhs" style="padding:6px 14px;font-size:12.5px;font-weight:600;border:none;cursor:pointer">📕 小红书笔记</button>
-        <button class="pf-tab" data-pf="gzh" style="padding:6px 14px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;border-left:1px solid var(--line)">📰 公众号文章</button>
-      </div>
-      <span id="pfHint" class="text-[11px] text-[var(--ink-soft)]"></span>
+  <!-- 内容平台：单独一行、弱化在最上 -->
+  <div class="flex items-center gap-2 mb-3">
+    <span class="text-[11px] text-[var(--ink-soft)] shrink-0">内容平台</span>
+    <div id="platformTabs" class="inline-flex rounded-lg overflow-hidden" style="border:1px solid var(--line)">
+      <button class="pf-tab" data-pf="xhs" style="padding:5px 13px;font-size:12px;font-weight:600;border:none;cursor:pointer">📕 小红书笔记</button>
+      <button class="pf-tab" data-pf="gzh" style="padding:5px 13px;font-size:12px;font-weight:600;border:none;cursor:pointer;border-left:1px solid var(--line)">📰 公众号文章</button>
     </div>
-    <div class="flex flex-wrap items-center gap-3">
+    <span id="pfHint" class="text-[11px] text-[var(--ink-soft)]"></span>
+  </div>
+
+  <!-- 选题：极简一行，主操作=输入 + 生成选题方向；历史/清空缩成小字 -->
+  <div class="card p-4 mb-6">
+    <div class="flex flex-wrap items-center gap-2.5">
       <span class="stamp text-[11px] px-2 py-1 leading-none shrink-0">选题</span>
-      <input id="topic" class="field flex-1 min-w-[240px] rounded-lg px-3.5 py-2 text-[14px]" placeholder="没有选题？直接在此手写本篇选题，或点右侧「✶ 生成选题」" />
+      <input id="topic" class="field flex-1 min-w-[220px] rounded-lg px-3.5 py-2.5 text-[14px]" placeholder="一句话写下本篇选题，或点右侧「✶ 生成选题方向」" />
       <select id="model" class="field rounded-lg px-3 py-2 text-[12px] hidden">
         <option value="claude-opus-4-8">Opus 4.8</option>
         <option value="claude-sonnet-4-6">Sonnet 4.6</option>
         <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
       </select>
-      <button id="genTopicBtn" class="btn-go rounded-lg px-3.5 py-2 text-[12px]">✶ 生成选题方向</button>
-      <button id="histBtn" class="btn-ghost rounded-lg px-3 py-2 text-[12px]">📋 历史记录</button>
-      <button id="resetBtn" class="btn-ghost rounded-lg px-3 py-2 text-[12px]">清空本篇</button>
+      <button id="genTopicBtn" class="btn-go rounded-lg px-4 py-2.5 text-[13px] font-medium">✶ 生成选题方向</button>
     </div>
-    <div class="text-[11px] text-[var(--ink-soft)] mt-2">没有选题？直接手写，或点「✶ 生成选题方向」用选题智能体（三层漏斗 / 热点）生成，选完自动带回这里。</div>
+    <div class="flex items-center gap-3 mt-2 text-[11.5px] text-[var(--ink-soft)]">
+      <span>没选题？直接手写，或点「生成选题方向」用智能体出。</span>
+      <button id="histBtn" style="border:none;background:none;color:var(--cinnabar-deep);cursor:pointer;padding:0">📋 历史记录</button>
+      <button id="resetBtn" style="border:none;background:none;color:var(--ink-soft);cursor:pointer;padding:0">清空本篇</button>
+    </div>
   </div>
   <div id="autoStatus" class="text-[12px] text-[var(--ink-soft)] -mt-4 mb-5 min-h-[16px]"></div>
 
