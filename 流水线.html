@@ -497,11 +497,17 @@ function done(step) { return doneOf(state, step); }
 
 function renderRail() {
   const topicDone = !!(state.topic && state.topic.trim());
+  // 顶部进度条：已完成步数 / 总步数（含选题），一眼知道走到哪
+  const totalSteps = STEPS.length + 1, doneSteps = (topicDone ? 1 : 0) + STEPS.filter(st => done(st)).length;
+  const prog = `<div style="display:flex;align-items:center;gap:8px;padding:4px 8px 8px;margin-bottom:4px;border-bottom:1px solid var(--line)">
+       <div style="flex:1;height:5px;border-radius:999px;background:var(--paper-2);overflow:hidden"><div style="height:100%;width:${Math.round(doneSteps / totalSteps * 100)}%;background:var(--cinnabar);border-radius:999px;transition:width .3s"></div></div>
+       <span style="font-size:11px;font-weight:700;color:var(--cinnabar-deep);white-space:nowrap">${doneSteps}/${totalSteps}</span>
+     </div>`;
   const s1 = `<div class="step ${topicDone ? 'done' : ''}" id="railTopic" title="回到顶部选题区：手写或一键生成选题">
        <span class="step-no">${topicDone ? '✓' : '1'}</span>
        <span class="step-name">第一步 选题</span>
      </div>`;
-  $('#rail').innerHTML = s1 + STEPS.map((st, i) =>
+  $('#rail').innerHTML = prog + s1 + STEPS.map((st, i) =>
     `<div class="step ${i===cur?'active':''} ${done(st)?'done':''}" data-i="${i}">
        <span class="step-no">${done(st)?'✓':st.no.replace('S','')}</span>
        <span class="step-name">${dispNo(st.no)} ${stepDispName(st)}</span>
@@ -3204,6 +3210,8 @@ function defaultPipeMode() {
   return hasWork ? 'pro' : 'simple';
 }
 setPipeMode(defaultPipeMode());
+// 极简模式且还没选题：把光标聚焦到选题框，用户一进来就知道从哪下手（不滚动、不弹层）
+if (document.body.classList.contains('pipe-simple') && !(state && state.topic && state.topic.trim())) { const ti = $('#topic'); if (ti) setTimeout(() => { try { ti.focus({ preventScroll: true }); } catch { ti.focus(); } }, 200); }
 // 极简模式·选填对标：抓取（自包含，不依赖专业区 DOM）
 async function simpleScrape(url) {
   const s = $('#simpleRefStatus'); if (!url || !url.trim()) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '请先粘贴链接'; } return; }
