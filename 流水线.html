@@ -3267,8 +3267,17 @@ $('#simpleRefText')?.addEventListener('input', e => { state.ref = e.target.value
 // 进入极简模式时，把已有对标回填到选填框，避免"看不到已抓的对标"
 (function seedSimpleRef() { const ta = $('#simpleRefText'); if (ta && state.ref && !ta.value) ta.value = state.ref; })();
 // 极简一键：从「对标拆解(S2)」开跑（不重跑选题、确保用上贴的对标），其余交给 autoRun
-$('#simpleGo')?.addEventListener('click', () => {
+$('#simpleGo')?.addEventListener('click', async () => {
   if (!state.topic || !state.topic.trim()) { const s = $('#simpleStatus'); if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '先在上面填一个选题，再点一键生成 ☝️'; } const ti = $('#topic'); if (ti) { ti.focus(); ti.scrollIntoView({ behavior: 'smooth', block: 'center' }); } return; }
+  // 软提醒：还没加对标就点一键 → 不悄悄跳过，先问一句（对标能显著提升质量）
+  if (!(state.ref && state.ref.trim())) {
+    const goAdd = await uiConfirm({
+      title: '还没加对标笔记', icon: '📎',
+      body: '对标拆解需要一篇「种子」笔记：AI 照着它拆解、仿写，出稿更像爆款。<br><br>你还没加对标——现在去加一篇（贴链接 / 粘正文 / 自动找一篇），出稿质量高很多；<br>也可以不加，纯按选题直接生成（质量会弱一些）。',
+      okText: '先去加对标', cancelText: '不加，直接生成'
+    });
+    if (goAdd) { const box = $('#simpleRefBox'); if (box) { box.open = true; box.scrollIntoView({ behavior: 'smooth', block: 'center' }); } const u = $('#simpleRefUrl'); if (u) setTimeout(() => u.focus(), 320); return; }
+  }
   const s2 = STEPS.findIndex(st => st.no === 'S2'); if (s2 >= 0) { cur = s2; } autoRun();
 });
 
