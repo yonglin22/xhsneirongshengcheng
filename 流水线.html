@@ -2369,7 +2369,7 @@ function renderPanel() {
   const cvVisual = $('#cvVisual'); if (cvVisual) cvVisual.addEventListener('input', e => { state.cover = state.cover || { cover_lines: [], visual: '' }; state.cover.visual = e.target.value; persistSoft(); });
   $('#prevStep')?.addEventListener('click', () => { cur--; renderRail(); renderPanel(); });
   $('#nextStep')?.addEventListener('click', () => { cur++; renderRail(); renderPanel(); });
-  $('#genStep').addEventListener('click', () => genStep(st));
+  $('#genStep')?.addEventListener('click', () => genStep(st));
   $('#notePref')?.addEventListener('click', openPrefEditor);
   function openPrefEditor() {
     const t = getTrack(); if (!t) { alert('请先选择 / 创建一个智能体'); return; }
@@ -3104,7 +3104,7 @@ async function runStep(st) {
 async function genStep(st) {
   if (!state.topic) { $('#stStatus').textContent = '请先在上方填写选题'; $('#stStatus').style.color = 'var(--cinnabar-deep)'; return; }
   if (st.input === 'ref' && !state.ref) { $('#stStatus').textContent = '请先粘贴对标笔记'; $('#stStatus').style.color = 'var(--cinnabar-deep)'; return; }
-  const b = $('#genStep'); b.disabled = true; $('#gi').className = 'spin'; $('#gi').textContent = '◠'; $('#gt').textContent = '生成中'; $('#stStatus').textContent = ''; $('#stStatus').style.color = 'var(--ink-soft)';
+  const b = $('#genStep'); if (b) b.disabled = true; const gi = $('#gi'); if (gi) { gi.className = 'spin'; gi.textContent = '◠'; } const gt = $('#gt'); if (gt) gt.textContent = '生成中'; const ss = $('#stStatus'); if (ss) { ss.textContent = ''; ss.style.color = 'var(--ink-soft)'; }
   try { await runStep(st); renderPanel(); $('#stStatus').textContent = '✓ 已生成并保存'; }
   catch (e) { $('#stStatus').textContent = '失败：' + (e.message || e); $('#stStatus').style.color = 'var(--cinnabar-deep)'; }
   finally { const bb = $('#genStep'); if (bb) bb.disabled = false; }
