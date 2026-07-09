@@ -95,10 +95,11 @@
     <!-- 顶部横向步骤条 + 快捷入口（吸顶）-->
     <div class="card p-3" style="position:sticky;top:66px;z-index:20">
       <div id="rail"></div>
-      <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t hairline">
-        <a id="toPreview" href="/成稿预览.html" class="btn-go rounded-lg px-4 py-2 text-[12.5px] font-medium">📄 去成稿预览 →</a>
-        <a id="toCompliance" href="/合规自检.html" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">🛡 去合规自检 →</a>
-        <a id="toPublish" href="/一键发布.html" class="btn-go rounded-lg px-4 py-2 text-[12.5px] font-medium">🚀 一键发布 →</a>
+      <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t hairline">
+        <span class="text-[11.5px] text-[var(--ink-soft)] mr-1">完成后 →</span>
+        <a id="toPreview" href="/成稿预览.html" class="rounded-lg px-3.5 py-1.5 text-[12px]" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);text-decoration:none">📄 成稿预览</a>
+        <a id="toCompliance" href="/合规自检.html" class="rounded-lg px-3.5 py-1.5 text-[12px]" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);text-decoration:none">🛡 合规自检</a>
+        <a id="toPublish" href="/一键发布.html" class="btn-go rounded-lg px-4 py-1.5 text-[12px] font-semibold" style="margin-left:auto;text-decoration:none">🚀 一键发布 →</a>
       </div>
     </div>
 
@@ -2261,8 +2262,8 @@ function renderPanel() {
       </div>
     </div>`; })() : ''}
     <div class="flex items-center gap-2 flex-wrap">
-      <!-- 绝对主按钮：生成本步 -->
-      <button id="genStep" class="btn-go rounded-xl font-bold flex items-center gap-2" style="padding:12px 26px;font-size:15px;box-shadow:0 6px 18px -6px rgba(165,129,58,.5)"><span id="gi">✶</span><span id="gt">生成${dispNo(st.no)}</span></button>
+      <!-- 绝对主按钮：生成本步（封面步除外——它的生成用下面那个大「生成封面+配图」按钮，这里不重复） -->
+      ${st.key==='cover' ? '' : `<button id="genStep" class="btn-go rounded-xl font-bold flex items-center gap-2" style="padding:12px 26px;font-size:15px;box-shadow:0 6px 18px -6px rgba(165,129,58,.5)"><span id="gi">✶</span><span id="gt">生成${dispNo(st.no)}</span></button>`}
       <!-- 次要：记偏好（弱化为小字链接感） -->
       <button id="notePref" class="rounded-lg px-2.5 py-1.5 text-[12px]" style="border:none;background:none;color:var(--ink-soft);cursor:pointer" title="记下偏好，之后生成自动遵循、少返工">📌 记偏好</button>
       <span id="stStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
