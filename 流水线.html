@@ -589,7 +589,13 @@ function outputHTML(st) {
     const _selTpls = COVER_TPLS.filter(([id])=>(state.coverImages||[]).some(u=>(u||'').startsWith('ctpl://')&&u.slice(7).split('|')[0]===id));
     const _ratioBtns = ['2:3','3:4','9:16'].map(r=>{const on=((state.imgRatio||'3:4')===r);return `<button class="img-ratio" data-r="${r}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 10px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${r}</button>`;}).join('');
     return `<div class="out p-4 space-y-3">
-      <div class="text-[13px] font-bold text-[var(--ink)]">封面 + 配图</div>
+      <div class="text-[14px] font-bold text-[var(--ink)]">封面 + 配图</div>
+      <!-- 一眼看懂：这步怎么用、出图后怎么改 -->
+      <div class="text-[12px] leading-relaxed" style="background:var(--paper-2);border-radius:10px;padding:9px 12px;color:var(--ink-soft)">
+        <b style="color:var(--cinnabar-deep)">① 点下面「生成封面 + 配图」</b> 出一套封面 + 内页 →
+        <b style="color:var(--cinnabar-deep)">② 下方每张图</b>可删除、点「🔄 重排这页」改文字、或「上传真实图」替换 →
+        <b style="color:var(--cinnabar-deep)">③ 满意就去「一键发布」</b>。想换风格点「换种封面」。
+      </div>
 
       <!-- 主操作：一个按钮出封面+内页 -->
       <button id="genNote" style="position:relative;width:100%;border:none;border-radius:12px;padding:14px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#caa85e,#a5813a);color:#fff;box-shadow:0 6px 18px -6px rgba(165,129,58,.5);text-align:left">
