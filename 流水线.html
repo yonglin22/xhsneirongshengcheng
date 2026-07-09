@@ -3197,7 +3197,13 @@ function setPipeMode(m) {
   const h = $('#pipeModeHint'); if (h) h.textContent = simple ? '一键出整篇，适合新手' : '逐步编辑每一步，适合精修';
 }
 document.querySelectorAll('.pipe-mode').forEach(b => b.addEventListener('click', () => setPipeMode(b.dataset.mode)));
-setPipeMode((() => { try { return localStorage.getItem('ag_pipe_mode') || 'simple'; } catch { return 'simple'; } })());
+// 默认模式：用户点过就记住；没点过时——已有实质进度(正文/框架/内页/标题)默认「专业」(免得以为草稿没了)，全新空白默认「极简」
+function defaultPipeMode() {
+  try { const saved = localStorage.getItem('ag_pipe_mode'); if (saved === 'simple' || saved === 'pro') return saved; } catch {}
+  const hasWork = !!(state && ((state.body && state.body.length) || state.frame || (state.notePages && state.notePages.length) || (state.titles && state.titles.length) || (state.coverImages && state.coverImages.length)));
+  return hasWork ? 'pro' : 'simple';
+}
+setPipeMode(defaultPipeMode());
 // 极简模式·选填对标：抓取（自包含，不依赖专业区 DOM）
 async function simpleScrape(url) {
   const s = $('#simpleRefStatus'); if (!url || !url.trim()) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '请先粘贴链接'; } return; }
