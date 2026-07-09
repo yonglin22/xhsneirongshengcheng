@@ -1197,6 +1197,8 @@ async function genAiCoverUrl(setStatus) {
 }
 // 海报版背景：生成一张干净的酒红/暗紫质感底（纯背景无文字），返回短链 URL（失败返回 ''）。供「出封面」与实拍套路海报内页共用。
 async function genPosterBg(setStatus) {
+  // 极简模式优先"秒出"：跳过这张慢的 AI 海报背景（最多 170s×2），用纯色备忘录卡即可
+  if (document.body.classList.contains('pipe-simple')) return '';
   const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
   const bgPrompt = '一整张酒红/暗紫色质感海报背景：勃艮第酒红、暗梅紫、深栗色做满幅，带梵高式的油画旋涡笔触肌理、细腻金色星点、柔和暖金光晕，氛围浓郁高级、有纵深、整体偏暗，适合在上面叠加浅色文字阅读。' + (aStyle ? ('色调氛围可贴近：' + aStyle + '。') : '') + '画面必须够暗、纹理高级，绝对不要出现任何文字、字迹、字母、数字、假字或水印。';
   for (let attempt = 1; attempt <= 2; attempt++) {
@@ -3171,7 +3173,8 @@ async function autoRun() {
   }
   autoRunning = true; setAutoUI(true); const ab = $('#autoBtn'); if (ab) { ab.disabled = true; ab.textContent = '⏳ 自动生成中…'; }
   // 提速：AI 封面只需「主题」（开局已知），不必等后续步骤 → 现在就后台开跑，让 40s 出图与整条文字流水线并行，最后再取结果（几乎不额外耗时）
-  const aiCoverPromise = (autoAiCoverOn() && !isGzh()) ? genAiCoverUrl(null).catch(() => '') : null;
+  // 极简模式跳过慢的 AI 封面（gpt-image 30~90s），只出秒级备忘录真字卡，速度优先；专业模式保持
+  const aiCoverPromise = (autoAiCoverOn() && !isGzh() && !document.body.classList.contains('pipe-simple')) ? genAiCoverUrl(null).catch(() => '') : null;
   // 提速：对标视觉解析（5 张 vision）也开局并行预取并写进缓存，到 S6 直接命中、不再等
   if ((state.refImages || []).length) analyzeRefImageSet(null).catch(() => {});
   const startIdx = Math.min(Math.max(cur | 0, 0), STEPS.length - 1); // 从「当前所在步」开始，不回到第二步从头跑
