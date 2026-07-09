@@ -586,56 +586,52 @@ function outputHTML(st) {
     const _selTpls = COVER_TPLS.filter(([id])=>(state.coverImages||[]).some(u=>(u||'').startsWith('ctpl://')&&u.slice(7).split('|')[0]===id));
     const _ratioBtns = ['2:3','3:4','9:16'].map(r=>{const on=((state.imgRatio||'3:4')===r);return `<button class="img-ratio" data-r="${r}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 10px;font-size:12px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${r}</button>`;}).join('');
     return `<div class="out p-4 space-y-3">
-      <div class="flex items-baseline justify-between">
-        <div class="text-[13px] font-bold text-[var(--ink)]">出封面 + 配图 · 三选一</div>
-        <span class="text-[11px] text-[var(--ink-soft)]">选一种开始，其余是可选玩法</span>
-      </div>
+      <div class="text-[13px] font-bold text-[var(--ink)]">封面 + 配图</div>
 
-      <!-- ① 长图笔记（推荐） -->
+      <!-- 主操作：一个按钮出封面+内页 -->
       <button id="genNote" style="position:relative;width:100%;border:none;border-radius:12px;padding:14px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#caa85e,#a5813a);color:#fff;box-shadow:0 6px 18px -6px rgba(165,129,58,.5);text-align:left">
-        <span style="position:absolute;top:8px;right:10px;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.9);color:var(--cinnabar-deep);border-radius:999px;padding:2px 8px">推荐 · 零乱码</span>
-        📒 长图笔记<div style="font-size:11.5px;font-weight:500;opacity:.92;margin-top:3px">备忘录真字封面 + 内页 · 文字最稳、最像真人手记</div>
+        <span style="position:absolute;top:8px;right:10px;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.9);color:var(--cinnabar-deep);border-radius:999px;padding:2px 8px">推荐</span>
+        📒 生成封面 + 配图<div style="font-size:11.5px;font-weight:500;opacity:.92;margin-top:3px">长图笔记：真字封面 + 内页 · 文字最稳、零乱码</div>
       </button>
-
-      <!-- ② AI 整图海报 -->
-      <div style="border:1.5px solid var(--cinnabar);border-radius:12px;padding:11px 13px;background:linear-gradient(180deg,rgba(165,129,58,.07),rgba(165,129,58,.02))">
-        <button id="genInfoPoster" style="width:100%;border:1px solid var(--cinnabar);border-radius:10px;padding:11px 16px;font-size:13.5px;font-weight:700;cursor:pointer;background:#fff;color:var(--cinnabar-deep);text-align:left">🖼️ AI 整图海报<span style="font-size:11px;font-weight:500;color:var(--ink-soft)"> · 连字带图一次生成，像设计师作品</span></button>
-        <div class="flex items-center gap-1.5 flex-wrap mt-2 text-[11.5px]">
-          <span class="text-[var(--ink-soft)]">版式</span>
-          ${['单品科普','vs对比','避坑清单','步骤流程','榜单盘点','照片大字'].map((n,ix)=>{const on=((state.posterKind||'单品科普')===n);return `<button class="poster-kind" data-k="${n}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 9px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${n}</button>`;}).join('')}
-        </div>
-        <div class="text-[11px] text-[var(--ink-soft)] mt-1.5 leading-relaxed"><b style="color:var(--cinnabar-deep)">AI 画中文偶有错别字属正常</b>，不满意多点几次挑一张；有实物赛道(珠宝/护肤)最出效果。</div>
-      </div>
-
-      <!-- ③ 上传真实图 -->
-      <button id="upImg" style="width:100%;border:1.5px dashed var(--line);border-radius:12px;padding:12px 16px;font-size:13px;font-weight:600;cursor:pointer;background:var(--paper);color:var(--ink);text-align:left">📎 上传真实图<span style="font-size:11px;font-weight:500;color:var(--ink-soft)"> · 产品实拍 / 真人图最稳，胜过 AI</span></button>
-      <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
 
       <div id="imgStatus" class="text-[12px]"></div>
 
-      <!-- 显示设置（折叠）：比例 / 底色 / 默认AI封面 -->
-      <details class="text-[12px]">
-        <summary style="cursor:pointer;list-style:none;color:var(--ink-soft)">⚙ 显示设置：比例 · 笔记底色 · 默认出 AI 封面 <span style="color:var(--cinnabar)">▾</span></summary>
-        <div class="mt-2 space-y-2" style="background:var(--paper-2);border-radius:var(--r-sm);padding:10px 12px">
-          <div class="flex items-center gap-2 flex-wrap"><span class="text-[var(--ink-soft)]" style="width:52px">比例</span>${_ratioBtns}</div>
-          <div class="flex items-center gap-1.5 flex-wrap"><span class="text-[var(--ink-soft)]" style="width:52px">底色</span>
-            ${NOTE_BG_PRESETS.map(([hex, name]) => { const on = (state.noteBg || '') === hex; return `<button class="note-bg-pick" data-bg="${hex}" title="${name}" style="width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid ${on ? 'var(--cinnabar)' : 'var(--line)'};background:${hex || 'repeating-linear-gradient(45deg,#fff,#fff 3px,#eee 3px,#eee 6px)'};box-shadow:${on ? '0 0 0 2px rgba(165,129,58,.18)' : 'none'}"></button>`; }).join('')}
-            <input id="noteBgCustom" type="color" value="${/^#[0-9a-f]{6}$/i.test(state.noteBg || '') ? state.noteBg : '#eaf1fb'}" title="自定义颜色" style="width:24px;height:24px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:none;padding:0" />
-          </div>
-          <label id="aiCoverToggle" title="开：生成长图/一键全套时默认多出一张 AI 图封面（更慢·耗积分）；关：只出备忘录真字封面卡" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
-            <input id="aiCoverChk" type="checkbox" ${autoAiCoverOn() ? 'checked' : ''} style="accent-color:var(--cinnabar);cursor:pointer"/>
-            <span style="color:var(--ink-soft);font-weight:600">长图/一键全套时，默认多出一张 AI 封面</span>
-          </label>
-        </div>
-      </details>
-      <!-- 更多封面玩法（默认收起）：封面文案 / 封面模板 / 解析对标爆款 -->
-      <details id="moreCoverDetails" style="margin-top:4px">
+      <!-- 换种封面：其余全部折叠，默认只露上面一个主按钮，不再一堆按钮糊脸 -->
+      <details id="moreCoverDetails">
         <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;border:1.5px dashed var(--cinnabar);border-radius:10px;padding:10px 14px;background:linear-gradient(180deg,rgba(165,129,58,.06),rgba(165,129,58,.02));font-size:13px;font-weight:700;color:var(--cinnabar-deep)">
           <span style="font-size:15px">🎨</span>
-          <span>更多封面玩法：封面模板 · 解析对标爆款 · 文案叠字</span>
+          <span>换种封面：AI 整图海报 · 上传真实图 · 模板叠字 · 设置</span>
           <span class="mcd-arrow" style="margin-left:auto;font-size:12px;background:var(--cinnabar);color:#fff;border-radius:999px;padding:2px 10px;font-weight:600">点击展开 ▾</span>
         </summary>
         <div class="mt-3 space-y-3">
+
+          <!-- AI 整图海报 -->
+          <div style="border:1.5px solid var(--cinnabar);border-radius:12px;padding:11px 13px;background:linear-gradient(180deg,rgba(165,129,58,.07),rgba(165,129,58,.02))">
+            <button id="genInfoPoster" style="width:100%;border:1px solid var(--cinnabar);border-radius:10px;padding:11px 16px;font-size:13.5px;font-weight:700;cursor:pointer;background:#fff;color:var(--cinnabar-deep);text-align:left">🖼️ AI 整图海报<span style="font-size:11px;font-weight:500;color:var(--ink-soft)"> · 连字带图一次生成，像设计师作品</span></button>
+            <div class="flex items-center gap-1.5 flex-wrap mt-2 text-[11.5px]">
+              <span class="text-[var(--ink-soft)]">版式</span>
+              ${['单品科普','vs对比','避坑清单','步骤流程','榜单盘点','照片大字'].map((n,ix)=>{const on=((state.posterKind||'单品科普')===n);return `<button class="poster-kind" data-k="${n}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 9px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${n}</button>`;}).join('')}
+            </div>
+            <div class="text-[11px] text-[var(--ink-soft)] mt-1.5 leading-relaxed"><b style="color:var(--cinnabar-deep)">AI 画中文偶有错别字属正常</b>，不满意多点几次挑一张；有实物赛道(珠宝/护肤)最出效果。</div>
+          </div>
+
+          <!-- 上传真实图 -->
+          <button id="upImg" style="width:100%;border:1.5px dashed var(--line);border-radius:12px;padding:12px 16px;font-size:13px;font-weight:600;cursor:pointer;background:var(--paper);color:var(--ink);text-align:left">📎 上传真实图<span style="font-size:11px;font-weight:500;color:var(--ink-soft)"> · 产品实拍 / 真人图最稳，胜过 AI</span></button>
+          <input id="coverFile" type="file" class="hidden" multiple accept="image/*" />
+
+          <!-- 设置：比例 / 底色 / 默认AI封面 -->
+          <div class="space-y-2 text-[12px]" style="background:var(--paper-2);border-radius:var(--r-sm);padding:10px 12px">
+            <div class="flex items-center gap-2 flex-wrap"><span class="text-[var(--ink-soft)]" style="width:52px">比例</span>${_ratioBtns}</div>
+            <div class="flex items-center gap-1.5 flex-wrap"><span class="text-[var(--ink-soft)]" style="width:52px">底色</span>
+              ${NOTE_BG_PRESETS.map(([hex, name]) => { const on = (state.noteBg || '') === hex; return `<button class="note-bg-pick" data-bg="${hex}" title="${name}" style="width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid ${on ? 'var(--cinnabar)' : 'var(--line)'};background:${hex || 'repeating-linear-gradient(45deg,#fff,#fff 3px,#eee 3px,#eee 6px)'};box-shadow:${on ? '0 0 0 2px rgba(165,129,58,.18)' : 'none'}"></button>`; }).join('')}
+              <input id="noteBgCustom" type="color" value="${/^#[0-9a-f]{6}$/i.test(state.noteBg || '') ? state.noteBg : '#eaf1fb'}" title="自定义颜色" style="width:24px;height:24px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:none;padding:0" />
+            </div>
+            <label id="aiCoverToggle" title="开：生成长图/一键全套时默认多出一张 AI 图封面（更慢·耗积分）；关：只出备忘录真字封面卡" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+              <input id="aiCoverChk" type="checkbox" ${autoAiCoverOn() ? 'checked' : ''} style="accent-color:var(--cinnabar);cursor:pointer"/>
+              <span style="color:var(--ink-soft);font-weight:600">长图/一键全套时，默认多出一张 AI 封面</span>
+            </label>
+          </div>
+
           <div>
             <div class="text-[11px] text-[var(--ink-soft)] mb-1">封面文案（叠在图上，两行）</div>
             <input id="cl0" class="field w-full rounded-lg px-3 py-2 text-[14px]" value="${esc(cl[0])}" placeholder="第一行" />
@@ -2214,15 +2210,15 @@ function renderPanel() {
           <span class="text-[12px] text-[var(--ink-soft)]">${desc}</span>
           <span class="s2-chev ml-auto text-[11.5px] font-semibold" style="color:var(--cinnabar-deep);background:rgba(165,129,58,.1);border-radius:999px;padding:2px 10px">${open ? '收起 ▲' : '展开 ▼'}</span>
         </div>`;
-      const openB2 = !!picked || isGzh();
+      const openB2 = true; // ② 贴对标=主操作，始终默认展开；① 找对标收起为次要，减少一进来的按钮量
       return `
     <div class="space-y-3">
       ${isGzh() ? '' : `<div class="flex items-baseline justify-between px-1"><div class="text-[13px] font-bold text-[var(--ink)]">给 AI 一篇对标 · 两种方式</div><span class="text-[11px] text-[var(--ink-soft)]">自动找，或自己贴一篇</span></div>`}
       ${isGzh() ? `<div class="out p-4" style="background:var(--paper-2)"><div class="text-[12px] text-[var(--ink-soft)] leading-relaxed">📰 <b>公众号对标</b>：直接在下方粘贴一篇对标<b>公众号文章链接</b>（mp.weixin.qq.com）点「抓取」，或把文章正文贴进对标框。（小红书自动找对标仅用于小红书笔记模式）</div></div>` : `
       <!-- ① 找对标 -->
       <div class="out p-4">
-        ${head('s2body1', '① 找对标', '按选题+目标给打法，自动抓约 20 篇真实对标', !picked)}
-        <div id="s2body1" class="space-y-3" style="${picked ? 'display:none' : 'margin-top:12px'}">
+        ${head('s2body1', '① 找对标（可选）', '没有对标时点开：按选题自动抓约 20 篇真实笔记挑', false)}
+        <div id="s2body1" class="space-y-3" style="display:none">
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-[12px] text-[var(--ink-soft)] shrink-0">目标</span>
             <select id="refGoal" class="field rounded-lg px-3 py-1.5 text-[13px]">
