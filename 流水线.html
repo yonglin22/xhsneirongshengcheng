@@ -3226,11 +3226,12 @@ setPipeMode(defaultPipeMode());
 // 极简模式且还没选题：把光标聚焦到选题框，用户一进来就知道从哪下手（不滚动、不弹层）
 if (document.body.classList.contains('pipe-simple') && !(state && state.topic && state.topic.trim())) { const ti = $('#topic'); if (ti) setTimeout(() => { try { ti.focus({ preventScroll: true }); } catch { ti.focus(); } }, 200); }
 // 极简模式·选填对标：抓取（自包含，不依赖专业区 DOM）
-async function simpleScrape(url) {
-  const s = $('#simpleRefStatus'); if (!url || !url.trim()) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '请先粘贴链接'; } return; }
+async function simpleScrape(url, opts) {
+  const quiet = !!(opts && opts.quiet); // 静默模式：自动找多候选时不抢占状态提示、抓失败只返回 false
+  const s = $('#simpleRefStatus'); if (!url || !url.trim()) { if (s && !quiet) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '请先粘贴链接'; } return false; }
   const btn = $('#simpleFetch'), o = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = '抓取中…'; }
-  if (s) { s.style.color = 'var(--ink-soft)'; s.textContent = isGzh() ? '正在抓取公众号正文…' : '正在抓取笔记正文（约 10~25 秒）…'; }
+  if (btn && !quiet) { btn.disabled = true; btn.textContent = '抓取中…'; }
+  if (s && !quiet) { s.style.color = 'var(--ink-soft)'; s.textContent = isGzh() ? '正在抓取公众号正文…' : '正在抓取笔记正文（约 10~25 秒）…'; }
   try {
     if (isGzh()) {
       const j = await (await fetch('/api/fetch-url', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url }) })).json();
@@ -3245,12 +3246,14 @@ async function simpleScrape(url) {
       state.ref = [j.title, j.content, tagStr].filter(Boolean).join('\n\n');
       state.refImages = j.images || []; state.refTags = j.tags || []; state.refVision = ''; state.refVisions = null;
     }
+    if (!(state.ref && state.ref.trim().length > 20)) throw new Error('抓到的正文太短');
     persist();
     const ta = $('#simpleRefText'); if (ta) ta.value = state.ref;
     const ri = $('#refIn'); if (ri) ri.value = state.ref; // 同步到专业区文本框（若已渲染）
     if (s) { s.style.color = '#00a052'; s.textContent = '✓ 已加入对标（' + (state.ref || '').length + ' 字' + ((state.refImages || []).length ? ' · ' + state.refImages.length + ' 图' : '') + '），一键生成会按它拆解仿写'; }
-  } catch (e) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '抓取失败：' + (e.message || e); } }
-  finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
+    return true;
+  } catch (e) { if (s && !quiet) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '抓取失败：' + (e.message || e); } return false; }
+  finally { if (btn && !quiet) { btn.disabled = false; btn.textContent = o; } }
 }
 // 极简·自动找一篇对标：按选题用插件搜真实爆款 → 选互动最高一篇 → 自动抓正文
 async function simpleAutoFind() {
@@ -3266,12 +3269,18 @@ async function simpleAutoFind() {
     if (j && j.needLogin) throw new Error('请先在浏览器登录小红书后重试');
     const notes = (j && j.notes) || [];
     if (!notes.length) throw new Error('没搜到（关键词太窄或需登录），可换选题或手动贴一篇');
+    // 按互动排序，取前几篇有链接的候选，逐个真实抓取，第一篇抓通就用它（抓不到/失效自动退下一篇，不空手）
     notes.sort((a, b) => (parseCount(b.likes) + parseCount(b.collects)) - (parseCount(a.likes) + parseCount(a.collects)));
-    const pick = notes.find(n => n.url) || notes[0];
-    if (!pick || !pick.url) throw new Error('搜到的笔记没有链接，换个选题或手动贴');
-    if (s) s.textContent = '找到「' + (pick.title || '').slice(0, 18) + '」，正在抓正文…';
-    const inp = $('#simpleRefUrl'); if (inp) inp.value = pick.url;
-    await simpleScrape(pick.url);
+    const cands = notes.filter(n => n.url).slice(0, 4);
+    if (!cands.length) throw new Error('搜到的笔记没有链接，换个选题或手动贴');
+    let ok = false;
+    for (let i = 0; i < cands.length; i++) {
+      const p = cands[i];
+      if (s) s.textContent = '找到「' + (p.title || '').slice(0, 16) + '」，正在抓正文…（第 ' + (i + 1) + '/' + cands.length + ' 篇）';
+      const inp = $('#simpleRefUrl'); if (inp) inp.value = p.url;
+      if (await simpleScrape(p.url, { quiet: true })) { ok = true; break; }
+    }
+    if (!ok) throw new Error('候选笔记都没抓到正文（可能失效/需登录），换个选题或手动贴一篇');
   } catch (e) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '自动找失败：' + (e.message || e); } }
   finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
 }
