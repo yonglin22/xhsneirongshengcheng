@@ -89,19 +89,18 @@
     </div>
   </div>
 
-  <div id="proArea" class="grid lg:grid-cols-[230px_1fr] gap-7 items-start">
-
-    <!-- 步骤轨（吸顶跟随滚动）-->
-    <aside class="card p-2.5" style="position:sticky;top:74px">
-      <div id="rail" class="space-y-1"></div>
-      <div class="border-t hairline mt-2.5 pt-2.5 px-1.5 pb-1 space-y-1.5">
-        <a id="toPreview" href="/成稿预览.html" class="btn-go rounded-lg w-full block text-center py-2.5 text-[13px] font-medium">去成稿预览 →</a>
-        <a id="toCompliance" href="/合规自检.html" class="btn-ghost rounded-lg w-full block text-center py-2.5 text-[13px]">去合规自检 →</a>
-        <a id="toPublish" href="/一键发布.html" class="btn-go rounded-lg w-full py-2.5 text-[13px] font-medium" style="text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1-2 5-2 5s4-.5 5-2M9 15c-2-1-2.5-3-2-5 3-1 6 0 8 2 1 3 0 6-2 8-2-.5-4-1-6-3ZM15 9l3-6 3 3-6 3"/></svg>一键发布 →</a>
+  <div id="proArea" class="space-y-5">
+    <!-- 顶部横向步骤条 + 快捷入口（吸顶）-->
+    <div class="card p-3" style="position:sticky;top:66px;z-index:20">
+      <div id="rail"></div>
+      <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t hairline">
+        <a id="toPreview" href="/成稿预览.html" class="btn-go rounded-lg px-4 py-2 text-[12.5px] font-medium">📄 去成稿预览 →</a>
+        <a id="toCompliance" href="/合规自检.html" class="btn-ghost rounded-lg px-4 py-2 text-[12.5px]">🛡 去合规自检 →</a>
+        <a id="toPublish" href="/一键发布.html" class="btn-go rounded-lg px-4 py-2 text-[12.5px] font-medium">🚀 一键发布 →</a>
       </div>
-    </aside>
+    </div>
 
-    <!-- 当前步骤 -->
+    <!-- 当前步骤（全宽）-->
     <section id="panel" class="space-y-4"></section>
   </div>
 
@@ -498,21 +497,16 @@ function done(step) { return doneOf(state, step); }
 
 function renderRail() {
   const topicDone = !!(state.topic && state.topic.trim());
-  // 顶部进度条：已完成步数 / 总步数（含选题），一眼知道走到哪
   const totalSteps = STEPS.length + 1, doneSteps = (topicDone ? 1 : 0) + STEPS.filter(st => done(st)).length;
-  const prog = `<div style="display:flex;align-items:center;gap:8px;padding:4px 8px 8px;margin-bottom:4px;border-bottom:1px solid var(--line)">
+  // 横向步骤：胶囊 chip（当前=实心金 / 已完成=浅金✓ / 未做=灰），自包含内联样式
+  const chip = (no, name, on, ok, attr) => `<div class="step" ${attr || ''} style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;cursor:pointer;font-size:12.5px;font-weight:600;white-space:nowrap;border:1.5px solid ${on ? 'var(--cinnabar)' : 'var(--line)'};background:${on ? 'var(--cinnabar)' : (ok ? 'rgba(165,129,58,.09)' : 'var(--paper-2)')};color:${on ? '#fff' : (ok ? 'var(--cinnabar-deep)' : 'var(--ink)')}">
+       <span style="font-weight:800">${ok && !on ? '✓' : no}</span><span>${name}</span></div>`;
+  const prog = `<div style="flex-basis:100%;display:flex;align-items:center;gap:10px;margin-bottom:2px">
        <div style="flex:1;height:5px;border-radius:999px;background:var(--paper-2);overflow:hidden"><div style="height:100%;width:${Math.round(doneSteps / totalSteps * 100)}%;background:var(--cinnabar);border-radius:999px;transition:width .3s"></div></div>
-       <span style="font-size:11px;font-weight:700;color:var(--cinnabar-deep);white-space:nowrap">${doneSteps}/${totalSteps}</span>
-     </div>`;
-  const s1 = `<div class="step ${topicDone ? 'done' : ''}" id="railTopic" title="回到顶部选题区：手写或一键生成选题">
-       <span class="step-no">${topicDone ? '✓' : '1'}</span>
-       <span class="step-name">第一步 选题</span>
-     </div>`;
-  $('#rail').innerHTML = prog + s1 + STEPS.map((st, i) =>
-    `<div class="step ${i===cur?'active':''} ${done(st)?'done':''}" data-i="${i}">
-       <span class="step-no">${done(st)?'✓':st.no.replace('S','')}</span>
-       <span class="step-name">${dispNo(st.no)} ${stepDispName(st)}</span>
-     </div>`).join('');
+       <span style="font-size:11px;font-weight:700;color:var(--cinnabar-deep);white-space:nowrap">${doneSteps}/${totalSteps} 步</span></div>`;
+  const s1 = chip(topicDone ? '✓' : '1', '选题', false, topicDone, 'id="railTopic" title="回到顶部选题区"');
+  const steps = STEPS.map((st, i) => chip(st.no.replace('S', ''), stepDispName(st), i === cur, done(st), `data-i="${i}"`)).join('');
+  $('#rail').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px">${prog}${s1}${steps}</div>`;
   $('#railTopic')?.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => { const t = $('#topic'); if (t) t.focus(); }, 320); });
   $$('#rail .step[data-i]').forEach(el => el.addEventListener('click', () => { cur = +el.dataset.i; renderRail(); renderPanel(); }));
 }
