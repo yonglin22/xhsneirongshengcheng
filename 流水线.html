@@ -27,15 +27,17 @@
     </div>
   </div>
 
-  <!-- 内容平台：单独一行、弱化在最上 -->
-  <div class="flex items-center gap-2 mb-3">
-    <span class="text-[11px] text-[var(--ink-soft)] shrink-0">内容平台</span>
-    <div id="platformTabs" class="inline-flex rounded-lg overflow-hidden" style="border:1px solid var(--line)">
-      <button class="pf-tab" data-pf="xhs" style="padding:5px 13px;font-size:12px;font-weight:600;border:none;cursor:pointer">📕 小红书笔记</button>
-      <button class="pf-tab" data-pf="gzh" style="padding:5px 13px;font-size:12px;font-weight:600;border:none;cursor:pointer;border-left:1px solid var(--line)">📰 公众号文章</button>
+  <!-- 内容平台：默认收起（多数人用小红书），需要发公众号才点开 -->
+  <details class="mb-3">
+    <summary style="cursor:pointer;list-style:none;font-size:11.5px;color:var(--ink-soft)">📕 内容平台：<b id="pfLabel" style="color:var(--cinnabar-deep)">小红书笔记</b> <span style="color:var(--cinnabar)">· 切换 ▾</span></summary>
+    <div class="flex items-center gap-2 mt-2">
+      <div id="platformTabs" class="inline-flex rounded-lg overflow-hidden" style="border:1px solid var(--line)">
+        <button class="pf-tab" data-pf="xhs" style="padding:5px 13px;font-size:12px;font-weight:600;border:none;cursor:pointer">📕 小红书笔记</button>
+        <button class="pf-tab" data-pf="gzh" style="padding:5px 13px;font-size:12px;font-weight:600;border:none;cursor:pointer;border-left:1px solid var(--line)">📰 公众号文章</button>
+      </div>
+      <span id="pfHint" class="text-[11px] text-[var(--ink-soft)]"></span>
     </div>
-    <span id="pfHint" class="text-[11px] text-[var(--ink-soft)]"></span>
-  </div>
+  </details>
 
   <!-- 选题：极简一行，主操作=输入 + 生成选题方向；历史/清空缩成小字 -->
   <div class="card p-4 mb-6">
@@ -362,6 +364,7 @@ function renderPlatformTabs() {
     b.style.color = on ? '#fff' : 'var(--ink-soft)';
   });
   const h = $('#pfHint'); if (h) h.textContent = isGzh() ? '长文 · 无标签 · 首图横版 2.35:1' : '短笔记 · 带话题标签 · 封面竖版 3:4';
+  const lab = $('#pfLabel'); if (lab) lab.textContent = isGzh() ? '公众号文章' : '小红书笔记';
   const tpub = $('#toPublish'); if (tpub) tpub.style.display = isGzh() ? 'none' : ''; // 公众号无一键发布（推小红书草稿箱）→ 隐藏
 }
 document.querySelectorAll('#platformTabs .pf-tab').forEach(b => b.addEventListener('click', () => {
