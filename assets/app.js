@@ -548,7 +548,7 @@ window.buildMyAgentNav = function () {
   // 顶栏合并为两个下拉：内容生成 Agent（赛道+新增+设置）/ 获客 Agent（矩阵+养号+发布）
   el.innerHTML = `
     <div class="ag-dd">
-      <button class="ag-dd-btn ${curContent ? 'on cur' : ''}" type="button">✍️ 内容生成 · ${escN(curName)} <i>▾</i></button>
+      <button class="ag-dd-btn ${curContent ? 'on cur' : ''}" type="button" title="写笔记/文章：选题 → 对标 → 正文 → 封面，一条流水线出稿；也在这里切换/新增赛道">✍️ 内容生成 · ${escN(curName)} <i>▾</i></button>
       <div class="ag-dd-menu">
         <div class="ag-dd-h">切换赛道智能体</div>
         ${trackItems}
@@ -558,7 +558,7 @@ window.buildMyAgentNav = function () {
       </div>
     </div>
     <div class="ag-dd">
-      <button class="ag-dd-btn ${curGrowth ? 'on cur' : ''}" type="button">🎯 获客 Agent <i>▾</i></button>
+      <button class="ag-dd-btn ${curGrowth ? 'on cur' : ''}" type="button" title="涨粉获客：账号矩阵 · 养号/截流计划 · 评论收集潜客 · 数据复盘 · 一键发布">🎯 获客 Agent <i>▾</i></button>
       <div class="ag-dd-menu">
         <a href="/设备看板.html" class="ag-dd-item">📡 设备看板（投屏）</a>
         <a href="/账号矩阵.html" class="ag-dd-item">🗂 账号矩阵</a>
