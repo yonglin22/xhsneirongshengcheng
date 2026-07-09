@@ -3088,7 +3088,7 @@ async function genStep(st) {
 
 // 自动：依次跑完 S2–S7（未贴对标则自动跳过 S2）
 let autoRunning = false, autoPaused = false;
-function setAuto(msg, err) { const el = $('#autoStatus'); if (el) { el.textContent = msg || ''; el.style.color = err ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; } }
+function setAuto(msg, err) { const c = err ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; const el = $('#autoStatus'); if (el) { el.textContent = msg || ''; el.style.color = c; } const s2 = $('#simpleStatus'); if (s2 && document.body.classList.contains('pipe-simple')) { s2.textContent = msg || ''; s2.style.color = err ? 'var(--cinnabar-deep)' : 'var(--cinnabar-deep)'; } }
 // 暂停闸：autoRun 每步前/后调用，暂停时在此停住，点「继续」才往下走
 async function autoGate() { if (!autoPaused) return; setAuto('⏸ 已暂停，点右下角「继续」恢复…'); while (autoPaused && autoRunning) { await new Promise(r => setTimeout(r, 200)); } if (autoRunning) setAuto('▶ 已继续…'); }
 function setAutoUI(on) {
@@ -3259,7 +3259,10 @@ $('#simpleRefText')?.addEventListener('input', e => { state.ref = e.target.value
 // 进入极简模式时，把已有对标回填到选填框，避免"看不到已抓的对标"
 (function seedSimpleRef() { const ta = $('#simpleRefText'); if (ta && state.ref && !ta.value) ta.value = state.ref; })();
 // 极简一键：从「对标拆解(S2)」开跑（不重跑选题、确保用上贴的对标），其余交给 autoRun
-$('#simpleGo')?.addEventListener('click', () => { const s2 = STEPS.findIndex(st => st.no === 'S2'); if (s2 >= 0) { cur = s2; } autoRun(); });
+$('#simpleGo')?.addEventListener('click', () => {
+  if (!state.topic || !state.topic.trim()) { const s = $('#simpleStatus'); if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '先在上面填一个选题，再点一键生成 ☝️'; } const ti = $('#topic'); if (ti) { ti.focus(); ti.scrollIntoView({ behavior: 'smooth', block: 'center' }); } return; }
+  const s2 = STEPS.findIndex(st => st.no === 'S2'); if (s2 >= 0) { cur = s2; } autoRun();
+});
 
 renderRail(); renderPanel();
 </script>
