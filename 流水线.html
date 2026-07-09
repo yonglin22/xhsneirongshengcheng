@@ -3271,14 +3271,13 @@ async function simpleAutoFind() {
     if (!notes.length) throw new Error('没搜到（关键词太窄或需登录），可换选题或手动贴一篇');
     // 按互动排序，取前几篇有链接的候选，逐个真实抓取，第一篇抓通就用它（抓不到/失效自动退下一篇，不空手）
     notes.sort((a, b) => (parseCount(b.likes) + parseCount(b.collects)) - (parseCount(a.likes) + parseCount(a.collects)));
-    const cands = notes.filter(n => n.url).slice(0, 4);
+    const cands = notes.map(n => n.link || n.url).filter(Boolean).slice(0, 4);
     if (!cands.length) throw new Error('搜到的笔记没有链接，换个选题或手动贴');
     let ok = false;
     for (let i = 0; i < cands.length; i++) {
-      const p = cands[i];
-      if (s) s.textContent = '找到「' + (p.title || '').slice(0, 16) + '」，正在抓正文…（第 ' + (i + 1) + '/' + cands.length + ' 篇）';
-      const inp = $('#simpleRefUrl'); if (inp) inp.value = p.url;
-      if (await simpleScrape(p.url, { quiet: true })) { ok = true; break; }
+      if (s) s.textContent = '正在抓真实笔记正文…（第 ' + (i + 1) + '/' + cands.length + ' 篇）';
+      const inp = $('#simpleRefUrl'); if (inp) inp.value = cands[i];
+      if (await simpleScrape(cands[i], { quiet: true })) { ok = true; break; }
     }
     if (!ok) throw new Error('候选笔记都没抓到正文（可能失效/需登录），换个选题或手动贴一篇');
   } catch (e) { if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '自动找失败：' + (e.message || e); } }
