@@ -114,8 +114,8 @@
 </main>
 
 <!-- 悬浮：一键按对标生成全套 -->
-<button id="autoBtn" class="btn-go font-medium" style="position:fixed;right:26px;bottom:90px;z-index:40;border-radius:999px;padding:14px 24px;font-size:14px;box-shadow:0 10px 30px -6px rgba(165,129,58,.55);white-space:nowrap">▶ 一键按对标生成全套</button>
-<button id="autoPauseBtn" style="display:none;position:fixed;right:26px;bottom:148px;z-index:41;border-radius:999px;padding:11px 20px;font-size:13px;font-weight:600;background:#fff;color:var(--ink);border:1.5px solid var(--cinnabar);box-shadow:0 8px 24px -8px rgba(0,0,0,.35);white-space:nowrap;cursor:pointer">⏸ 暂停</button>
+<button id="autoBtn" class="btn-go font-bold" style="position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:40;border-radius:999px;padding:15px 40px;font-size:15px;box-shadow:0 12px 34px -6px rgba(165,129,58,.6);white-space:nowrap">▶ 一键按对标生成全套</button>
+<button id="autoPauseBtn" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:41;border-radius:999px;padding:11px 20px;font-size:13px;font-weight:600;background:#fff;color:var(--ink);border:1.5px solid var(--cinnabar);box-shadow:0 8px 24px -8px rgba(0,0,0,.35);white-space:nowrap;cursor:pointer">⏸ 暂停</button>
 <style>
 /* 自动生成中：除「暂停/继续」「停止」外，全站按钮置灰不可点，防误触打断流程 */
 body.auto-running button:not(#autoPauseBtn):not(#autoBtn), body.auto-running .btn-go:not(#autoBtn), body.auto-running .img-ratio, body.auto-running input[type=file]+*, body.auto-running .cv-tpl-pick { opacity:.45 !important; pointer-events:none !important; filter:grayscale(.4); }
@@ -604,10 +604,10 @@ function outputHTML(st) {
         <b style="color:var(--cinnabar-deep)">③ 满意就去「一键发布」</b>。想换风格点「换种封面」。
       </div>
 
-      <!-- 主操作：一个按钮出封面+内页 -->
-      <button id="genNote" style="position:relative;width:100%;border:none;border-radius:12px;padding:14px 18px;font-size:14.5px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#caa85e,#a5813a);color:#fff;box-shadow:0 6px 18px -6px rgba(165,129,58,.5);text-align:left">
-        <span style="position:absolute;top:8px;right:10px;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.9);color:var(--cinnabar-deep);border-radius:999px;padding:2px 8px">推荐</span>
-        📒 生成封面 + 配图<div style="font-size:11.5px;font-weight:500;opacity:.92;margin-top:3px">长图笔记：真字封面 + 内页 · 文字最稳、零乱码</div>
+      <!-- 本步操作：降级为浅色次要（一键生成才是主角）-->
+      <button id="genNote" style="position:relative;width:100%;border:1.5px solid var(--cinnabar);border-radius:12px;padding:13px 18px;font-size:14px;font-weight:700;cursor:pointer;background:rgba(165,129,58,.08);color:var(--cinnabar-deep);text-align:left">
+        <span style="position:absolute;top:9px;right:10px;font-size:10.5px;font-weight:700;background:var(--cinnabar);color:#fff;border-radius:999px;padding:2px 8px">推荐</span>
+        📒 生成封面 + 配图<div style="font-size:11.5px;font-weight:500;color:var(--ink-soft);margin-top:3px">长图笔记：真字封面 + 内页 · 文字最稳、零乱码</div>
       </button>
 
       <div id="imgStatus" class="text-[12px]"></div>
