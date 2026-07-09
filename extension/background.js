@@ -154,6 +154,7 @@ async function xhsFetchNote(url) {
   const L = (...a) => { try { console.log('[朱砂单篇]', ...a); } catch {} };
   L('收到单篇抓取 url=', url);
   if (!url) return { ok: false, error: '缺少链接' };
+  try { await _xhsThrottle(); } catch (e) { return { ok: false, rateLimited: true, error: e.message || String(e) }; }
   _keepAliveStart();
   let tabId = null, prevActiveTab = null;
   try {
@@ -161,6 +162,7 @@ async function xhsFetchNote(url) {
     const tab = await chrome.tabs.create({ url, active: true });
     tabId = tab.id;
     await _waitTabComplete(tabId, 20000);
+    if (await _xhsRiskHit(tabId)) { _xhsHitRisk(); return { ok: false, rateLimited: true, error: '小红书提示「请求太频繁」，已冷却约 4 分钟，请稍后再抓（保护账号不被风控）' }; }
     let note = null, needLogin = false, blocked = false, lastErr = '';
     for (let i = 0; i < 16; i++) {
       await _sleep(1500);
@@ -277,10 +279,32 @@ let _keepAliveTimer = null, _keepAliveRef = 0;
 function _keepAliveStart() { _keepAliveRef++; if (_keepAliveTimer) return; _keepAliveTimer = setInterval(() => { try { chrome.runtime.getPlatformInfo(() => void chrome.runtime.lastError); } catch {} }, 20000); }
 function _keepAliveStop() { _keepAliveRef = Math.max(0, _keepAliveRef - 1); if (_keepAliveRef === 0 && _keepAliveTimer) { clearInterval(_keepAliveTimer); _keepAliveTimer = null; } }
 
+// —— 小红书抓取节流 + 风控冷却：避免短时间高频访问触发「请求太频繁」，保护账号 ——
+let _xhsLastNav = 0, _xhsCooldownUntil = 0;
+const XHS_MIN_GAP = 9000;          // 两次打开小红书页面至少间隔 9 秒（拉开节奏，像真人）
+const XHS_COOLDOWN = 4 * 60 * 1000; // 命中风控后冷却 4 分钟不再抓
+// 命中风控前先节流；冷却期内直接抛错不发起请求
+async function _xhsThrottle() {
+  const now = Date.now();
+  if (now < _xhsCooldownUntil) { const s = Math.ceil((_xhsCooldownUntil - now) / 1000); throw new Error('小红书已提示「请求太频繁」，为保护账号已冷却，请约 ' + s + ' 秒后再抓'); }
+  const wait = XHS_MIN_GAP - (now - _xhsLastNav);
+  if (wait > 0) await _sleep(wait);
+  _xhsLastNav = Date.now();
+}
+function _xhsHitRisk() { _xhsCooldownUntil = Date.now() + XHS_COOLDOWN; }
+// 在指定标签页里检测是否命中小红书风控页（请求太频繁 / 验证码 / 异常流量）
+async function _xhsRiskHit(tabId) {
+  try {
+    const r = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', func: () => { try { return /请求太频繁|操作太频繁|访问过于频繁|请稍后再试|滑动验证|拖动滑块|安全验证|异常流量|frequent/i.test((document.body && document.body.innerText || '').slice(0, 1000)); } catch (e) { return false; } } });
+    return !!(r && r[0] && r[0].result);
+  } catch (e) { return false; }
+}
+
 async function xhsSearch(keyword, sort, type) {
   const L = (...a) => { try { console.log('[朱砂抓取]', ...a); } catch {} };
   L('收到抓取请求 keyword=', keyword, 'sort=', sort, 'type=', type);
   if (!keyword) return { ok: false, error: '缺少关键词' };
+  try { await _xhsThrottle(); } catch (e) { return { ok: false, rateLimited: true, error: e.message || String(e) }; }
   _keepAliveStart();
   const url = 'https://www.xiaohongshu.com/search_result?keyword=' + encodeURIComponent(keyword)
     + (type === 'video' ? '&type=video' : type === 'image' ? '&type=image' : '');
@@ -296,6 +320,8 @@ async function xhsSearch(keyword, sort, type) {
     L('已打开搜索标签页 tabId=', tabId, 'url=', url);
     const loaded = await _waitTabComplete(tabId, 20000);
     L('标签页加载', loaded ? '完成' : '超时(20s未complete，继续尝试解析)');
+    // 命中风控页（请求太频繁/验证码）→ 冷却并立即停止，别硬刷加剧风控
+    if (await _xhsRiskHit(tabId)) { _xhsHitRisk(); L('命中小红书风控页，进入冷却'); return { ok: false, rateLimited: true, error: '小红书提示「请求太频繁」，已暂停抓取并冷却约 4 分钟，请稍后再试（保护账号不被风控）' }; }
     let notes = [], needLogin = false, lastErr = '';
     for (let i = 0; i < 18; i++) { // SPA 异步出结果（长尾词更慢），轮询最多 ~27s
       await _sleep(1500);
@@ -305,6 +331,8 @@ async function xhsSearch(keyword, sort, type) {
       const out = res && res[0] && res[0].result;
       L('第', i + 1, '次解析：notes=', out ? (out.notes || []).length : 'null', 'needLogin=', out ? out.needLogin : 'null');
       if (out) { if (out.needLogin) needLogin = true; if (out.notes && out.notes.length) { notes = out.notes; break; } }
+      // 中途弹出风控页 → 冷却退出
+      if (i === 2 && await _xhsRiskHit(tabId)) { _xhsHitRisk(); return { ok: false, rateLimited: true, error: '小红书提示「请求太频繁」，已冷却约 4 分钟，请稍后再试（保护账号）' }; }
     }
     L('抓取结束：共', notes.length, '篇，needLogin=', needLogin, lastErr ? ('，注入错误=' + lastErr) : '');
     return { ok: notes.length > 0, notes, needLogin, error: notes.length ? '' : (needLogin ? '未登录小红书' : (lastErr ? ('注入脚本被拒：' + lastErr) : '页面已开但没解析到笔记（可能小红书改版/需下拉加载/被风控）')) };

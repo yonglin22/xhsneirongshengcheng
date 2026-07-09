@@ -76,6 +76,7 @@
         </div>
         <textarea id="simpleRefText" class="field w-full rounded-lg px-3 py-2 text-[13px] leading-relaxed" rows="3" placeholder="或直接把对标笔记的「标题 + 正文」粘到这里（合规来源）"></textarea>
         <div id="simpleRefStatus" class="text-[11.5px] text-[var(--ink-soft)]"></div>
+        <div class="text-[11.5px]" style="color:var(--ink-soft)">想抓多篇真实笔记自己挑？<a id="simpleToPro" href="javascript:void(0)" style="color:var(--cinnabar-deep);font-weight:600;text-decoration:underline">→ 切「专业逐步」用「找对标 / 抓约20篇」</a></div>
       </div>
     </details>
 
@@ -2714,7 +2715,7 @@ async function grabBenchmarkNotes(searches) {
       }
       if (!j) j = { ok: false };
       // 命中每日抓取上限 → 停止并友好提示
-      if (j.limited) { if (st) st.textContent = '⚠ ' + j.error; if (btn) { btn.disabled = false; btn.textContent = o; } return; }
+      if (j.limited || j.rateLimited) { if (st) { st.style.color = 'var(--cinnabar-deep)'; st.textContent = '⚠ ' + j.error; } if (btn) { btn.disabled = false; btn.textContent = o; } return; }
       // 线上没有 xhs CLI（ENOENT/未找到 xhs 命令）→ 回退到直连搜索 /api/search（需配 XHS_COOKIE 才有结果）
       if ((!j.ok || !(j.notes && j.notes.length)) && j.error && /未找到 xhs|ENOENT|xhs 搜索失败/.test(j.error)) {
         try { j = await (await fetch('/api/search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keyword: kws[i] }) })).json(); } catch {}
@@ -3249,6 +3250,7 @@ async function simpleAutoFind() {
   try {
     const kw = state.topic.trim().slice(0, 20);
     let j = await window.xhsExt.search(kw, 'popular', 'all');
+    if (j && j.rateLimited) throw new Error(j.error || '小红书限频，请稍后再试');
     if (j && j.needLogin) throw new Error('请先在浏览器登录小红书后重试');
     const notes = (j && j.notes) || [];
     if (!notes.length) throw new Error('没搜到（关键词太窄或需登录），可换选题或手动贴一篇');
@@ -3262,6 +3264,8 @@ async function simpleAutoFind() {
   finally { if (btn) { btn.disabled = false; btn.textContent = o; } }
 }
 $('#simpleAutoFind')?.addEventListener('click', simpleAutoFind);
+// 切到专业模式并定位到第二步「对标拆解」，用完整的「找对标 / 抓约20篇」
+$('#simpleToPro')?.addEventListener('click', () => { setPipeMode('pro'); const s2 = STEPS.findIndex(st => st.no === 'S2'); if (s2 >= 0) { cur = s2; renderRail(); renderPanel(); } const pa = $('#proArea'); if (pa) setTimeout(() => pa.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); });
 $('#simpleFetch')?.addEventListener('click', () => simpleScrape($('#simpleRefUrl')?.value || ''));
 $('#simpleRefText')?.addEventListener('input', e => { state.ref = e.target.value; persistSoft(); });
 // 进入极简模式时，把已有对标回填到选填框，避免"看不到已抓的对标"
