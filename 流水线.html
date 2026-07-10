@@ -2265,7 +2265,7 @@ function renderPanel() {
             <div class="text-[11px] text-[var(--ink-soft)] mb-1">${isGzh()?'公众号文章来源':'笔记来源'}</div>
             <div class="flex flex-wrap items-center gap-2">
               <input id="noteUrl" class="field flex-1 min-w-[200px] rounded-lg px-3 py-2 text-[13px]" placeholder="${isGzh()?'粘贴公众号文章链接（mp.weixin.qq.com），自动抓正文':'粘贴小红书链接（xiaohongshu.com / xhslink.com），可选'}" value="${state.refUrl||''}" />
-              <button id="fetchNote" class="btn-go rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
+              <button id="fetchNote" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap">↧ 抓取</button>
               <button id="upRefImg" class="btn-ghost rounded-lg px-3.5 py-2 text-[12px] whitespace-nowrap" title="抓不到时，直接传对标图截图，自动解析">📎 上传对标图</button>
               <input id="refImgFile" type="file" class="hidden" multiple accept="image/*" />
             </div>
@@ -2284,7 +2284,7 @@ function renderPanel() {
     </div>`; })() : ''}
     <div class="flex items-center gap-2 flex-wrap">
       <!-- 绝对主按钮：生成本步（封面步除外——它的生成用下面那个大「生成封面+配图」按钮，这里不重复） -->
-      ${st.key==='cover' ? '' : `<button id="genStep" class="btn-go rounded-xl font-bold flex items-center gap-2" style="padding:12px 26px;font-size:15px;box-shadow:0 6px 18px -6px rgba(165,129,58,.5)"><span id="gi">✶</span><span id="gt">生成${dispNo(st.no)}</span></button>`}
+      ${st.key==='cover' ? '' : `<button id="genStep" class="rounded-xl font-bold flex items-center gap-2" style="border:1.5px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);padding:11px 24px;font-size:14.5px;cursor:pointer"><span id="gi">✶</span><span id="gt">生成${dispNo(st.no)}</span></button>`}
       <!-- 次要：记偏好（弱化为小字链接感） -->
       <button id="notePref" class="rounded-lg px-2.5 py-1.5 text-[12px]" style="border:none;background:none;color:var(--ink-soft);cursor:pointer" title="记下偏好，之后生成自动遵循、少返工">📌 记偏好</button>
       <span id="stStatus" class="text-[12px] text-[var(--ink-soft)]"></span>
