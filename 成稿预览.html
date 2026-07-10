@@ -854,6 +854,18 @@ async function persistImgUrl(u){
 }
 
 // 把一张图（生成图裁掉底部水印、上传图不裁）画成 blob
+// 取图片原始字节（data: 直接解码；其余走同源代理拿字节）。不经 canvas → 不会因跨域污染而导出深色废图。
+async function fetchImgBytes(u){
+  try{
+    if(!u) return null;
+    if((u||'').startsWith('data:')){ const r=await fetch(u); return await r.blob(); }
+    const abs = (u||'').startsWith('/') ? (location.origin+u) : u;
+    let r = await fetch('/api/img-proxy?u='+encodeURIComponent(abs));
+    if(!r.ok){ try{ r = await fetch(abs); }catch(e){} }
+    if(r && r.ok){ const b = await r.blob(); if(b && b.size>0) return b; }
+  }catch(e){}
+  return null;
+}
 function cropImageToBlob(u){
   return new Promise((resolve)=>{
     const img = new Image(); img.crossOrigin='anonymous';
@@ -942,7 +954,12 @@ $('#exportBtn').addEventListener('click', async ()=>{
       const b = await new Promise(r=>oc.toBlob(r,'image/jpeg',0.9)); // 1080P JPEG，约 ~200KB
       if(b) zip.file(String(i+1).padStart(2,'0') + (i===0?'_封面.jpg':'_配图.jpg'), b);
     }
-    if (!slides.length) for (let i=0; i<imgs.length; i++){ const b = await cropImageToBlob(imgs[i]); if(b) zip.file(String(i+1).padStart(2,'0')+'_图.jpg', b); }
+    // 单张封面（整图海报/实拍）：#carTrack 为空，不走 html2canvas/裁图（会因跨域污染画布→导出深色废图）；
+    // 直接把封面图的原始字节塞进 zip（经同源代理取字节，不碰 canvas），所见即所得
+    if (!slides.length) for (let i=0; i<imgs.length; i++){
+      const b = await fetchImgBytes(imgs[i]);
+      if(b){ const ext=(b.type&&b.type.includes('png'))?'png':'jpg'; zip.file(String(i+1).padStart(2,'0')+(i===0?'_封面.':'_图.')+ext, b); }
+    }
     // 3) 文案
     const title = $('#noteTitle').textContent.trim();
     const body  = [...$('#noteBody').querySelectorAll('p')].map(p=>p.textContent.trim()).join('\n\n');
