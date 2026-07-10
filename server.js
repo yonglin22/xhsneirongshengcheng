@@ -671,16 +671,25 @@ const server = http.createServer(async (req, res) => {
         }
         let up, text;
         const m = refImg && /^data:(.+?);base64,(.*)$/.exec(refImg);
-        if (m) {
-          const fd = new FormData();
-          fd.append('model', model);
-          fd.append('prompt', prompt);
-          fd.append('size', gptSize);
-          fd.append('image', new Blob([Buffer.from(m[2], 'base64')], { type: m[1] || 'image/png' }), 'ref.png');
-          up = await fetch(base + '/images/edits', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { authorization: 'Bearer ' + ikey }, body: fd });
-        } else {
-          up = await fetch(base + '/images/generations', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
+        // 每次都新建请求（FormData/Blob 只能消费一次，重试必须重建）
+        const doUp = () => {
+          if (m) {
+            const fd = new FormData();
+            fd.append('model', model);
+            fd.append('prompt', prompt);
+            fd.append('size', gptSize);
+            fd.append('image', new Blob([Buffer.from(m[2], 'base64')], { type: m[1] || 'image/png' }), 'ref.png');
+            return fetch(base + '/images/edits', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { authorization: 'Bearer ' + ikey }, body: fd });
+          }
+          return fetch(base + '/images/generations', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
+        };
+        // 瞬时网络失败（fetch failed / 连接重置 / 超时）→ 自动重试，最多 3 次、指数退避，避免中转偶发抽风就整单失败
+        let upErr;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try { up = await doUp(); upErr = null; break; }
+          catch (e) { upErr = e; if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1500)); }
         }
+        if (!up) return send(res, 502, JSON.stringify({ error: '图片服务连接失败（已自动重试 3 次仍不通），多为出图中转临时不可用，请稍后再试：' + ((upErr && upErr.message) || 'fetch failed') }), { 'content-type': 'application/json' });
         text = await up.text();
         if (!up.ok) {
           // 上游中转返回 HTML 错误页（网关/限流/超时）→ 别把整坨 HTML 透传给前端，换成人话
