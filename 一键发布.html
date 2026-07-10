@@ -169,7 +169,8 @@ async function renderCardsToPng(coverImages, notePages, coverLines, imgRatio, co
   for(const u of (coverImages||[])){ i++;
     let cap=caps[i];
     // 封面位(第1张)是 AI 图但叠字缺失时 → 用 coverLines 重建稿定风封面叠字，避免封面变成无样式裸图或被丢
-    if(i===0 && (!cap || (!asStr(cap.title) && !(Array.isArray(cap.lines)&&cap.lines.length))) && (coverLines||[]).filter(Boolean).length){
+    // 但整图海报 / 真实上传图(raw/whole)文字已在图里，绝不重建叠字，否则又把大标题盖回去
+    if(i===0 && !(cap && (cap.raw || cap.whole)) && (!cap || (!asStr(cap.title) && !(Array.isArray(cap.lines)&&cap.lines.length))) && (coverLines||[]).filter(Boolean).length){
       const cl=(coverLines||[]).filter(Boolean); const tg=(tags||[]).map(t=>String(t||'').replace(/^#/,'').trim()).filter(Boolean).slice(0,3);
       cap={ title:cl[0], lines:[cl[1]||'', ...tg], layout:'封面', theme:'poster' }; // 与生成时 aiCoverCaption 一致：副标题=第2行，底部=话题标签
     }
