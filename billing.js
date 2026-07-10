@@ -592,10 +592,40 @@ function agentApply(uid, phone, name, reason) {
   return { ok: true };
 }
 function agentAppsAll(status) { return status ? db.prepare('SELECT * FROM agent_apps WHERE status=? ORDER BY created_at DESC LIMIT 200').all(status) : db.prepare('SELECT * FROM agent_apps ORDER BY created_at DESC LIMIT 200').all(); }
+// 服务端构建一个合法的自定义赛道对象（与前端 buildTrack 保持一致，前端登录同步即可直接用/自愈）
+function buildTrackServer(name) {
+  name = String(name || '智能体').slice(0, 30);
+  const id = 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const audience = name + '人群';
+  return {
+    id, name, emoji: '🧩', domain: name, audience,
+    persona: `你是${name}领域资深内容操盘手，服务${audience}。第一人称、真人感、有温度，绝不AI腔。\n铁律：①原创不洗稿；②不用绝对化用词，不做效果/结果保证，不夸大，不编造数据/政策/价格，不确定标「需核实」；③不留联系方式、不站外导流；④不编造经历与案例。`,
+    hardInfo: '价格 / 数据 / 政策 / 资质等硬信息',
+    compliance: '不做效果或结果保证；不绝对化；不夸大；不编造数据',
+    bigTags: ['#' + name],
+    placeholders: { persona: name + '博主', direction: name, topic: name + ' 新手必看的几点' },
+    sampleTopics: [],
+    templates: [
+      { name: '科普扫盲', desc: '讲清是什么 / 适合谁 / 注意啥', seed: name + '科普：到底适合谁、要注意什么' },
+      { name: '避坑清单', desc: '新手最容易踩的坑', seed: name + '避坑：新手别踩这几个坑' },
+      { name: '经验复盘', desc: '真实经历 + 方法', seed: '我的' + name + '经验复盘，少走弯路' },
+      { name: '对比测评', desc: '两个选择怎么选', seed: name + '怎么选？对比给你看' },
+    ],
+    custom: true,
+  };
+}
 function agentAppDecide(id, approve) {
   const a = db.prepare('SELECT * FROM agent_apps WHERE id=?').get(id); if (!a || a.status !== 'pending') return { ok: false, error: '申请不存在或已处理' };
   db.prepare('UPDATE agent_apps SET status=?,decided_at=? WHERE id=?').run(approve ? 'approved' : 'rejected', Date.now(), id);
-  if (approve) settingsSet('agent_extra_' + a.user_id, agentExtra(a.user_id) + 1); // 批准 → 该用户配额 +1
+  if (approve) {
+    settingsSet('agent_extra_' + a.user_id, agentExtra(a.user_id) + 1); // 先给该用户配额 +1
+    // ★ 直接把申请的赛道建好并存进该用户 agent-config（前端登录同步 → hydrateCloudTrack 自动出现）
+    try {
+      const t = buildTrackServer(a.name);
+      agentConfigSave(a.user_id, t.id, { _track: t });
+      const list = agentList(a.user_id); if (!list.includes(t.name)) { list.push(t.name); settingsSet('agents_' + a.user_id, list); } // 登记占用刚给的名额
+    } catch (e) {}
+  }
   return { ok: true };
 }
 
