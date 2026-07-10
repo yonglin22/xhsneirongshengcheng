@@ -707,6 +707,8 @@ function imgAttr(u) {
 // 把一张图的叠字（标题+内容）渲染成干净的信息卡覆盖层，版式跟随 layout
 function asStr(x) { return typeof x === 'string' ? x : (x == null ? '' : (x.text || x.title || x.content || (Array.isArray(x) ? x.join(' ') : String(x)))); }
 function normalizeCap(cap, coverFallback) {
+  // 整图海报 / 真实上传图：文字已在图里（或就是一张实拍），绝不再叠任何标题文案
+  if (cap && cap.whole) return { title: '', lines: [], layout: '封面', theme: 'photo' };
   // 空 / raw 的封面 caption → 用兜底标题，poster 主题保证 AI 封面也叠上标题（修：AI 封面图没带标题）
   if (!cap || cap.raw) return { title: coverFallback || '', lines: [], layout: '封面', theme: 'poster' };
   if (typeof cap === 'string') return { title: cap, lines: [], layout: '要点', theme: 'photo' };
@@ -2111,7 +2113,7 @@ ${kind && kind.startsWith('珠宝') ? JW_POSTER[kind] : kind === '照片大字' 
     u = await persistImgUrl(u);
     state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
     // raw=true：整图海报文字已在图里，直接原样显示，不叠任何模板字/蒙层
-    state.coverImages.unshift(u); state.coverCaptions.unshift({ theme: 'photo', raw: true });
+    state.coverImages.unshift(u); state.coverCaptions.unshift({ theme: 'photo', raw: true, whole: true });
     state.coverImage = state.coverImages[0]; persist(); renderCoverImages();
     if (st) { st.textContent = '✓ 已生成整图海报（第1张）· 不满意可再点一次挑一张'; st.style.color = '#00a052'; }
   } catch (e) { if (st) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
