@@ -57,6 +57,12 @@
       </div>
       <div>
         <label class="block text-[13px] font-medium mb-2">方向 / 科目（必填）</label>
+        <div id="jewelryCats" class="flex items-center gap-2 mb-2" style="display:none">
+          <span class="text-[11.5px] text-[var(--ink-soft)]">快选类目</span>
+          <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="珠宝（彩宝/珍珠）" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">💎 珠宝</button>
+          <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="水晶" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">🔮 水晶</button>
+          <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="翡翠" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">🟢 翡翠</button>
+        </div>
         <input id="direction" class="field w-full rounded-lg px-3.5 py-2.5 text-[14px]" placeholder="例：视觉传达考研 · 手绘快题 · 跨考" />
       </div>
       <div>
@@ -122,6 +128,9 @@ $('#direction').value = localStorage.getItem('ag_direction') || '';
 $('#model').addEventListener('change', e => localStorage.setItem('ag_model', e.target.value));
 $('#persona').addEventListener('input', e => localStorage.setItem('ag_persona', e.target.value));
 $('#direction').addEventListener('input', e => localStorage.setItem('ag_direction', e.target.value));
+// 珠宝赛道快选类目（仅账号 13696504558 显示）：点一下填进方向框
+$$('.jw-cat').forEach(b => b.addEventListener('click', () => { const d = $('#direction'); if (d) { d.value = b.dataset.cat; localStorage.setItem('ag_direction', d.value); } }));
+(async () => { try { const me = await window.meFetch(); if (me && me.ok && String(me.phone) === '13696504558') { const box = $('#jewelryCats'); if (box) box.style.display = 'flex'; } } catch {} })();
 
 function setStatus(m, k) { const el = $('#status'); el.textContent = m || ''; el.style.color = k === 'err' ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; }
 function busy(on) { $('#genBtn').disabled = on; $('#genIcon').className = on ? 'spin' : ''; $('#genIcon').textContent = on ? '◠' : '✶'; $('#genTxt').textContent = on ? '生成中' : '生成选题'; }
