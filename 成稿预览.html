@@ -812,7 +812,7 @@ function setCoverImages(arr, caps){
     const src = u.startsWith('data:') ? u : ('/api/img-proxy?u=' + encodeURIComponent(u));
     const h = u.startsWith('data:') ? '100%' : '111%';
     const fb = u.startsWith('data:') ? '' : ` data-direct="${String(u).replace(/"/g,'&quot;')}" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.dataset.direct}"`;
-    return `<div class="slide"><img style="position:absolute;inset:0;width:100%;height:${h};object-fit:cover;object-position:top center" src="${src}"${fb}/>${capTheme(caps[i])==='poster'?'':'<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i===0, coverFallback)}</div>`;
+    return `<div class="slide"><img style="position:absolute;inset:0;width:100%;height:${h};object-fit:cover;object-position:top center" src="${src}"${fb}/>${(capTheme(caps[i])==='poster'||(caps[i]&&(caps[i].raw||caps[i].whole)))?'':'<div class="cv-scrim"></div>'}${capCardHTML(caps[i], i===0, coverFallback)}</div>`;
   }).join('');
   $('#carousel').classList.add('has-photo');
   $('#carDots').innerHTML = arr.map((_,i)=>`<i class="${i===0?'on':''}"></i>`).join('');
