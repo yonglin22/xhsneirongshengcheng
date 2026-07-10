@@ -682,7 +682,11 @@ const server = http.createServer(async (req, res) => {
           up = await fetch(base + '/images/generations', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
         }
         text = await up.text();
-        if (!up.ok) return send(res, up.status, text, { 'content-type': 'application/json' });
+        if (!up.ok) {
+          // 上游中转返回 HTML 错误页（网关/限流/超时）→ 别把整坨 HTML 透传给前端，换成人话
+          const clean = /^\s*<(!doctype|html)/i.test(text || '') ? JSON.stringify({ error: '图片服务暂时繁忙/超时（上游 ' + up.status + '），请稍后重试' }) : text;
+          return send(res, up.status, clean, { 'content-type': 'application/json' });
+        }
         try {
           const j = JSON.parse(text);
           const d = j.data && j.data[0];

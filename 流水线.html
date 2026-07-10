@@ -2181,8 +2181,11 @@ async function onRefUpload(e) {
 }
 // 统一解析后端/上游错误（ark 错误是 {error:{message}} 对象，避免显示成 [object Object]）
 function errMsg(tx) {
-  try { const j = JSON.parse(tx); const e = j.error || j; return String((e && e.message) || (typeof e === 'string' ? e : '') || j.error || '出图失败').slice(0, 120); }
-  catch { return (tx || '出图失败').slice(0, 120); }
+  const s = String(tx || '').trim();
+  // 上游返回 HTML 错误页（中转繁忙/超时/网关报错）→ 给人话，别甩一坨 <!DOCTYPE html>
+  if (/^<(!doctype|html|head|body|\?xml)/i.test(s)) return '图片服务暂时繁忙或超时了，稍等片刻再点「重新出图」重试即可（多为出图接口临时限流）。';
+  try { const j = JSON.parse(s); const e = j.error || j; return String((e && e.message) || (typeof e === 'string' ? e : '') || j.error || '出图失败').slice(0, 120); }
+  catch { return (s || '出图失败').slice(0, 120); }
 }
 // 公众号横版首图：预览（2.35:1）
 function renderGzhCover() {
