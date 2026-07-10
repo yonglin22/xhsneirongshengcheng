@@ -614,17 +614,28 @@ function buildTrackServer(name) {
     custom: true,
   };
 }
+// 把一条「已通过」的申请真正落地成用户的赛道（幂等：靠 settings 标记，避免重复建/删了又复活）
+function materializeAgentApp(a) {
+  if (!a || a.status !== 'approved') return false;
+  if (settingsGet('agent_app_mat_' + a.id, 0)) return false; // 已落地过 → 跳过
+  try {
+    const t = buildTrackServer(a.name);
+    agentConfigSave(a.user_id, t.id, { _track: t });
+    const list = agentList(a.user_id); if (!list.includes(t.name)) { list.push(t.name); settingsSet('agents_' + a.user_id, list); }
+    settingsSet('agent_app_mat_' + a.id, 1);
+    return true;
+  } catch (e) { return false; }
+}
+// 服务启动时回填：把所有「已通过但还没建赛道」的历史申请补建（幂等）
+function backfillApprovedAgents() {
+  try { const rows = db.prepare("SELECT * FROM agent_apps WHERE status='approved'").all(); let n = 0; for (const a of rows) if (materializeAgentApp(a)) n++; if (n) { try { console.log('[智能体] 回填已通过申请', n, '条'); } catch {} } } catch (e) {}
+}
 function agentAppDecide(id, approve) {
   const a = db.prepare('SELECT * FROM agent_apps WHERE id=?').get(id); if (!a || a.status !== 'pending') return { ok: false, error: '申请不存在或已处理' };
   db.prepare('UPDATE agent_apps SET status=?,decided_at=? WHERE id=?').run(approve ? 'approved' : 'rejected', Date.now(), id);
   if (approve) {
     settingsSet('agent_extra_' + a.user_id, agentExtra(a.user_id) + 1); // 先给该用户配额 +1
-    // ★ 直接把申请的赛道建好并存进该用户 agent-config（前端登录同步 → hydrateCloudTrack 自动出现）
-    try {
-      const t = buildTrackServer(a.name);
-      agentConfigSave(a.user_id, t.id, { _track: t });
-      const list = agentList(a.user_id); if (!list.includes(t.name)) { list.push(t.name); settingsSet('agents_' + a.user_id, list); } // 登记占用刚给的名额
-    } catch (e) {}
+    a.status = 'approved'; materializeAgentApp(a); // ★ 立即把赛道建好（前端登录同步即自动出现）
   }
   return { ok: true };
 }
@@ -815,6 +826,7 @@ function adminDeleteUserAgents(phone, trackId) {
 
 priceMigrateV2(); // 一次性对齐 PRD §8 价格（幂等）
 priceMigrateV3(); // 一次性对齐 v3 价目（图生图100/卡片图30/自检免费/矩阵免费/其余50）（幂等）
+backfillApprovedAgents(); // 回填「已通过但没建赛道」的历史智能体申请（幂等）
 module.exports = {
   signSession, verifySession, setCode, checkCode,
   getOrCreateUser, getUser, getUserByPhone, setNickname, userStats, getBalance, getPrice,
