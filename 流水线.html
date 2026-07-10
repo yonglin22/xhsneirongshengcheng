@@ -127,7 +127,7 @@ body.auto-running #autoBtn { opacity:.7; }
 /* 极简 / 专业 模式 */
 body.pipe-simple #proArea { display:none; }
 body.pipe-simple #simpleArea { display:block !important; }
-body.pipe-simple #autoDock { display:none; }   /* 极简用中间大按钮，隐藏底部浮标避免重复 */
+body.pipe-simple #autoDock { display:none !important; }   /* 极简用中间大按钮，隐藏底部浮标避免重复（内联 display:flex 需 !important 覆盖）*/
 .pipe-mode.on { background:var(--cinnabar); color:#fff; }
 .pipe-mode:not(.on) { background:var(--paper); color:var(--ink-soft); }
 </style>
