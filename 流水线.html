@@ -631,7 +631,7 @@ function outputHTML(st) {
             <button id="genInfoPoster" style="width:100%;border:1px solid var(--cinnabar);border-radius:10px;padding:11px 16px;font-size:13.5px;font-weight:700;cursor:pointer;background:#fff;color:var(--cinnabar-deep);text-align:left">🖼️ AI 整图海报<span style="font-size:11px;font-weight:500;color:var(--ink-soft)"> · 连字带图一次生成，像设计师作品</span></button>
             <div class="flex items-center gap-1.5 flex-wrap mt-2 text-[11.5px]">
               <span class="text-[var(--ink-soft)]">版式</span>
-              ${['单品科普','vs对比','避坑清单','步骤流程','榜单盘点','照片大字'].map((n,ix)=>{const on=((state.posterKind||'单品科普')===n);return `<button class="poster-kind" data-k="${n}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 9px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${n}</button>`;}).join('')}
+              ${['单品科普','vs对比','避坑清单','步骤流程','榜单盘点','照片大字'].map((n,ix)=>{const on=((state.posterKind||posterDefaultKind())===n);return `<button class="poster-kind" data-k="${n}" style="border:1px solid ${on?'var(--cinnabar)':'var(--line)'};border-radius:7px;padding:3px 9px;cursor:pointer;background:${on?'var(--cinnabar)':'var(--paper-2)'};color:${on?'#fff':'var(--ink)'}">${n}</button>`;}).join('')}
               <span id="jwPosterKinds" style="display:none">${['珠宝科普','珠宝单品','珠宝封面'].map((n)=>{const on=((state.posterKind||'')===n);return `<button class="poster-kind" data-k="${n}" style="border:1px solid ${on?'#a5813a':'#d9c9a3'};border-radius:7px;padding:3px 9px;cursor:pointer;background:${on?'#a5813a':'#faf6ec'};color:${on?'#fff':'#7a5c1e'};font-weight:600">💎${n.slice(2)}</button>`;}).join('')}</span>
             </div>
             <div class="text-[11px] text-[var(--ink-soft)] mt-1.5 leading-relaxed"><b style="color:var(--cinnabar-deep)">AI 画中文偶有错别字属正常</b>，不满意多点几次挑一张；有实物赛道(珠宝/护肤)最出效果。</div>
@@ -2060,7 +2060,7 @@ const JW_POSTER = {
 async function genInfographicPoster() {
   if (!state.topic) { const st = $('#imgStatus'); if (st) { st.textContent = '请先在上方填写选题'; st.style.color = 'var(--cinnabar-deep)'; } return; }
   const btn = $('#genInfoPoster'), st = $('#imgStatus'), old = btn ? btn.textContent : '';
-  const kind = state.posterKind || '单品科普';
+  const kind = state.posterKind || posterDefaultKind();
   if (btn) { btn.disabled = true; btn.textContent = '构思海报文案…'; }
   if (st) { st.textContent = '正在把这篇内容排成信息图海报…（约 40 秒）'; st.style.color = 'var(--ink-soft)'; }
   try {
@@ -3358,6 +3358,20 @@ $('#simpleGo')?.addEventListener('click', async () => {
   }
   const s2 = STEPS.findIndex(st => st.no === 'S2'); if (s2 >= 0) { cur = s2; } autoRun();
 });
+
+// 珠宝赛道(13696504558)：第五步封面配图默认走「珠宝科普」整图海报预设（三套 prompt 模版之一，默认最丰富的科普长图）
+var __jwAcct = false;
+function posterDefaultKind() { return __jwAcct ? '珠宝科普' : '单品科普'; }
+(async () => {
+  try {
+    const me = await window.meFetch();
+    if (me && me.ok && String(me.phone) === '13696504558') {
+      __jwAcct = true;
+      if (!state.posterKind) { state.posterKind = '珠宝科普'; persistSoft(); }
+      renderPanel();
+    }
+  } catch {}
+})();
 
 renderRail(); renderPanel();
 </script>
