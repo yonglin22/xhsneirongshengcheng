@@ -32,7 +32,10 @@
       <div class="card p-5">
         <div class="flex items-center justify-between mb-2">
           <label class="text-[13px] font-medium flex items-center gap-2"><span class="stamp text-[11px] px-1.5 py-1 leading-none">设</span> 基础人设（系统 prompt）</label>
-          <button id="genPersona" class="btn-ghost rounded-lg px-3 py-1.5 text-[11.5px]" title="据你上传/粘贴的笔记，AI 提炼语气克隆 + 选题方法论 + 配图风格，一键生成人设">✨ 据我的笔记一键生成</button>
+          <div class="flex items-center gap-2">
+            <button id="loadJewelryTpl" class="btn-go rounded-lg px-3 py-1.5 text-[11.5px]" style="display:none" title="一键填入珠宝博主整套人设/配图风格/知识库（珠宝·水晶·翡翠）">📥 载入珠宝博主模板</button>
+            <button id="genPersona" class="btn-ghost rounded-lg px-3 py-1.5 text-[11.5px]" title="据你上传/粘贴的笔记，AI 提炼语气克隆 + 选题方法论 + 配图风格，一键生成人设">✨ 据我的笔记一键生成</button>
+          </div>
         </div>
         <div id="genPersonaTip" class="text-[11px] text-[var(--ink-soft)] mb-2" style="display:none"></div>
         <textarea id="persona" rows="8" class="field w-full rounded-xl px-4 py-3 text-[13.5px] leading-relaxed"></textarea>
@@ -279,6 +282,38 @@ ${sample}
   } catch (e) { tip.style.color = 'var(--cinnabar-deep)'; tip.textContent = '生成失败：' + (e.message || e); }
   finally { btn.disabled = false; btn.textContent = old; }
 });
+
+// ===== 珠宝博主整套模板（仅限账号 13696504558 显示，一键填入珠宝/水晶/翡翠人设+配图+知识库）=====
+const JEWELRY_TPL = {
+  persona: `我是珠宝博主，做珠宝源头供应链，主营彩宝、珍珠、翡翠、水晶首饰。不定期跑国际珠宝一手市场，源头直供无中间商；有完整的明码实价货盘相册，不标虚高价格、不弄砍价套路，真诚分享优质珠宝、带证书发货，标价具备与其他家比价的参考价值。
+我在社交平台不定期真诚分享珠宝专业知识、拆解行业黑话，提炼简单好记的选购口诀，图文清晰高效地区分不同品类珠宝的品质与价值，帮顾客用合适的价格买到心仪的珠宝。
+语气像一个做珠宝多年的老友真诚分享，激发信任感；称呼亲切（姐妹/宝子）。
+【选题范围铁律】本账号选题只围绕「彩宝珠宝 / 水晶 / 翡翠」三大类，不跑题到其它品类。
+【收尾铁律】文末温柔提醒：珠宝最重要的是看个人喜好，买到一眼心动、自己喜欢的，远比任何价值评判都重要。`,
+  imgStyle: `低饱和高级柔和配色、干净留白不杂乱、8K 珠宝微距写实摄影、细腻柔光、玉石彩宝通透质感；温和治愈、专业靠谱的珠宝博主种草/科普风。`,
+  bTone: `做珠宝多年的老友真诚分享口吻，激发信任感；称呼「姐妹/宝子」；每篇尽量提炼一句简单好记的选购口诀。`,
+  bPrefs: `图文清晰高效区分品类的品质与价值；多讲看得见的门道、拆解行业黑话；结尾固定温柔提醒「珠宝先看个人喜好」并引导评论区探讨。`,
+  bForbidden: `不标虚高价、不弄砍价套路；不做效果/结果/升值保证、不绝对化、不夸大；不编造数据/证书/产地；不导流站外。`,
+  kb4: `硬信息（价格/产地/证书/优化处理）一律以官方与鉴定证书为准，不确定标「需核实」；不诋毁同行、不给具体商家/机构定性。`,
+  kb1: `珠宝源头供应链博主，常年往返国际珠宝一手市场、源头直供无中间商；全程明码实价、无套路砍价；全部货品附权威鉴定证书、带证书发货；标价有市面比价参考价值。擅长彩宝、珍珠、翡翠、水晶四大品类的品质判断与选购科普。`,
+  kb3: `【蓝宝石】无烧=纯天然无加热（更稀少、适合收藏投资）；老烧=物理高温优化、国际合规（颜色更浓/净度更佳、性价比高、适合日常）。误区：老烧≠假货、无烧≠更好、老烧不褪色。避坑：拒绝染色/注胶/充填，认准权威珠宝证书。口诀：日常戴选老烧更香，收藏选无烧。
+【红宝石】五个维度看：①颜色（鸽血红/艳红为精品，粉红→深红渐变）②净度（全净体/微瑕更佳）③优化（无烧NH、有烧无残留为佳；拒玻璃充填、铍扩散）④产地（缅甸/斯里兰卡/莫桑比克更优，但产地不绝对，看本身品质）⑤形状（椭圆/枕形/心形等按喜好）。注意别把红色尖晶石当红宝石。
+【翡翠】按透明度分四大种：玻璃种>冰种>糯种>豆种，越通透越稀有、价值通常越高。选购看：种水是否通透均匀、颜色分布是否自然协调、底子是否干净无裂、工艺打磨是否细致。透明度与颜色是两套维度，通透且干净同样珍贵。
+【水晶】按功效分：招财事业、爱情人缘、守护净化、疗愈平衡、灵性净化。常见：白水晶（基础百搭）、粉水晶（人际亲和）、紫水晶（专注）、黄水晶（财运/生意）、黑曜石（辟邪稳定）、海蓝宝（沟通表达）等。选购看晶体通透度、内部包裹体/发丝/矿层是否自然。以上功效为文化寓意，非功效承诺。`,
+  kb2: `（本人爆款正文语气样本，模型只学口吻/钩子/结构，绝不照抄）
+样本1：一张图看明白如何挑选蓝宝石，无烧vs老烧？面对市面上五花八门的蓝宝石，很多新手最容易在"无烧"和"老烧"之间纠结。理性消费，先看懂这3个常见误区👇 误区1：加热=假宝石？其实传统加热是国标认可的优化手段…蓝宝石的美在于深邃与克制，不盲目追高，选对适合自己的才是最好的"长期主义"饰品。理性种草，不交智商税💙
+样本2：小白必看｜一张图读懂翡翠分类与价值。怕交学费？这张图把核心逻辑拆得明明白白。选购重点对照三点：①种水是否通透均匀；②颜色分布是否自然协调；③内部结构是否干净无裂。避坑核心在于"不贪低价、不迷信笼统描述"。翡翠收藏是长期功课，理清分类框架才能少走弯路。`,
+};
+function fillJewelryTpl() {
+  const set = (id, v) => { const el = $('#' + id); if (el && v != null) el.value = v; };
+  set('persona', JEWELRY_TPL.persona); set('imgStyle', JEWELRY_TPL.imgStyle);
+  set('bTone', JEWELRY_TPL.bTone); set('bPrefs', JEWELRY_TPL.bPrefs); set('bForbidden', JEWELRY_TPL.bForbidden);
+  set('kb1', JEWELRY_TPL.kb1); set('kb2', JEWELRY_TPL.kb2); set('kb3', JEWELRY_TPL.kb3); set('kb4', JEWELRY_TPL.kb4);
+  const s = $('#status'); if (s) { s.textContent = '✓ 珠宝模板已填入，请核对后点「保存到该智能体」'; s.style.color = '#00a052'; }
+}
+$('#loadJewelryTpl')?.addEventListener('click', fillJewelryTpl);
+// 门禁：只有账号 13696504558 才显示这个模板按钮
+(async () => { try { const me = await window.meFetch(); if (me && me.ok && String(me.phone) === '13696504558') { const b = $('#loadJewelryTpl'); if (b) b.style.display = ''; } } catch {} })();
 
 $('#saveBtn').addEventListener('click', () => {
   const t = TRACKS[curId];
