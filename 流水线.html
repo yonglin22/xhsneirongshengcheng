@@ -17,11 +17,7 @@
   <div class="mb-5">
     <div class="text-[var(--cinnabar)] text-[11px] tracking-[.26em] font-semibold mb-1">第一步 → 第七步 · 一条流水线</div>
     <h1 class="font-display font-normal tracking-tight" style="font-size:clamp(30px,4vw,50px);line-height:1.02">创作<span class="italic" style="color:var(--cinnabar)">流水线</span></h1>
-    <!-- 专业模式下显示一个「回到极简」小入口（极简模式的两种选择在下方大按钮）-->
-    <div class="mt-3" id="proBackRow" style="display:none">
-      <button class="pipe-mode" data-mode="simple" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);border-radius:8px;padding:5px 13px;font-size:12.5px;cursor:pointer">⚡ 回到极简一键</button>
-      <span class="text-[11.5px] text-[var(--ink-soft)] ml-2" id="pipeModeHint"></span>
-    </div>
+    <span id="pipeModeHint" style="display:none"></span>
   </div>
 
   <!-- 内容平台：默认收起（多数人用小红书），需要发公众号才点开 -->
@@ -119,7 +115,10 @@
 </main>
 
 <!-- 悬浮：一键按对标生成全套 -->
-<button id="autoBtn" class="btn-go font-bold" style="position:fixed;left:50%;transform:translateX(-50%);bottom:46px;z-index:40;border-radius:999px;padding:16px 48px;font-size:16px;box-shadow:0 14px 38px -6px rgba(165,129,58,.6);white-space:nowrap">▶ 一键按对标生成全套</button>
+<div id="autoDock" style="position:fixed;left:50%;transform:translateX(-50%);bottom:40px;z-index:40;display:flex;align-items:center;gap:12px;white-space:nowrap">
+  <button id="autoBtn" class="btn-go font-bold" style="border-radius:999px;padding:16px 48px;font-size:16px;box-shadow:0 14px 38px -6px rgba(165,129,58,.6);border:none;cursor:pointer">▶ 一键按对标生成全套</button>
+  <button class="pipe-mode" data-mode="simple" style="border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);border-radius:999px;padding:13px 22px;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px -8px rgba(0,0,0,.2)">⚡ 回到极简</button>
+</div>
 <button id="autoPauseBtn" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:41;border-radius:999px;padding:11px 20px;font-size:13px;font-weight:600;background:#fff;color:var(--ink);border:1.5px solid var(--cinnabar);box-shadow:0 8px 24px -8px rgba(0,0,0,.35);white-space:nowrap;cursor:pointer">⏸ 暂停</button>
 <style>
 /* 自动生成中：除「暂停/继续」「停止」外，全站按钮置灰不可点，防误触打断流程 */
@@ -128,7 +127,7 @@ body.auto-running #autoBtn { opacity:.7; }
 /* 极简 / 专业 模式 */
 body.pipe-simple #proArea { display:none; }
 body.pipe-simple #simpleArea { display:block !important; }
-body.pipe-simple #autoBtn { display:none; }   /* 极简用中间大按钮，隐藏浮标避免重复 */
+body.pipe-simple #autoDock { display:none; }   /* 极简用中间大按钮，隐藏底部浮标避免重复 */
 .pipe-mode.on { background:var(--cinnabar); color:#fff; }
 .pipe-mode:not(.on) { background:var(--paper); color:var(--ink-soft); }
 </style>
