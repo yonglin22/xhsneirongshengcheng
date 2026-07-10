@@ -486,6 +486,7 @@ function setCoverImage(u){
 // 真正执行导入一篇成稿数据
 function importDraftData(d){
   if(!d || (!d.body && !d.best && !d.title)){ setStatus('这篇还没有成稿内容', 'err'); return; }
+  window.__lastData = d; // 记住当前预览用的这份数据 → 导出/发布必须用它，而不是回头去读 localStorage 旧草稿（否则预览是海报、导出成旧封面）
   if(d.topic) $('#topic').value=d.topic;
   render({ cover_lines:(d.cover&&d.cover.cover_lines)||d.cover_lines, title:d.best||d.title, body:d.body, tags:d.tags, platform:d.platform, summary:d.summary, coverImages:d.coverImages, coverImage:d.coverImage });
   window.__notePages = d.notePages || [];
@@ -915,7 +916,8 @@ $('#exportBtn').addEventListener('click', async ()=>{
     if(document.fonts && document.fonts.ready) await document.fonts.ready;
     fitAllNotes($('#carTrack')); // 导出前按字体就绪后的尺寸再适配一次，保证图内不裁切
     const zip = new JSZip();
-    let d={}; try{ d=JSON.parse(localStorage.getItem('ag_draft')||'{}'); }catch{}
+    // 用「当前预览的这份数据」导出（导入历史/云端成稿时，它≠localStorage 里的旧草稿）；没有才回退读草稿
+    let d = window.__lastData; if(!d){ try{ d=JSON.parse(localStorage.getItem('ag_draft')||'{}'); }catch{ d={}; } }
     const imgs = d.coverImages || (d.coverImage?[d.coverImage]:[]);
     // 逐张截轮播 slide（含叠字/标题、已裁水印），保证导出图=所见即所得
     const slides = $('#carTrack') ? [...$('#carTrack').children] : [];
@@ -974,8 +976,11 @@ $('#exportBtn').addEventListener('click', async ()=>{
 });
 
 // ===== 复制文案 =====
-// 一键发布：成稿预览已基于当前草稿渲染，直接进一键发布页（推到小红书草稿箱）
-$('#toPublishBtn')?.addEventListener('click', ()=>{ location.href='/一键发布.html'; });
+// 一键发布：把「当前预览的这份数据」写回草稿，确保一键发布页拿到的是眼前这篇（而不是旧草稿），再跳转
+$('#toPublishBtn')?.addEventListener('click', ()=>{
+  try{ if(window.__lastData) localStorage.setItem('ag_draft', JSON.stringify(window.__lastData)); }catch(e){}
+  location.href='/一键发布.html';
+});
 $('#copyTextBtn').addEventListener('click', async ()=>{
   if (window.__isGzhStage) { // 公众号：标题 + 长文全文（含小标题），无标签
     const title = $('#gzhTitle').textContent.trim();
