@@ -3154,6 +3154,12 @@ $('#autoPauseBtn')?.addEventListener('click', () => {
   setAuto(autoPaused ? '⏸ 已暂停（当前步跑完即停，页面可操作；点「继续」接着跑）' : '▶ 已继续…');
 });
 // 估一键生成大概消耗的积分——只算「还没做的」步骤，已完成的跳过不重复扣费（支持中断后继续）
+// 封面是否「真的出好了」：珠宝赛道只认真正的整图海报(真实图片URL)，旧的 CSS 卡片(note://)不算完成——否则会误判已完成、挡住珠宝科普海报的生成
+function coverProduced() {
+  const imgs = state.coverImages || [];
+  if (typeof __jwAcct !== 'undefined' && __jwAcct) return imgs.some(u => typeof u === 'string' && (/^https?:\/\//.test(u) || u.startsWith('data:')));
+  return imgs.some(u => u);
+}
 function estimateAutoCost() {
   const C = window.ACTION_COST || {};
   const stepDone = k => { const st = STEPS.find(s => s.key === k); return st ? done(st) : false; };
@@ -3161,8 +3167,8 @@ function estimateAutoCost() {
   if (!stepDone('skeleton')) n += (C.skeleton != null ? C.skeleton : 5); // 对标拆解
   if (!stepDone('frame')) n += (C.frame != null ? C.frame : 5);          // 框架
   if (!stepDone('copy')) n += (C.copy != null ? C.copy : 10);            // 正文
-  const coverDone = (state.coverImages || []).some(u => u);
-  if (!coverDone) { if (isGzh()) n += 30; else { try { n += (coverCount() || 3) * 30; } catch { n += 90; } if (autoAiCoverOn()) n += 30; } }
+  const coverDone = coverProduced();
+  if (!coverDone) { if (isGzh()) n += 30; else if (typeof __jwAcct !== 'undefined' && __jwAcct) n += 30; /*珠宝：1 张整图海报*/ else { try { n += (coverCount() || 3) * 30; } catch { n += 90; } if (autoAiCoverOn()) n += 30; } }
   return n;
 }
 async function autoRun() {
@@ -3207,13 +3213,17 @@ async function autoRun() {
       const st = STEPS[i];
       if (st.input === 'ref' && !state.ref) continue; // 没贴对标就跳过 S2
       // 已完成的步骤跳过：不重跑、不重复扣费（中断后再点一键=继续，只跑没做的）
-      const alreadyDone = st.key === 'cover' ? (state.coverImages || []).some(u => u) : done(st);
+      const alreadyDone = st.key === 'cover' ? coverProduced() : done(st);
       if (alreadyDone) { cur = i; renderRail(); continue; }
       cur = i; renderRail(); renderPanel();
       setAuto('正在生成 ' + dispNo(st.no) + ' · ' + stepDispName(st) + ' …');
       await runStep(st);
       // S6 完成后自动生成多张配图（张数对齐对标，图失败不中断整体）。公众号=长文，只需 1 张横版首图，自己传/单出，不自动批量出竖版笔记卡
-      if (st.key === 'cover' && !isGzh()) {
+      if (st.key === 'cover' && typeof __jwAcct !== 'undefined' && __jwAcct && !isGzh()) {
+        // 珠宝赛道(13696504558)：封面步直接出「珠宝科普」整图海报，不出 CSS 卡片
+        setAuto('正在生成珠宝科普整图海报…（约 40 秒）');
+        try { await genInfographicPoster(); } catch (e) { setAuto('整图海报生成失败（可在封面区手动重出）：' + (e.message || e)); }
+      } else if (st.key === 'cover' && !isGzh()) {
         const cn = coverCount();
         setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
         try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
@@ -3342,14 +3352,20 @@ $('#simpleFetch')?.addEventListener('click', () => simpleScrape($('#simpleRefUrl
 $('#simpleRefText')?.addEventListener('input', e => { state.ref = e.target.value; persistSoft(); });
 // 进入极简模式时，把已有对标回填到选填框，避免"看不到已抓的对标"
 (function seedSimpleRef() { const ta = $('#simpleRefText'); if (ta && state.ref && !ta.value) ta.value = state.ref; })();
-// 有半成品进度 → 大按钮改为「继续生成」，让用户知道点它是接着上次跑（已完成步骤不重复扣费）
-(function labelSimpleGo() {
+// 大按钮三态：整篇已出好 →「看成稿预览」；有半成品 →「继续生成」；全新 →「一键极简创作」
+function labelSimpleGo() {
   const b = $('#simpleGo'); if (!b) return;
-  const hasProgress = done(STEPS.find(s => s.key === 'skeleton')) || done(STEPS.find(s => s.key === 'frame')) || done(STEPS.find(s => s.key === 'copy')) || (state.coverImages || []).some(u => u);
-  b.textContent = hasProgress ? '▶ 继续生成（接着上次）' : '▶ 一键极简创作';
-})();
+  const frDone = done(STEPS.find(s => s.key === 'frame')), cpDone = done(STEPS.find(s => s.key === 'copy'));
+  const fullyDone = frDone && cpDone && coverProduced(); // 正文+封面都出了 = 整篇已完成
+  const hasProgress = done(STEPS.find(s => s.key === 'skeleton')) || frDone || cpDone || (state.coverImages || []).some(u => u);
+  if (fullyDone) { b.textContent = '✓ 整篇已生成 · 看成稿预览'; b.dataset.done = '1'; }
+  else { b.textContent = hasProgress ? '▶ 继续生成（接着上次）' : '▶ 一键极简创作'; b.dataset.done = ''; }
+}
+labelSimpleGo();
 // 极简一键：从「对标拆解(S2)」开跑（不重跑选题、确保用上贴的对标），其余交给 autoRun
 $('#simpleGo')?.addEventListener('click', async () => {
+  // 整篇已生成 → 直接去看成稿，不再当"未完成"重跑（修：已完成却显示继续生成、点了不扣钱）
+  if ($('#simpleGo')?.dataset.done === '1') { location.href = '/成稿预览.html'; return; }
   if (!state.topic || !state.topic.trim()) { const s = $('#simpleStatus'); if (s) { s.style.color = 'var(--cinnabar-deep)'; s.textContent = '先在上面填一个选题，再点一键生成 ☝️'; } const ti = $('#topic'); if (ti) { ti.focus(); ti.scrollIntoView({ behavior: 'smooth', block: 'center' }); } return; }
   // 软提醒：还没加对标就点一键 → 不悄悄跳过，先问一句（对标能显著提升质量）
   if (!(state.ref && state.ref.trim())) {
@@ -3376,6 +3392,8 @@ function posterDefaultKind() { return __jwAcct ? '珠宝科普' : '单品科普'
       // 珠宝账号：主生成按钮改称「珠宝科普整图海报」，避免误以为出的是 CSS 卡片
       const relabel = () => { const gn = document.getElementById('genNote'); if (gn) gn.innerHTML = '💎 生成珠宝科普整图海报<div style="font-size:11.5px;font-weight:500;color:var(--ink-soft);margin-top:3px">AI 一图出稿 · 按你三套 prompt 模版（默认科普长图）</div>'; };
       relabel(); setTimeout(relabel, 400);
+      // 珠宝赛道 __jwAcct 是异步确定的：确定后重算极简大按钮状态（旧 CSS 卡片对珠宝不算"已完成"）
+      try { if (typeof labelSimpleGo === 'function') labelSimpleGo(); } catch {}
     }
   } catch {}
 })();
