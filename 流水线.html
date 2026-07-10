@@ -709,12 +709,11 @@ function asStr(x) { return typeof x === 'string' ? x : (x == null ? '' : (x.text
 function normalizeCap(cap, coverFallback) {
   // 整图海报 / 真实上传图 / 任何 raw 图：文字已在图里（或就是一张实拍），绝不再叠任何标题文案
   if (cap && (cap.whole || cap.raw)) return { title: '', lines: [], layout: '封面', theme: 'photo' };
-  // 完全没有 caption 的 AI 封面 → 用兜底标题叠上（否则封面是空的）
-  if (!cap) return { title: coverFallback || '', lines: [], layout: '封面', theme: 'poster' };
+  // 完全没有 caption 的封面（整图海报/实拍）→ 保持裸图，不硬叠标题（叠了就是双标题）
+  if (!cap) return { title: '', lines: [], layout: '封面', theme: 'photo' };
   if (typeof cap === 'string') return { title: cap, lines: [], layout: '要点', theme: 'photo' };
   const th = (cap.theme === 'poster') ? 'poster' : (cap.theme === 'editorial' ? 'editorial' : 'photo');
   const out = { title: asStr(cap.title), lines: (Array.isArray(cap.lines) ? cap.lines : []).map(asStr).filter(Boolean), layout: cap.layout || '要点', theme: th };
-  if (!out.title && !out.lines.length && coverFallback) { out.title = coverFallback; out.theme = 'poster'; out.layout = '封面'; }
   return out;
 }
 function capCardHTML(cap, isCover, coverFallback) {
