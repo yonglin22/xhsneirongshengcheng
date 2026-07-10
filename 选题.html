@@ -128,8 +128,14 @@ $('#direction').value = localStorage.getItem('ag_direction') || '';
 $('#model').addEventListener('change', e => localStorage.setItem('ag_model', e.target.value));
 $('#persona').addEventListener('input', e => localStorage.setItem('ag_persona', e.target.value));
 $('#direction').addEventListener('input', e => localStorage.setItem('ag_direction', e.target.value));
-// 珠宝赛道快选类目（仅账号 13696504558 显示）：点一下填进方向框
-$$('.jw-cat').forEach(b => b.addEventListener('click', () => { const d = $('#direction'); if (d) { d.value = b.dataset.cat; localStorage.setItem('ag_direction', d.value); } }));
+// 珠宝赛道快选类目（仅账号 13696504558 显示）：点一下 → 填方向 + 高亮选中 + 上面智能体建议跟着这个类目重出
+$$('.jw-cat').forEach(b => b.addEventListener('click', () => {
+  const d = $('#direction'); if (d) { d.value = b.dataset.cat; localStorage.setItem('ag_direction', d.value); }
+  window.__jwCat = b.dataset.cat;
+  // 选中态高亮：选中金底白字，其余恢复浅色
+  $$('.jw-cat').forEach(x => { const on = x === b; x.style.background = on ? 'var(--cinnabar)' : 'rgba(165,129,58,.08)'; x.style.color = on ? '#fff' : 'var(--cinnabar-deep)'; x.style.fontWeight = on ? '700' : '400'; });
+  if (typeof doSuggest === 'function') doSuggest(); // 按这个类目刷新智能体建议
+}));
 (async () => { try { const me = await window.meFetch(); if (me && me.ok && String(me.phone) === '13696504558') { const box = $('#jewelryCats'); if (box) box.style.display = 'flex'; } } catch {} })();
 
 function setStatus(m, k) { const el = $('#status'); el.textContent = m || ''; el.style.color = k === 'err' ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; }
@@ -269,8 +275,9 @@ $('#hotBtn').addEventListener('click', async () => {
 });
 
 // 智能体按当前阶段建议「人设 + 方向」（系统 prompt 默认带上智能体人设/KB）
-$('#suggestBtn').addEventListener('click', async () => {
+async function doSuggest() {
   const tk = getTrack();
+  const jwCat = window.__jwCat || ''; // 选中的珠宝子类目（珠宝/水晶/翡翠），建议只围绕它出
   const isKaoyan = /考研/.test(tk.domain || '') || tk.id === 'art-grad';
   const _todayStr = new Date().toLocaleDateString('zh-CN');
   let stageInfo = `今天是 ${_todayStr}，选题必须贴合当前真实时节，绝不能用过时的年份/季节（严禁默认成 2024/2025 或不符的季节）。`;
@@ -281,6 +288,7 @@ $('#suggestBtn').addEventListener('click', async () => {
     const _egD = (tk.placeholders && tk.placeholders.direction) || tk.domain;
     const prompt = `结合这个「${tk.domain}」智能体已设定的人设与知识库（见系统设定）+ 当前阶段，给我 3 组「人设 + 方向」建议，让我直接拿去生成选题。
 ==必须严格围绕「${tk.domain}」这个领域，面向「${tk.audience}」；绝不串到其它行业（尤其别默认成考研/美术）。==
+${jwCat ? '==本次只围绕子类目「' + jwCat + '」出题，3 组全部是「' + jwCat + '」相关的细分方向，不要混入其它子类目。==' : ''}
 ${stageInfo ? '【当前阶段】' + stageInfo : ''}
 - 人设＝用谁的口吻发（简短标签，贴合本领域，如"${_egP}"），要贴合该智能体已有人设；
 - 方向＝具体细分方向 + 当下最该切的角度（如"${_egD}"相关的细分角度），要应季、贴合「${tk.audience}」。
@@ -304,7 +312,8 @@ ${stageInfo ? '【当前阶段】' + stageInfo : ''}
     }));
   } catch (e) { setStatus('建议失败：' + (e.message || e), 'err'); }
   finally { btn.disabled = false; btn.textContent = old; }
-});
+}
+$('#suggestBtn').addEventListener('click', doSuggest);
 
 // 赛道专属：热点 → 考点映射表（点一行把"热点"预填到上面【结合】框，直接走热点三步法出题）
 (function renderHotMap(){
