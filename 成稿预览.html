@@ -787,7 +787,13 @@ function applyRatio(){ const ar=ratioCssVal(); ['carousel','cover'].forEach(id=>
 function setCoverImages(arr, caps){
   arr = (arr||[]).filter(Boolean); caps = caps || [];
   const isSpecial = u => (u||'').startsWith('tpl://') || (u||'').startsWith('note://') || (u||'').startsWith('ctpl://');
-  if(arr.length <= 1 && !isSpecial(arr[0])){ $('#carousel').classList.add('single'); setCoverImage(arr[0]||''); return; }
+  if(arr.length <= 1 && !isSpecial(arr[0])){
+    $('#carousel').classList.add('single');
+    // 整图海报/真实实拍(raw/whole，或无caption)：封面文字已在图里 → 隐藏 #coverText 独立叠字层，避免双标题
+    const c0 = caps[0]; const bare = !c0 || c0.raw || c0.whole;
+    const ct = $('#coverText'); if(ct) ct.style.display = bare ? 'none' : '';
+    setCoverImage(arr[0]||''); return;
+  }
   $('#carousel').classList.remove('single'); // 多图 → 显示轮播导航
   const titleHTML = $('#coverText') ? $('#coverText').innerHTML : '';
   const coverFallback = titleHTML.replace(/<br\s*\/?>/g,' ').replace(/<[^>]+>/g,'').trim();
