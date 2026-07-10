@@ -1214,6 +1214,8 @@ async function genPosterBg(setStatus) {
 }
 // 📒 备忘录封面卡（真字）：按 S3 框架·第1张「配图规划」+ 对标第1张解析，CSS 排成备忘录风封面（文字真实、零乱码）
 async function genMemoCover() {
+  // 珠宝赛道(13696504558)：第五步主按钮默认直接出「珠宝科普」整图海报（三套 prompt 模版），不出 CSS 卡片
+  if (typeof __jwAcct !== 'undefined' && __jwAcct) { return genInfographicPoster(); }
   const btn = $('#genMemoCover'), o = btn ? btn.textContent : '', st = $('#imgStatus');
   const t = getTrack();
   const refVis = (state.refVisions && state.refVisions[0]) || ''; // 对标第1张图的解析
@@ -1915,6 +1917,8 @@ function splitPageInTwo(page) {
 }
 
 async function genNoteImages() {
+  // 珠宝赛道(13696504558)：第五步「生成封面+配图」默认直接走「珠宝科普」整图海报（三套 prompt 模版），不出 CSS 卡片
+  if (typeof __jwAcct !== 'undefined' && __jwAcct) { return genInfographicPoster(); }
   const st = $('#imgStatus'); const btn = $('#genNote'), old = btn ? btn.textContent : '';
   const t = getTrack();
   const title = ((state.cover && state.cover.cover_lines) || []).join(' ') || (state.titles && state.titles.best) || state.topic;
@@ -3369,6 +3373,9 @@ function posterDefaultKind() { return __jwAcct ? '珠宝科普' : '单品科普'
       __jwAcct = true;
       if (!state.posterKind) { state.posterKind = '珠宝科普'; persistSoft(); }
       renderPanel();
+      // 珠宝账号：主生成按钮改称「珠宝科普整图海报」，避免误以为出的是 CSS 卡片
+      const relabel = () => { const gn = document.getElementById('genNote'); if (gn) gn.innerHTML = '💎 生成珠宝科普整图海报<div style="font-size:11.5px;font-weight:500;color:var(--ink-soft);margin-top:3px">AI 一图出稿 · 按你三套 prompt 模版（默认科普长图）</div>'; };
+      relabel(); setTimeout(relabel, 400);
     }
   } catch {}
 })();
