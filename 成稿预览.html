@@ -710,7 +710,7 @@ initCarousel();
 
 // 结构化叠字卡（与流水线一致：标题+内容，跟随对标版式，文字不进图 → 不乱码）
 function asStr(x){ return typeof x==='string'?x:(x==null?'':(x.text||x.title||x.content||(Array.isArray(x)?x.join(' '):String(x)))); }
-function normalizeCap(cap, coverFallback){ if(!cap||cap.raw) return {title:coverFallback||'',lines:[],layout:'封面',theme:'poster'}; if(typeof cap==='string') return {title:cap,lines:[],layout:'要点',theme:'photo'}; const out={title:asStr(cap.title),lines:(Array.isArray(cap.lines)?cap.lines:[]).map(asStr).filter(Boolean),layout:cap.layout||'要点',theme:cap.theme==='poster'?'poster':(cap.theme==='editorial'?'editorial':'photo')}; if(!out.title&&!out.lines.length&&coverFallback){out.title=coverFallback;out.theme='poster';out.layout='封面';} return out; }
+function normalizeCap(cap, coverFallback){ if(cap&&cap.whole) return {title:'',lines:[],layout:'封面',theme:'photo'}; /*整图海报/真实图：文字已在图里，绝不叠字*/ if(!cap||cap.raw) return {title:coverFallback||'',lines:[],layout:'封面',theme:'poster'}; if(typeof cap==='string') return {title:cap,lines:[],layout:'要点',theme:'photo'}; const out={title:asStr(cap.title),lines:(Array.isArray(cap.lines)?cap.lines:[]).map(asStr).filter(Boolean),layout:cap.layout||'要点',theme:cap.theme==='poster'?'poster':(cap.theme==='editorial'?'editorial':'photo')}; if(!out.title&&!out.lines.length&&coverFallback){out.title=coverFallback;out.theme='poster';out.layout='封面';} return out; }
 function capTheme(cap){ return (cap && cap.theme==='poster') ? 'poster' : 'photo'; }
 function capCardHTML(cap, isCover, coverFallback){
   const c = normalizeCap(cap, coverFallback); if(!c.title && !c.lines.length) return '';
