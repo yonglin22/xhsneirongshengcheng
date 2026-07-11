@@ -3258,16 +3258,11 @@ async function autoRun() {
     const _completed = autoRunning; // 仍在跑=正常跑完；被「停止」打断则为 false，不自动跳转
     if (_completed) {
       try { Draft.save(state); } catch {}
-      // 极简模式：先带用户去「成稿预览」看成品（这才是他想看效果的地方）；专业模式维持原来的合规自检衔接
+      // 出稿完成统一进入「合规自检 · 发布前体检」（极简/专业都一样）；自检页里再提供「查看生成内容详情」入口回看成品
       const simple = document.body.classList.contains('pipe-simple');
       const done = $('#simpleDone'); if (done && simple) done.style.display = 'flex';
-      if (simple) {
-        setAuto('✓ 出稿完成！正在打开「成稿预览」看效果…');
-        setTimeout(() => { location.href = '/成稿预览.html'; }, 1400);
-      } else {
-        setAuto('✓ 已自动跑完（含封面图）。正在进入「合规自检 · 发布前体检」…');
-        setTimeout(() => { location.href = '/合规自检.html?auto=1'; }, 1600); // 流程自动衔接到合规自检并自动开跑体检
-      }
+      setAuto('✓ 出稿完成！正在进入「合规自检 · 发布前体检」…');
+      setTimeout(() => { location.href = '/合规自检.html?auto=1'; }, 1500); // 流程自动衔接到合规自检并自动开跑体检
     } else {
       setAuto('已停止。可去成稿预览 → 或点「去合规自检」做发布前体检');
     }
