@@ -882,25 +882,26 @@ $('#exportBtn').addEventListener('click', async ()=>{
       const cv=await cap(clone,sw,sh); wrap.remove(); return cv;
     };
     for (let i=0; i<slides.length; i++){
-      const cv = await shotSlide(slides[i]);
+      const slide=slides[i];
+      // 纯图片封面（整图海报 / 真实实拍：只有 <img>、没有 CSS 叠字卡/内页）→ 直接取原图字节写进 zip，绝不走 html2canvas。
+      // html2canvas 截外部图会跨域污染画布 → 导出空白/深色（这正是珠宝封面变白的根因）；其它赛道用的是 note:// 文字卡，才需要截图。
+      const overlayEl=slide.querySelector('.cv-note, .cv-card, .cv-coverx, .cv-tpl');
+      const imgEl=slide.querySelector('img');
+      if(imgEl && !overlayEl){
+        const direct=imgEl.dataset.direct||''; const cur=imgEl.getAttribute('src')||'';
+        const u = direct || (/^\/api\/img-proxy/.test(cur) ? (imgs[i]||'') : cur) || imgs[i] || '';
+        const b = await fetchImgBytes(u);
+        if(b){ const ext=(b.type&&b.type.includes('png'))?'png':'jpg'; zip.file(String(i+1).padStart(2,'0')+(i===0?'_封面.':'_配图.')+ext, b); }
+        continue;
+      }
+      const cv = await shotSlide(slide);
       const oc = document.createElement('canvas'); oc.width=W; oc.height=H;
       const ctx=oc.getContext('2d'); ctx.imageSmoothingQuality='high'; ctx.drawImage(cv,0,0,W,H);
-      const b = await new Promise(r=>oc.toBlob(r,'image/jpeg',0.9)); // 1080P JPEG，约 ~200KB
+      const b = await new Promise(r=>oc.toBlob(r,'image/jpeg',0.9)); // 1080P JPEG
       if(b) zip.file(String(i+1).padStart(2,'0') + (i===0?'_封面.jpg':'_配图.jpg'), b);
     }
-    // 单张封面（整图海报/实拍）：#carTrack 为空，不走 html2canvas/裁图（会因跨域污染画布→导出深色废图）；
-    // 直接把封面图的原始字节塞进 zip（经同源代理取字节，不碰 canvas），所见即所得
-    if (!slides.length){
-      // 封面第1张：直接导出「预览里正在显示的那张封面图」(#coverImg)，所见即所得，彻底不受数据数组错位影响
-      let list = imgs.slice();
-      const ci = $('#coverImg');
-      const shown = ci ? (ci.dataset.direct || (ci.getAttribute('src')||'')) : '';
-      if(shown && !/^\/api\/img-proxy/.test(shown)){ list[0] = shown; } // 用屏幕上这张的真实地址覆盖第1张
-      for (let i=0; i<list.length; i++){
-        const b = await fetchImgBytes(list[i]);
-        if(b){ const ext=(b.type&&b.type.includes('png'))?'png':'jpg'; zip.file(String(i+1).padStart(2,'0')+(i===0?'_封面.':'_图.')+ext, b); }
-      }
-    }
+    // 兜底：carTrack 为空但数据里有图 → 直接取原图字节
+    if (!slides.length){ for (let i=0; i<imgs.length; i++){ const b=await fetchImgBytes(imgs[i]); if(b){ const ext=(b.type&&b.type.includes('png'))?'png':'jpg'; zip.file(String(i+1).padStart(2,'0')+(i===0?'_封面.':'_图.')+ext, b); } } }
     // 3) 文案
     const title = $('#noteTitle').textContent.trim();
     const body  = [...$('#noteBody').querySelectorAll('p')].map(p=>p.textContent.trim()).join('\n\n');
