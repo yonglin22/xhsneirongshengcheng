@@ -626,6 +626,50 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // ---- 出图接口自检：一键看出 gpt-image 中转到底通不通、卡在哪（DNS/超时/401 key错/402余额/代理）。不生成真图、不扣费 ----
+  if (pathname === '/api/image-selftest') {
+    const base = (process.env.GPT_IMAGE_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+    const key = process.env.GPT_IMAGE_API_KEY || '';
+    const model = process.env.GPT_IMAGE_MODEL || 'gpt-image-1';
+    const out = {
+      base_url: base,
+      key_present: !!key,
+      key_looks_valid: !!key && /^[\x20-\x7E]+$/.test(key),
+      key_tail: key ? ('****' + key.slice(-4)) : '(未配置)',
+      model,
+      https_proxy: process.env.HTTPS_PROXY || process.env.https_proxy || '(未设置)',
+    };
+    const t0 = Date.now();
+    try {
+      // 用一个极小的真实请求探活（1024x1024、prompt=test）；只看能否连通+上游状态，不落地图片
+      const r = await fetch(base + '/images/generations', {
+        method: 'POST', signal: AbortSignal.timeout(30000),
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + key },
+        body: JSON.stringify({ model, prompt: 'a red apple', size: '1024x1024', n: 1 })
+      });
+      const txt = (await r.text()).slice(0, 300);
+      out.reachable = true;
+      out.upstream_status = r.status;
+      out.upstream_ok = r.ok;
+      out.upstream_body = txt;
+      out.elapsed_ms = Date.now() - t0;
+      out.verdict = r.ok ? '✅ 出图接口正常，能出图' :
+        (r.status === 401 ? '❌ 401：GPT_IMAGE_API_KEY 无效/过期，去接口商换 key' :
+         r.status === 402 || /balance|quota|余额|欠费/i.test(txt) ? '❌ 402/余额不足：去出图接口商充值' :
+         r.status === 404 ? '❌ 404：GPT_IMAGE_BASE_URL 路径不对（应指向带 /v1 的中转地址）' :
+         '❌ 上游返回 ' + r.status + '，看 upstream_body 里的报错');
+    } catch (e) {
+      out.reachable = false;
+      out.error = (e && e.message) || String(e);
+      out.elapsed_ms = Date.now() - t0;
+      out.verdict = /timeout|aborted/i.test(out.error) ? '❌ 连接超时：中转地址连不上，多为代理/VPN 挂了或地址错' :
+        /fetch failed|ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(out.error) ? '❌ 连不上（DNS/网络）：GPT_IMAGE_BASE_URL 域名解析不了，或服务器需要代理才能访问它' :
+        /ECONNREFUSED|ECONNRESET/i.test(out.error) ? '❌ 连接被拒/重置：中转服务宕机或端口不通' :
+        '❌ ' + out.error;
+    }
+    return sendJSON(res, 200, out);
+  }
+
   // ---- 图像生成：多家适配（封面=Seedream/ark，内页=可灵/kling，其余=CogView/SiliconFlow/OpenAI）----
   if (pathname === '/api/image' && req.method === 'POST') {
     try {
