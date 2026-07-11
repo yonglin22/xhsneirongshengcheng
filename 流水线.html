@@ -88,7 +88,7 @@
 
     <div class="flex items-center justify-center gap-3 flex-wrap">
       <button id="simpleGo" class="btn-go font-bold" style="border:none;border-radius:14px;padding:15px 38px;font-size:16px;cursor:pointer;box-shadow:0 10px 28px -8px rgba(165,129,58,.55)">▶ 一键极简创作</button>
-      <button class="pipe-mode" data-mode="pro" style="border:1.5px solid var(--cinnabar);background:#fff;color:var(--cinnabar-deep);border-radius:14px;padding:15px 30px;font-size:15px;font-weight:700;cursor:pointer">🛠 专业逐步创作</button>
+      <button id="simpleProBtn" class="pipe-mode" data-mode="pro" style="border:1.5px solid var(--cinnabar);background:#fff;color:var(--cinnabar-deep);border-radius:14px;padding:15px 30px;font-size:15px;font-weight:700;cursor:pointer">🛠 专业逐步创作</button>
     </div>
     <div id="simpleStatus" class="text-[12.5px] mt-3 min-h-[18px]"></div>
     <div id="simpleDone" class="flex items-center justify-center gap-2.5 mt-3" style="display:none">
@@ -3306,7 +3306,10 @@ function setPipeMode(m) {
   const back = $('#proBackRow'); if (back) back.style.display = simple ? 'none' : 'block';
   // 极简模式 + 这篇已有完整内容（多为从「我的作品」进来的成稿）→ 提示去专业模式看作品详情
   const hw = $('#simpleHasWorkHint');
-  if (hw) { const hasWork = !!(state && ((state.body && state.body.length) || state.frame || (state.notePages && state.notePages.length) || (state.titles && state.titles.length) || (state.coverImages && state.coverImages.length))); hw.style.display = (simple && hasWork) ? 'block' : 'none'; }
+  const hasWork = !!(state && ((state.body && state.body.length) || state.frame || (state.notePages && state.notePages.length) || (state.titles && state.titles.length) || (state.coverImages && state.coverImages.length)));
+  if (hw) hw.style.display = (simple && hasWork) ? 'block' : 'none';
+  // 有成稿时进专业模式的入口合并到顶部提示里 → 底部「专业逐步创作」隐藏，避免重复；空白新篇底部按钮照常
+  const pb = $('#simpleProBtn'); if (pb) pb.style.display = (simple && hasWork) ? 'none' : '';
 }
 // 「进入专业模式看作品详情」：切专业 + 定位到正文那一步（用户最想看的详情）
 document.addEventListener('click', e => { if (e.target && e.target.id === 'simpleToProDetail') { setPipeMode('pro'); const ci = STEPS.findIndex(st => st.key === 'copy'); if (ci >= 0) { cur = ci; renderRail(); renderPanel(); } const pa = $('#proArea'); if (pa) setTimeout(() => pa.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); } });
