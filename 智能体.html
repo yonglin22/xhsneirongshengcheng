@@ -43,6 +43,24 @@
           <label class="text-[13px] font-medium flex items-center gap-2 mb-1.5"><span class="stamp text-[11px] px-1.5 py-1 leading-none">图</span> 配图视觉风格 <span class="text-[11px] text-[var(--ink-soft)] font-normal">（S6 配图统一按这个画风出，留空＝跟对标图走）</span></label>
           <input id="imgStyle" class="field w-full rounded-xl px-4 py-2.5 text-[13.5px]" placeholder="例：手绘插画风 / ins 极简 / 莫兰迪柔和配色 / 治愈系胶片 / 杂志排版感" />
         </div>
+        <!-- 生图模式：封面走哪种（AI封面+备忘录卡片 / AI整图海报 / 封面模版），第五步/一键生成按此走 -->
+        <div class="mt-3">
+          <label class="text-[13px] font-medium flex items-center gap-2 mb-1.5"><span class="stamp text-[11px] px-1.5 py-1 leading-none">式</span> 生图模式 <span class="text-[11px] text-[var(--ink-soft)] font-normal">（第五步封面/一键生成走哪种出图方式）</span></label>
+          <div id="coverModePick" class="grid gap-2" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+            <button type="button" class="cover-mode" data-cm="ai_memo" style="text-align:left;border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;cursor:pointer;background:var(--paper)">
+              <div class="text-[13px] font-bold text-[var(--ink)]">📒 AI封面 + 备忘录卡片</div>
+              <div class="text-[11px] text-[var(--ink-soft)] mt-1 leading-snug">真字封面卡 + 内页干货卡，文字最稳零乱码（通用默认）</div>
+            </button>
+            <button type="button" class="cover-mode" data-cm="poster" style="text-align:left;border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;cursor:pointer;background:var(--paper)">
+              <div class="text-[13px] font-bold text-[var(--ink)]">🖼️ AI 整图海报</div>
+              <div class="text-[11px] text-[var(--ink-soft)] mt-1 leading-snug">连字带图一次生成整张海报，像设计师作品（珠宝默认）</div>
+            </button>
+            <button type="button" class="cover-mode" data-cm="template" style="text-align:left;border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;cursor:pointer;background:var(--paper)">
+              <div class="text-[13px] font-bold text-[var(--ink)]">🎨 封面模版</div>
+              <div class="text-[11px] text-[var(--ink-soft)] mt-1 leading-snug">套用自有封面模版排版，风格统一好复用</div>
+            </button>
+          </div>
+        </div>
         <!-- A1④ 配图风格库：参考图沉淀，配图默认调用 -->
         <div class="mt-3">
           <div class="flex items-center justify-between mb-1.5">
@@ -236,8 +254,21 @@ function load() {
   const b = c.boundary || {}; $('#bForbidden').value = b.forbidden || ''; $('#bFacts').value = b.facts || ''; $('#bTone').value = b.tone || ''; $('#bPrefs').value = c.prefs || '';
   // 兼容旧数据（纯 url 字符串）→ 统一成 {url, prompt}
   styleRefs = (Array.isArray(c.styleRefs) ? c.styleRefs : []).map(x => typeof x === 'string' ? { url: x, prompt: '' } : { url: (x && x.url) || '', prompt: (x && x.prompt) || '' }).filter(x => x.url);
+  setCoverModeUI(c.coverMode || defaultCoverMode()); // 生图模式：读配置，没配则按赛道默认
   renderChips(); renderSkills(); renderCustomSkills(); renderAllKbFiles(); updateKbStat(c); renderStyleRefs();
 }
+// 生图模式默认：珠宝赛道/珠宝账号 → 整图海报；其余 → AI封面+备忘录卡片
+function defaultCoverMode() {
+  const t = TRACKS[curId] || {};
+  const jw = (t.name === '珠宝') || (window.__me && String(window.__me.phone) === '13696504558');
+  return jw ? 'poster' : 'ai_memo';
+}
+let coverMode = 'ai_memo';
+function setCoverModeUI(m) {
+  coverMode = (['ai_memo', 'poster', 'template'].includes(m)) ? m : 'ai_memo';
+  document.querySelectorAll('.cover-mode').forEach(b => { const on = b.dataset.cm === coverMode; b.style.borderColor = on ? 'var(--cinnabar)' : 'var(--line)'; b.style.background = on ? 'rgba(165,129,58,.07)' : 'var(--paper)'; b.style.boxShadow = on ? 'inset 0 0 0 1px var(--cinnabar)' : 'none'; });
+}
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.cover-mode'); if (b) setCoverModeUI(b.dataset.cm); });
 let styleRefs = [];
 function renderStyleRefs() {
   const box = document.getElementById('styleRefs'); if (!box) return;
@@ -332,6 +363,7 @@ $('#saveBtn').addEventListener('click', () => {
     boundary: { forbidden: $('#bForbidden').value.trim(), facts: $('#bFacts').value.trim(), tone: $('#bTone').value.trim() }, // A1③ 边界约束
     prefs: $('#bPrefs').value.trim(), // 反思机制·创作偏好
     styleRefs: styleRefs, // A1④ 配图风格库（参考图）
+    coverMode: coverMode, // 生图模式：ai_memo / poster / template
   };
   // 自定义赛道：把赛道定义一并存进 config（_track），保证云端有完整定义、换设备可恢复
   try { if (typeof isCustomTrack === 'function' && isCustomTrack(curId) && TRACKS[curId]) cfg._track = TRACKS[curId]; } catch {}

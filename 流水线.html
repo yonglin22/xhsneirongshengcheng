@@ -1223,7 +1223,7 @@ async function genPosterBg(setStatus) {
 // 📒 备忘录封面卡（真字）：按 S3 框架·第1张「配图规划」+ 对标第1张解析，CSS 排成备忘录风封面（文字真实、零乱码）
 async function genMemoCover() {
   // 珠宝赛道(13696504558)：第五步主按钮默认直接出「珠宝科普」整图海报（三套 prompt 模版），不出 CSS 卡片
-  if (typeof __jwAcct !== 'undefined' && __jwAcct) { return genInfographicPoster(); }
+  if (typeof agentCoverMode === 'function' && agentCoverMode() === 'poster') { return genInfographicPoster(); }
   const btn = $('#genMemoCover'), o = btn ? btn.textContent : '', st = $('#imgStatus');
   const t = getTrack();
   const refVis = (state.refVisions && state.refVisions[0]) || ''; // 对标第1张图的解析
@@ -1926,7 +1926,7 @@ function splitPageInTwo(page) {
 
 async function genNoteImages() {
   // 珠宝赛道(13696504558)：第五步「生成封面+配图」默认直接走「珠宝科普」整图海报（三套 prompt 模版），不出 CSS 卡片
-  if (typeof __jwAcct !== 'undefined' && __jwAcct) { return genInfographicPoster(); }
+  if (typeof agentCoverMode === 'function' && agentCoverMode() === 'poster') { return genInfographicPoster(); }
   const st = $('#imgStatus'); const btn = $('#genNote'), old = btn ? btn.textContent : '';
   const t = getTrack();
   const title = ((state.cover && state.cover.cover_lines) || []).join(' ') || (state.titles && state.titles.best) || state.topic;
@@ -3196,7 +3196,12 @@ function estimateAutoCost() {
   const coverDone = coverProduced();
   const imgCost = (C.image_card != null ? C.image_card : 80);  // AI 整图海报/封面图单价（后台价目，默认 80）
   const cardCost = (C.imgplan != null ? C.imgplan : 10);       // CSS 真字卡单价（后台价目，默认 10）
-  if (!coverDone) { if (isGzh()) n += imgCost; else if (typeof __jwAcct !== 'undefined' && __jwAcct) n += imgCost; /*珠宝：1 张整图海报*/ else { try { n += (coverCount() || 3) * cardCost; } catch { n += cardCost * 3; } /*非珠宝：CSS真字卡×张数*/ if (autoAiCoverOn()) n += imgCost; } }
+  const cmode = (typeof agentCoverMode === 'function') ? agentCoverMode() : 'ai_memo';
+  if (!coverDone) {
+    if (isGzh()) n += imgCost;                                   // 公众号横版首图
+    else if (cmode === 'poster') n += imgCost;                   // 整图海报：1 张 AI 图
+    else { try { n += (coverCount() || 3) * cardCost; } catch { n += cardCost * 3; } /*模版/AI备忘录：CSS真字卡×张数*/ if (cmode === 'ai_memo' && autoAiCoverOn()) n += imgCost; }
+  }
   return n;
 }
 async function autoRun() {
@@ -3247,31 +3252,42 @@ async function autoRun() {
       setAuto('正在生成 ' + dispNo(st.no) + ' · ' + stepDispName(st) + ' …');
       await runStep(st);
       // S6 完成后自动生成多张配图（张数对齐对标，图失败不中断整体）。公众号=长文，只需 1 张横版首图，自己传/单出，不自动批量出竖版笔记卡
-      if (st.key === 'cover' && typeof __jwAcct !== 'undefined' && __jwAcct && !isGzh()) {
-        // 珠宝赛道(13696504558)：封面步直接出「珠宝科普」整图海报，不出 CSS 卡片
-        setAuto('正在生成珠宝科普整图海报…（约 40 秒）');
-        try { await genInfographicPoster(); } catch (e) { setAuto('整图海报生成失败：' + (e.message || e)); }
-        // 兜底：整图海报没出来（多为出图接口抽风 fetch failed）→ 退回生成真字封面卡，保证一定有封面、不空封面
-        if (!coverProduced()) {
-          setAuto('整图海报没出来，改用真字封面卡兜底…');
-          try { await generateCoverImagesCore(coverCount()); } catch (e) { setAuto('封面兜底也失败：' + (e.message || e)); }
-          try { await deAiNotePages(state); } catch (e) {}
-        }
-      } else if (st.key === 'cover' && !isGzh()) {
-        const cn = coverCount();
-        setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
-        try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
-        try { await deAiNotePages(state); } catch (e) {} // 内页文字降AI味
-        // 取开局就并行出好的 AI 封面，放封面位(第一张)，原配图/备忘录卡顺移第二张（replica 与 memo 都要 AI 封面）
-        if (aiCoverPromise) try {
-          setAuto('正在取并行生成的 AI 封面…');
-          const aiUrl = await aiCoverPromise;
-          if (aiUrl) {
-            state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
-            state.coverImages.unshift(aiUrl); state.coverCaptions.unshift(aiCoverCaption());
-            state.coverImage = state.coverImages[0]; persist();
+      if (st.key === 'cover' && !isGzh()) {
+        // 生图模式（智能体设置里选）：poster=AI整图海报 / template=封面模版 / ai_memo=AI封面+备忘录卡片（默认）
+        const cmode = (typeof agentCoverMode === 'function') ? agentCoverMode() : 'ai_memo';
+        if (cmode === 'poster') {
+          setAuto('正在生成整图海报…（约 40 秒）');
+          try { await genInfographicPoster(); } catch (e) { setAuto('整图海报生成失败：' + (e.message || e)); }
+          // 兜底：整图海报没出来（多为出图接口抽风 fetch failed）→ 退回真字封面卡，保证不空封面
+          if (!coverProduced()) {
+            setAuto('整图海报没出来，改用真字封面卡兜底…');
+            try { await generateCoverImagesCore(coverCount()); } catch (e) { setAuto('封面兜底也失败：' + (e.message || e)); }
+            try { await deAiNotePages(state); } catch (e) {}
           }
-        } catch (e) { setAuto('AI 封面没出来（不影响其它）：' + (e.message || e)); }
+        } else if (cmode === 'template') {
+          const cn = coverCount();
+          setAuto('正在生成封面模版 + 内页（' + cn + ' 张）…');
+          try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
+          try { await deAiNotePages(state); } catch (e) {}
+          // 第一张换成封面模版（ctpl://，文字取 cover_lines，精准零乱码）
+          try { state.coverImages = state.coverImages || []; if (state.coverImages.length) { state.coverImages[0] = 'ctpl://bold' + ctplSuffix(); } else { state.coverImages = ['ctpl://bold' + ctplSuffix()]; } state.coverImage = state.coverImages[0]; state.coverCaptions = state.coverCaptions || []; state.coverCaptions[0] = null; persist(); } catch (e) {}
+        } else {
+          // ai_memo（默认）：真字封面卡 + 内页 + AI 封面
+          const cn = coverCount();
+          setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
+          try { await generateCoverImagesCore(cn); } catch (e) { setAuto('配图生成失败（不影响其它）：' + (e.message || e)); }
+          try { await deAiNotePages(state); } catch (e) {} // 内页文字降AI味
+          // 取开局就并行出好的 AI 封面，放封面位(第一张)，原配图/备忘录卡顺移第二张
+          if (aiCoverPromise) try {
+            setAuto('正在取并行生成的 AI 封面…');
+            const aiUrl = await aiCoverPromise;
+            if (aiUrl) {
+              state.coverImages = state.coverImages || []; state.coverCaptions = state.coverCaptions || [];
+              state.coverImages.unshift(aiUrl); state.coverCaptions.unshift(aiCoverCaption());
+              state.coverImage = state.coverImages[0]; persist();
+            }
+          } catch (e) { setAuto('AI 封面没出来（不影响其它）：' + (e.message || e)); }
+        }
       }
       // 公众号：封面步骤后自动生成 1 张横版首图（修「首图不自动生成→图文包缺首图→自检抓不到」三连）
       if (st.key === 'cover' && isGzh()) {

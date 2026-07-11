@@ -245,6 +245,8 @@ document.addEventListener('click', e => {
 
 /* 配图视觉风格（智能体页设置，S6 配图统一画风）。留空＝跟对标图走 */
 window.agentImgStyle = () => { const t = getTrack(); if (!t) return ''; return (((getAgentConfig(t.id).imgStyle) || t.defaultImgStyle || '')).trim(); };
+/* 生图模式：封面走 ai_memo(AI封面+备忘录卡片) / poster(AI整图海报) / template(封面模版)。没配则默认：珠宝→poster，其余→ai_memo */
+window.agentCoverMode = () => { const t = getTrack(); const cm = t ? getAgentConfig(t.id).coverMode : ''; if (['ai_memo', 'poster', 'template'].includes(cm)) return cm; const jw = (t && t.name === '珠宝') || (window.__me && String(window.__me.phone) === '13696504558'); return jw ? 'poster' : 'ai_memo'; };
 /* 配图风格库（上传的参考图）：没有对标垫图时，用第1张当垫图统一调性 */
 window.agentStyleRefs = () => { const t = getTrack(); if (!t) return []; const r = getAgentConfig(t.id).styleRefs; return Array.isArray(r) ? r.map(x => typeof x === 'string' ? x : (x && x.url)).filter(Boolean) : []; };
 /* 风格库每张图的「提示词模板」（与 agentStyleRefs 同序）；没有则空串 */
