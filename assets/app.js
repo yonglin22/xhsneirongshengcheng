@@ -631,6 +631,14 @@ window.refreshTopNav = async function (force) {
   // 账号隔离：账号变化 → 清残留赛道选择，并重建边栏导航
   if (typeof syncAccountScope === 'function' && syncAccountScope(me) && typeof buildMyAgentNav === 'function') buildMyAgentNav();
   window.__me = (me && me.ok) ? me : null;
+  // 珠宝账号(13696504558)：把当前赛道显示名改成「珠宝」，顶栏/设置不再显示「美术考研」（仅本账号本地生效）
+  try {
+    if (me && me.ok && String(me.phone) === '13696504558' && window.TRACKS) {
+      const _t = (typeof getTrack === 'function') ? getTrack() : null;
+      if (_t && window.TRACKS[_t.id]) { window.TRACKS[_t.id].name = '珠宝'; window.TRACKS[_t.id].emoji = '💎'; }
+      if (typeof buildMyAgentNav === 'function') buildMyAgentNav();
+    }
+  } catch (e) {}
   const darkIcon = () => (document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙');
   if (me && me.ok) {
     if (typeof me.balance === 'number') window.__balance = me.balance;
