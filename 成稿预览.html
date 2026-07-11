@@ -962,9 +962,16 @@ $('#exportBtn').addEventListener('click', async ()=>{
     }
     // 单张封面（整图海报/实拍）：#carTrack 为空，不走 html2canvas/裁图（会因跨域污染画布→导出深色废图）；
     // 直接把封面图的原始字节塞进 zip（经同源代理取字节，不碰 canvas），所见即所得
-    if (!slides.length) for (let i=0; i<imgs.length; i++){
-      const b = await fetchImgBytes(imgs[i]);
-      if(b){ const ext=(b.type&&b.type.includes('png'))?'png':'jpg'; zip.file(String(i+1).padStart(2,'0')+(i===0?'_封面.':'_图.')+ext, b); }
+    if (!slides.length){
+      // 封面第1张：直接导出「预览里正在显示的那张封面图」(#coverImg)，所见即所得，彻底不受数据数组错位影响
+      let list = imgs.slice();
+      const ci = $('#coverImg');
+      const shown = ci ? (ci.dataset.direct || (ci.getAttribute('src')||'')) : '';
+      if(shown && !/^\/api\/img-proxy/.test(shown)){ list[0] = shown; } // 用屏幕上这张的真实地址覆盖第1张
+      for (let i=0; i<list.length; i++){
+        const b = await fetchImgBytes(list[i]);
+        if(b){ const ext=(b.type&&b.type.includes('png'))?'png':'jpg'; zip.file(String(i+1).padStart(2,'0')+(i===0?'_封面.':'_图.')+ext, b); }
+      }
     }
     // 3) 文案
     const title = $('#noteTitle').textContent.trim();
