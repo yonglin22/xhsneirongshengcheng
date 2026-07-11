@@ -97,10 +97,13 @@ function priceMigrateV3() {
   ].forEach(([k, c]) => setPrice(k, c));
   settingsSet('pricing_v3', 1);
 }
-// v4 调价（用户拍板）：AI 整图海报/生卡片图 image_card 30 → 80（含对齐的旧图像键）。一次性，之后后台改价不再被重置。
+// v4 调价（用户拍板）：AI 整图海报/生卡片图 image_card=80、图生图 image_i2i=80、CSS 真字卡(配图规划) imgplan=10。一次性，之后后台改价不再被重置。
 function priceMigrateV4() {
   if (settingsGet('pricing_v4')) return;
-  [['image_card', 80], ['image_std', 80], ['image_hd', 80], ['image_premium', 80]].forEach(([k, c]) => setPrice(k, c));
+  [['image_card', 80], ['image_std', 80], ['image_hd', 80], ['image_premium', 80],
+   ['image_i2i', 80],   // 图生图（垫图重出）100 → 80
+   ['imgplan', 10],     // CSS 真字卡 / 配图规划：每张 10
+  ].forEach(([k, c]) => setPrice(k, c));
   settingsSet('pricing_v4', 1);
 }
 
