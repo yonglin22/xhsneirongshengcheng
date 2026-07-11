@@ -3193,7 +3193,8 @@ function estimateAutoCost() {
   if (!stepDone('frame')) n += (C.frame != null ? C.frame : 5);          // 框架
   if (!stepDone('copy')) n += (C.copy != null ? C.copy : 10);            // 正文
   const coverDone = coverProduced();
-  if (!coverDone) { if (isGzh()) n += 30; else if (typeof __jwAcct !== 'undefined' && __jwAcct) n += 30; /*珠宝：1 张整图海报*/ else { try { n += (coverCount() || 3) * 30; } catch { n += 90; } if (autoAiCoverOn()) n += 30; } }
+  const imgCost = (C.image_card != null ? C.image_card : 80); // AI 整图海报/封面图单价（跟随后台价目，默认 80）
+  if (!coverDone) { if (isGzh()) n += imgCost; else if (typeof __jwAcct !== 'undefined' && __jwAcct) n += imgCost; /*珠宝：1 张整图海报*/ else { try { n += (coverCount() || 3) * imgCost; } catch { n += imgCost * 3; } if (autoAiCoverOn()) n += imgCost; } }
   return n;
 }
 async function autoRun() {

@@ -97,6 +97,12 @@ function priceMigrateV3() {
   ].forEach(([k, c]) => setPrice(k, c));
   settingsSet('pricing_v3', 1);
 }
+// v4 调价（用户拍板）：AI 整图海报/生卡片图 image_card 30 → 80（含对齐的旧图像键）。一次性，之后后台改价不再被重置。
+function priceMigrateV4() {
+  if (settingsGet('pricing_v4')) return;
+  [['image_card', 80], ['image_std', 80], ['image_hd', 80], ['image_premium', 80]].forEach(([k, c]) => setPrice(k, c));
+  settingsSet('pricing_v4', 1);
+}
 
 // 迁移：邀请字段（旧库平滑升级；已存在则忽略）
 try { db.exec("ALTER TABLE users ADD COLUMN invite_code TEXT"); } catch {}
@@ -826,6 +832,7 @@ function adminDeleteUserAgents(phone, trackId) {
 
 priceMigrateV2(); // 一次性对齐 PRD §8 价格（幂等）
 priceMigrateV3(); // 一次性对齐 v3 价目（图生图100/卡片图30/自检免费/矩阵免费/其余50）（幂等）
+priceMigrateV4(); // 一次性把 AI 整图海报/生卡片图 image_card 提到 80（幂等）
 backfillApprovedAgents(); // 回填「已通过但没建赛道」的历史智能体申请（幂等）
 module.exports = {
   signSession, verifySession, setCode, checkCode,
