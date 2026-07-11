@@ -54,6 +54,12 @@
 
   <!-- 极简一键区：只留「填选题 → 一键生成 → 出成品」 -->
   <div id="simpleArea" class="card p-6 mb-6" style="display:none;text-align:center">
+    <!-- 从「我的作品」进来、这篇已有完整内容时：提示去专业模式看/改具体作品详情 -->
+    <div id="simpleHasWorkHint" style="display:none;max-width:600px;margin:0 auto 16px;text-align:left;border:1px solid var(--cinnabar);border-radius:12px;padding:11px 14px;background:linear-gradient(180deg,rgba(165,129,58,.08),rgba(165,129,58,.02))">
+      <div class="text-[13px] font-bold text-[var(--cinnabar-deep)] mb-0.5">📄 这篇已经生成好啦</div>
+      <div class="text-[12px] text-[var(--ink-soft)] leading-relaxed mb-2.5">想看正文 / 标题 / 封面等<b>具体作品详情</b>并逐处编辑，请进入「专业模式」。</div>
+      <button id="simpleToProDetail" class="btn-go rounded-lg px-4 py-2 text-[12.5px] font-medium">🛠 进入专业模式看作品详情 →</button>
+    </div>
     <!-- 迷你三步：一眼看懂极简流程 -->
     <div class="flex items-center justify-center gap-2 flex-wrap mb-4 text-[12.5px]">
       <span style="background:rgba(165,129,58,.12);color:var(--cinnabar-deep);border-radius:999px;padding:4px 12px;font-weight:700">① 填选题</span>
@@ -2062,10 +2068,22 @@ const JW_POSTER = {
   '珠宝单品': JW_BASE + '\n【版式 · 单品种草封面】竖版 9:16，哑光浅色/奶白/浅香槟纯色干净背景，低饱和温柔柔光，珍珠碎闪/细碎星光氛围点缀；画面 C 位摆放一件彩宝/珍珠/水晶/翡翠成品首饰，高清微距，宝石通透起强荧光、珍珠皮光细腻、工艺细节清晰；顶部柔和艺术标题（如「源头直供 XX 彩宝｜无套路明码实价」），侧边云朵文字框标一句短选购口诀；角落小标签（国际一手货源｜带鉴定证书｜支持比价）；底部老友口吻暖心小字。ins 轻奢珠宝博主种草风，无杂乱杂物、无水印、无浮夸网红装饰。',
   '珠宝封面': JW_BASE + '\n【版式 · 封面引流大字】竖版 3:4/9:16，浅色高级干净纯色背景，C 位一颗通透实拍宝石/一件精致首饰特写起荧光；中部一行超大加粗中文主标题（引流钩子，如「加热蓝宝石能买吗」「一图看懂翡翠分类」），主标题下一枚亮色圆角胶囊放一句短钩子；点缀细金星光、极简手绘小元素；只保留「大字主标题+胶囊短句+可选一行小卖点」，其余留白，绝不堆砌清单图标。文字规范清晰、无错别字乱码、不出框。',
 };
+// 珠宝赛道：按选题/正文内容自动挑版式（种草单品→单品；能买吗/避坑/怎么选/科普→科普；一句话钩子引流→封面）
+function autoPosterKind() {
+  const t = ((state.topic || '') + '　' + ((state.cover && state.cover.cover_lines) || []).join('　') + '　' + (state.body || []).join('　')).slice(0, 600);
+  if (/种草|一串|这串|这条|入手|开箱|上手|晒(单|一下)?|叠戴|搭配|单品|我的.{0,4}(手串|项链|戒指|耳钉|耳环|吊坠|镯)/.test(t)) return '珠宝单品';
+  if (/(能买吗|值不值|是不是|智商税|后悔|千万别|避雷|一定要看)/.test(t) && (state.topic || '').length <= 20) return '珠宝封面';
+  return '珠宝科普'; // 避坑/怎么选/区别/一图看懂/分级/科普 一律归科普
+}
 async function genInfographicPoster() {
   if (!state.topic) { const st = $('#imgStatus'); if (st) { st.textContent = '请先在上方填写选题'; st.style.color = 'var(--cinnabar-deep)'; } return; }
   const btn = $('#genInfoPoster'), st = $('#imgStatus'), old = btn ? btn.textContent : '';
-  const kind = state.posterKind || posterDefaultKind();
+  // 珠宝账号且用户没手动选过版式 → 按内容智能选版式（手动点过芯片则尊重手动）
+  let kind = state.posterKind || posterDefaultKind();
+  if (typeof __jwAcct !== 'undefined' && __jwAcct && !state._posterKindManual) {
+    const auto = autoPosterKind();
+    if (auto !== kind) { kind = auto; state.posterKind = auto; try { persistSoft(); } catch {} if (st) { st.textContent = '已智能切换到「' + auto.slice(2) + '」版式…'; } }
+  }
   if (btn) { btn.disabled = true; btn.textContent = '构思海报文案…'; }
   if (st) { st.textContent = '正在把这篇内容排成信息图海报…（约 40 秒）'; st.style.color = 'var(--ink-soft)'; }
   try {
@@ -2437,7 +2455,8 @@ function renderPanel() {
   $('#genNote')?.addEventListener('click', genNoteImages);
   $('#genInfoPoster')?.addEventListener('click', genInfographicPoster);
   document.querySelectorAll('.poster-kind').forEach(b => b.addEventListener('click', () => {
-    state.posterKind = b.dataset.k; persistSoft();
+    state.posterKind = b.dataset.k; state._posterKindManual = true; persistSoft(); // 手动点过 → 关掉智能自动切换，尊重手动
+
     document.querySelectorAll('.poster-kind').forEach(x => {
       const on = x.dataset.k === state.posterKind, jw = (x.dataset.k || '').startsWith('珠宝');
       if (jw) { x.style.background = on ? '#a5813a' : '#faf6ec'; x.style.color = on ? '#fff' : '#7a5c1e'; x.style.borderColor = on ? '#a5813a' : '#d9c9a3'; }
@@ -3283,7 +3302,12 @@ function setPipeMode(m) {
   try { localStorage.setItem('ag_pipe_mode', m); } catch {}
   const h = $('#pipeModeHint'); if (h) h.textContent = simple ? '' : '逐步编辑每一步，适合精修';
   const back = $('#proBackRow'); if (back) back.style.display = simple ? 'none' : 'block';
+  // 极简模式 + 这篇已有完整内容（多为从「我的作品」进来的成稿）→ 提示去专业模式看作品详情
+  const hw = $('#simpleHasWorkHint');
+  if (hw) { const hasWork = !!(state && ((state.body && state.body.length) || state.frame || (state.notePages && state.notePages.length) || (state.titles && state.titles.length) || (state.coverImages && state.coverImages.length))); hw.style.display = (simple && hasWork) ? 'block' : 'none'; }
 }
+// 「进入专业模式看作品详情」：切专业 + 定位到正文那一步（用户最想看的详情）
+document.addEventListener('click', e => { if (e.target && e.target.id === 'simpleToProDetail') { setPipeMode('pro'); const ci = STEPS.findIndex(st => st.key === 'copy'); if (ci >= 0) { cur = ci; renderRail(); renderPanel(); } const pa = $('#proArea'); if (pa) setTimeout(() => pa.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); } });
 document.querySelectorAll('.pipe-mode').forEach(b => b.addEventListener('click', () => setPipeMode(b.dataset.mode)));
 // 默认模式：用户点过就记住；没点过时——已有实质进度(正文/框架/内页/标题)默认「专业」(免得以为草稿没了)，全新空白默认「极简」
 function defaultPipeMode() {
