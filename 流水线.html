@@ -3228,7 +3228,13 @@ async function autoRun() {
       if (st.key === 'cover' && typeof __jwAcct !== 'undefined' && __jwAcct && !isGzh()) {
         // 珠宝赛道(13696504558)：封面步直接出「珠宝科普」整图海报，不出 CSS 卡片
         setAuto('正在生成珠宝科普整图海报…（约 40 秒）');
-        try { await genInfographicPoster(); } catch (e) { setAuto('整图海报生成失败（可在封面区手动重出）：' + (e.message || e)); }
+        try { await genInfographicPoster(); } catch (e) { setAuto('整图海报生成失败：' + (e.message || e)); }
+        // 兜底：整图海报没出来（多为出图接口抽风 fetch failed）→ 退回生成真字封面卡，保证一定有封面、不空封面
+        if (!coverProduced()) {
+          setAuto('整图海报没出来，改用真字封面卡兜底…');
+          try { await generateCoverImagesCore(coverCount()); } catch (e) { setAuto('封面兜底也失败：' + (e.message || e)); }
+          try { await deAiNotePages(state); } catch (e) {}
+        }
       } else if (st.key === 'cover' && !isGzh()) {
         const cn = coverCount();
         setAuto('正在生成 S6 配图（' + cn + ' 张，对齐对标）…');
