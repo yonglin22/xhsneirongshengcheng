@@ -794,10 +794,21 @@ function setCoverImages(arr, caps){
   const isSpecial = u => (u||'').startsWith('tpl://') || (u||'').startsWith('note://') || (u||'').startsWith('ctpl://');
   if(arr.length <= 1 && !isSpecial(arr[0])){
     $('#carousel').classList.add('single');
-    // 整图海报/真实实拍(raw/whole，或无caption)：封面文字已在图里 → 隐藏 #coverText 独立叠字层，避免双标题
     const c0 = caps[0]; const bare = !c0 || c0.raw || c0.whole;
-    const ct = $('#coverText'); if(ct) ct.style.display = bare ? 'none' : '';
-    setCoverImage(arr[0]||''); return;
+    const u = arr[0]||'';
+    const tHTML0 = $('#coverText') ? $('#coverText').innerHTML : '';
+    const cFallback0 = tHTML0.replace(/<br\s*\/?>/g,' ').replace(/<[^>]+>/g,'').trim();
+    // 单张封面：把 #carTrack 整个重建成「一张干净封面图」，彻底清掉页面里写死的美术考研演示 demo（含素描 SVG）——否则导出/预览会串到 demo 那几张图
+    if(u){
+      const src = u.startsWith('data:') ? u : ('/api/img-proxy?u='+encodeURIComponent(u));
+      const fb = u.startsWith('data:') ? '' : ` data-direct="${String(u).replace(/"/g,'&quot;')}" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.dataset.direct}"`;
+      const overlay = bare ? '' : ((capTheme(c0)==='poster'?'':'<div class="cv-scrim"></div>')+capCardHTML(c0,true,cFallback0));
+      $('#carTrack').innerHTML = `<div class="slide"><img id="coverImg" class="cover-photo" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center" src="${src}"${fb}/>${overlay}</div>`;
+      $('#carousel').classList.add('has-photo');
+    } else {
+      $('#carTrack').innerHTML=''; $('#carousel').classList.remove('has-photo');
+    }
+    return;
   }
   $('#carousel').classList.remove('single'); // 多图 → 显示轮播导航
   const titleHTML = $('#coverText') ? $('#coverText').innerHTML : '';
