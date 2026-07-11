@@ -486,7 +486,9 @@ function setCoverImage(u){
 // 真正执行导入一篇成稿数据
 function importDraftData(d){
   if(!d || (!d.body && !d.best && !d.title)){ setStatus('这篇还没有成稿内容', 'err'); return; }
-  window.__lastData = d; // 记住当前预览用的这份数据 → 导出/发布必须用它，而不是回头去读 localStorage 旧草稿（否则预览是海报、导出成旧封面）
+  window.__lastData = d; // 记住当前预览用的这份数据 → 导出/发布必须用它
+  // 同步写回草稿：预览/导出/发布/自检 全部读同一份，彻底杜绝"预览是海报、导出成旧封面"的错位
+  try{ localStorage.setItem('ag_draft', JSON.stringify(d)); }catch(e){}
   if(d.topic) $('#topic').value=d.topic;
   render({ cover_lines:(d.cover&&d.cover.cover_lines)||d.cover_lines, title:d.best||d.title, body:d.body, tags:d.tags, platform:d.platform, summary:d.summary, coverImages:d.coverImages, coverImage:d.coverImage });
   window.__notePages = d.notePages || [];
@@ -494,7 +496,9 @@ function importDraftData(d){
   applyRatio();
   const imgs = d.coverImages || (d.coverImage?[d.coverImage]:[]);
   setCoverImages(imgs, d.coverCaptions || []);
-  setStatus(imgs.length ? ('✓ 已导入（含 '+imgs.length+' 张生成图）') : '✓ 已导入成稿');
+  // 诊断：把封面第1张的真实地址露出来 → 一眼看出封面槽装的到底是海报还是那张深色底图
+  const c0 = String(imgs[0]||''); const c0s = c0.startsWith('data:') ? ('data:图片 '+Math.round(c0.length/1024)+'KB') : (c0.slice(0,64)||'(空)');
+  setStatus((imgs.length ? ('✓ 已导入（含 '+imgs.length+' 张图）') : '✓ 已导入成稿') + ' · 封面第1张 = ' + c0s);
 }
 // 点「从流水线导入」→ 先弹历史记录列表挑一篇
 function plHistory(){ try{ return JSON.parse(localStorage.getItem('ag_pl_history')||'[]'); }catch{ return []; } }
