@@ -1223,7 +1223,7 @@ async function genPosterBg(setStatus) {
 // 📒 备忘录封面卡（真字）：按 S3 框架·第1张「配图规划」+ 对标第1张解析，CSS 排成备忘录风封面（文字真实、零乱码）
 async function genMemoCover() {
   // 珠宝赛道(13696504558)：第五步主按钮默认直接出「珠宝科普」整图海报（三套 prompt 模版），不出 CSS 卡片
-  if (typeof agentCoverMode === 'function' && agentCoverMode() === 'poster') { return genInfographicPoster(); }
+  if (coverModeLocal() === 'poster') { return genInfographicPoster(); }
   const btn = $('#genMemoCover'), o = btn ? btn.textContent : '', st = $('#imgStatus');
   const t = getTrack();
   const refVis = (state.refVisions && state.refVisions[0]) || ''; // 对标第1张图的解析
@@ -1926,7 +1926,7 @@ function splitPageInTwo(page) {
 
 async function genNoteImages() {
   // 珠宝赛道(13696504558)：第五步「生成封面+配图」默认直接走「珠宝科普」整图海报（三套 prompt 模版），不出 CSS 卡片
-  if (typeof agentCoverMode === 'function' && agentCoverMode() === 'poster') { return genInfographicPoster(); }
+  if (coverModeLocal() === 'poster') { return genInfographicPoster(); }
   const st = $('#imgStatus'); const btn = $('#genNote'), old = btn ? btn.textContent : '';
   const t = getTrack();
   const title = ((state.cover && state.cover.cover_lines) || []).join(' ') || (state.titles && state.titles.best) || state.topic;
@@ -3186,6 +3186,12 @@ function coverProduced() {
   if (typeof __jwAcct !== 'undefined' && __jwAcct) return imgs.some(u => typeof u === 'string' && (/^https?:\/\//.test(u) || u.startsWith('data:')));
   return imgs.some(u => u);
 }
+// 流水线内取生图模式：显式配置优先；没配则用本页可靠的 __jwAcct 兜底（珠宝→poster，其余→ai_memo）
+// 不直接用 app.js 的 agentCoverMode，是因为它默认判珠宝依赖 window.__me/赛道改名，在本页可能还没就绪
+function coverModeLocal() {
+  try { const t = (typeof getTrack === 'function') ? getTrack() : null; const cm = t ? getAgentConfig(t.id).coverMode : ''; if (['ai_memo', 'poster', 'template'].includes(cm)) return cm; } catch {}
+  return (typeof __jwAcct !== 'undefined' && __jwAcct) ? 'poster' : 'ai_memo';
+}
 function estimateAutoCost() {
   const C = window.ACTION_COST || {};
   const stepDone = k => { const st = STEPS.find(s => s.key === k); return st ? done(st) : false; };
@@ -3196,7 +3202,7 @@ function estimateAutoCost() {
   const coverDone = coverProduced();
   const imgCost = (C.image_card != null ? C.image_card : 80);  // AI 整图海报/封面图单价（后台价目，默认 80）
   const cardCost = (C.imgplan != null ? C.imgplan : 10);       // CSS 真字卡单价（后台价目，默认 10）
-  const cmode = (typeof agentCoverMode === 'function') ? agentCoverMode() : 'ai_memo';
+  const cmode = coverModeLocal();
   if (!coverDone) {
     if (isGzh()) n += imgCost;                                   // 公众号横版首图
     else if (cmode === 'poster') n += imgCost;                   // 整图海报：1 张 AI 图
@@ -3254,7 +3260,7 @@ async function autoRun() {
       // S6 完成后自动生成多张配图（张数对齐对标，图失败不中断整体）。公众号=长文，只需 1 张横版首图，自己传/单出，不自动批量出竖版笔记卡
       if (st.key === 'cover' && !isGzh()) {
         // 生图模式（智能体设置里选）：poster=AI整图海报 / template=封面模版 / ai_memo=AI封面+备忘录卡片（默认）
-        const cmode = (typeof agentCoverMode === 'function') ? agentCoverMode() : 'ai_memo';
+        const cmode = coverModeLocal();
         if (cmode === 'poster') {
           setAuto('正在生成整图海报…（约 40 秒）');
           try { await genInfographicPoster(); } catch (e) { setAuto('整图海报生成失败：' + (e.message || e)); }
