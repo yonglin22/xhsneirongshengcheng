@@ -3242,7 +3242,8 @@ async function autoRun() {
   autoRunning = true; setAutoUI(true); const ab = $('#autoBtn'); if (ab) { ab.disabled = true; ab.textContent = '⏳ 自动生成中…'; }
   // 提速：AI 封面只需「主题」（开局已知），不必等后续步骤 → 现在就后台开跑，让 40s 出图与整条文字流水线并行，最后再取结果（几乎不额外耗时）
   // 极简模式跳过慢的 AI 封面（gpt-image 30~90s），只出秒级备忘录真字卡，速度优先；专业模式保持
-  const aiCoverPromise = (autoAiCoverOn() && !isGzh() && !document.body.classList.contains('pipe-simple')) ? genAiCoverUrl(null).catch(() => '') : null;
+  // 只有 ai_memo 模式才会用到并行 AI 封面；poster/template 模式不消费它——之前不管模式都提前开跑，白扣 80 积分/次
+  const aiCoverPromise = (coverModeLocal() === 'ai_memo' && autoAiCoverOn() && !isGzh() && !document.body.classList.contains('pipe-simple')) ? genAiCoverUrl(null).catch(() => '') : null;
   // 提速：对标视觉解析（5 张 vision）也开局并行预取并写进缓存，到 S6 直接命中、不再等
   if ((state.refImages || []).length) analyzeRefImageSet(null).catch(() => {});
   const startIdx = Math.min(Math.max(cur | 0, 0), STEPS.length - 1); // 从「当前所在步」开始，不回到第二步从头跑
