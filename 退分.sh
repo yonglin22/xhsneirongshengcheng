@@ -10,11 +10,17 @@
 set -e
 cd "$(dirname "$0")"
 
-# 从 .env 读取 PORT / ADMIN_TOKEN（命令行环境变量优先）
-if [ -f .env ]; then
-  [ -z "$PORT" ]         && PORT=$(grep -E '^PORT=' .env | tail -1 | cut -d= -f2- | tr -d '"'"'"' \r')
-  [ -z "$ADMIN_TOKEN" ]  && ADMIN_TOKEN=$(grep -E '^ADMIN_TOKEN=' .env | tail -1 | cut -d= -f2- | tr -d '"'"'"' \r')
-fi
+# 读 .env 一行（命令行环境变量优先）。.env 常属于 app 用户，ubuntu 读不了 → 自动用 sudo -u app 兜底（免密，同部署脚本）
+envget() {
+  local key="$1" v=""
+  if [ -r .env ]; then v=$(grep -E "^${key}=" .env 2>/dev/null | tail -1); fi
+  if [ -z "$v" ] && command -v sudo >/dev/null; then v=$(sudo -n -u app cat .env 2>/dev/null | grep -E "^${key}=" | tail -1); fi
+  if [ -z "$v" ] && command -v sudo >/dev/null; then v=$(sudo -n cat .env 2>/dev/null | grep -E "^${key}=" | tail -1); fi
+  echo "$v" | cut -d= -f2- | sed -e 's/^["'\'' ]*//' -e 's/["'\'' ]*$//' | tr -d '\r'
+}
+[ -f .env ] || echo "⚠ 当前目录没有 .env（请在 /opt/zhusha 下运行）"
+[ -z "$PORT" ]        && PORT=$(envget PORT)
+[ -z "$ADMIN_TOKEN" ] && ADMIN_TOKEN=$(envget ADMIN_TOKEN)
 PORT=${PORT:-8787}
 BASE="http://127.0.0.1:${PORT}"
 
