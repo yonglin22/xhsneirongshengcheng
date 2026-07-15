@@ -727,13 +727,30 @@ const server = http.createServer(async (req, res) => {
           }
           return fetch(base + '/images/generations', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
         };
-        // 瞬时网络失败（fetch failed / 连接重置 / 超时）→ 自动重试，最多 3 次、指数退避，避免中转偶发抽风就整单失败
+        // 只对「瞬时网络失败」重试（fetch failed / 连接重置 / DNS）——这类几毫秒就报错，重试代价低。
+        // 关键：超时(AbortError/timeout)绝不重试！重试一个慢中转只会再耗 150s，把总时长顶过前端等待，
+        // 造成「前端已超时报错、服务端却在后台重试成功并扣费」的竞态。故超时直接失败。
         let upErr;
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        const isFastNetErr = (e) => {
+          const s = ((e && (e.message || e.name)) || '') + '';
+          if (/abort|timeout|timed out/i.test(s)) return false; // 超时不算瞬时网络错误
+          return /fetch failed|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|socket hang up|network/i.test(s);
+        };
+        for (let attempt = 1; attempt <= 2; attempt++) {
           try { up = await doUp(); upErr = null; break; }
-          catch (e) { upErr = e; if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1500)); }
+          catch (e) {
+            upErr = e;
+            if (attempt < 2 && isFastNetErr(e)) { await new Promise(r => setTimeout(r, 1200)); continue; }
+            break;
+          }
         }
-        if (!up) return send(res, 502, JSON.stringify({ error: '图片服务连接失败（已自动重试 3 次仍不通），多为出图中转临时不可用，请稍后再试：' + ((upErr && upErr.message) || 'fetch failed') }), { 'content-type': 'application/json' });
+        if (!up) {
+          const to = upErr && /abort|timeout|timed out/i.test(((upErr.message || upErr.name) || '') + '');
+          const msg = to
+            ? '图片生成超时（出图中转响应过慢，本次未扣费），请稍后重试'
+            : '图片服务连接失败（多为出图中转临时不可用，本次未扣费）：' + ((upErr && upErr.message) || 'fetch failed');
+          return send(res, to ? 504 : 502, JSON.stringify({ error: msg }), { 'content-type': 'application/json' });
+        }
         text = await up.text();
         if (!up.ok) {
           // 上游中转返回 HTML 错误页（网关/限流/超时）→ 别把整坨 HTML 透传给前端，换成人话

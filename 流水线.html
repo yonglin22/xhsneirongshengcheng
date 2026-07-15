@@ -2125,7 +2125,7 @@ ${POSTER_KIND_HINT[kind]}
 ${kind && kind.startsWith('珠宝') ? JW_POSTER[kind] : kind === '照片大字' ? POSTER_STYLE_PHOTO : kind === '单品科普' ? POSTER_STYLE_ELEGANT : POSTER_STYLE}${aStyle ? '\n【本账号统一画风（最高优先，务必贴合）】' + aStyle : ''}`;
     const reqBody = { provider: 'gptimage', action: 'cover', size: ratioSize(), prompt };
     if (refImg) { reqBody.ref_image = refImg; reqBody.prompt = `参考所给图片里的【主体实物】质感与外观，把它自然嵌入海报对应位置；其余按脚本排版。\n` + prompt; }
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(180000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(reqBody) });
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(200000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(reqBody) });
     const tx = await r.text();
     if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const j = JSON.parse(tx); u = j.url || j.image || (j.data && j.data[0] && (j.data[0].url || j.data[0].b64_json && ('data:image/png;base64,' + j.data[0].b64_json))) || ''; } catch {}
