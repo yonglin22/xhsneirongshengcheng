@@ -239,6 +239,33 @@ function xhsDailyCheck(key) {
   if (r.n >= XHS_DAILY_LIMIT) return { ok: false, used: r.n, limit: XHS_DAILY_LIMIT };
   return { ok: true, used: r.n, limit: XHS_DAILY_LIMIT, inc() { r.n++; } };
 }
+// ===== 抓取防风控：笔记缓存 + 全局限速（同 IP 高频直连小红书会触发「扫码验证」challenge）=====
+// 1) 命中缓存不重抓：同一条笔记短时间内多次抓 → 直接回缓存，绝不再打小红书。
+const _noteCache = new Map(); // noteKey -> { at, data }
+const NOTE_CACHE_TTL = parseInt(process.env.NOTE_CACHE_TTL_MS || String(30 * 60 * 1000), 10); // 默认 30 分钟
+function noteKeyOf(u) { try { const m = String(u).match(/\/(?:explore|discovery\/item|item)\/([0-9a-f]{16,})/i) || String(u).match(/([0-9a-f]{24})/i); return m ? m[1] : String(u).split('?')[0]; } catch { return String(u); } }
+function noteCacheGet(u) { const k = noteKeyOf(u); const r = _noteCache.get(k); if (r && Date.now() - r.at < NOTE_CACHE_TTL) return r.data; if (r) _noteCache.delete(k); return null; }
+function noteCacheSet(u, data) { const k = noteKeyOf(u); _noteCache.set(k, { at: Date.now(), data }); if (_noteCache.size > 500) { const first = _noteCache.keys().next().value; _noteCache.delete(first); } }
+// 2) 全局串行 + 最小间隔 + 抖动：把并发/突发的外呼排成队，两次真实抓取间至少隔 XHS_MIN_GAP_MS（+随机抖动），显著降低触发风控概率。
+const XHS_MIN_GAP_MS = parseInt(process.env.XHS_MIN_GAP_MS || '1500', 10);
+let _xhsChain = Promise.resolve(); let _xhsLast = 0;
+function xhsThrottle() {
+  const p = _xhsChain.then(async () => {
+    const wait = Math.max(0, _xhsLast + XHS_MIN_GAP_MS + Math.floor(Math.random() * 700) - Date.now());
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    _xhsLast = Date.now();
+  });
+  _xhsChain = p.catch(() => {});
+  return p;
+}
+// 3) UA 轮换：避免固定指纹被盯上。
+const _uaPool = [
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Safari/537.36 Edg/119.0',
+];
+function pickUA() { return _uaPool[Math.floor(Math.random() * _uaPool.length)]; }
 // 充值套餐（cny 单位：分）。前端只传 pack_id，金额/积分由服务端定，杜绝篡改。
 const PACKS = {
   exp: { id: 'exp', cny: 990, credits: 1089, name: '新人首充包', desc: '990 本金 + 送 99 · 约 3 篇 · 每人限一次 · 不支持退款', once: true },
@@ -1243,8 +1270,9 @@ const server = http.createServer(async (req, res) => {
       url = url.replace(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/i, 'https://raw.githubusercontent.com/$1/$2/$3');
       const mRepo = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/?$/i);
       if (mRepo) url = `https://raw.githubusercontent.com/${mRepo[1]}/${mRepo[2]}/HEAD/README.md`;
+      if (/xiaohongshu\.com|xhslink\.com/i.test(url)) await xhsThrottle(); // 小红书链接也走全局限速，共用同一 IP 的抓取预算
       const r = await fetch(url, { redirect: 'follow', headers: {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'user-agent': /xiaohongshu\.com|xhslink\.com/i.test(url) ? pickUA() : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'accept': 'text/html,application/xhtml+xml,*/*', 'accept-language': 'zh-CN,zh;q=0.9' } });
       let text = (await r.text()).replace(/\r\n/g, '\n');
       // 微信公众号文章：抽标题 + 正文区 → 纯文本。先删 script/style，再取 rich_media_content（取最靠后的真实容器）到底部标记
@@ -1292,16 +1320,25 @@ const server = http.createServer(async (req, res) => {
       if (!url || !/^https?:\/\//i.test(url)) {
         return send(res, 400, JSON.stringify({ ok: false, error: '请提供有效链接（http/https）' }), { 'content-type': 'application/json' });
       }
+      // 命中缓存：同一条笔记 30 分钟内不再真实抓取，直接回缓存（既快又躲风控）
+      const cached = noteCacheGet(url);
+      if (cached) return send(res, 200, JSON.stringify({ ...cached, cached: true }), { 'content-type': 'application/json' });
       const fnCookie = (process.env.XHS_COOKIE || '').trim(); // 线上带登录 Cookie，部分笔记详情页需要登录态才出正文/多图
       const fnHdr = {
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+        'user-agent': pickUA(),
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'accept-language': 'zh-CN,zh;q=0.9',
+        'referer': 'https://www.xiaohongshu.com/',
       };
       if (fnCookie) fnHdr.cookie = fnCookie;
+      await xhsThrottle(); // 全局限速：两次真实抓取至少隔 ~1.5s+抖动，避免突发触发风控
       const r = await fetch(url, { redirect: 'follow', headers: fnHdr });
       const html = await r.text();
       const finalUrl = r.url || url;
+      // 识别风控/验证页（「扫码验证身份」「请求太频繁」「滑动验证」「安全验证」等）→ 明确告知冷却，别再硬刚
+      if (/扫码验证身份|请求过于频繁|请求太频繁|访问频繁|滑动验证|安全验证|verify|captcha|滑块|人机验证/i.test(html)) {
+        return send(res, 200, JSON.stringify({ ok: false, finalUrl, code: 'RISK', error: '小红书触发了安全验证（请求太频繁）。已自动降速，请等 1~2 分钟再抓；或直接把笔记「标题+正文」手动粘贴到下方框里，立刻可用。' }), { 'content-type': 'application/json' });
+      }
       const pick = re => { const m = html.match(re); return m ? m[1] : ''; };
       const decode = s => (s || '')
         .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#x27;/g, "'")
@@ -1355,7 +1392,9 @@ const server = http.createServer(async (req, res) => {
       if (!content && tags.length === 0 && images.length <= 1 && /小红书/.test(title)) {
         return send(res, 200, JSON.stringify({ ok: false, finalUrl, error: '只抓到封面、拿不到正文（链接多半已失效或需登录）。请换一条新分享链接，或手动粘贴标题+正文。' }), { 'content-type': 'application/json' });
       }
-      return send(res, 200, JSON.stringify({ ok: true, finalUrl, title, content, images: images.slice(0, 12), tags: tags.slice(0, 20) }), { 'content-type': 'application/json' });
+      const okData = { ok: true, finalUrl, title, content, images: images.slice(0, 12), tags: tags.slice(0, 20) };
+      noteCacheSet(url, okData); // 抓成功即缓存，后续重复抓同一条直接命中、不再打小红书
+      return send(res, 200, JSON.stringify(okData), { 'content-type': 'application/json' });
     } catch (err) {
       return send(res, 200, JSON.stringify({ ok: false, error: '抓取失败：' + (err.message || String(err)) + '（可手动粘贴正文）' }), { 'content-type': 'application/json' });
     }
