@@ -2465,7 +2465,7 @@ function renderPanel() {
     });
   }));
   // 珠宝专属版式：仅账号 13696504558 显示这三个版式（珠宝科普/单品/封面）
-  (async () => { try { const me = await window.meFetch(); if (me && me.ok && String(me.phone) === '13696504558') { const w = document.getElementById('jwPosterKinds'); if (w) w.style.display = ''; } } catch {} })();
+  (async () => { try { const me = await window.meFetch(); if (me && me.ok && window.isJwPhone(me.phone)) { const w = document.getElementById('jwPosterKinds'); if (w) w.style.display = ''; } } catch {} })();
   $('#genMemoCover')?.addEventListener('click', genMemoCover);
   $$('.img-ratio').forEach(b => b.addEventListener('click', () => { state.imgRatio = b.dataset.r; persist(); renderPanel(); }));
   $('#aiCoverChk')?.addEventListener('change', e => { setAutoAiCover(e.target.checked); renderPanel(); });
@@ -3472,7 +3472,7 @@ function posterDefaultKind() { return __jwAcct ? '珠宝科普' : '单品科普'
 (async () => {
   try {
     const me = await window.meFetch();
-    if (me && me.ok && String(me.phone) === '13696504558') {
+    if (me && me.ok && window.isJwPhone(me.phone)) {
       __jwAcct = true;
       if (!state.posterKind) { state.posterKind = '珠宝科普'; persistSoft(); }
       renderPanel();

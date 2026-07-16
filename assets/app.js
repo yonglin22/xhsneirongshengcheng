@@ -104,6 +104,9 @@ window.meFetch = function (force) {
   }
   return window.__mePromise;
 };
+// 珠宝赛道账号白名单：这些手机号享受全套珠宝专属逻辑（默认珠宝赛道名、poster生图、专属版式/类目/模板…）。加号只改这一处。
+window.JW_PHONES = ['13696504558', '18268346784'];
+window.isJwPhone = function (p) { return window.JW_PHONES.indexOf(String(p)) >= 0; };
 
 /* ===== 移动端守卫：核心创作页（大屏工具）在手机/微信内置浏览器上 → 引导去电脑端 =====
    轻页（账户/充值/邀请有礼/帮助/登录/落地）仍可手机使用。*/
@@ -246,7 +249,7 @@ document.addEventListener('click', e => {
 /* 配图视觉风格（智能体页设置，S6 配图统一画风）。留空＝跟对标图走 */
 window.agentImgStyle = () => { const t = getTrack(); if (!t) return ''; return (((getAgentConfig(t.id).imgStyle) || t.defaultImgStyle || '')).trim(); };
 /* 生图模式：封面走 ai_memo(AI封面+备忘录卡片) / poster(AI整图海报) / template(封面模版)。没配则默认：珠宝→poster，其余→ai_memo */
-window.agentCoverMode = () => { const t = getTrack(); const cm = t ? getAgentConfig(t.id).coverMode : ''; if (['ai_memo', 'poster', 'template'].includes(cm)) return cm; const jw = (t && t.name === '珠宝') || (window.__me && String(window.__me.phone) === '13696504558'); return jw ? 'poster' : 'ai_memo'; };
+window.agentCoverMode = () => { const t = getTrack(); const cm = t ? getAgentConfig(t.id).coverMode : ''; if (['ai_memo', 'poster', 'template'].includes(cm)) return cm; const jw = (t && t.name === '珠宝') || (window.__me && window.isJwPhone(window.__me.phone)); return jw ? 'poster' : 'ai_memo'; };
 /* 配图风格库（上传的参考图）：没有对标垫图时，用第1张当垫图统一调性 */
 window.agentStyleRefs = () => { const t = getTrack(); if (!t) return []; const r = getAgentConfig(t.id).styleRefs; return Array.isArray(r) ? r.map(x => typeof x === 'string' ? x : (x && x.url)).filter(Boolean) : []; };
 /* 风格库每张图的「提示词模板」（与 agentStyleRefs 同序）；没有则空串 */
@@ -635,7 +638,7 @@ window.refreshTopNav = async function (force) {
   window.__me = (me && me.ok) ? me : null;
   // 珠宝账号(13696504558)：把当前赛道显示名改成「珠宝」，顶栏/设置不再显示「美术考研」（仅本账号本地生效）
   try {
-    if (me && me.ok && String(me.phone) === '13696504558' && window.TRACKS) {
+    if (me && me.ok && window.isJwPhone(me.phone) && window.TRACKS) {
       const _t = (typeof getTrack === 'function') ? getTrack() : null;
       if (_t && window.TRACKS[_t.id]) { window.TRACKS[_t.id].name = '珠宝'; window.TRACKS[_t.id].emoji = '💎'; }
       if (typeof buildMyAgentNav === 'function') buildMyAgentNav();

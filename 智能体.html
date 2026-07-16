@@ -260,7 +260,7 @@ function load() {
 // 生图模式默认：珠宝赛道/珠宝账号 → 整图海报；其余 → AI封面+备忘录卡片
 function defaultCoverMode() {
   const t = TRACKS[curId] || {};
-  const jw = (t.name === '珠宝') || (window.__me && String(window.__me.phone) === '13696504558');
+  const jw = (t.name === '珠宝') || (window.__me && window.isJwPhone(window.__me.phone));
   return jw ? 'poster' : 'ai_memo';
 }
 let coverMode = 'ai_memo';
@@ -356,7 +356,7 @@ function fillJewelryTpl() {
 }
 $('#loadJewelryTpl')?.addEventListener('click', fillJewelryTpl);
 // 门禁：只有账号 13696504558 才显示这个模板按钮
-(async () => { try { const me = await window.meFetch(); if (me && me.ok && String(me.phone) === '13696504558') { const b = $('#loadJewelryTpl'); if (b) b.style.display = ''; } } catch {} })();
+(async () => { try { const me = await window.meFetch(); if (me && me.ok && window.isJwPhone(me.phone)) { const b = $('#loadJewelryTpl'); if (b) b.style.display = ''; } } catch {} })();
 
 $('#saveBtn').addEventListener('click', () => {
   const t = TRACKS[curId];
