@@ -2144,7 +2144,8 @@ ${(() => {
       if (kind === '照片大字') return POSTER_STYLE_PHOTO;            // 照片大字：中性，通用
       if (!_isJw) return POSTER_STYLE_GENERIC;                       // 非珠宝赛道：一律中性风格，绝不沾珠宝/宝石意象
       return kind === '单品科普' ? POSTER_STYLE_ELEGANT : POSTER_STYLE; // 珠宝赛道的通用/单品预设
-    })()}${aStyle ? '\n【本账号统一画风（最高优先，务必贴合）】' + aStyle : ''}`;
+    })()}${aStyle ? '\n【本账号统一画风（最高优先，务必贴合）】' + aStyle : ''}
+【真实感铁律（降低AI味）】画面里的主视觉照片（人物/产品/场景/实物）一律走「真实纪实摄影」质感：自然光影与真实阴影、真实皮肤纹理与毛孔细节、真实材质与磨损痕迹、轻微景深虚化；严禁 AI 磨皮塑料感、过度完美对称、蜡像感、假模假式的棚拍摆拍、油腻高光、过曝洗白；人物表情自然不僵硬，像手机/单反随手拍的真实生活照，而不是渲染图。信息卡片/图标可保持精致扁平设计，但真实照片部分务必真实可信。`;
     const reqBody = { provider: 'gptimage', action: 'cover', size: ratioSize(), prompt };
     if (refImg) { reqBody.ref_image = refImg; reqBody.prompt = `参考所给图片里的【主体实物】质感与外观，把它自然嵌入海报对应位置；其余按脚本排版。\n` + prompt; }
     const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(reqBody) });
