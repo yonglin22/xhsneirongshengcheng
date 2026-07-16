@@ -3217,7 +3217,18 @@ async function autoRun() {
   // 开跑前统一确认：告知作用 + 大概扣多少积分 + 当前余额；继续才跑，取消原路留步
   const est = estimateAutoCost();
   const bal = (typeof window.__balance === 'number') ? window.__balance : null;
-  const cnTxt = isGzh() ? '1 张横版首图' : (() => { try { return (coverCount() || 3) + ' 张配图'; } catch { return '3 张配图'; } })();
+  // 文案随生图模式变，别再一律写「封面+N张配图」误导：poster 只出 1 张整图海报
+  const cnTxt = isGzh() ? '1 张横版首图' : (() => {
+    try {
+      const cm = coverModeLocal();
+      if (cm === 'poster') return '1 张 AI 整图海报';
+      const n = coverCount() || 3;
+      if (cm === 'template') return '封面模版 + ' + n + ' 张内页';
+      return n + ' 张配图';
+    } catch { return '3 张配图'; }
+  })();
+  // poster 模式不是「封面+配图」，是「一张整图海报」→ 连接词也换掉
+  const coverWord = (() => { try { return coverModeLocal() === 'poster' ? '' : '封面 + '; } catch { return '封面 + '; } })();
   const hasProgress = done(STEPS.find(s => s.key === 'skeleton')) || done(STEPS.find(s => s.key === 'frame')) || done(STEPS.find(s => s.key === 'copy')) || (state.coverImages || []).some(u => u);
   // 只有「有要扣费的步骤」或「已完成需覆盖」才弹确认；纯继续且没剩余可扣时不打扰、直接跑完
   if (notesDone || est > 0) {
@@ -3225,7 +3236,7 @@ async function autoRun() {
       title: (hasProgress && !notesDone ? '继续生成（接着上次）' : '一键生成整篇' + (isGzh() ? '公众号文章' : '小红书笔记')),
       body: (hasProgress && !notesDone
               ? `接着上次没做完的步骤继续跑，<b>已完成的会跳过、不重复扣费</b>。<br><br>`
-              : `将全自动跑完：对标拆解 → 框架 → 正文 → 封面 + ${cnTxt}，一步到位出一篇可发的图文。<br><br>`) +
+              : `将全自动跑完：对标拆解 → 框架 → 正文 → ${coverWord}${cnTxt}，一步到位出一篇可发的图文。<br><br>`) +
             `本次预计消耗 <b style="color:var(--cinnabar-deep)">约 ${est} 积分</b>${bal != null ? `（当前余额 ${bal}）` : ''}，实际以逐步扣费为准。` +
             (notesDone ? `<br><br>⚠ 本篇已生成过，继续会<b>覆盖现有图文与封面</b>（选题与已粘贴的对标素材保留）。` : '') +
             `<br><br>是否继续？`,
