@@ -304,7 +304,34 @@ window.syncAgentConfigsDown = async () => {
   });
   // 恢复了赛道 → 重建「我的智能体」导航 + 顶栏切换器
   if (restored) { try { if (typeof buildMyAgentNav === 'function') buildMyAgentNav(); } catch {} }
+  try { if (typeof window.healJwPollution === 'function') await window.healJwPollution(); } catch {}
   return restored;
+};
+// 自愈：早期「整账号当珠宝」的 bug 曾把珠宝画风误存进授权账号的其它赛道(职场/母婴…)，导致出图串味。
+// 这里只清「和珠宝模板一字不差」的污染画风（用户自己手打的画风绝不动），并同步回云端。仅授权账号执行。
+window.JW_STYLE_SIG = '宝石晶体高清有珠宝质感'; // 珠宝模板 imgStyle 的独有签名句
+window.healJwPollution = async function () {
+  if (!window.__me) { try { const m = await window.meFetch(); if (m && m.ok) window.__me = m; } catch {} }
+  if (!window.isJwAuthedAccount || !window.isJwAuthedAccount()) return;
+  if (String(window.__me && window.__me.phone) === window.JW_LEGACY_PHONE) return; // 老账号单赛道全是珠宝，别动
+  let cleaned = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i); if (!k || !/^ag_cfg_/.test(k)) continue;
+      const id = k.slice('ag_cfg_'.length);
+      const t = window.TRACKS && window.TRACKS[id];
+      if (!t || t.name === '珠宝') continue;           // 只清「确定是非珠宝」的赛道；未知/珠宝赛道一律跳过（防误伤）
+      let cfg; try { cfg = JSON.parse(localStorage.getItem(k) || '{}'); } catch { continue; }
+      if (cfg && typeof cfg.imgStyle === 'string' && cfg.imgStyle.indexOf(window.JW_STYLE_SIG) >= 0) {
+        cfg.imgStyle = '';                              // 清掉误载入的珠宝画风（留空＝跟对标图走）
+        localStorage.setItem(k, JSON.stringify(cfg));
+        try { if (window.CloudAgent) await window.CloudAgent.save(id, cfg); } catch {}
+        cleaned++;
+      }
+    }
+  } catch {}
+  if (cleaned) { try { console.log('[heal] 已清理 ' + cleaned + ' 个赛道误载入的珠宝画风'); } catch {} }
+  return cleaned;
 };
 
 /* ---- 已下线深色模式：全站强制浅色 ---- */
