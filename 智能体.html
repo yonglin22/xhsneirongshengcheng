@@ -255,13 +255,14 @@ function load() {
   // 兼容旧数据（纯 url 字符串）→ 统一成 {url, prompt}
   styleRefs = (Array.isArray(c.styleRefs) ? c.styleRefs : []).map(x => typeof x === 'string' ? { url: x, prompt: '' } : { url: (x && x.url) || '', prompt: (x && x.prompt) || '' }).filter(x => x.url);
   setCoverModeUI(c.coverMode || defaultCoverMode()); // 生图模式：读配置，没配则按赛道默认
+  // 「载入珠宝博主模板」只在珠宝赛道显示（按赛道，不按账号）——切到珠宝赛道才出，避免灌进母婴等其它赛道
+  { const jb = $('#loadJewelryTpl'); if (jb) jb.style.display = window.isJwTrack(t) ? '' : 'none'; }
   renderChips(); renderSkills(); renderCustomSkills(); renderAllKbFiles(); updateKbStat(c); renderStyleRefs();
 }
 // 生图模式默认：珠宝赛道/珠宝账号 → 整图海报；其余 → AI封面+备忘录卡片
 function defaultCoverMode() {
   const t = TRACKS[curId] || {};
-  const jw = (t.name === '珠宝') || (window.__me && window.isJwPhone(window.__me.phone));
-  return jw ? 'poster' : 'ai_memo';
+  return window.isJwTrack(t) ? 'poster' : 'ai_memo';
 }
 let coverMode = 'ai_memo';
 function setCoverModeUI(m) {
@@ -356,7 +357,7 @@ function fillJewelryTpl() {
 }
 $('#loadJewelryTpl')?.addEventListener('click', fillJewelryTpl);
 // 门禁：只有账号 13696504558 才显示这个模板按钮
-(async () => { try { const me = await window.meFetch(); if (me && me.ok && window.isJwPhone(me.phone)) { const b = $('#loadJewelryTpl'); if (b) b.style.display = ''; } } catch {} })();
+// 模板按钮显隐已移入 load()（按当前赛道名=珠宝判定），此处不再按账号一次性显示
 
 $('#saveBtn').addEventListener('click', () => {
   const t = TRACKS[curId];

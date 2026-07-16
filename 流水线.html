@@ -2464,8 +2464,8 @@ function renderPanel() {
       else { x.style.background = on ? 'var(--cinnabar)' : 'var(--paper-2)'; x.style.color = on ? '#fff' : 'var(--ink)'; x.style.borderColor = on ? 'var(--cinnabar)' : 'var(--line)'; }
     });
   }));
-  // 珠宝专属版式：仅账号 13696504558 显示这三个版式（珠宝科普/单品/封面）
-  (async () => { try { const me = await window.meFetch(); if (me && me.ok && window.isJwPhone(me.phone)) { const w = document.getElementById('jwPosterKinds'); if (w) w.style.display = ''; } } catch {} })();
+  // 珠宝专属版式：仅「珠宝赛道」显示这三个版式（珠宝科普/单品/封面），按赛道不按账号
+  (async () => { try { const me = await window.meFetch(); if (me && me.ok && !window.__me) window.__me = me; if (window.isJwTrack()) { const w = document.getElementById('jwPosterKinds'); if (w) w.style.display = ''; } } catch {} })();
   $('#genMemoCover')?.addEventListener('click', genMemoCover);
   $$('.img-ratio').forEach(b => b.addEventListener('click', () => { state.imgRatio = b.dataset.r; persist(); renderPanel(); }));
   $('#aiCoverChk')?.addEventListener('change', e => { setAutoAiCover(e.target.checked); renderPanel(); });
@@ -3480,13 +3480,13 @@ $('#simpleGo')?.addEventListener('click', async () => {
   const s2 = STEPS.findIndex(st => st.no === 'S2'); if (s2 >= 0) { cur = s2; } autoRun();
 });
 
-// 珠宝赛道(13696504558)：第五步封面配图默认走「珠宝科普」整图海报预设（三套 prompt 模版之一，默认最丰富的科普长图）
+// 珠宝赛道（按赛道名=珠宝判定，非账号）：第五步封面配图默认走「珠宝科普」整图海报预设（三套 prompt 模版之一，默认最丰富的科普长图）
 var __jwAcct = false;
 function posterDefaultKind() { return __jwAcct ? '珠宝科普' : '单品科普'; }
 (async () => {
   try {
-    const me = await window.meFetch();
-    if (me && me.ok && window.isJwPhone(me.phone)) {
+    const me = await window.meFetch(); if (me && me.ok && !window.__me) window.__me = me;
+    if (window.isJwTrack()) {
       __jwAcct = true;
       if (!state.posterKind) { state.posterKind = '珠宝科普'; persistSoft(); }
       renderPanel();

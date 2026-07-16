@@ -136,7 +136,7 @@ $$('.jw-cat').forEach(b => b.addEventListener('click', () => {
   $$('.jw-cat').forEach(x => { const on = x === b; x.style.background = on ? 'var(--cinnabar)' : 'rgba(165,129,58,.08)'; x.style.color = on ? '#fff' : 'var(--cinnabar-deep)'; x.style.fontWeight = on ? '700' : '400'; });
   if (typeof doSuggest === 'function') doSuggest(); // 按这个类目刷新智能体建议
 }));
-(async () => { try { const me = await window.meFetch(); if (me && me.ok && window.isJwPhone(me.phone)) { const box = $('#jewelryCats'); if (box) box.style.display = 'flex'; } } catch {} })();
+(async () => { try { const me = await window.meFetch(); if (me && me.ok && !window.__me) window.__me = me; if (window.isJwTrack()) { const box = $('#jewelryCats'); if (box) box.style.display = 'flex'; } } catch {} })();
 
 function setStatus(m, k) { const el = $('#status'); el.textContent = m || ''; el.style.color = k === 'err' ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; }
 function busy(on) { $('#genBtn').disabled = on; $('#genIcon').className = on ? 'spin' : ''; $('#genIcon').textContent = on ? '◠' : '✶'; $('#genTxt').textContent = on ? '生成中' : '生成选题'; }
