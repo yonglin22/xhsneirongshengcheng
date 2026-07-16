@@ -105,12 +105,17 @@ window.meFetch = function (force) {
   return window.__mePromise;
 };
 // 珠宝逻辑一律按「赛道」判定（赛道名=珠宝），不按账号——否则多赛道账号(如管理员)的每个赛道都会被误当珠宝。
-// 13696504558 是单赛道珠宝老账号：它只有一个珠宝赛道，恒为珠宝（避免依赖异步改名的时序）。仅此一个账号。
-window.JW_LEGACY_PHONE = '13696504558';
+// 珠宝赛道是平台专有资产（人设/知识库/画风/海报逻辑）。授权账号白名单：只有这些账号能享受珠宝专属待遇。
+// 普通用户即便把赛道命名为「珠宝」，也只是一个普通空白新赛道——看不到「载入珠宝模板」、也不走珠宝生图逻辑。
+window.JW_PHONES = ['13696504558', '18268346784'];
+window.JW_LEGACY_PHONE = '13696504558'; // 单赛道珠宝老账号：整账号恒珠宝
+window.isJwAuthedAccount = function () { return !!(window.__me && window.JW_PHONES.indexOf(String(window.__me.phone)) >= 0); };
+// 珠宝专属逻辑判定 = 授权账号 且（当前赛道名=珠宝 或 单赛道老账号）。二者缺一都不算珠宝。
 window.isJwTrack = function (t) {
+  if (!window.isJwAuthedAccount()) return false;                 // 非授权账号：珠宝赛道也当普通赛道
+  if (String(window.__me.phone) === window.JW_LEGACY_PHONE) return true; // 老账号单赛道恒珠宝（不依赖异步改名时序）
   try { t = t || (typeof getTrack === 'function' ? getTrack() : null); } catch { t = null; }
-  if (t && t.name === '珠宝') return true;
-  return !!(window.__me && String(window.__me.phone) === window.JW_LEGACY_PHONE);
+  return !!(t && t.name === '珠宝');                             // 多赛道授权账号：仅名为「珠宝」的赛道
 };
 
 /* ===== 移动端守卫：核心创作页（大屏工具）在手机/微信内置浏览器上 → 引导去电脑端 =====
