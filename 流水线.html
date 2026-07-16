@@ -3274,13 +3274,16 @@ async function autoRun() {
         // 生图模式（智能体设置里选）：poster=AI整图海报 / template=封面模版 / ai_memo=AI封面+备忘录卡片（默认）
         const cmode = coverModeLocal();
         if (cmode === 'poster') {
-          setAuto('正在生成整图海报…（约 40 秒）');
-          try { await genInfographicPoster(); } catch (e) { setAuto('整图海报生成失败：' + (e.message || e)); }
-          // 兜底：整图海报没出来（多为出图接口抽风 fetch failed）→ 退回真字封面卡，保证不空封面
+          setAuto('正在生成整图海报…（约 40~120 秒，中转较慢请耐心等）');
+          try { await genInfographicPoster(); } catch (e) { setAuto('整图海报第 1 次没出来（' + (e.message || e) + '），自动再试一次…'); }
+          // 珠宝/poster 模式：海报没出来 → 只重试海报本身，绝不退回 CSS 真字卡（那不是用户要的）
           if (!coverProduced()) {
-            setAuto('整图海报没出来，改用真字封面卡兜底…');
-            try { await generateCoverImagesCore(coverCount()); } catch (e) { setAuto('封面兜底也失败：' + (e.message || e)); }
-            try { await deAiNotePages(state); } catch (e) {}
+            try { await autoGate(); } catch {}
+            try { await genInfographicPoster(); } catch (e) {}
+          }
+          if (!coverProduced()) {
+            // 两次都超时：保持封面位为空 + 明确提示，用户可点【重新出图】重试，不塞不想要的文字卡
+            setAuto('整图海报两次都超时了（多为出图中转临时过慢，本次未扣费）。请点封面下方的【重新出图】重试，或稍等 1~2 分钟再试。', true);
           }
         } else if (cmode === 'template') {
           const cn = coverCount();
