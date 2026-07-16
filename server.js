@@ -750,9 +750,9 @@ const server = http.createServer(async (req, res) => {
             fd.append('prompt', prompt);
             fd.append('size', gptSize);
             fd.append('image', new Blob([Buffer.from(m[2], 'base64')], { type: m[1] || 'image/png' }), 'ref.png');
-            return fetch(base + '/images/edits', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { authorization: 'Bearer ' + ikey }, body: fd });
+            return fetch(base + '/images/edits', { signal: AbortSignal.timeout(200000), method: 'POST', headers: { authorization: 'Bearer ' + ikey }, body: fd });
           }
-          return fetch(base + '/images/generations', { signal: AbortSignal.timeout(150000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
+          return fetch(base + '/images/generations', { signal: AbortSignal.timeout(200000), method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ikey }, body: JSON.stringify({ model, prompt, size: gptSize, n: 1 }) });
         };
         // 只对「瞬时网络失败」重试（fetch failed / 连接重置 / DNS）——这类几毫秒就报错，重试代价低。
         // 关键：超时(AbortError/timeout)绝不重试！重试一个慢中转只会再耗 150s，把总时长顶过前端等待，
