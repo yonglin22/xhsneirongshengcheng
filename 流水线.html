@@ -922,7 +922,7 @@ async function regenImageCustom(i, promptText, refDataUrl) {
   const body = ref
     ? { provider: 'gptimage', init_image: ref, action: 'cover', prompt: `参考所给图片：保留它的【构图、版式、主体位置、视角】（结构照搬）；${myStyle ? '但【画风、配色、质感】优先按我的风格——' + myStyle + '，不要照搬参考图配色；' : '配色质感也贴近参考图；'}把画面内容替换为「${scene}」。小红书爆款审美、真实摄影质感、自然柔光、高级感、浅景深、4K 超清；3:4 竖版，画面不要出现任何文字。${IMG_NEG}` }
     : { provider: isCover ? 'gptimage' : 'kling', prompt: buildImgPrompt('', scene, 'photo') };
-  const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(290000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const tx = await r.text();
   if (!r.ok) { throw new Error(errMsg(tx)); }
   let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
@@ -1134,7 +1134,7 @@ async function genCoverFromCvTpl(i) {
   async function once() {
     const body = { provider: 'gptimage', prompt, action: 'cover', size: ratioSize() };
     if (initImg) body.init_image = initImg; // 图生图：复刻对标实拍画面
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(290000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
     if (!u) throw new Error('上游无图'); return u;
@@ -1196,7 +1196,7 @@ async function genAiCoverUrl(setStatus) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       if (setStatus) setStatus('正在生成 AI 封面备选' + (sref && sref.prompt ? '（跟随配图风格库）' : '') + (attempt > 1 ? '（第' + attempt + '次重试）' : '') + '（约 30~60 秒）…');
-      const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(290000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const tx = await r.text(); if (!r.ok) { if (attempt < 3) continue; return ''; }
       let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {}
       if (u) return u;
@@ -1213,7 +1213,7 @@ async function genPosterBg(setStatus) {
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       if (setStatus) setStatus('出酒红暗紫海报背景中…（约 30~60 秒）');
-      const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
+      const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(290000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt: bgPrompt, action: 'cover', size: ratioSize() }) });
       const tx = await r.text(); if (!r.ok) { if (attempt < 2) continue; return ''; }
       let u = ''; try { u = JSON.parse(tx).data[0].url; } catch {}
       if (u) { try { u = await persistImgUrl(u); } catch {} return u; }
@@ -1537,7 +1537,7 @@ async function genImageFromPlan(plan, style, provider, initImage, styleHint) {
         }
       : { prompt: buildImgPrompt(plan.theme === 'poster' ? '' : style, plan.scene, plan.theme) };
     if (!useI2I && provider) body.provider = provider;
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(290000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const tx = await r.text(); if (!r.ok) return '';
     const j = JSON.parse(tx); return (j.data && j.data[0] && j.data[0].url) || '';
   } catch { return ''; }
@@ -2153,7 +2153,7 @@ ${(() => {
 【真实感铁律（降低AI味）】画面里的主视觉照片（人物/产品/场景/实物）一律走「真实纪实摄影」质感：自然光影与真实阴影、真实皮肤纹理与毛孔细节、真实材质与磨损痕迹、轻微景深虚化；严禁 AI 磨皮塑料感、过度完美对称、蜡像感、假模假式的棚拍摆拍、油腻高光、过曝洗白；人物表情自然不僵硬，像手机/单反随手拍的真实生活照，而不是渲染图。信息卡片/图标可保持精致扁平设计，但真实照片部分务必真实可信。`;
     const reqBody = { provider: 'gptimage', action: 'cover', size: ratioSize(), prompt };
     if (refImg) { reqBody.ref_image = refImg; reqBody.prompt = `参考所给图片里的【主体实物】质感与外观，把它自然嵌入海报对应位置；其余按脚本排版。\n` + prompt; }
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(reqBody) });
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(290000), headers: { 'content-type': 'application/json' }, body: JSON.stringify(reqBody) });
     const tx = await r.text();
     if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const j = JSON.parse(tx); u = j.url || j.image || (j.data && j.data[0] && (j.data[0].url || j.data[0].b64_json && ('data:image/png;base64,' + j.data[0].b64_json))) || ''; } catch {}
@@ -2219,7 +2219,7 @@ subject 必须是本篇选题真正讲的那种宝石/品类；pages 给 4~6 张
       const prompt = `画一张小红书珠宝知识多图笔记的${idx === 0 ? '封面' : '内页'}，把下面文字脚本完整准确排进图里（一字不差，别乱改）：\n--- 脚本 ---\n${jb.script}\n--- 结束 ---\n【重要】「大标题：」「副标题：」「要点：」「底部提醒：」这些冒号前的字只是分区标注，不要画进图；画面上绝不出现任何页码、页数、「1/6」「2/6」这类数字角标。\n${jb.style}${aStyle ? '\n【本账号统一画风（最高优先）】' + aStyle : ''}${SUBJ}${REAL}`;
       try {
         if (typeof autoGate === 'function') await autoGate();
-        const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', action: 'cover', size: ratioSize(), prompt }) });
+        const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(290000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', action: 'cover', size: ratioSize(), prompt }) });
         const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
         let u = ''; try { const j = JSON.parse(tx); u = j.url || j.image || (j.data && j.data[0] && (j.data[0].url || (j.data[0].b64_json && ('data:image/png;base64,' + j.data[0].b64_json)))) || ''; } catch {}
         if (u) { u = await persistImgUrl(u); results[idx] = u; }
@@ -2332,7 +2332,7 @@ async function genGzhCover() {
   if (stx) { stx.textContent = '正在生成横版首图…（约 30 秒）'; stx.style.color = 'var(--ink-soft)'; }
   // 出图：失败自动重试 1 次（偶发网络 fetch failed / 限流）
   async function once() {
-    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, size: '1536x1024' }) });
+    const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(290000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', prompt, size: '1536x1024' }) });
     const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
     let u = ''; try { const d = JSON.parse(tx).data; u = d && d[0] && d[0].url; } catch {} if (!u) throw new Error('上游无图'); return u;
   }
