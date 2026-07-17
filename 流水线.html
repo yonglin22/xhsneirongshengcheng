@@ -642,6 +642,7 @@ function outputHTML(st) {
               <span id="jwPosterKinds" style="display:none">${['珠宝科普','珠宝单品','珠宝封面'].map((n)=>{const on=((state.posterKind||'')===n);return `<button class="poster-kind" data-k="${n}" style="border:1px solid ${on?'#a5813a':'#d9c9a3'};border-radius:7px;padding:3px 9px;cursor:pointer;background:${on?'#a5813a':'#faf6ec'};color:${on?'#fff':'#7a5c1e'};font-weight:600">💎${n.slice(2)}</button>`;}).join('')}</span>
             </div>
             <div class="text-[11px] text-[var(--ink-soft)] mt-1.5 leading-relaxed"><b style="color:var(--cinnabar-deep)">AI 画中文偶有错别字属正常</b>，不满意多点几次挑一张；有实物赛道(珠宝/护肤)最出效果。</div>
+            <button id="genJwSet" style="display:none;width:100%;border:1px dashed #a5813a;border-radius:10px;padding:10px 14px;margin-top:9px;font-size:13px;font-weight:700;cursor:pointer;background:#faf6ec;color:#7a5c1e;text-align:left">💎 生成多图整套<span style="font-size:11px;font-weight:500;color:var(--ink-soft)"> · 封面 + 4~6 张内页，每张一个知识点、风格统一</span></button>
           </div>
 
           <!-- 上传真实图 -->
@@ -2080,6 +2081,8 @@ const JW_POSTER = {
   '珠宝单品': JW_BASE + '\n【版式 · 单品种草封面】竖版 9:16，哑光浅色/奶白/浅香槟纯色干净背景，低饱和温柔柔光，珍珠碎闪/细碎星光氛围点缀；画面 C 位摆放一件彩宝/珍珠/水晶/翡翠成品首饰，高清微距，宝石通透起强荧光、珍珠皮光细腻、工艺细节清晰；顶部柔和艺术标题（如「源头直供 XX 彩宝｜无套路明码实价」），侧边云朵文字框标一句短选购口诀；角落小标签（国际一手货源｜带鉴定证书｜支持比价）；底部老友口吻暖心小字。ins 轻奢珠宝博主种草风，无杂乱杂物、无水印、无浮夸网红装饰。',
   '珠宝封面': JW_BASE + '\n【版式 · 封面引流大字】竖版 3:4/9:16，浅色高级干净纯色背景，C 位一颗通透实拍宝石/一件精致首饰特写起荧光；中部一行超大加粗中文主标题（引流钩子，如「加热蓝宝石能买吗」「一图看懂翡翠分类」），主标题下一枚亮色圆角胶囊放一句短钩子；点缀细金星光、极简手绘小元素；只保留「大字主标题+胶囊短句+可选一行小卖点」，其余留白，绝不堆砌清单图标。文字规范清晰、无错别字乱码、不出框。',
 };
+// 珠宝「多图整套」内页专用版式：一张只讲一个知识点，干净留白、3~4 条要点、一颗实拍宝石主视觉、统一浅色轻奢画风、右上角小页码。整套风格必须高度一致（同一底色/同一字体层级/同一图标风格）。
+const JW_SET_PAGE = JW_BASE + '\n【版式 · 多图笔记·单知识点内页】竖版 3:4，浅色干净纯色背景（与整套其余页同一底色，淡蓝白/奶白，绝不深色）；顶部一行加粗中文小标题（这一页的知识点，如「无烧 vs 老烧」「怎么看种水」）；中部围绕一颗真实微距实拍宝石/一件首饰，配 3~4 条浅色圆角要点卡（每条：一枚成套细线小图标＋一句短要点，≤16 字），排版宽松留白充足、层级分明；右上角一枚小圆角页码标签（如「2/6」）；底部一行极小页脚。整套多张必须风格统一：同底色、同字体层级、同一套图标语言、同一轻奢调性，像同一位设计师一次做的连续多图。严禁：深色/复杂背景、信息塞满、文字重叠出框糊字、每页风格不一致、廉价电商风、夸张营销词。';
 // 珠宝赛道：按选题/正文内容自动挑版式（种草单品→单品；能买吗/避坑/怎么选/科普→科普；一句话钩子引流→封面）
 function autoPosterKind() {
   const t = ((state.topic || '') + '　' + ((state.cover && state.cover.cover_lines) || []).join('　') + '　' + (state.body || []).join('　')).slice(0, 600);
@@ -2159,6 +2162,73 @@ ${(() => {
     state.coverImages.unshift(u); state.coverCaptions.unshift({ theme: 'photo', raw: true, whole: true });
     state.coverImage = state.coverImages[0]; persist(); renderCoverImages();
     if (st) { st.textContent = '✓ 已生成整图海报（第1张）· 不满意可再点一次挑一张'; st.style.color = '#00a052'; }
+  } catch (e) { if (st) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
+}
+// 珠宝「多图整套」：一次生成 封面 + 4~6 张内页海报，每张一个知识点，统一珠宝画风。仅珠宝赛道。
+async function genJewelryMultiSet() {
+  if (!(typeof window.isJwTrack === 'function' && window.isJwTrack())) { const st = $('#imgStatus'); if (st) { st.textContent = '「多图整套」仅珠宝赛道可用'; st.style.color = 'var(--cinnabar-deep)'; } return; }
+  if (!state.topic) { const st = $('#imgStatus'); if (st) { st.textContent = '请先在上方填写选题'; st.style.color = 'var(--cinnabar-deep)'; } return; }
+  const btn = $('#genJwSet'), st = $('#imgStatus'), old = btn ? btn.textContent : '';
+  const imgCost = (window.ACTION_COST && window.ACTION_COST.image_card != null) ? window.ACTION_COST.image_card : 80;
+  const ok = await uiConfirm({
+    title: '生成珠宝多图整套',
+    body: `将生成一套「封面 + 4~6 张内页」的珠宝知识多图笔记——<b>每张一个知识点、风格统一</b>，像设计师做的连续多图。<br><br>预计 <b>5~7 张</b>，每张 ${imgCost} 积分（约 <b style="color:var(--cinnabar-deep)">${imgCost * 6} 积分</b>，实际以生成张数为准）。<br>出图较慢（每张约 40~120 秒），请耐心等，中途别关页面。<br><br>是否开始？`,
+    okText: '开始生成', cancelText: '取消', icon: '💎'
+  });
+  if (!ok) return;
+  if (btn) { btn.disabled = true; }
+  if (st) { st.textContent = '正在规划多图脚本…'; st.style.color = 'var(--ink-soft)'; }
+  try {
+    const body = (state.body || []).join('\n');
+    // ① 规划：封面 + 4~6 内页脚本
+    let plan = null;
+    try {
+      plan = extractJSON(await callClaude({
+        system: '你是珠宝知识多图笔记策划，只输出 JSON。', json: true, max_tokens: 1200, action: 'poster',
+        prompt: `把下面这篇珠宝内容，拆成一套小红书多图笔记：1 张封面 + 4~6 张内页，每张内页只讲一个清晰的子知识点。口语真实、能背、不夸大不违禁；文末暖心不说教。
+【选题】${state.topic}
+【正文】${(body || '（无，按选题合理拟定）').slice(0, 1800)}
+只输出 JSON：{"cover":{"headline":"封面主标题(强钩子,≤14字)","sub":"副标题一句(≤18字)"},"pages":[{"title":"这一页小标题(≤12字)","points":["要点1(≤16字)","要点2","要点3"]}]}
+pages 给 4~6 张，每张 points 3~4 条。`
+      }));
+    } catch (e) {}
+    const cover = (plan && plan.cover) || { headline: (state.cover && (state.cover.cover_lines || [])[0]) || state.topic, sub: '' };
+    const pages = (plan && Array.isArray(plan.pages)) ? plan.pages.filter(p => p && p.title).slice(0, 6) : [];
+    if (!pages.length) throw new Error('没能规划出内页，请重试或先生成正文');
+    // ② 组装每页脚本 + 出图任务（封面用「珠宝封面」版式，内页用多图专用版式）
+    const aStyle = (typeof agentImgStyle === 'function' ? agentImgStyle() : '');
+    const total = pages.length + 1;
+    const REAL = '\n【真实感铁律】主视觉宝石/首饰走真实微距摄影质感：自然光影真实反射、真实材质通透火彩、轻微景深；严禁 AI 塑料感、过度完美对称、蜡像感、过曝洗白。';
+    const jobs = [];
+    jobs.push({ style: JW_POSTER['珠宝封面'], script: `大标题：${cover.headline}\n副标题：${cover.sub || ''}\n角标：1/${total}` });
+    pages.forEach((p, i) => {
+      const pts = (p.points || []).map(x => '要点：' + x).join('\n');
+      jobs.push({ style: JW_SET_PAGE, script: `大标题：${p.title}\n${pts}\n页码：${i + 2}/${total}` });
+    });
+    const results = new Array(jobs.length).fill(null);
+    let done = 0;
+    const runOne = async (idx) => {
+      const jb = jobs[idx];
+      const prompt = `画一张小红书珠宝知识多图笔记的${idx === 0 ? '封面' : '内页'}，把下面文字脚本完整准确排进图里（一字不差，别乱改）：\n--- 脚本 ---\n${jb.script}\n--- 结束 ---\n【重要】「大标题：」「副标题：」「要点：」「页码：」这些冒号前的字只是标注，不要画进图；页码只画成右上角小标签数字。\n${jb.style}${aStyle ? '\n【本账号统一画风（最高优先）】' + aStyle : ''}${REAL}`;
+      try {
+        if (typeof autoGate === 'function') await autoGate();
+        const r = await fetch('/api/image', { method: 'POST', signal: AbortSignal.timeout(220000), headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gptimage', action: 'cover', size: ratioSize(), prompt }) });
+        const tx = await r.text(); if (!r.ok) throw new Error(errMsg(tx));
+        let u = ''; try { const j = JSON.parse(tx); u = j.url || j.image || (j.data && j.data[0] && (j.data[0].url || (j.data[0].b64_json && ('data:image/png;base64,' + j.data[0].b64_json)))) || ''; } catch {}
+        if (u) { u = await persistImgUrl(u); results[idx] = u; }
+      } catch (e) {}
+      done++; if (st) { st.textContent = `珠宝多图整套生成中… ${done}/${total} 张（出图较慢，请耐心等）`; }
+    };
+    // 并发 2（上游较慢，太多并发反而更易超时/风控）
+    let qi = 0; const worker = async () => { while (qi < jobs.length) { await runOne(qi++); } };
+    await Promise.all([worker(), worker()]);
+    const urls = results.filter(Boolean);
+    if (!urls.length) throw new Error('整套一张都没出来（多为出图中转过慢），请稍后重试');
+    state.coverImages = urls.slice();
+    state.coverCaptions = urls.map(() => ({ theme: 'photo', raw: true, whole: true }));
+    state.coverImage = state.coverImages[0]; persist(); renderCoverImages();
+    if (st) { st.textContent = `✓ 已生成珠宝多图整套 ${urls.length} 张（第1张封面）` + (urls.length < total ? `，有 ${total - urls.length} 张超时没出、可对该位重出` : ''); st.style.color = '#00a052'; }
   } catch (e) { if (st) { st.textContent = '失败：' + (e.message || e); st.style.color = 'var(--cinnabar-deep)'; } }
   finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
 }
@@ -2478,6 +2548,9 @@ function renderPanel() {
   }
   $('#genNote')?.addEventListener('click', genNoteImages);
   $('#genInfoPoster')?.addEventListener('click', genInfographicPoster);
+  $('#genJwSet')?.addEventListener('click', genJewelryMultiSet);
+  // 珠宝赛道才显示「生成多图整套」入口
+  (async () => { try { await window.meFetch(); if (window.isJwTrack && window.isJwTrack()) { const b = document.getElementById('genJwSet'); if (b) b.style.display = ''; } } catch {} })();
   document.querySelectorAll('.poster-kind').forEach(b => b.addEventListener('click', () => {
     state.posterKind = b.dataset.k; state._posterKindManual = true; persistSoft(); // 手动点过 → 关掉智能自动切换，尊重手动
 
