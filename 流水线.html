@@ -2802,9 +2802,9 @@ async function fillBenchFans() {
     paintFans();
     // 温和抓取，避免触发小红书「请求太频繁」反爬：
     //   ① 只抓「达标」笔记的博主（你本来就从达标里挑）；没有达标的，退而抓互动量最高的前几个
-    //   ② 串行 + 2.5s 间隔  ③ 连续 3 次失败就停（多半已被风控，再抓只会更糟）
+    //   ② 串行 + 4~5s 随机间隔、单轮最多 5 篇  ③ 连续 3 次失败就停（多半已被风控，再抓只会更糟）
     const hasQual = benchNotes.some(n => n && n.userId && benchQual(n));
-    let fetched = 0, failStreak = 0; const MAX_FETCH = 12;
+    let fetched = 0, failStreak = 0; const MAX_FETCH = 5;
     while (fetched < MAX_FETCH) {
       let next = null, bestScore = -1;
       for (const n of benchNotes) {
@@ -2823,7 +2823,7 @@ async function fillBenchFans() {
       paintFans(); fetched++;
       failStreak = ok ? 0 : failStreak + 1;
       if (failStreak >= 3) break; // 连续失败 → 多半被风控，停手，别再触发「请求太频繁」
-      await new Promise(rs => setTimeout(rs, 2500)); // 间隔放大，降风控
+      await new Promise(rs => setTimeout(rs, 4000 + Math.random() * 1000)); // 4~5s 随机间隔，降风控
     }
     // 没抓的（达标外的、或停手后剩下的）标成「—」，避免一直停在「加载中…」
     for (const n of benchNotes) if (n && n.userId && n.fans == null) n.fans = '—';
