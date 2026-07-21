@@ -64,6 +64,10 @@
           <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="翡翠" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">🟢 翡翠</button>
           <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="招商" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">🤝 招商</button>
         </div>
+        <div id="zsFetchRow" class="flex items-center gap-2 mb-2" style="display:none">
+          <button id="zsFetchBtn" type="button" class="rounded-lg px-3 py-1 text-[12px]" style="border:1px solid var(--cinnabar);background:var(--cinnabar);color:#fff;cursor:pointer">↧ 抓取招商参考笔记（用本机登录）</button>
+          <span id="zsFetchHint" class="text-[11px] text-[var(--ink-soft)]"></span>
+        </div>
         <input id="direction" class="field w-full rounded-lg px-3.5 py-2.5 text-[14px]" placeholder="例：视觉传达考研 · 手绘快题 · 跨考" />
       </div>
       <div>
@@ -113,6 +117,7 @@
 <script src="/assets/tracks.js?v=27"></script>
 <script src="/assets/app.js?v=81"></script>
 <script src="/assets/onboard.js?v=3"></script>
+<script src="/assets/zhaoshang-kb.js?v=1"></script>
 <script>pageIntro({key:'topic',emoji:'🎯',title:'选题 · 第一步',intro:'产出 3–5 个「当下最该发」的选题，最后由你挑 1 个去创作。这一步是金矿。',steps:[{t:'填「人设 + 方向」',d:'不知道填啥？点「💡 智能体按当前阶段建议」自动给。'},{t:'（可选）填热点/时节',d:'填了会走「热点三步法」，蹭热点不硬蹭、落点必考点。'},{t:'点「生成选题」',d:'右侧出 3–5 个候选，含痛点与「为什么现在能火」。'},{t:'挑 1 个「用它去创作」',d:'带着这个选题进流水线，继续写正文。'}],tips:['选题会按今天的真实时节出题，不会用过时年份/季节。','标 recommended 的那条是最推荐先做的。']});</script>
 <script>
 // 嵌入模式：被流水线弹框以 iframe 载入（?embed=1）。隐藏外壳，选中后回传父窗口而非跳页。
@@ -135,8 +140,27 @@ $$('.jw-cat').forEach(b => b.addEventListener('click', () => {
   window.__jwCat = b.dataset.cat;
   // 选中态高亮：选中金底白字，其余恢复浅色
   $$('.jw-cat').forEach(x => { const on = x === b; x.style.background = on ? 'var(--cinnabar)' : 'rgba(165,129,58,.08)'; x.style.color = on ? '#fff' : 'var(--cinnabar-deep)'; x.style.fontWeight = on ? '700' : '400'; });
+  const zsRow = $('#zsFetchRow'); if (zsRow) zsRow.style.display = (b.dataset.cat === '招商') ? 'flex' : 'none';
+  paintZsHint();
   if (typeof doSuggest === 'function') doSuggest(); // 按这个类目刷新智能体建议
 }));
+// 招商参考笔记：抓取状态提示
+function paintZsHint() {
+  const h = $('#zsFetchHint'); if (!h || !window.ZhaoshangKB) return;
+  const m = window.ZhaoshangKB.meta();
+  h.textContent = m ? `✓ 已抓取 ${m.count} 篇真实招商笔记 · ${new Date(m.at).toLocaleDateString('zh-CN')}（选题/正文/出图已用真实内容）` : '尚未抓取，当前用标题提炼套路；点左侧按钮用本机登录抓真实正文，更贴。';
+}
+$('#zsFetchBtn')?.addEventListener('click', async () => {
+  const btn = $('#zsFetchBtn'), h = $('#zsFetchHint'); if (!window.ZhaoshangKB) return;
+  btn.disabled = true; const o = btn.textContent;
+  try {
+    const rec = await window.ZhaoshangKB.fetchAll((i, total, n) => { if (h) { h.style.color = 'var(--ink-soft)'; h.textContent = `抓取中 ${i + 1}/${total}：${n.cat}·${n.title.slice(0, 12)}…（本机会话，约 ${Math.round((total - i) * 3)} 秒）`; } });
+    if (h) { h.style.color = 'var(--ink-soft)'; }
+    paintZsHint();
+    if (typeof doSuggest === 'function') doSuggest(); // 用真实内容重出建议
+  } catch (e) { if (h) { h.style.color = 'var(--cinnabar-deep)'; h.textContent = '抓取失败：' + (e.message || e); } }
+  finally { btn.disabled = false; btn.textContent = o; }
+});
 (async () => { try { const me = await window.meFetch(); if (me && me.ok && !window.__me) window.__me = me; if (window.isJwTrack()) { const box = $('#jewelryCats'); if (box) box.style.display = 'flex'; } } catch {} })();
 
 function setStatus(m, k) { const el = $('#status'); el.textContent = m || ''; el.style.color = k === 'err' ? 'var(--cinnabar-deep)' : 'var(--ink-soft)'; }
@@ -298,7 +322,7 @@ async function doSuggest() {
     const _egD = (tk.placeholders && tk.placeholders.direction) || tk.domain;
     const prompt = `结合这个「${tk.domain}」智能体已设定的人设与知识库（见系统设定）+ 当前阶段，给我 3 组「人设 + 方向」建议，让我直接拿去生成选题。
 ==必须严格围绕「${tk.domain}」这个领域，面向「${tk.audience}」；绝不串到其它行业（尤其别默认成考研/美术）。==
-${jwCat ? '==本次只围绕子类目「' + jwCat + '」出题，3 组全部是「' + jwCat + '」相关的细分方向，不要混入其它子类目。==\n' + (JW_CAT_STYLES[jwCat] || '') + '\n从上面这些内容样式里挑 3 个不同角度，出成具体、能落地的选题方向（别照抄范例、要结合当下时节换新角度）。' : ''}
+${jwCat ? '==本次只围绕子类目「' + jwCat + '」出题，3 组全部是「' + jwCat + '」相关的细分方向，不要混入其它子类目。==\n' + (jwCat === '招商' ? ((window.ZhaoshangKB && window.ZhaoshangKB.kb()) || JW_ZHAOSHANG_STYLE) : (JW_CAT_STYLES[jwCat] || '')) + '\n从上面这些内容样式里挑 3 个不同角度，出成具体、能落地的选题方向（别照抄范例、要结合当下时节换新角度）。' : ''}
 ${stageInfo ? '【当前阶段】' + stageInfo : ''}
 - 人设＝用谁的口吻发（简短标签，贴合本领域，如"${_egP}"），要贴合该智能体已有人设；
 - 方向＝具体细分方向 + 当下最该切的角度（如"${_egD}"相关的细分角度），要应季、贴合「${tk.audience}」。
