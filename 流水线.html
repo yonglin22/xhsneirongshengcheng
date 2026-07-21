@@ -2187,17 +2187,19 @@ ${(() => {
   finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
 }
 // 珠宝「多图整套」：一次生成 封面 + 4~6 张内页海报，每张一个知识点，统一珠宝画风。仅珠宝赛道。
-async function genJewelryMultiSet() {
+async function genJewelryMultiSet(skipConfirm) {
   if (!(typeof window.isJwTrack === 'function' && window.isJwTrack())) { const st = $('#imgStatus'); if (st) { st.textContent = '「多图整套」仅珠宝赛道可用'; st.style.color = 'var(--cinnabar-deep)'; } return; }
   if (!state.topic) { const st = $('#imgStatus'); if (st) { st.textContent = '请先在上方填写选题'; st.style.color = 'var(--cinnabar-deep)'; } return; }
   const btn = $('#genJwSet'), st = $('#imgStatus'), old = btn ? btn.textContent : '';
   const imgCost = (window.ACTION_COST && window.ACTION_COST.image_card != null) ? window.ACTION_COST.image_card : 30;
-  const ok = await uiConfirm({
-    title: '生成珠宝多图整套',
-    body: `将生成一套「封面 + 4~6 张内页」的珠宝知识多图笔记——<b>每张一个知识点、风格统一</b>，像设计师做的连续多图。<br><br>预计 <b>5~7 张</b>，每张 ${imgCost} 积分（约 <b style="color:var(--cinnabar-deep)">${imgCost * 6} 积分</b>，实际以生成张数为准）。<br>出图较慢（每张约 40~120 秒），请耐心等，中途别关页面。<br><br>是否开始？`,
-    okText: '开始生成', cancelText: '取消', icon: '💎'
-  });
-  if (!ok) return;
+  if (!skipConfirm) {  // 一键全套里已统一确认过，跳过这层确认
+    const ok = await uiConfirm({
+      title: '生成珠宝多图整套',
+      body: `将生成一套「封面 + 4~6 张内页」的珠宝知识多图笔记——<b>每张一个知识点、风格统一</b>，像设计师做的连续多图。<br><br>预计 <b>5~7 张</b>，每张 ${imgCost} 积分（约 <b style="color:var(--cinnabar-deep)">${imgCost * 6} 积分</b>，实际以生成张数为准）。<br>出图较慢（每张约 40~120 秒），请耐心等，中途别关页面。<br><br>是否开始？`,
+      okText: '开始生成', cancelText: '取消', icon: '💎'
+    });
+    if (!ok) return;
+  }
   if (btn) { btn.disabled = true; }
   if (st) { st.textContent = '正在规划多图脚本…'; st.style.color = 'var(--ink-soft)'; }
   try {
@@ -3331,6 +3333,7 @@ function estimateAutoCost() {
   const cmode = coverModeLocal();
   if (!coverDone) {
     if (isGzh()) n += imgCost;                                   // 公众号横版首图
+    else if (cmode === 'poster' && agentPosterSet()) n += cardCost * 6; // 多图整套：约 6 张
     else if (cmode === 'poster') n += imgCost;                   // 整图海报：1 张 AI 图
     else { try { n += (coverCount() || 3) * cardCost; } catch { n += cardCost * 3; } /*模版/AI备忘录：CSS真字卡×张数*/ if (cmode === 'ai_memo' && autoAiCoverOn()) n += imgCost; }
   }
@@ -3347,7 +3350,7 @@ async function autoRun() {
   const cnTxt = isGzh() ? '1 张横版首图' : (() => {
     try {
       const cm = coverModeLocal();
-      if (cm === 'poster') return '1 张 AI 整图海报';
+      if (cm === 'poster') return agentPosterSet() ? '珠宝多图整套（封面 + 4~6 张内页）' : '1 张 AI 整图海报';
       const n = coverCount() || 3;
       if (cm === 'template') return '封面模版 + ' + n + ' 张内页';
       return n + ' 张配图';
@@ -3399,7 +3402,11 @@ async function autoRun() {
       if (st.key === 'cover' && !isGzh()) {
         // 生图模式（智能体设置里选）：poster=AI整图海报 / template=封面模版 / ai_memo=AI封面+备忘录卡片（默认）
         const cmode = coverModeLocal();
-        if (cmode === 'poster') {
+        if (cmode === 'poster' && agentPosterSet()) {
+          // 智能体设置：整图海报默认「多图整套」→ 一键全套直接出封面+内页整套
+          setAuto('正在生成珠宝多图整套…（每张约 40~120 秒，请耐心等）');
+          try { await genJewelryMultiSet(true); } catch (e) { setAuto('多图整套没出全（' + (e.message || e) + '），可对缺的位单独重出'); }
+        } else if (cmode === 'poster') {
           setAuto('正在生成整图海报…（约 40~120 秒，中转较慢请耐心等）');
           try { await genInfographicPoster(); } catch (e) { setAuto('整图海报第 1 次没出来（' + (e.message || e) + '），自动再试一次…'); }
           // 珠宝/poster 模式：海报没出来 → 只重试海报本身，绝不退回 CSS 真字卡（那不是用户要的）
