@@ -199,8 +199,8 @@ function render(list) {
   list.sort((a, b) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
   box.innerHTML = list.map(card).join('');
   $$('.useBtn').forEach(b => b.addEventListener('click', () => {
-    if (EMBED) { try { parent.postMessage({ type: 'pickTopic', topic: b.dataset.topic }, '*'); } catch {} return; }
-    Draft.save({ topic: b.dataset.topic });
+    if (EMBED) { try { parent.postMessage({ type: 'pickTopic', topic: b.dataset.topic, jwCat: window.__jwCat || '' }, '*'); } catch {} return; }
+    Draft.save({ topic: b.dataset.topic, jwCat: window.__jwCat || '' });
     location.href = '/流水线.html';
   }));
 }

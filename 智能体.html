@@ -60,6 +60,22 @@
               <div class="text-[11px] text-[var(--ink-soft)] mt-1 leading-snug">套用自有封面模版排版，风格统一好复用</div>
             </button>
           </div>
+          <!-- 珠宝专属：AI整图海报的子版式（单图：科普/测评/单品/封面/招商；或多图套图）。仅珠宝账号 + 选了整图海报时显示 -->
+          <div id="posterSubPick" class="mt-2.5 rounded-xl p-3" style="display:none;background:#faf6ec;border:1px solid #e6d9b8">
+            <div class="text-[12px] font-medium mb-2" style="color:#7a5c1e">整图海报 · 默认子版式 <span class="text-[11px] font-normal" style="color:#a08a5a">（一键生成/第五步默认按这个出；到流水线仍可临时改）</span></div>
+            <div class="text-[11px] mb-1.5" style="color:#a08a5a">单图海报（一篇一张）</div>
+            <div class="flex flex-wrap gap-1.5 mb-2.5">
+              <button type="button" class="poster-sub" data-pk="珠宝科普">💎科普</button>
+              <button type="button" class="poster-sub" data-pk="珠宝测评">💎测评</button>
+              <button type="button" class="poster-sub" data-pk="珠宝单品">💎单品</button>
+              <button type="button" class="poster-sub" data-pk="珠宝封面">💎封面</button>
+              <button type="button" class="poster-sub" data-pk="珠宝招商">💎招商</button>
+            </div>
+            <div class="text-[11px] mb-1.5" style="color:#a08a5a">多图套图（封面 + 4~6 张内页）</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" class="poster-sub" data-pk="__set__">🗂️ 多图整套</button>
+            </div>
+          </div>
         </div>
         <!-- A1④ 配图风格库：参考图沉淀，配图默认调用 -->
         <div class="mt-3">
@@ -254,6 +270,7 @@ function load() {
   const b = c.boundary || {}; $('#bForbidden').value = b.forbidden || ''; $('#bFacts').value = b.facts || ''; $('#bTone').value = b.tone || ''; $('#bPrefs').value = c.prefs || '';
   // 兼容旧数据（纯 url 字符串）→ 统一成 {url, prompt}
   styleRefs = (Array.isArray(c.styleRefs) ? c.styleRefs : []).map(x => typeof x === 'string' ? { url: x, prompt: '' } : { url: (x && x.url) || '', prompt: (x && x.prompt) || '' }).filter(x => x.url);
+  posterKind = c.posterKind || ''; posterSet = !!c.posterSet; // 珠宝整图海报默认子版式
   setCoverModeUI(c.coverMode || defaultCoverMode()); // 生图模式：读配置，没配则按赛道默认
   // 「载入珠宝博主模板」只在珠宝赛道显示（按赛道，不按账号）——切到珠宝赛道才出，避免灌进母婴等其它赛道
   { const jb = $('#loadJewelryTpl'); if (jb) jb.style.display = window.isJwTrack(t) ? '' : 'none'; }
@@ -265,11 +282,28 @@ function defaultCoverMode() {
   return window.isJwTrack(t) ? 'poster' : 'ai_memo';
 }
 let coverMode = 'ai_memo';
+let posterKind = '';   // 珠宝整图海报默认子版式：珠宝科普/测评/单品/封面/招商（空=按赛道默认科普）
+let posterSet = false; // true=默认出多图整套
 function setCoverModeUI(m) {
   coverMode = (['ai_memo', 'poster', 'template'].includes(m)) ? m : 'ai_memo';
   document.querySelectorAll('.cover-mode').forEach(b => { const on = b.dataset.cm === coverMode; b.style.borderColor = on ? 'var(--cinnabar)' : 'var(--line)'; b.style.background = on ? 'rgba(165,129,58,.07)' : 'var(--paper)'; b.style.boxShadow = on ? 'inset 0 0 0 1px var(--cinnabar)' : 'none'; });
+  // 子版式面板：仅珠宝账号 + 选了整图海报时显示
+  const sub = document.getElementById('posterSubPick');
+  if (sub) sub.style.display = (coverMode === 'poster' && window.isJwTrack(TRACKS[curId] || {})) ? '' : 'none';
+  paintPosterSub();
 }
-document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.cover-mode'); if (b) setCoverModeUI(b.dataset.cm); });
+function paintPosterSub() {
+  const cur = posterSet ? '__set__' : (posterKind || '珠宝科普');
+  document.querySelectorAll('.poster-sub').forEach(b => {
+    const on = b.dataset.pk === cur;
+    b.style.cssText = `border:1px solid ${on ? '#a5813a' : '#d9c9a3'};border-radius:7px;padding:3px 10px;cursor:pointer;font-size:12px;font-weight:600;background:${on ? '#a5813a' : '#fff'};color:${on ? '#fff' : '#7a5c1e'}`;
+  });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.cover-mode'); if (b) { setCoverModeUI(b.dataset.cm); return; }
+  const p = e.target.closest && e.target.closest('.poster-sub');
+  if (p) { if (p.dataset.pk === '__set__') { posterSet = true; posterKind = ''; } else { posterSet = false; posterKind = p.dataset.pk; } paintPosterSub(); }
+});
 let styleRefs = [];
 function renderStyleRefs() {
   const box = document.getElementById('styleRefs'); if (!box) return;
@@ -372,6 +406,7 @@ $('#saveBtn').addEventListener('click', () => {
     prefs: $('#bPrefs').value.trim(), // 反思机制·创作偏好
     styleRefs: styleRefs, // A1④ 配图风格库（参考图）
     coverMode: coverMode, // 生图模式：ai_memo / poster / template
+    posterKind: posterKind, posterSet: posterSet, // 珠宝整图海报默认子版式（单图版式 / 多图整套）
   };
   // 自定义赛道：把赛道定义一并存进 config（_track），保证云端有完整定义、换设备可恢复
   try { if (typeof isCustomTrack === 'function' && isCustomTrack(curId) && TRACKS[curId]) cfg._track = TRACKS[curId]; } catch {}
