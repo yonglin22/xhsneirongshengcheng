@@ -2141,8 +2141,11 @@ ${cl ? '【封面主标题参考（仅当它与正文主题一致时才用；跑
       const parts = [];
       if (j.headline) parts.push('大标题：' + j.headline);
       if (j.sub) parts.push('副标题：' + j.sub);
-      (j.blocks || []).forEach((b) => { parts.push((b.h || '') + '：' + (Array.isArray(b.items) ? b.items.join('；') : '')); });
-      if (j.conclusion) parts.push('底部暖心话：' + j.conclusion);
+      // 珠宝招商＝极简引流图：只保留大标题＋一句短副标，砍掉所有板块/要点/结尾，杜绝把正文的 1)2)3)4) 长文塞满画面
+      if (kind !== '珠宝招商') {
+        (j.blocks || []).forEach((b) => { parts.push((b.h || '') + '：' + (Array.isArray(b.items) ? b.items.join('；') : '')); });
+        if (j.conclusion) parts.push('底部暖心话：' + j.conclusion);
+      }
       script = parts.join('\n');
     } catch { script = `主标题：${cl || state.topic}\n正文要点：${(body || state.topic).slice(0, 300)}`; }
     if (btn) btn.textContent = 'AI 出图中…';
@@ -2155,7 +2158,7 @@ ${cl ? '【封面主标题参考（仅当它与正文主题一致时才用；跑
 --- 海报文字脚本 ---
 ${script}
 --- 脚本结束 ---
-【重要】脚本里「大标题：」「副标题：」「底部暖心话：」这些冒号前的字只是分区标注，绝不要画进图里；每个小板块直接显示它自己的小标题（如「方案A 对比 方案B」），画面上绝不出现「区块1」「区块2」这类编号字样。
+【重要】脚本里「大标题：」「副标题：」「底部暖心话：」这些冒号前的字只是分区标注，绝不要画进图里；每个小板块直接显示它自己的小标题（如「方案A 对比 方案B」），画面上绝不出现「区块1」「区块2」这类编号字样。${kind === '珠宝招商' ? '\n【招商极简铁律·最高优先】整张图上只允许出现：正中一句大标题（拆 3 行、每行≤4 字、带感叹号）＋最多再来一行很短的小钩子。绝对不要出现任何要点、编号(1)2)3)4))、长句子、段落、清单——宁可留白，也绝不把文字塞满画面。文字只占画面正中一小块，四周全是珠宝静物和留白。' : ''}
 ${POSTER_KIND_HINT[kind]}
 ${(() => {
       if (kind && kind.startsWith('珠宝')) return JW_POSTER[kind];   // 珠宝版式（仅珠宝赛道会走到）
