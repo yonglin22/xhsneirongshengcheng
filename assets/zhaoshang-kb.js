@@ -33,14 +33,22 @@
   function kb() { const c = cached(); return c ? c.kb : BASE; }
   function meta() { const c = cached(); return c ? { at: c.at, count: c.count } : null; }
 
+  // 找到有插件桥接的窗口：选题页是 iframe 内嵌，插件只注入外层主页面，故需回退到 parent/top（同源可直接用）
+  function ext() {
+    if (window.xhsExt && window.xhsExt.available) return window.xhsExt;
+    try { if (window.parent && window.parent !== window && window.parent.xhsExt && window.parent.xhsExt.available) return window.parent.xhsExt; } catch {}
+    try { if (window.top && window.top !== window && window.top.xhsExt && window.top.xhsExt.available) return window.top.xhsExt; } catch {}
+    return null;
+  }
   // 用本机插件登录态抓取全部招商笔记正文，拼成知识库并缓存。onProgress(i,total,note) 汇报进度
   async function fetchAll(onProgress) {
-    if (!(window.xhsExt && window.xhsExt.available)) throw new Error('没检测到浏览器插件（请在装了插件、已登录小红书的浏览器里操作）');
+    const X = ext();
+    if (!X) throw new Error('没检测到浏览器插件（请在装了插件、已登录小红书的浏览器里操作）');
     const got = [];
     for (let i = 0; i < NOTES.length; i++) {
       const n = NOTES[i];
       if (onProgress) onProgress(i, NOTES.length, n);
-      let r = null; try { r = await window.xhsExt.fetchNote(n.url); } catch { r = null; }
+      let r = null; try { r = await X.fetchNote(n.url); } catch { r = null; }
       if (r && r.needLogin) throw new Error('请先在浏览器登录小红书后重试');
       if (r && r.ok) {
         const tags = (r.tags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
