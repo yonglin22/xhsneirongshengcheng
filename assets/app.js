@@ -340,8 +340,23 @@ window.healJwPollution = async function () {
   try { localStorage.setItem('ag_theme', 'light'); } catch (e) {}
 })();
 
-/* 各动作积分单价（与服务端 price_rules 一致，用于「执行前」预检提示；服务端 402 仍是最终闸） */
-window.ACTION_COST = { text: 3, topic: 5, skeleton: 5, frame: 5, copy: 10, cover: 0, rule_query: 5, imgplan: 0, compliance: 0 };
+/* 各动作积分单价（默认＝服务端 v3 price_rules，用于「执行前」预检与「约扣 X」预估；启动时再拉 /api/price 覆盖成后台实时价；服务端 402 仍是最终闸）
+   注意：内容各步(选题/拆解/框架/正文/规则)v3 都是 50；整图海报/封面卡片=image_card 30，垫真实图重出=image_i2i 100；自检/视觉/配图规划免费 */
+window.ACTION_COST = { text: 50, topic: 50, skeleton: 50, frame: 50, copy: 50, cover: 50, rule_query: 50, comment: 50, image_card: 30, image_i2i: 100, imgplan: 0, compliance: 0, vision: 0 };
+// 拉服务端真实价目覆盖（后台改价后前端预估同步；接口只回 text/image_*，内容各步与 text 同价=50）
+window.refreshPrices = async function () {
+  try {
+    const j = await (await fetch('/api/price')).json();
+    const r = j && j.rules; if (!r) return;
+    const t = (r.text != null ? r.text : 50);
+    Object.assign(window.ACTION_COST, {
+      text: t, topic: t, skeleton: t, frame: t, copy: t, cover: t, rule_query: t, comment: (r.comment != null ? r.comment : t),
+      image_card: (r.image_card != null ? r.image_card : 30), image_i2i: (r.image_i2i != null ? r.image_i2i : 100),
+      compliance: (r.compliance != null ? r.compliance : 0), vision: (r.vision != null ? r.vision : 0), imgplan: 0,
+    });
+  } catch {}
+};
+try { window.refreshPrices(); } catch {}
 window.__balance = null; // 当前余额（accountNav 拉 me 时写入，每次扣费后刷新）
 /* 积分不足全局弹框：直接引导去充值（任何页面通用，内联样式不依赖额外 CSS）*/
 window.creditModal = function (need, bal) {
