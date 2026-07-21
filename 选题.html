@@ -14,6 +14,11 @@
   body.embed > main{ padding-top:10px !important; }
   body.embed .mb-9{ margin-bottom:14px !important; }
   body.embed #stageBadge{ margin-top:0 !important; }   /* 标题隐藏后去掉顶部空隙，当前阶段徽标置顶 */
+  /* 候选卡两列 grid 防塌陷：强制等宽 minmax(0,1fr) + 内容可断行，避免长文本把一列撑爆、另一列被挤成一个字宽的竖排 */
+  #results{ grid-template-columns:1fr; }
+  @media(min-width:640px){ #results{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  #results > .card{ min-width:0; overflow-wrap:anywhere; word-break:break-word; }
+  #results .hl{ overflow-wrap:anywhere; word-break:break-word; }
 </style>
 </head>
 <body class="stage grain min-h-screen" data-page="topic">
