@@ -62,6 +62,7 @@
           <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="珠宝（彩宝/珍珠）" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">💎 珠宝</button>
           <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="水晶" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">🔮 水晶</button>
           <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="翡翠" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">🟢 翡翠</button>
+          <button type="button" class="jw-cat rounded-lg px-3 py-1 text-[12.5px]" data-cat="招商" style="border:1px solid var(--cinnabar);background:rgba(165,129,58,.08);color:var(--cinnabar-deep);cursor:pointer">🤝 招商</button>
         </div>
         <input id="direction" class="field w-full rounded-lg px-3.5 py-2.5 text-[14px]" placeholder="例：视觉传达考研 · 手绘快题 · 跨考" />
       </div>
@@ -275,11 +276,14 @@ $('#hotBtn').addEventListener('click', async () => {
 });
 
 // 智能体按当前阶段建议「人设 + 方向」（系统 prompt 默认带上智能体人设/KB）
+// 珠宝「招商 / 招代理」类目专属知识库——1:1 提炼自真实招商爆款笔记（彩宝/水晶/翡翠），选题·正文·出图都吃这套
+const JW_ZHAOSHANG_STYLE = '【本类目＝珠宝招商/招代理（供应链找代理、合伙人、分销、共创）·内容样式与选题范例】结合本账号源头供应链知识库 + 以下真实招商爆款套路出题：\n① 信任建场：「明码标价❗不杀熟不宰客❗专注老客」「提供鉴赏期·拒绝强买强卖」「后悔发现太晚·老客疯狂复购的彩宝朋友圈」——用真诚透明、老客复购截图/反馈建立信任，再引出招代理。\n② 招募钩子：「诚招代理／源头严选供应链」「XX共创计划·想搞钱的姐妹看过来」「代理招募·一件代发轻松挣💰」——强调源头一手货源、一件代发0囤货、低门槛轻资产。\n③ 行业前景：「00后勇闯水晶行业，还能不能做」「翡翠人必进·从毛料到成品全链路」「第一次做平价玉镯代理真的嘎嘎香」——讲赛道机会、亲身入行体验、平价好起步。\n④ 人群/场景：宝妈副业、上班族搞钱、宠物品牌不用自己囤货（供应链代发）、学生党轻创业。\n⑤ 品类可细分彩宝/水晶/翡翠三条线各自招商（彩宝重明码标价老客复购、水晶重共创计划一件代发、翡翠重平价玉镯代理·毛料成品全链路）。\n〔招商合规铁律〕只讲供应链优势/合作模式/真实体验，绝不承诺具体收入或「稳赚/月入过万」，不用拉人头·发展下线·入门费等传销话术，不夸大、不诱导，收益因人而异要如实。';
 // 珠宝三类目各自的「内容样式 + 具体选题范例」——注入建议 prompt，让出的方向贴她真实爆款套路
 const JW_CAT_STYLES = {
   '珠宝（彩宝/珍珠）': '【本类目内容样式与选题范例】分级科普（蓝宝：皇家蓝 vs 矢车菊怎么分；红宝：鸽血红「主证」和「副证」区别）；产地对比（蓝宝斯里兰卡 vs 马达加斯加；红宝缅甸 vs 莫桑比克）；证书解读（GUILD吉尔德/GRS 怎么看）；避坑鉴别（无烧老烧、拒染色/注胶/充填、铍扩散、别把红色尖晶石当红宝）；VS 对比（帕帕拉恰 vs 帕拉伊巴、蓝宝 vs 红宝哪个更名贵）；破误区（加热=假宝石吗）；稀有宝石种草（帕拉伊巴神仙色马尔代夫海、祖母绿油滴/达碧兹、猫眼星光、珍珠皮光/keshi）。',
   '水晶': '【本类目内容样式与选题范例】品类科普（草莓晶/发晶红绿黑钛/绿幽灵/紫龙晶/福禄寿/兔毛/黄晶/多宝各是什么）；鉴别真假（天然 vs 玻璃、染色粉晶、绿幽灵真假三招）；佩戴禁忌与消磁保养（怎么消磁、会不会褪色、能戴着睡吗、破了怎么办、佩戴禁忌）；人群推荐（男生适合哪些、孕妇能戴吗）；产地科普。〔合规铁律〕功效（招财/爱情运/疗愈/助学/辟邪）一律只作「传统文化寓意与佩戴陪伴感」，绝不写成真实功效/财运/疗效承诺。',
   '翡翠': '【本类目内容样式与选题范例】种水分级（龙石种>玻璃种>高冰>正冰>糯冰>糯>豆种，一张图看懂）；价格行话（小三/中四/大五是多少、手镯价位怎么看）；避坑（危料B/C货 vs 天然缅料A货、危料缅料怎么分）；破误区（翡翠是智商税吗、硬玉 vs 软玉、玉养人有没有科学依据）；行话解释（色根、翠性「蚊子脚/苍蝇翅」、水头）；价值评估与市场观察（这些年涨还是跌）。',
+  '招商': JW_ZHAOSHANG_STYLE,
 };
 async function doSuggest() {
   const tk = getTrack();
