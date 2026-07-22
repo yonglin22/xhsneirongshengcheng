@@ -1,9 +1,12 @@
 // 注入到朱砂(yonglin.chat)：把"插件已安装"告诉页面，并把页面的发布请求转给后台
 (function () {
   // 告知页面插件就绪（页面据此显示「插件发布」按钮可用）
-  const announce = () => window.postMessage({ __zhusha_ext: 'ready', v: '0.9.1' }, '*');
-  announce();
+  const announce = () => window.postMessage({ __zhusha_ext: 'ready', v: '0.9.2' }, '*');
+  // 多次重试宣告：避免页面脚本(app.js)监听器晚于本脚本注入而错过首次宣告（经典竞态，导致"装了却检测不到"）
+  [0, 150, 400, 900, 1800, 3000].forEach(t => setTimeout(announce, t));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { announce(); syncPersona(); } });
+  // SPA 多页应用切页/DOM 变化后也补一次
+  window.addEventListener('pageshow', announce);
 
   // 同步当前智能体人设到插件本地存储，供插件弹窗里直接执行计划时使用（无需打开网页）
   function syncPersona() {

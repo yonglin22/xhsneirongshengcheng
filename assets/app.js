@@ -73,7 +73,8 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
       f(e.data.result || { ok: false, error: '空响应' });
     }
   });
-  setTimeout(() => window.postMessage({ type: 'ZHUSHA_EXT_PING' }, '*'), 300); // 插件可能晚于本脚本注入，主动探一次
+  // 插件可能晚于本脚本注入，多次主动探测（避免只探一次错过 → "装了却检测不到"）
+  [300, 800, 1600, 3000].forEach(t => setTimeout(() => { if (!window.xhsExt.available) window.postMessage({ type: 'ZHUSHA_EXT_PING' }, '*'); }, t));
 })();
 
 /* 站内导航预热：多页应用每次点链接都是整页重新加载（重下 HTML/CSS/JS），在高延迟网络下
