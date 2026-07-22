@@ -99,9 +99,27 @@ window.$$ = (s, r = document) => [...r.querySelectorAll(s)];
 /* 全站共享的 /api/auth/me 请求：同一次页面加载内，登录守卫/顶栏/Cloud 各自都要查登录态，
    不去重会变成 3 个并发请求打到同一个接口，在高延迟网络下白白多等几百 ms 到几秒。
    force=true 用于登录/退出/充值后需要拿最新余额的场景。*/
+// 公共/演示赛道：只在管理员账号显示，其余账号一律隐藏（只保留自己的专属赛道）
+window.PUBLIC_ADMIN_TRACKS = ['art-grad', 'design-grad', 'career'];
+window.ADMIN_PHONE = '18268346784';
+window.gatePublicTracks = function (phone) {
+  try {
+    if (String(phone) === window.ADMIN_PHONE) return;           // 管理员：保留全部公共赛道
+    const order = window.TRACK_ORDER || [];
+    const remain = order.filter(id => window.PUBLIC_ADMIN_TRACKS.indexOf(id) < 0);
+    if (!remain.length) return;                                  // 移除后会一个赛道都不剩 → 不移除，避免卡死
+    const changed = remain.length !== order.length;
+    window.TRACK_ORDER = remain;                                 // 只移出列表（TRACKS 定义保留），公共赛道不再显示
+    const cur = localStorage.getItem('ag_track');
+    if (cur && window.PUBLIC_ADMIN_TRACKS.indexOf(cur) >= 0) { try { localStorage.setItem('ag_track', remain[0]); } catch {} } // 当前选的是被移除的赛道 → 切到第一个可用赛道
+    // 若页面已同步渲染过赛道 chips（如首页在 meFetch 前渲染），过滤后主动重渲染一次
+    if (changed && typeof window.rerenderTracks === 'function') { try { window.rerenderTracks(); } catch {} }
+  } catch (e) {}
+};
 window.meFetch = function (force) {
   if (force || !window.__mePromise) {
-    window.__mePromise = fetch('/api/auth/me').then(r => r.json()).catch(() => ({ ok: false }));
+    window.__mePromise = fetch('/api/auth/me').then(r => r.json()).catch(() => ({ ok: false }))
+      .then(j => { try { if (j && j.ok) window.gatePublicTracks(String(j.phone || '')); } catch {} return j; });
   }
   return window.__mePromise;
 };
