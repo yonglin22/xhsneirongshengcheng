@@ -1417,6 +1417,12 @@ const server = http.createServer(async (req, res) => {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       return sendJSON(res, 200, { ok: true, list: billing.agentConfigAll(uid) });
     }
+    // 管理员手动把「珠宝」赛道配置(含知识库)重新同步到珠宝账号 13696504558（改了模板后可重推）
+    if (pathname === '/api/agent-config/jw-resync' && req.method === 'POST') {
+      if (!isAdminReq(req)) return sendJSON(res, 403, { error: '仅管理员可操作' });
+      const r = billing.jwConfigSyncToLegacy(true);
+      return sendJSON(res, 200, { ok: !!(r && r.ok), result: r });
+    }
     if (pathname === '/api/agent-config' && req.method === 'POST') {
       const uid = authUid(req); if (!uid) return sendJSON(res, 401, { error: '请先登录' });
       const { trackId, config } = JSON.parse((await readBody(req)) || '{}');

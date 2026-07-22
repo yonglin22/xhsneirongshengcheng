@@ -837,7 +837,32 @@ priceMigrateV2(); // 一次性对齐 PRD §8 价格（幂等）
 priceMigrateV3(); // 一次性对齐 v3 价目（图生图100/卡片图30/自检免费/矩阵免费/其余50）（幂等）
 priceMigrateV4(); // 一次性把 AI 整图海报/生卡片图 image_card 提到 80（幂等）
 backfillApprovedAgents(); // 回填「已通过但没建赛道」的历史智能体申请（幂等）
+// 一次性：把管理员 18268346784 的「珠宝」赛道人设配置＋知识库（KB 就存在 config 里）同步到珠宝账号 13696504558，无需她手动。
+// 幂等：成功拷贝一次后打标，不再覆盖她后续的自定义；账号/配置还没就绪时不打标，下次启动重试。
+function jwConfigSyncToLegacy(force) {
+  try {
+    if (!force && settingsGet('jw_sync_legacy_v1')) return { ok: false, reason: 'already' };
+    const admin = db.prepare('SELECT id FROM users WHERE phone=?').get('18268346784');
+    const target = db.prepare('SELECT id FROM users WHERE phone=?').get('13696504558');
+    if (!admin || !target) return { ok: false, reason: 'no_account' };  // 账号未建 → 不打标，下次启动再试
+    const adminRows = agentConfigAll(admin.id);
+    const jw = (adminRows || []).find(r => r.config && r.config._track && r.config._track.name === '珠宝')
+            || (adminRows || []).find(r => String(r.trackId).indexOf('珠宝') >= 0);
+    if (!jw || !jw.config) return { ok: false, reason: 'no_jw_config' };  // 管理员还没配珠宝 → 下次再试
+    // 覆盖目标账号已有的「珠宝」赛道（若有），避免她那边出现两个珠宝赛道；没有则用管理员的 track_id
+    const targetJw = (agentConfigAll(target.id) || []).find(r => r.config && r.config._track && r.config._track.name === '珠宝');
+    const useTrackId = targetJw ? targetJw.trackId : jw.trackId;
+    const cfg = JSON.parse(JSON.stringify(jw.config));
+    if (cfg._track) cfg._track.id = useTrackId;           // 保持 track_id 与 _track.id 一致
+    agentConfigSave(target.id, useTrackId, cfg);          // 她登录后 syncAgentConfigsDown 自动拉到（人设+画风+KB 全套）
+    settingsSet('jw_sync_legacy_v1', 1);
+    try { console.log('[jwSync] 已把管理员珠宝配置同步到 13696504558（track ' + useTrackId + '）'); } catch {}
+    return { ok: true, trackId: useTrackId };
+  } catch (e) { try { console.log('[jwSync] 跳过：', e.message); } catch {} return { ok: false, reason: e.message }; }
+}
+jwConfigSyncToLegacy();
 module.exports = {
+  jwConfigSyncToLegacy,
   signSession, verifySession, setCode, checkCode,
   getOrCreateUser, getUser, getUserByPhone, setNickname, userStats, getBalance, getPrice,
   grant, deduct, adminAdjust, createOrder, getOrder, markPaid, recentLedger, SIGNUP_GRANT,
